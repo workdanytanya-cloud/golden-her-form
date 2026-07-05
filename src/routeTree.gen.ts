@@ -22,6 +22,7 @@ import { Route as AuthenticatedDashboardProgressRouteImport } from './routes/_au
 import { Route as AuthenticatedDashboardProfileRouteImport } from './routes/_authenticated/dashboard.profile'
 import { Route as AuthenticatedDashboardOnboardingRouteImport } from './routes/_authenticated/dashboard.onboarding'
 import { Route as AuthenticatedAdminClientsIdRouteImport } from './routes/_authenticated/admin.clients.$id'
+import { Route as AuthenticatedAdminClientsIdOnboardingRouteImport } from './routes/_authenticated/admin.clients.$id.onboarding'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -92,6 +93,12 @@ const AuthenticatedAdminClientsIdRoute =
     path: '/clients/$id',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminClientsIdOnboardingRoute =
+  AuthenticatedAdminClientsIdOnboardingRouteImport.update({
+    id: '/onboarding',
+    path: '/onboarding',
+    getParentRoute: () => AuthenticatedAdminClientsIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -105,7 +112,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/progress': typeof AuthenticatedDashboardProgressRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
-  '/admin/clients/$id': typeof AuthenticatedAdminClientsIdRoute
+  '/admin/clients/$id': typeof AuthenticatedAdminClientsIdRouteWithChildren
+  '/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -117,7 +125,8 @@ export interface FileRoutesByTo {
   '/dashboard/progress': typeof AuthenticatedDashboardProgressRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
-  '/admin/clients/$id': typeof AuthenticatedAdminClientsIdRoute
+  '/admin/clients/$id': typeof AuthenticatedAdminClientsIdRouteWithChildren
+  '/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -133,7 +142,8 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/progress': typeof AuthenticatedDashboardProgressRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
-  '/_authenticated/admin/clients/$id': typeof AuthenticatedAdminClientsIdRoute
+  '/_authenticated/admin/clients/$id': typeof AuthenticatedAdminClientsIdRouteWithChildren
+  '/_authenticated/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/dashboard/'
     | '/admin/clients/$id'
+    | '/admin/clients/$id/onboarding'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/admin/clients/$id'
+    | '/admin/clients/$id/onboarding'
   id:
     | '__root__'
     | '/'
@@ -177,6 +189,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/admin/clients/$id'
+    | '/_authenticated/admin/clients/$id/onboarding'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -280,17 +293,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminClientsIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/clients/$id/onboarding': {
+      id: '/_authenticated/admin/clients/$id/onboarding'
+      path: '/onboarding'
+      fullPath: '/admin/clients/$id/onboarding'
+      preLoaderRoute: typeof AuthenticatedAdminClientsIdOnboardingRouteImport
+      parentRoute: typeof AuthenticatedAdminClientsIdRoute
+    }
   }
 }
 
+interface AuthenticatedAdminClientsIdRouteChildren {
+  AuthenticatedAdminClientsIdOnboardingRoute: typeof AuthenticatedAdminClientsIdOnboardingRoute
+}
+
+const AuthenticatedAdminClientsIdRouteChildren: AuthenticatedAdminClientsIdRouteChildren =
+  {
+    AuthenticatedAdminClientsIdOnboardingRoute:
+      AuthenticatedAdminClientsIdOnboardingRoute,
+  }
+
+const AuthenticatedAdminClientsIdRouteWithChildren =
+  AuthenticatedAdminClientsIdRoute._addFileChildren(
+    AuthenticatedAdminClientsIdRouteChildren,
+  )
+
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
-  AuthenticatedAdminClientsIdRoute: typeof AuthenticatedAdminClientsIdRoute
+  AuthenticatedAdminClientsIdRoute: typeof AuthenticatedAdminClientsIdRouteWithChildren
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
-  AuthenticatedAdminClientsIdRoute: AuthenticatedAdminClientsIdRoute,
+  AuthenticatedAdminClientsIdRoute:
+    AuthenticatedAdminClientsIdRouteWithChildren,
 }
 
 const AuthenticatedAdminRouteWithChildren =
