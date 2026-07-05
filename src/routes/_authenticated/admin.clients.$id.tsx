@@ -337,3 +337,89 @@ function F({ label, span, children }: { label: string; span?: string; children: 
     </label>
   );
 }
+
+function AccessManager({
+  status,
+  activatedAt,
+  onboardingCompleted,
+  onGrant,
+  onRevoke,
+  loading,
+}: {
+  status: string | null;
+  activatedAt: string | null;
+  onboardingCompleted: boolean;
+  onGrant: () => void;
+  onRevoke: () => void;
+  loading: boolean;
+}) {
+  const isActive = status === "active";
+  const isAwaiting = status === "awaiting_approval";
+  const isPending = status === "pending_onboarding" || status === null;
+  const isSuspended = status === "suspended";
+
+  const label = isActive
+    ? "Курс открыт"
+    : isAwaiting
+      ? "Ожидает подтверждения тренера"
+      : isSuspended
+        ? "Доступ приостановлен"
+        : "Анкета не заполнена";
+
+  const tone = isActive
+    ? "from-emerald-500/20 to-transparent ring-emerald-500/40 text-emerald-200"
+    : isAwaiting
+      ? "from-gold/20 to-transparent ring-gold/40 text-gold"
+      : isSuspended
+        ? "from-coral/20 to-transparent ring-coral/40 text-coral"
+        : "from-surface/60 to-transparent ring-gold/15 text-warm-gray";
+
+  return (
+    <section
+      className={`flex flex-col gap-4 rounded-3xl bg-gradient-to-br ${tone} p-6 ring-1 backdrop-blur md:flex-row md:items-center md:justify-between`}
+    >
+      <div>
+        <p className="text-[11px] uppercase tracking-widest opacity-80">Доступ к курсу</p>
+        <p className="mt-1 font-display text-xl text-ivory">{label}</p>
+        {isActive && activatedAt && (
+          <p className="mt-1 text-xs text-warm-gray">
+            Открыт {new Date(activatedAt).toLocaleDateString("ru-RU")}
+          </p>
+        )}
+        {isPending && (
+          <p className="mt-1 text-xs text-warm-gray">
+            Клиент увидит только раздел анкеты, пока не отправит её
+          </p>
+        )}
+        {isAwaiting && (
+          <p className="mt-1 text-xs text-warm-gray">
+            Проверьте ответы клиента и откройте доступ к курсу и трекингу прогресса
+          </p>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {!isActive && (
+          <button
+            onClick={onGrant}
+            disabled={loading || (!onboardingCompleted && !isSuspended)}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+            title={!onboardingCompleted && !isSuspended ? "Дождитесь заполнения анкеты" : undefined}
+          >
+            <Unlock className="h-4 w-4" />
+            {isSuspended ? "Возобновить доступ" : "Открыть курс"}
+          </button>
+        )}
+        {isActive && (
+          <button
+            onClick={onRevoke}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-full border border-coral/40 px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-coral/15 disabled:opacity-50"
+          >
+            <Lock className="h-4 w-4" /> Приостановить
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
