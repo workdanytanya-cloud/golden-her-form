@@ -210,9 +210,13 @@ function DashboardOverview() {
               {measurements.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="px-5 py-8 text-center text-warm-gray">
-                    Пока пусто — добавьте первый замер
+                    Пока пусто —{" "}
+                    <Link to="/dashboard/progress" className="text-gold hover:text-ivory">
+                      добавьте первый замер <LineChartIcon className="inline h-3 w-3" />
+                    </Link>
                   </td>
                 </tr>
+
               ) : (
                 measurements.map((m) => (
                   <tr key={m.id}>
