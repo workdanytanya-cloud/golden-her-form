@@ -133,7 +133,12 @@ function DashboardOverview() {
       )}
 
       <AccessGate level="onboarding_submitted">
-        <div className="space-y-10">
+        <div className="space-y-8">
+          <SectionHint tone="tip" title="Быстрая подсказка">
+            Раз в неделю добавляйте замеры в разделе «Прогресс» — это главный источник вашей
+            динамики. Цель храните в профиле — она будет вести вас каждый день.
+          </SectionHint>
+
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
