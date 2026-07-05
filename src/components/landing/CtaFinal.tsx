@@ -17,7 +17,7 @@ export function CtaFinal() {
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(11,11,12,0.55) 0%, rgba(11,11,12,0.35) 50%, rgba(11,11,12,0.85) 100%)",
+              "linear-gradient(180deg, oklch(0.965 0.024 78) 0%, rgba(247,232,208,0.35) 20%, rgba(30,15,10,0.35) 55%, rgba(30,15,10,0.55) 100%), radial-gradient(60% 50% at 20% 40%, rgba(255,140,80,0.30), transparent 70%)",
           }}
         />
       </div>
