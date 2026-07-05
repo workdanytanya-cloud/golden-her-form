@@ -56,11 +56,51 @@ function NutritionInner() {
       loadPlanFor(effectiveUserId),
       loadTargetProfile(effectiveUserId),
     ]);
+    const freshTargets = calcTargets(prof);
+    const freshExcluded = extractExcludedFromText(prof.allergies, prof.disliked_foods);
+
+    // Auto-refresh: если анкета/замеры изменились и КБЖУ не зафиксированы тренером —
+    // пересобираем план под новые цифры.
+    let finalPlan = p.plan;
+    let finalDays = p.days;
+    if (p.plan && !p.plan.targets_manual) {
+      const targetsChanged =
+        p.plan.target_kcal !== freshTargets.kcal ||
+        p.plan.target_protein_g !== freshTargets.protein_g ||
+        p.plan.target_fat_g !== freshTargets.fat_g ||
+        p.plan.target_carbs_g !== freshTargets.carbs_g;
+      const excludedChanged =
+        [...(p.plan.excluded_products ?? [])].sort().join("|") !==
+        [...freshExcluded].sort().join("|");
+      if (targetsChanged || excludedChanged) {
+        try {
+          const res = await createOrReplacePlan({
+            userId: effectiveUserId,
+            mealsPerDay: (p.plan.meals_per_day as 3 | 5),
+            preferred: p.plan.preferred_products ?? [],
+            excluded: freshExcluded,
+            targets: freshTargets,
+            targetsManual: false,
+            dishes: d,
+          });
+          finalPlan = res.plan;
+          finalDays = res.days;
+          toast.success(
+            targetsChanged
+              ? `Меню обновлено под новую норму ${freshTargets.kcal} ккал`
+              : "Меню обновлено под новые ограничения по продуктам",
+          );
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+
     setDishes(d);
-    setPlan(p.plan);
-    setDays(p.days);
-    setSuggested(calcTargets(prof));
-    setAutoExcluded(extractExcludedFromText(prof.allergies, prof.disliked_foods));
+    setPlan(finalPlan);
+    setDays(finalDays);
+    setSuggested(freshTargets);
+    setAutoExcluded(freshExcluded);
     setLoading(false);
   };
 
