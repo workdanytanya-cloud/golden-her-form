@@ -44,7 +44,7 @@ export function About() {
               </div>
               <div className="glass absolute -top-6 -right-4 hidden max-w-[220px] rounded-2xl p-5 sm:block">
                 <p className="eyebrow">Миссия</p>
-                <p className="mt-2 font-display text-lg leading-snug text-ivory">
+                <p className="mt-2 font-display text-lg leading-snug text-foreground">
                   Гармония с телом и едой — навсегда.
                 </p>
               </div>
@@ -53,12 +53,12 @@ export function About() {
 
           <Reveal className="lg:col-span-7" delay={120}>
             <p className="eyebrow">PanovaPRO · Обо мне</p>
-            <h2 className="mt-6 font-display text-4xl leading-tight text-ivory sm:text-5xl lg:text-6xl">
+            <h2 className="mt-6 font-display text-4xl leading-tight text-foreground sm:text-5xl lg:text-6xl">
               Меня зовут <span className="gold-text italic">Татьяна Панова.</span>
               <br />И я знаю, как <span className="text-coral italic">вернуть</span> тебя себе.
             </h2>
 
-            <div className="mt-8 space-y-5 max-w-xl text-base leading-relaxed text-ivory/75">
+            <div className="mt-8 space-y-5 max-w-xl text-base leading-relaxed text-foreground/75">
               <p>
                 Я — фитнес-тренер и наставник. Каждый месяц «спасаю» девушек и женщин от признаков
                 РПП, монодиет, волшебных бобов и миллионных повторений на пресс, которые не приносят
@@ -75,7 +75,7 @@ export function About() {
                 Авторская программа помогает оставаться в гармонии с едой и чувствовать себя
                 комфортно на праздниках и в отпуске.
               </p>
-              <p className="text-ivory">
+              <p className="text-foreground">
                 От неуверенности и комплексов к фигуре мечты — всего один шаг.{" "}
                 <span className="gold-text">Давайте сделаем его вместе.</span>
               </p>
@@ -87,7 +87,7 @@ export function About() {
                   key={b}
                   className="rounded-2xl border border-gold/25 bg-surface/60 px-4 py-4 text-center"
                 >
-                  <p className="font-display text-sm text-ivory">{b}</p>
+                  <p className="font-display text-sm text-foreground">{b}</p>
                 </div>
               ))}
             </div>
@@ -102,7 +102,7 @@ export function About() {
                       <span className="absolute h-3 w-3 rounded-full border border-gold/40" />
                     </span>
                     <div className="font-display text-xl text-gold">{t.year}</div>
-                    <p className="mt-1 text-sm text-ivory/70">{t.text}</p>
+                    <p className="mt-1 text-sm text-foreground/70">{t.text}</p>
                   </Reveal>
                 ))}
               </ol>

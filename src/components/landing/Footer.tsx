@@ -8,11 +8,11 @@ export function Footer() {
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3">
               <img src={logoAsset.url} alt="PanovaPRO" className="h-10 w-10 object-contain" />
-              <span className="font-display text-lg tracking-wide text-ivory">
+              <span className="font-display text-lg tracking-wide text-foreground">
                 Panova<span className="text-gold">PRO</span>
               </span>
             </div>
-            <p className="mt-6 max-w-md text-sm leading-relaxed text-ivory/65">
+            <p className="mt-6 max-w-md text-sm leading-relaxed text-foreground/65">
               Татьяна Панова — фитнес-тренер и наставник. Авторская система похудения без срывов,
               монодиет и голодовок. Онлайн, из любой точки мира.
             </p>
@@ -20,7 +20,7 @@ export function Footer() {
 
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-warm-gray">Контакты</p>
-            <ul className="mt-5 space-y-3 text-sm text-ivory/80">
+            <ul className="mt-5 space-y-3 text-sm text-foreground/80">
               <li><a href="mailto:hello@panovapro.ru" className="gold-underline">hello@panovapro.ru</a></li>
               <li><a href="https://t.me/panovapro" target="_blank" rel="noreferrer noopener" className="gold-underline">Telegram</a></li>
               <li><a href="https://instagram.com/panovapro" target="_blank" rel="noreferrer noopener" className="gold-underline">Instagram</a></li>
@@ -29,7 +29,7 @@ export function Footer() {
 
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-warm-gray">Разделы</p>
-            <ul className="mt-5 space-y-3 text-sm text-ivory/80">
+            <ul className="mt-5 space-y-3 text-sm text-foreground/80">
               <li><a href="#about" className="gold-underline">О тренере</a></li>
               <li><a href="#programs" className="gold-underline">Программы</a></li>
               <li><a href="#results" className="gold-underline">Результаты</a></li>
