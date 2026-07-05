@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
-import { ArrowRight, Clock, ClipboardList, Sparkles } from "lucide-react";
+import { JourneyStepper } from "@/components/panel/JourneyStepper";
+import { SectionHint } from "@/components/panel/Hints";
+import { ArrowRight, Clock, ClipboardList, Sparkles, User, LineChart as LineChartIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardOverview,
