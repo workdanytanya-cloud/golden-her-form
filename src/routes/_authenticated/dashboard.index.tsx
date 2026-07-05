@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, ClipboardList, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardOverview,
@@ -26,6 +26,7 @@ function DashboardOverview() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -43,6 +44,13 @@ function DashboardOverview() {
       .order("measured_on", { ascending: false })
       .limit(5)
       .then(({ data }) => setMeasurements((data ?? []) as Measurement[]));
+
+    void supabase
+      .from("onboarding_responses")
+      .select("completed_at")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setOnboardingDone(Boolean((data as { completed_at?: string } | null)?.completed_at)));
   }, [user]);
 
   const latest = measurements[0];
@@ -59,6 +67,24 @@ function DashboardOverview() {
         title={`Добро пожаловать${profile?.full_name ? `, ${profile.full_name}` : ""}`}
         description="Отслеживайте прогресс, обновляйте замеры и держите цель перед глазами."
       />
+
+      {onboardingDone === false && (
+        <Link
+          to="/dashboard/onboarding"
+          className="group flex items-center gap-4 rounded-3xl border border-coral/40 bg-gradient-to-r from-coral/15 via-transparent to-gold/15 p-6 transition-transform hover:scale-[1.01]"
+        >
+          <div className="rounded-2xl bg-coral/20 p-3 text-coral">
+            <ClipboardList className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="eyebrow">Первый шаг</p>
+            <p className="mt-1 font-display text-lg text-ivory">
+              Заполните первичную анкету — на её основе тренер соберёт программу
+            </p>
+          </div>
+          <ArrowRight className="h-5 w-5 shrink-0 text-gold transition-transform group-hover:translate-x-1" />
+        </Link>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard

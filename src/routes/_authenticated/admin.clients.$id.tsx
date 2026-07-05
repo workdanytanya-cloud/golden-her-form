@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ClipboardList, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id")({
@@ -108,6 +108,15 @@ function ClientDetail() {
         eyebrow="Клиент"
         title={profile?.full_name || "Без имени"}
         description={profile?.goal || "Цель не задана"}
+        action={
+          <Link
+            to="/admin/clients/$id/onboarding"
+            params={{ id }}
+            className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
+          >
+            <ClipboardList className="h-4 w-4" /> Анкета онбординга
+          </Link>
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

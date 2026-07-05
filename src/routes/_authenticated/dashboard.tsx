@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, LineChart, User } from "lucide-react";
+import { ClipboardList, LayoutDashboard, LineChart, User } from "lucide-react";
 import { PanelShell, type PanelNavItem } from "@/components/panel/PanelShell";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -8,6 +8,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 const nav: PanelNavItem[] = [
   { to: "/dashboard", label: "Обзор", icon: <LayoutDashboard className="h-4 w-4" />, exact: true },
+  { to: "/dashboard/onboarding", label: "Анкета", icon: <ClipboardList className="h-4 w-4" /> },
   { to: "/dashboard/progress", label: "Прогресс", icon: <LineChart className="h-4 w-4" /> },
   { to: "/dashboard/profile", label: "Профиль", icon: <User className="h-4 w-4" /> },
 ];
