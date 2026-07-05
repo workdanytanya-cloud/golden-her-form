@@ -276,11 +276,11 @@ function OnboardingPage() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <PanelHeader
         eyebrow="Онбординг"
         title="Первичная анкета"
-        description="Ответы помогут собрать программу и сопровождение под вас. Заполните всё, что можете — тренер увидит анкету сразу после отправки."
+        description="Ответы помогут собрать программу и сопровождение под вас."
         action={
           completed ? (
             <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 text-xs uppercase tracking-widest text-gold">
@@ -289,6 +289,15 @@ function OnboardingPage() {
           ) : undefined
         }
       />
+
+      {!completed && (
+        <SectionHint tone="tip" title="Как проходить анкету">
+          Займёт 5–7 минут. Отвечайте честно — чем точнее ответы, тем точнее программа. Можно
+          сохранить черновик и вернуться позже: кнопка <strong className="text-ivory">«Сохранить черновик»</strong> внизу.
+          Отправляйте, только когда всё заполнено — после отправки откроется курс.
+        </SectionHint>
+      )}
+
 
       <Section title="Цель" step="1">
         <Field label="Основная цель">
