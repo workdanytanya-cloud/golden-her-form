@@ -73,13 +73,13 @@ function DashboardOverview() {
       />
 
       <JourneyStepper
-        accessStatus={accessStatus}
+        effectiveAccessStatus={effectiveAccessStatus}
         onboardingDone={Boolean(onboardingDone)}
         measurementsCount={measurements.length}
       />
 
       {/* Крупная приветственная карточка для новичков */}
-      {onboardingDone === false && accessStatus === "pending_onboarding" && (
+      {onboardingDone === false && effectiveAccessStatus === "pending_onboarding" && (
         <section className="overflow-hidden rounded-3xl border border-coral/30 bg-gradient-to-br from-coral/15 via-background/40 to-gold/15 p-6 md:p-8">
           <p className="eyebrow">Первый шаг</p>
           <h2 className="mt-2 font-display text-2xl text-ivory md:text-3xl">
@@ -110,7 +110,7 @@ function DashboardOverview() {
         </section>
       )}
 
-      {accessStatus === "awaiting_approval" && (
+      {effectiveAccessStatus === "awaiting_approval" && (
         <div className="flex items-start gap-4 rounded-3xl border border-gold/25 bg-gradient-to-r from-gold/10 via-transparent to-coral/10 p-6">
           <div className="rounded-2xl bg-gold/20 p-3 text-gold">
             <Clock className="h-5 w-5" />
