@@ -45,14 +45,16 @@ export function PanelShell({
             <span className="ml-2 text-[10px] uppercase tracking-widest text-gold">{brandSuffix}</span>
           )}
         </Link>
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="rounded-full border border-gold/25 p-2 text-ivory"
-          aria-label="Меню"
-        >
-          {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-        </button>
-      </div>
+        <div className="flex items-center gap-2">
+          {role === "admin" && <NotificationsBell />}
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="rounded-full border border-gold/25 p-2 text-ivory"
+            aria-label="Меню"
+          >
+            {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
+        </div>
 
       <div className="mx-auto flex max-w-7xl">
         {/* Sidebar */}
