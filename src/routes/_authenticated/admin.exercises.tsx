@@ -397,7 +397,7 @@ function Field({
 function EditDialog({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur">
-      <div className="my-8 w-full max-w-3xl rounded-3xl border border-gold/20 bg-surface/95 p-6 shadow-2xl">
+      <div className="relative my-8 w-full max-w-3xl rounded-3xl border border-gold/20 bg-surface/95 p-6 shadow-2xl">
         <button
           onClick={onClose}
           className="absolute right-6 top-6 rounded-full p-1.5 text-warm-gray hover:bg-gold/10 hover:text-ivory"
