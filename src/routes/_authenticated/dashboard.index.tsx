@@ -64,29 +64,49 @@ function DashboardOverview() {
       : null;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <PanelHeader
         eyebrow="Личный кабинет"
         title={`Добро пожаловать${profile?.full_name ? `, ${profile.full_name}` : ""}`}
-        description="Отслеживайте прогресс, обновляйте замеры и держите цель перед глазами."
+        description="Здесь вы шаг за шагом идёте к цели. Подсказки ниже подскажут, что делать сейчас."
       />
 
+      <JourneyStepper
+        accessStatus={accessStatus}
+        onboardingDone={Boolean(onboardingDone)}
+        measurementsCount={measurements.length}
+      />
+
+      {/* Крупная приветственная карточка для новичков */}
       {onboardingDone === false && accessStatus === "pending_onboarding" && (
-        <Link
-          to="/dashboard/onboarding"
-          className="group flex items-center gap-4 rounded-3xl border border-coral/40 bg-gradient-to-r from-coral/15 via-transparent to-gold/15 p-6 transition-transform hover:scale-[1.01]"
-        >
-          <div className="rounded-2xl bg-coral/20 p-3 text-coral">
-            <ClipboardList className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <p className="eyebrow">Первый шаг</p>
-            <p className="mt-1 font-display text-lg text-ivory">
-              Заполните первичную анкету — все разделы откроются после отправки
-            </p>
-          </div>
-          <ArrowRight className="h-5 w-5 shrink-0 text-gold transition-transform group-hover:translate-x-1" />
-        </Link>
+        <section className="overflow-hidden rounded-3xl border border-coral/30 bg-gradient-to-br from-coral/15 via-background/40 to-gold/15 p-6 md:p-8">
+          <p className="eyebrow">Первый шаг</p>
+          <h2 className="mt-2 font-display text-2xl text-ivory md:text-3xl">
+            Заполните анкету — и мы соберём программу под вас
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-warm-gray">
+            Это займёт 5–7 минут. Расскажите о цели, здоровье и привычках — тренер составит план
+            тренировок и питания именно под вас. После отправки анкеты откроется курс и трекинг замеров.
+          </p>
+          <ol className="mt-5 grid gap-3 text-sm text-warm-gray md:grid-cols-3">
+            <li className="rounded-2xl border border-gold/15 bg-background/40 p-4">
+              <span className="text-gold">1.</span> Ответьте на вопросы анкеты
+            </li>
+            <li className="rounded-2xl border border-gold/15 bg-background/40 p-4">
+              <span className="text-gold">2.</span> Тренер проверит и назначит программу
+            </li>
+            <li className="rounded-2xl border border-gold/15 bg-background/40 p-4">
+              <span className="text-gold">3.</span> Вы начинаете курс и ведёте замеры
+            </li>
+          </ol>
+          <Link
+            to="/dashboard/onboarding"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-6 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02]"
+          >
+            <ClipboardList className="h-4 w-4" /> Заполнить анкету
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </section>
       )}
 
       {accessStatus === "awaiting_approval" && (
@@ -97,8 +117,17 @@ function DashboardOverview() {
           <div>
             <p className="eyebrow">Анкета отправлена</p>
             <p className="mt-1 font-display text-lg text-ivory">
-              Тренер проверяет вашу анкету — доступ к курсу и трекингу прогресса откроется после назначения программы
+              Тренер проверяет вашу анкету
             </p>
+            <p className="mt-1 text-sm text-warm-gray">
+              Обычно это занимает 1–2 дня. Пока можно заполнить профиль — так тренер узнает вас лучше.
+            </p>
+            <Link
+              to="/dashboard/profile"
+              className="mt-3 inline-flex items-center gap-2 text-sm text-gold hover:text-ivory"
+            >
+              <User className="h-4 w-4" /> Открыть профиль <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       )}
