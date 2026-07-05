@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { MediaUpload } from "@/components/panel/MediaUpload";
+import { ExerciseMedia } from "@/components/panel/ExerciseMedia";
 import { Search, Save, Trash2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
