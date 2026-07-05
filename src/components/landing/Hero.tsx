@@ -33,7 +33,7 @@ export function Hero() {
         className="absolute inset-0 -z-10"
         style={{
           background:
-            "linear-gradient(180deg, rgba(11,10,8,0.55) 0%, rgba(11,10,8,0.25) 35%, rgba(11,10,8,0.85) 100%), radial-gradient(70% 60% at 15% 30%, rgba(230,120,70,0.22), transparent 70%), radial-gradient(60% 60% at 90% 80%, rgba(220,170,90,0.20), transparent 70%)",
+            "linear-gradient(180deg, rgba(30,15,10,0.35) 0%, rgba(30,15,10,0.15) 35%, rgba(247,232,208,0.55) 80%, oklch(0.965 0.024 78) 100%), radial-gradient(70% 60% at 15% 30%, rgba(255,150,90,0.28), transparent 70%), radial-gradient(60% 60% at 90% 80%, rgba(255,200,110,0.30), transparent 70%)",
         }}
         aria-hidden
       />
