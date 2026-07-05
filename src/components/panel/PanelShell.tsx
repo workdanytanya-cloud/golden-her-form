@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
-import { Menu, X, LogOut } from "lucide-react";
+import { Lock, Menu, X, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { NotificationsBell } from "./NotificationsBell";
@@ -10,6 +10,7 @@ export type PanelNavItem = {
   label: string;
   icon: ReactNode;
   exact?: boolean;
+  disabled?: boolean;
 };
 
 export function PanelShell({
