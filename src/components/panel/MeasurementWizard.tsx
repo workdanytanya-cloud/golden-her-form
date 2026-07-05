@@ -18,6 +18,20 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { BodyDiagram } from "./BodyDiagram";
+
+type Zone = "weight" | "waist" | "hips" | "chest";
+const zoneForStep = (key: keyof FormState): Zone =>
+  key === "waist_cm" ? "waist" : key === "hips_cm" ? "hips" : key === "chest_cm" ? "chest" : "weight";
+const zoneCaption = (key: keyof FormState): string =>
+  key === "waist_cm"
+    ? "На 2–3 см выше пупка"
+    : key === "hips_cm"
+      ? "По самой широкой точке ягодиц"
+      : key === "chest_cm"
+        ? "По самой выступающей точке груди"
+        : "Взвешивайтесь босиком";
+
 
 
 type FormState = {
