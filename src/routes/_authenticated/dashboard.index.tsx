@@ -24,7 +24,7 @@ type Measurement = {
 };
 
 function DashboardOverview() {
-  const { user } = useAuth();
+  const { user, accessStatus } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
