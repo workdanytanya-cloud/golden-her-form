@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
-import { ArrowLeft, ClipboardList, Eye, Lock, Plus, Trash2, Unlock } from "lucide-react";
+import { ArrowLeft, ClipboardList, Eye, Lock, Plus, Trash2, Unlock, Utensils } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id")({
@@ -179,6 +179,13 @@ function ClientDetail() {
             >
               <Eye className="h-4 w-4" /> Просмотр как клиент
             </button>
+            <Link
+              to="/admin/clients/$id/nutrition"
+              params={{ id }}
+              className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
+            >
+              <Utensils className="h-4 w-4" /> Меню питания
+            </Link>
             <Link
               to="/admin/clients/$id/onboarding"
               params={{ id }}

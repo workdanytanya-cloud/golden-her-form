@@ -74,6 +74,63 @@ export type Database = {
         }
         Relationships: []
       }
+      dishes: {
+        Row: {
+          calories_per_100g: number
+          carbs_per_100g: number
+          created_at: string
+          description: string | null
+          fat_per_100g: number
+          id: string
+          ingredients: Json
+          meal_type: string
+          name: string
+          portion_weight_g: number
+          protein_per_100g: number
+          replacements: string[]
+          slug: string
+          steps: Json
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          calories_per_100g: number
+          carbs_per_100g: number
+          created_at?: string
+          description?: string | null
+          fat_per_100g: number
+          id?: string
+          ingredients?: Json
+          meal_type: string
+          name: string
+          portion_weight_g: number
+          protein_per_100g: number
+          replacements?: string[]
+          slug: string
+          steps?: Json
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          calories_per_100g?: number
+          carbs_per_100g?: number
+          created_at?: string
+          description?: string | null
+          fat_per_100g?: number
+          id?: string
+          ingredients?: Json
+          meal_type?: string
+          name?: string
+          portion_weight_g?: number
+          protein_per_100g?: number
+          replacements?: string[]
+          slug?: string
+          steps?: Json
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       measurements: {
         Row: {
           chest_cm: number | null
@@ -110,6 +167,95 @@ export type Database = {
           user_id?: string
           waist_cm?: number | null
           weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      nutrition_plan_days: {
+        Row: {
+          created_at: string
+          day_index: number
+          day_note: string | null
+          id: string
+          meals: Json
+          plan_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_index: number
+          day_note?: string | null
+          id?: string
+          meals?: Json
+          plan_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_index?: number
+          day_note?: string | null
+          id?: string
+          meals?: Json
+          plan_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nutrition_plan_days_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "nutrition_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nutrition_plans: {
+        Row: {
+          created_at: string
+          excluded_products: string[]
+          generated_at: string
+          id: string
+          meals_per_day: number
+          notes: string | null
+          preferred_products: string[]
+          target_carbs_g: number
+          target_fat_g: number
+          target_kcal: number
+          target_protein_g: number
+          targets_manual: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          excluded_products?: string[]
+          generated_at?: string
+          id?: string
+          meals_per_day?: number
+          notes?: string | null
+          preferred_products?: string[]
+          target_carbs_g: number
+          target_fat_g: number
+          target_kcal: number
+          target_protein_g: number
+          targets_manual?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          excluded_products?: string[]
+          generated_at?: string
+          id?: string
+          meals_per_day?: number
+          notes?: string | null
+          preferred_products?: string[]
+          target_carbs_g?: number
+          target_fat_g?: number
+          target_kcal?: number
+          target_protein_g?: number
+          targets_manual?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -236,6 +382,7 @@ export type Database = {
           birth_date: string | null
           created_at: string
           full_name: string | null
+          gender: string | null
           goal: string | null
           height_cm: number | null
           id: string
@@ -247,6 +394,7 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           full_name?: string | null
+          gender?: string | null
           goal?: string | null
           height_cm?: number | null
           id: string
@@ -258,6 +406,7 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           full_name?: string | null
+          gender?: string | null
           goal?: string | null
           height_cm?: number | null
           id?: string

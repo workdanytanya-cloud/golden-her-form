@@ -1,83 +1,72 @@
 
-# Tanya Fitness — Premium Landing (Phase 1)
+# Модуль питания — план реализации
 
-Scope for this round: **landing page only**. Auth, questionnaire, calculations, dashboard, admin, payments, and AI are explicitly deferred to later phases.
+## Что получит клиент
 
-Note on design directions: the `create_directions` tool refused (it requires a screenshot of existing UI and this is a net-new build). I'll go straight to build with the locked luxury spec below and we can iterate on look-and-feel from the live preview.
+- В `/dashboard/nutrition` — недельное меню (7 дней) с завтраком, перекусами, обедом, ужином.
+- Перед стартом отвечает на 3 коротких вопроса: сколько приёмов пищи (**3 или 5**), какие продукты любит (чек-лист базовых: курица, рыба, говядина, творог, яйца, овсянка, гречка, рис, киноа, овощи, фрукты, орехи), что исключить (аллергии подтягиваются из анкеты).
+- Каждое блюдо: название, фото-иконка, КБЖУ на порцию, вес готовой порции (г), вес ингредиентов в сыром виде, пошаговый рецепт (3–6 шагов простыми словами), кнопка «Заменить» → список из 3–5 замен с пересчётом граммовки.
+- Итоги дня: суммарные ккал/Б/Ж/У с прогресс-барами к целевым.
+- Кнопка «Пересобрать неделю» (с ротацией без повторов 2–3 недели подряд).
 
-## Locked design tokens
+## Что получит тренер
 
-- Background: `#0B0B0C` (near-black), surface `#141412` warm-black
-- Ivory: `#F5F1EA`, warm gray `#8A857D`, hairline `rgba(200,154,74,0.25)`
-- Gold accent: `#C89A4A`
-- Typography: **Fraunces** (editorial serif display) + **Inter** (neutral sans) — loaded via `<link>` in `__root.tsx`
-- Radius: 20–28px on cards; gold 1px hairlines instead of heavy borders
-- Motion: fade-up on scroll (IntersectionObserver), parallax hero, `CountUp` counters, hover image zoom, gold underline draw
+В `/admin/clients/:id/nutrition`:
+- Просмотр меню клиента с целевыми КБЖУ (авторассчитанными).
+- Замена любого блюда → выбор из базы или из замен (авто-пересчёт КБЖУ дня).
+- Изменение граммовки конкретной порции (авто-пересчёт).
+- Комментарий к дню или блюду (виден клиенту).
+- «Полностью пересобрать меню» — новый набор из базы.
+- Ручная корректировка целевых ккал/Б/Ж/У (переопределяет автосчёт).
 
-## Imagery strategy
+## Расчёт КБЖУ (автоматически из анкеты)
 
-Since the VK community isn't scrapeable and we shouldn't alter the trainer's appearance, we'll use **AI-generated environmental/supporting imagery** for hero backdrop, program cards, before/after placeholders, and CTA — cinematic gym textures, sunlit studios, equipment stills, silhouettes shot from behind. **No AI-generated faces of the trainer.** When you upload authentic photos of Tanya later, we swap them into the hero, About portrait, and CTA slots (already wired as image variables).
+- BMR по Mifflin-St Jeor (пол берём из профиля — добавим поле, если нет; при отсутствии — усреднённый коэффициент женский).
+- TDEE = BMR × коэффициент активности (`activity_level` из анкеты: sedentary 1.2, light 1.375, moderate 1.55, high 1.725).
+- Цель: похудение −15%, поддержание 0, набор +10% (из `goal_primary`).
+- Белок 1.8 г/кг, жир 1.0 г/кг, углеводы = остаток.
+- Тренер видит поля и может переопределить.
 
-Generated assets (agent-side `generate_image`, stored in `src/assets/`):
-1. Hero backdrop — cinematic dark studio, warm rim light, silhouette from behind
-2. About-section environment — soft window light on workout mat, no face
-3. 6 program tiles — weight loss, home workouts, stretching, muscle tone, nutrition, personal coaching (all environmental / equipment / textural)
-4. Before/after placeholder pair (silhouettes, back-to-camera)
-5. CTA full-bleed — dramatic dawn lighting, movement blur
+## База блюд (стартовая, 60–70 позиций)
 
-## Page structure (`src/routes/index.tsx` + section components)
+Я подготовлю проверенную базу простых домашних блюд с КБЖУ из справочников (USDA, Скурихин), сгруппированных по типам:
+- Завтраки (12): овсянка на молоке с ягодами, творог с бананом, омлет с овощами, сырники, гречка с яйцом, тосты с авокадо и яйцом и т.д.
+- Обеды (18): куриная грудка + гречка + салат, тушёная говядина с овощами, минтай на пару + рис + брокколи, индейка с киноа, суп с фрикадельками и т.д.
+- Ужины (15): запечённая рыба + овощи, куриные котлеты на пару + булгур, творожная запеканка, омлет с индейкой и т.д.
+- Перекусы (15): яблоко + орехи, творог + мёд, банан + арахисовая паста, йогурт + ягоды, хумус + овощи и т.д.
 
-```
-src/
-  components/
-    landing/
-      Nav.tsx              (sticky, glass, gold logo mark)
-      Hero.tsx             (full-bleed image, H1 serif, CTA pair, 3 counters)
-      About.tsx            (asymmetric: portrait left, story + timeline right)
-      WhyChoose.tsx        (6 glass cards, gold icons)
-      Programs.tsx         (6 tiles, hover zoom + gold overlay)
-      Results.tsx          (before/after slider + testimonial trio)
-      HowItWorks.tsx       (6-step vertical timeline with gold rail)
-      Faq.tsx              (shadcn accordion, gold expand indicator)
-      CtaFinal.tsx         (full-bleed image, oversized headline, button)
-      Footer.tsx
-    ui/
-      CountUp.tsx          (IntersectionObserver + rAF)
-      BeforeAfterSlider.tsx (drag handle, gold divider)
-      Reveal.tsx           (fade-up on view)
-  routes/
-    index.tsx              (composes sections)
-    __root.tsx             (updated: real title/desc/OG, Fraunces+Inter <link>)
-  styles.css               (tokens + custom utilities: .hairline, .glass, .gold-underline)
-  assets/                  (generated images)
-```
+Для каждого блюда: КБЖУ на 100 г готового, вес готовой порции, ингредиенты (сырой вес), рецепт, теги (курица/рыба/говядина/веге/молочка/безлактозы и т.д.), список замен.
 
-## Section content
+## Технически
 
-1. **Hero** — Headline: *"Твоё тело. Твоя дисциплина."* (or EN: *"Your body. Your discipline."*), sub: 10 years of coaching women toward lasting transformation. CTAs: *Начать трансформацию* (primary gold) / *Бесплатная консультация* (ghost). Counters: 500+ / 10+ / 100%.
-2. **About** — portrait slot + name, one-paragraph story, certificates row (chips), 4-item timeline (2014 → today), mission statement.
-3. **Why choose me** — 6 cards: Individual approach · Online support · Nutrition · Workout plans · Motivation · Result guarantee.
-4. **Programs** — 6 tiles: Weight loss · Home workouts · Stretching · Muscle tone · Nutrition · Personal coaching. Hover: image zoom + gold overlay + "View program →".
-5. **Results** — Interactive before/after slider (drag handle, gold vertical rule) + 3 testimonials with star ratings + animated stat strip.
-6. **How it works** — Vertical timeline (gold rail, numbered nodes): Register → Fill questionnaire → Get calculations → Receive plan → Train → Get results.
-7. **FAQ** — shadcn Accordion, 6–8 Q&A on pricing, format, guarantees, refunds, mobile access, nutrition.
-8. **Final CTA** — Full-bleed cinematic image, oversized serif headline, single primary CTA, phone/email/socials strip in footer below.
+**Таблицы (миграция):**
+- `dishes` — id, name, meal_type (breakfast/lunch/dinner/snack), tags[], calories_per_100g, protein/fat/carbs_per_100g, portion_weight_g, ingredients (jsonb: raw_name/raw_grams/cooked_grams), steps (jsonb: string[]), replacements (jsonb: dish_id[]).
+- `nutrition_plans` — user_id, week_start, meals_per_day (3/5), preferred_products[], target_kcal/protein/fat/carbs, notes.
+- `nutrition_plan_days` — plan_id, day_index (0–6), day_note, dishes (jsonb: [{slot, dish_id, portion_grams, note}]).
+- RLS: клиент читает свои планы, тренер (admin) — любые; `dishes` доступны всем аутентифицированным (только SELECT).
 
-## Technical
+**Server functions:**
+- `getNutritionPlan(userId)` — текущий план или null.
+- `generateNutritionPlan(userId, {mealsPerDay, preferredProducts})` — считает КБЖУ, подбирает блюда по слотам с ротацией.
+- `swapDish(planId, dayIndex, slot, newDishId)` / `updatePortion(...)` / `updateDayNote(...)` / `updateTargets(...)` / `regeneratePlan(...)`.
 
-- TanStack Start route; SSR-safe (no `window` at module scope in animations — all IntersectionObserver work in `useEffect`).
-- `__root.tsx` head() gets real title (*Tanya — Premium Fitness Coaching*), description, og:title/og:description/og:type/twitter:card. `og:image` added on `index.tsx` head() only, pointing to the generated hero image at absolute URL.
-- Fonts: `<link rel="preconnect">` + `<link rel="stylesheet">` for Fraunces + Inter in `__root.tsx` head links array. `--font-display` and `--font-sans` registered in `@theme` in `styles.css`. **Do not** `@import` remote URLs from CSS.
-- Tokens registered in `@theme inline`; shadcn `--background`/`--foreground`/etc. remapped to the dark luxury palette so all existing shadcn components inherit correctly.
-- Animations via CSS keyframes (`fade-in`, existing) + a small `Reveal` wrapper. Counters use `requestAnimationFrame`.
-- Fully responsive (mobile-first). Sticky nav collapses to a sheet on mobile.
-- Accessibility: alt text on every image, focus rings in gold, `prefers-reduced-motion` disables parallax + counters animate.
-- SEO: single H1 (hero), semantic sections, JSON-LD `LocalBusiness`/`Person` in root head scripts array.
+**Страницы:**
+- `src/routes/_authenticated/dashboard.nutrition.tsx` — клиентский вид + первичный опросник.
+- `src/routes/_authenticated/admin.clients.$id.nutrition.tsx` — админский редактор.
+- Ссылки в `PanelShell` (клиентское меню) и в карточке клиента у админа.
 
-## Out of scope this round (explicit)
+**Алгоритм подбора:**
+1. По `meals_per_day` определяем слоты (3: завтрак/обед/ужин; 5: + 2 перекуса).
+2. На каждый слот: фильтр блюд по тегам (любимые продукты приоритетнее, аллергии/дизлайки исключаем).
+3. Балансируем дневные КБЖУ: подбираем комбинации, корректируем граммовку порции ±20 %, чтобы попасть в целевые ±5 %.
+4. Ротация: одно блюдо не чаще 1 раза в 3 дня, суммарно уникальных ≥ 15 за неделю.
 
-Auth, JWT, roles, questionnaire form, BMR/macro calculator, admin panel, workout/nutrition builders, client dashboard, messaging, payments, AI features. Lovable Cloud is **not** enabled in this phase — we'll enable it in phase 2 when we add auth + questionnaire.
+## Порядок работы
 
-## Deliverable
+1. Миграция БД + стартовые данные `dishes` (INSERT одной пачкой).
+2. Server functions.
+3. Клиентская страница `dashboard/nutrition` (опросник → меню).
+4. Админская страница `admin/clients/:id/nutrition` (просмотр, замены, граммовка, комментарии, регенерация, ручные КБЖУ).
+5. Ссылки в навигации.
 
-A single premium landing page live in the preview, ready for you to drop authentic photos of Tanya into three named slots (hero, about-portrait, cta) via a one-line swap. After you approve this, phase 2 will add Cloud + auth + questionnaire + BMR results screen.
+Начну с миграции и наполнения базы блюд — это фундамент всего остального. После утверждения плана погружусь в реализацию последовательно.
