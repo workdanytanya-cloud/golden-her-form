@@ -167,15 +167,29 @@ function ClientDetail() {
         title={profile?.full_name || "Без имени"}
         description={profile?.goal || "Цель не задана"}
         action={
-          <Link
-            to="/admin/clients/$id/onboarding"
-            params={{ id }}
-            className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
-          >
-            <ClipboardList className="h-4 w-4" /> Анкета онбординга
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                startImpersonation(id, profile?.full_name || "Клиент");
+                toast.success("Открываем кабинет клиента");
+                void navigate({ to: "/dashboard" });
+              }}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-xs uppercase tracking-widest text-background transition-transform hover:scale-[1.02]"
+            >
+              <Eye className="h-4 w-4" /> Просмотр как клиент
+            </button>
+            <Link
+              to="/admin/clients/$id/onboarding"
+              params={{ id }}
+              className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
+            >
+              <ClipboardList className="h-4 w-4" /> Анкета онбординга
+            </Link>
+          </div>
         }
       />
+
 
       <AccessManager
         status={access?.status ?? null}
