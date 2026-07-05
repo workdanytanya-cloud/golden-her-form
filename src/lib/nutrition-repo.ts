@@ -59,8 +59,11 @@ export async function loadPlanFor(userId: string): Promise<{ plan: PlanRow | nul
     .order("day_index");
   return {
     plan: plan as PlanRow,
-    days: ((days ?? []) as DayRow[]).map((d) => ({
-      ...d,
+    days: (days ?? []).map((d) => ({
+      id: d.id,
+      plan_id: d.plan_id,
+      day_index: d.day_index,
+      day_note: d.day_note,
       meals: (d.meals as unknown as MealEntry[]) ?? [],
     })),
   };
