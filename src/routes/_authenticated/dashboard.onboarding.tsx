@@ -247,7 +247,12 @@ function OnboardingPage() {
 
   const save = async (asCompleted: boolean) => {
     if (!effectiveUserId) return;
+    if (impersonation) {
+      toast.error("Режим просмотра как клиент — сохранение отключено");
+      return;
+    }
     if (asCompleted && !form.goal_primary) {
+
       toast.error("Выберите основную цель");
       return;
     }
