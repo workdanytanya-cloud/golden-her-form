@@ -282,6 +282,15 @@ function ProgressPage() {
             );
           })}
         </div>
+
+        <button
+          onClick={exportPdf}
+          disabled={exporting || filtered.length === 0}
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-xs font-medium uppercase tracking-widest text-background transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Download className="h-3.5 w-3.5" />
+          {exporting ? "Готовим PDF…" : "Экспорт PDF"}
+        </button>
       </div>
 
       {/* Chart */}
