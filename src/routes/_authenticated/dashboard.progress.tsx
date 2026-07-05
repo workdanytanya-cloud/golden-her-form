@@ -471,76 +471,12 @@ function ProgressPage() {
       </div>
 
       {/* Add measurement (excluded from PDF) */}
-      <section>
-        <h2 className="font-display text-2xl">Добавить замер</h2>
-        <form
-          onSubmit={submit}
-          className="mt-4 grid gap-4 rounded-3xl border border-gold/15 bg-surface/40 p-6 md:grid-cols-6"
-        >
-          <F label="Дата" span="md:col-span-2">
-            <input
-              type="date"
-              required
-              value={form.measured_on}
-              onChange={(e) => setForm({ ...form, measured_on: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <F label="Вес, кг">
-            <input
-              type="number"
-              step="0.1"
-              value={form.weight_kg}
-              onChange={(e) => setForm({ ...form, weight_kg: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <F label="Талия">
-            <input
-              type="number"
-              step="0.1"
-              value={form.waist_cm}
-              onChange={(e) => setForm({ ...form, waist_cm: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <F label="Бёдра">
-            <input
-              type="number"
-              step="0.1"
-              value={form.hips_cm}
-              onChange={(e) => setForm({ ...form, hips_cm: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <F label="Грудь">
-            <input
-              type="number"
-              step="0.1"
-              value={form.chest_cm}
-              onChange={(e) => setForm({ ...form, chest_cm: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <F label="Заметка" span="md:col-span-5">
-            <input
-              type="text"
-              placeholder="Самочувствие, тренировки, питание…"
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <div className="flex items-end">
-            <button
-              disabled={saving}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
-            >
-              <Plus className="h-4 w-4" /> Добавить
-            </button>
-          </div>
-        </form>
-      </section>
+      {user && (
+        <section>
+          <MeasurementWizard userId={user.id} onSaved={load} />
+        </section>
+      )}
+
         </div>
       </AccessGate>
     </div>
