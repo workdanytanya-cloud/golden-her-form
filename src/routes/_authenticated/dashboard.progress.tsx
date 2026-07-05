@@ -1,9 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { format, subDays } from "date-fns";
+import { ru } from "date-fns/locale";
+import { Calendar as CalendarIcon, Plus, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader } from "@/components/panel/PanelShell";
-import { Trash2, Plus } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard/progress")({
@@ -20,8 +35,22 @@ type Measurement = {
   note: string | null;
 };
 
-const empty = {
-  measured_on: new Date().toISOString().slice(0, 10),
+type MetricKey = "weight_kg" | "waist_cm" | "hips_cm" | "chest_cm";
+
+const METRICS: {
+  key: MetricKey;
+  label: string;
+  unit: string;
+  color: string;
+}[] = [
+  { key: "weight_kg", label: "Вес", unit: "кг", color: "oklch(0.78 0.15 78)" }, // gold
+  { key: "waist_cm", label: "Талия", unit: "см", color: "oklch(0.68 0.21 25)" }, // coral
+  { key: "hips_cm", label: "Бёдра", unit: "см", color: "oklch(0.72 0.12 200)" },
+  { key: "chest_cm", label: "Грудь", unit: "см", color: "oklch(0.75 0.14 140)" },
+];
+
+const emptyForm = {
+  measured_on: format(new Date(), "yyyy-MM-dd"),
   weight_kg: "",
   waist_cm: "",
   hips_cm: "",
@@ -33,8 +62,18 @@ function ProgressPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState(empty);
+  const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  // Filters
+  const [from, setFrom] = useState<Date | undefined>(subDays(new Date(), 90));
+  const [to, setTo] = useState<Date | undefined>(new Date());
+  const [active, setActive] = useState<Record<MetricKey, boolean>>({
+    weight_kg: true,
+    waist_cm: true,
+    hips_cm: false,
+    chest_cm: false,
+  });
 
   const load = () => {
     if (!user) return;
@@ -42,7 +81,7 @@ function ProgressPage() {
       .from("measurements")
       .select("id, measured_on, weight_kg, waist_cm, hips_cm, chest_cm, note")
       .eq("user_id", user.id)
-      .order("measured_on", { ascending: false })
+      .order("measured_on", { ascending: true })
       .then(({ data }) => {
         setItems((data ?? []) as Measurement[]);
         setLoading(false);
@@ -51,11 +90,38 @@ function ProgressPage() {
 
   useEffect(load, [user]);
 
+  const filtered = useMemo(() => {
+    return items.filter((m) => {
+      const d = new Date(m.measured_on);
+      if (from && d < startOfDay(from)) return false;
+      if (to && d > endOfDay(to)) return false;
+      return true;
+    });
+  }, [items, from, to]);
+
+  const chartData = useMemo(
+    () =>
+      filtered.map((m) => ({
+        date: m.measured_on,
+        label: format(new Date(m.measured_on), "d MMM", { locale: ru }),
+        weight_kg: m.weight_kg,
+        waist_cm: m.waist_cm,
+        hips_cm: m.hips_cm,
+        chest_cm: m.chest_cm,
+      })),
+    [filtered],
+  );
+
+  const measurementDays = useMemo(
+    () => new Set(items.map((m) => m.measured_on)),
+    [items],
+  );
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
-    const payload = {
+    const { error } = await supabase.from("measurements").insert({
       user_id: user.id,
       measured_on: form.measured_on,
       weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
@@ -63,15 +129,11 @@ function ProgressPage() {
       hips_cm: form.hips_cm ? Number(form.hips_cm) : null,
       chest_cm: form.chest_cm ? Number(form.chest_cm) : null,
       note: form.note || null,
-    };
-    const { error } = await supabase.from("measurements").insert(payload);
+    });
     setSaving(false);
-    if (error) {
-      toast.error("Не удалось сохранить: " + error.message);
-      return;
-    }
+    if (error) return toast.error("Не удалось сохранить: " + error.message);
     toast.success("Замер добавлен");
-    setForm(empty);
+    setForm(emptyForm);
     load();
   };
 
@@ -82,150 +144,345 @@ function ProgressPage() {
     load();
   };
 
+  const resetRange = () => {
+    setFrom(undefined);
+    setTo(undefined);
+  };
+
+  const quick = (days: number) => {
+    setFrom(subDays(new Date(), days));
+    setTo(new Date());
+  };
+
   return (
     <div className="space-y-10">
       <PanelHeader
         eyebrow="Прогресс"
         title="Мои замеры"
-        description="Регулярно записывайте цифры — так виден настоящий результат."
+        description="Наблюдайте динамику на графике и держите замеры под рукой в календаре."
       />
 
-      <form
-        onSubmit={submit}
-        className="grid gap-4 rounded-3xl border border-gold/15 bg-surface/40 p-6 md:grid-cols-6"
-      >
-        <Field label="Дата" span="md:col-span-2">
-          <input
-            type="date"
-            required
-            value={form.measured_on}
-            onChange={(e) => setForm({ ...form, measured_on: e.target.value })}
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Вес, кг">
-          <input
-            type="number"
-            step="0.1"
-            value={form.weight_kg}
-            onChange={(e) => setForm({ ...form, weight_kg: e.target.value })}
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Талия, см">
-          <input
-            type="number"
-            step="0.1"
-            value={form.waist_cm}
-            onChange={(e) => setForm({ ...form, waist_cm: e.target.value })}
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Бёдра, см">
-          <input
-            type="number"
-            step="0.1"
-            value={form.hips_cm}
-            onChange={(e) => setForm({ ...form, hips_cm: e.target.value })}
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Грудь, см">
-          <input
-            type="number"
-            step="0.1"
-            value={form.chest_cm}
-            onChange={(e) => setForm({ ...form, chest_cm: e.target.value })}
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Заметка" span="md:col-span-5">
-          <input
-            type="text"
-            placeholder="Самочувствие, тренировки, питание…"
-            value={form.note}
-            onChange={(e) => setForm({ ...form, note: e.target.value })}
-            className={inputCls}
-          />
-        </Field>
-        <div className="flex items-end">
-          <button
-            disabled={saving}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
-          >
-            <Plus className="h-4 w-4" /> Добавить
-          </button>
+      {/* Filters */}
+      <div className="flex flex-col gap-4 rounded-3xl border border-gold/15 bg-surface/40 p-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <DatePop label="С" value={from} onChange={setFrom} />
+          <DatePop label="По" value={to} onChange={setTo} />
+          {(from || to) && (
+            <button
+              onClick={resetRange}
+              className="inline-flex items-center gap-1 rounded-full border border-gold/20 px-3 py-2 text-xs text-warm-gray hover:text-ivory"
+            >
+              <X className="h-3.5 w-3.5" /> Сбросить
+            </button>
+          )}
+          <div className="ml-1 flex gap-1">
+            {[
+              { d: 30, l: "30 дн" },
+              { d: 90, l: "3 мес" },
+              { d: 365, l: "Год" },
+            ].map((q) => (
+              <button
+                key={q.d}
+                onClick={() => quick(q.d)}
+                className="rounded-full border border-gold/15 px-3 py-2 text-xs text-warm-gray hover:border-gold/50 hover:text-ivory"
+              >
+                {q.l}
+              </button>
+            ))}
+          </div>
         </div>
-      </form>
 
-      <div className="overflow-hidden rounded-2xl border border-gold/15">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-surface/50 text-[11px] uppercase tracking-widest text-warm-gray">
-            <tr>
-              <th className="px-5 py-3">Дата</th>
-              <th className="px-5 py-3">Вес</th>
-              <th className="px-5 py-3">Талия</th>
-              <th className="px-5 py-3">Бёдра</th>
-              <th className="px-5 py-3">Грудь</th>
-              <th className="px-5 py-3">Заметка</th>
-              <th className="px-5 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gold/10">
-            {loading ? (
+        <div className="flex flex-wrap gap-2">
+          {METRICS.map((m) => {
+            const on = active[m.key];
+            return (
+              <button
+                key={m.key}
+                onClick={() => setActive((a) => ({ ...a, [m.key]: !a[m.key] }))}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs transition-colors",
+                  on
+                    ? "border-transparent bg-gradient-to-r from-coral/25 to-gold/25 text-ivory"
+                    : "border-gold/15 text-warm-gray hover:text-ivory",
+                )}
+              >
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: m.color, opacity: on ? 1 : 0.4 }}
+                />
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Chart */}
+      <section className="rounded-3xl border border-gold/15 bg-gradient-to-br from-surface/70 to-background/40 p-4 md:p-6">
+        <div className="h-72 md:h-80">
+          {loading ? (
+            <div className="flex h-full items-center justify-center text-warm-gray">
+              Загрузка…
+            </div>
+          ) : chartData.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-warm-gray">
+              Нет данных в выбранном диапазоне
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 10, right: 12, left: -10, bottom: 0 }}>
+                <CartesianGrid stroke="oklch(0.35 0.01 70 / 0.3)" strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="label"
+                  stroke="oklch(0.66 0.02 70)"
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="oklch(0.66 0.02 70)"
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={38}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "oklch(0.17 0.006 70)",
+                    border: "1px solid oklch(0.78 0.15 78 / 0.3)",
+                    borderRadius: 12,
+                    color: "oklch(0.97 0.014 82)",
+                    fontSize: 12,
+                  }}
+                  labelStyle={{ color: "oklch(0.66 0.02 70)" }}
+                  formatter={(v: number, name: string) => {
+                    const m = METRICS.find((x) => x.label === name);
+                    return v == null ? ["—", name] : [`${v} ${m?.unit ?? ""}`, name];
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: 12, color: "oklch(0.66 0.02 70)" }}
+                  iconType="circle"
+                />
+                {METRICS.filter((m) => active[m.key]).map((m) => (
+                  <Line
+                    key={m.key}
+                    type="monotone"
+                    dataKey={m.key}
+                    name={m.label}
+                    stroke={m.color}
+                    strokeWidth={2.5}
+                    dot={{ r: 3, strokeWidth: 0, fill: m.color }}
+                    activeDot={{ r: 6 }}
+                    connectNulls
+                    isAnimationActive
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
+
+      {/* Calendar + Add form */}
+      <section className="grid gap-6 lg:grid-cols-[auto_1fr]">
+        <div className="rounded-3xl border border-gold/15 bg-surface/40 p-4">
+          <p className="eyebrow mb-3 px-2">Календарь замеров</p>
+          <Calendar
+            mode="single"
+            locale={ru}
+            selected={from}
+            onSelect={(d) => d && setFrom(d)}
+            weekStartsOn={1}
+            modifiers={{
+              measured: (day) => measurementDays.has(format(day, "yyyy-MM-dd")),
+            }}
+            modifiersClassNames={{
+              measured:
+                "relative after:content-[''] after:absolute after:left-1/2 after:-translate-x-1/2 after:bottom-1 after:h-1 after:w-1 after:rounded-full after:bg-gold",
+            }}
+            className="pointer-events-auto"
+          />
+          <p className="mt-3 px-2 text-xs text-warm-gray">
+            Точкой отмечены даты с замерами. Клик по дате задаёт «С».
+          </p>
+        </div>
+
+        <form
+          onSubmit={submit}
+          className="grid gap-4 rounded-3xl border border-gold/15 bg-surface/40 p-6 md:grid-cols-6"
+        >
+          <F label="Дата" span="md:col-span-2">
+            <input
+              type="date"
+              required
+              value={form.measured_on}
+              onChange={(e) => setForm({ ...form, measured_on: e.target.value })}
+              className={inputCls}
+            />
+          </F>
+          <F label="Вес, кг">
+            <input
+              type="number"
+              step="0.1"
+              value={form.weight_kg}
+              onChange={(e) => setForm({ ...form, weight_kg: e.target.value })}
+              className={inputCls}
+            />
+          </F>
+          <F label="Талия">
+            <input
+              type="number"
+              step="0.1"
+              value={form.waist_cm}
+              onChange={(e) => setForm({ ...form, waist_cm: e.target.value })}
+              className={inputCls}
+            />
+          </F>
+          <F label="Бёдра">
+            <input
+              type="number"
+              step="0.1"
+              value={form.hips_cm}
+              onChange={(e) => setForm({ ...form, hips_cm: e.target.value })}
+              className={inputCls}
+            />
+          </F>
+          <F label="Грудь">
+            <input
+              type="number"
+              step="0.1"
+              value={form.chest_cm}
+              onChange={(e) => setForm({ ...form, chest_cm: e.target.value })}
+              className={inputCls}
+            />
+          </F>
+          <F label="Заметка" span="md:col-span-5">
+            <input
+              type="text"
+              placeholder="Самочувствие, тренировки, питание…"
+              value={form.note}
+              onChange={(e) => setForm({ ...form, note: e.target.value })}
+              className={inputCls}
+            />
+          </F>
+          <div className="flex items-end">
+            <button
+              disabled={saving}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
+            >
+              <Plus className="h-4 w-4" /> Добавить
+            </button>
+          </div>
+        </form>
+      </section>
+
+      {/* Table */}
+      <section>
+        <h2 className="font-display text-2xl">История ({filtered.length})</h2>
+        <div className="mt-4 overflow-hidden rounded-2xl border border-gold/15">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-surface/50 text-[11px] uppercase tracking-widest text-warm-gray">
               <tr>
-                <td colSpan={7} className="px-5 py-8 text-center text-warm-gray">
-                  Загрузка…
-                </td>
+                <th className="px-5 py-3">Дата</th>
+                <th className="px-5 py-3">Вес</th>
+                <th className="px-5 py-3">Талия</th>
+                <th className="px-5 py-3">Бёдра</th>
+                <th className="px-5 py-3">Грудь</th>
+                <th className="px-5 py-3">Заметка</th>
+                <th className="px-5 py-3" />
               </tr>
-            ) : items.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-5 py-8 text-center text-warm-gray">
-                  Ещё нет ни одного замера
-                </td>
-              </tr>
-            ) : (
-              items.map((m) => (
-                <tr key={m.id}>
-                  <td className="px-5 py-3 text-ivory">
-                    {new Date(m.measured_on).toLocaleDateString("ru-RU")}
-                  </td>
-                  <td className="px-5 py-3 text-warm-gray">{m.weight_kg ?? "—"}</td>
-                  <td className="px-5 py-3 text-warm-gray">{m.waist_cm ?? "—"}</td>
-                  <td className="px-5 py-3 text-warm-gray">{m.hips_cm ?? "—"}</td>
-                  <td className="px-5 py-3 text-warm-gray">{m.chest_cm ?? "—"}</td>
-                  <td className="px-5 py-3 text-warm-gray">{m.note ?? "—"}</td>
-                  <td className="px-5 py-3 text-right">
-                    <button
-                      onClick={() => remove(m.id)}
-                      className="rounded-full p-2 text-warm-gray hover:bg-coral/15 hover:text-coral"
-                      aria-label="Удалить"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+            </thead>
+            <tbody className="divide-y divide-gold/10">
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-8 text-center text-warm-gray">
+                    В выбранном диапазоне пока нет замеров
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                [...filtered].reverse().map((m) => (
+                  <tr key={m.id}>
+                    <td className="px-5 py-3 text-ivory">
+                      {format(new Date(m.measured_on), "d MMM yyyy", { locale: ru })}
+                    </td>
+                    <td className="px-5 py-3 text-warm-gray">{m.weight_kg ?? "—"}</td>
+                    <td className="px-5 py-3 text-warm-gray">{m.waist_cm ?? "—"}</td>
+                    <td className="px-5 py-3 text-warm-gray">{m.hips_cm ?? "—"}</td>
+                    <td className="px-5 py-3 text-warm-gray">{m.chest_cm ?? "—"}</td>
+                    <td className="px-5 py-3 text-warm-gray">{m.note ?? "—"}</td>
+                    <td className="px-5 py-3 text-right">
+                      <button
+                        onClick={() => remove(m.id)}
+                        className="rounded-full p-2 text-warm-gray hover:bg-coral/15 hover:text-coral"
+                        aria-label="Удалить"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
+}
+
+function DatePop({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: Date | undefined;
+  onChange: (d: Date | undefined) => void;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            "inline-flex items-center gap-2 rounded-full border border-gold/20 bg-background/40 px-4 py-2 text-xs text-ivory hover:border-gold/50",
+            !value && "text-warm-gray",
+          )}
+        >
+          <CalendarIcon className="h-3.5 w-3.5 text-gold" />
+          <span className="text-[11px] uppercase tracking-widest text-warm-gray">{label}</span>
+          <span>{value ? format(value, "d MMM yyyy", { locale: ru }) : "—"}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          locale={ru}
+          selected={value}
+          onSelect={onChange}
+          weekStartsOn={1}
+          className="pointer-events-auto"
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function startOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function endOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
 }
 
 const inputCls =
   "w-full rounded-xl border border-gold/20 bg-background/40 px-4 py-3 text-sm text-ivory placeholder:text-warm-gray/60 outline-none transition-colors focus:border-gold/60";
 
-function Field({
-  label,
-  span,
-  children,
-}: {
-  label: string;
-  span?: string;
-  children: React.ReactNode;
-}) {
+function F({ label, span, children }: { label: string; span?: string; children: React.ReactNode }) {
   return (
     <label className={`block ${span ?? ""}`}>
       <span className="mb-1 block text-[11px] uppercase tracking-widest text-warm-gray">
