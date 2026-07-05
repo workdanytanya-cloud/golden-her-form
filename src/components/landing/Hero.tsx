@@ -53,7 +53,7 @@ export function Hero() {
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <a
               href="#cta"
-              className="group inline-flex items-center gap-3 rounded-full bg-gold px-7 py-4 text-sm font-medium tracking-wide text-background transition-transform hover:scale-[1.02]"
+              className="group inline-flex items-center gap-3 rounded-full bg-gold px-7 py-4 text-sm font-medium tracking-wide text-foreground transition-transform hover:scale-[1.02]"
               style={{ boxShadow: "0 12px 40px -12px oklch(0.78 0.15 78 / 0.6)" }}
             >
               Начать трансформацию
