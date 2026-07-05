@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
-import { Menu, X, LogOut } from "lucide-react";
+import { Lock, Menu, X, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { NotificationsBell } from "./NotificationsBell";
@@ -10,6 +10,7 @@ export type PanelNavItem = {
   label: string;
   icon: ReactNode;
   exact?: boolean;
+  disabled?: boolean;
 };
 
 export function PanelShell({
@@ -97,6 +98,21 @@ export function PanelShell({
             <nav className="mt-8 flex flex-1 flex-col gap-1">
               {nav.map((item) => {
                 const active = isActive(item);
+                if (item.disabled) {
+                  return (
+                    <div
+                      key={item.to}
+                      aria-disabled="true"
+                      title="Доступ откроется после подтверждения тренером"
+                      className="flex cursor-not-allowed items-center gap-3 rounded-xl px-4 py-3 text-sm text-warm-gray/60"
+                    >
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-background/40 text-warm-gray/60">
+                        <Lock className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="font-medium">{item.label}</span>
+                    </div>
+                  );
+                }
                 return (
                   <Link
                     key={item.to}
