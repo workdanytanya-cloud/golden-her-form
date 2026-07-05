@@ -502,5 +502,3 @@ function Summary({ form }: { form: FormState }) {
   );
 }
 
-// silence unused-import warning for Plus/CheckCircle2 barrel
-export const __icons = { Plus, CheckCircle2 };
