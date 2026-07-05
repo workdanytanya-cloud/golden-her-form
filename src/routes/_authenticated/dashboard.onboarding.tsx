@@ -151,11 +151,11 @@ function OnboardingPage() {
   const [completed, setCompleted] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!effectiveUserId) return;
     void supabase
       .from("onboarding_responses")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", effectiveUserId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
@@ -196,7 +196,7 @@ function OnboardingPage() {
         }
         setLoading(false);
       });
-  }, [user]);
+  }, [effectiveUserId]);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -207,10 +207,10 @@ function OnboardingPage() {
     }));
 
   const buildPayload = (asCompleted: boolean) => {
-    if (!user) return null;
+    if (!effectiveUserId) return null;
     const num = (s: string) => (s.trim() === "" ? null : Number(s));
     return {
-      user_id: user.id,
+      user_id: effectiveUserId,
       goal_primary: form.goal_primary || null,
       goal_details: form.goal_details.trim() || null,
       experience: form.experience || null,
@@ -246,7 +246,7 @@ function OnboardingPage() {
   };
 
   const save = async (asCompleted: boolean) => {
-    if (!user) return;
+    if (!effectiveUserId) return;
     if (asCompleted && !form.goal_primary) {
       toast.error("Выберите основную цель");
       return;
