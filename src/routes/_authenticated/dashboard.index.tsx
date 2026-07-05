@@ -68,6 +68,24 @@ function DashboardOverview() {
         description="Отслеживайте прогресс, обновляйте замеры и держите цель перед глазами."
       />
 
+      {onboardingDone === false && (
+        <Link
+          to="/dashboard/onboarding"
+          className="group flex items-center gap-4 rounded-3xl border border-coral/40 bg-gradient-to-r from-coral/15 via-transparent to-gold/15 p-6 transition-transform hover:scale-[1.01]"
+        >
+          <div className="rounded-2xl bg-coral/20 p-3 text-coral">
+            <ClipboardList className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="eyebrow">Первый шаг</p>
+            <p className="mt-1 font-display text-lg text-ivory">
+              Заполните первичную анкету — на её основе тренер соберёт программу
+            </p>
+          </div>
+          <ArrowRight className="h-5 w-5 shrink-0 text-gold transition-transform group-hover:translate-x-1" />
+        </Link>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Текущий вес"
