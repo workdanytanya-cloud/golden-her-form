@@ -38,6 +38,8 @@
   --color-ring: var(--ring);
   --color-gold: var(--gold);
   --color-gold-soft: var(--gold-soft);
+  --color-coral: var(--coral);
+  --color-coral-soft: var(--coral-soft);
   --color-ivory: var(--ivory);
   --color-warm-gray: var(--warm-gray);
   --color-surface: var(--surface);
@@ -59,14 +61,16 @@
 :root {
   --radius: 1rem;
 
-  --gold: oklch(0.72 0.11 75);       /* #C89A4A */
-  --gold-soft: oklch(0.82 0.07 78);
-  --ivory: oklch(0.96 0.012 80);     /* #F5F1EA */
-  --warm-gray: oklch(0.62 0.012 70); /* #8A857D */
-  --surface: oklch(0.17 0.006 70);   /* #14140F */
+  --gold: oklch(0.78 0.15 78);        /* vibrant gold */
+  --gold-soft: oklch(0.86 0.11 80);
+  --coral: oklch(0.68 0.21 25);       /* juicy coral-red from logo */
+  --coral-soft: oklch(0.78 0.16 30);
+  --ivory: oklch(0.97 0.014 82);
+  --warm-gray: oklch(0.66 0.02 70);
+  --surface: oklch(0.19 0.012 60);
 
-  --background: oklch(0.13 0.005 70);  /* #0B0B0C */
-  --foreground: oklch(0.96 0.012 80);
+  --background: oklch(0.14 0.008 55);
+  --foreground: oklch(0.97 0.014 82);
   --card: oklch(0.17 0.006 70);
   --card-foreground: oklch(0.96 0.012 80);
   --popover: oklch(0.17 0.006 70);

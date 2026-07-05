@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import logoAsset from "@/assets/logo.png.asset.json";
 
 const links = [
   { href: "#about", label: "О тренере" },
@@ -28,11 +29,9 @@ export function Nav() {
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
         <a href="#top" className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/40">
-            <span className="font-display text-lg text-gold">T</span>
-          </span>
+          <img src={logoAsset.url} alt="PanovaPRO" className="h-10 w-10 object-contain" />
           <span className="font-display text-lg tracking-wide text-ivory">
-            Tanya <span className="text-gold">Fitness</span>
+            Panova<span className="text-gold">PRO</span>
           </span>
         </a>
 

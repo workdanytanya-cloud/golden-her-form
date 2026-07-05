@@ -65,7 +65,7 @@ export function Results() {
 
         {/* Stat strip */}
         <div className="mt-20 grid grid-cols-2 gap-4 border-t border-gold/15 pt-10 sm:grid-cols-4 sm:gap-8">
-          <StatMini value={500} suffix="+" label="Клиенток" />
+          <StatMini value={10000} suffix="+" label="Подопечных" />
           <StatMini value={98} suffix="%" label="Достигают цели" />
           <StatMini value={12} suffix=" нед" label="Средний срок" />
           <StatMini value={4.9} suffix="/5" label="Рейтинг отзывов" decimals />
