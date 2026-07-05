@@ -24,6 +24,7 @@ import { Route as AuthenticatedDashboardOnboardingRouteImport } from './routes/_
 import { Route as AuthenticatedDashboardNutritionRouteImport } from './routes/_authenticated/dashboard.nutrition'
 import { Route as AuthenticatedAdminClientsIdRouteImport } from './routes/_authenticated/admin.clients.$id'
 import { Route as AuthenticatedAdminClientsIdOnboardingRouteImport } from './routes/_authenticated/admin.clients.$id.onboarding'
+import { Route as AuthenticatedAdminClientsIdNutritionRouteImport } from './routes/_authenticated/admin.clients.$id.nutrition'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -106,6 +107,12 @@ const AuthenticatedAdminClientsIdOnboardingRoute =
     path: '/onboarding',
     getParentRoute: () => AuthenticatedAdminClientsIdRoute,
   } as any)
+const AuthenticatedAdminClientsIdNutritionRoute =
+  AuthenticatedAdminClientsIdNutritionRouteImport.update({
+    id: '/nutrition',
+    path: '/nutrition',
+    getParentRoute: () => AuthenticatedAdminClientsIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/admin/clients/$id': typeof AuthenticatedAdminClientsIdRouteWithChildren
+  '/admin/clients/$id/nutrition': typeof AuthenticatedAdminClientsIdNutritionRoute
   '/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
 }
 export interface FileRoutesByTo {
@@ -135,6 +143,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/admin/clients/$id': typeof AuthenticatedAdminClientsIdRouteWithChildren
+  '/admin/clients/$id/nutrition': typeof AuthenticatedAdminClientsIdNutritionRoute
   '/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
 }
 export interface FileRoutesById {
@@ -153,6 +162,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/admin/clients/$id': typeof AuthenticatedAdminClientsIdRouteWithChildren
+  '/_authenticated/admin/clients/$id/nutrition': typeof AuthenticatedAdminClientsIdNutritionRoute
   '/_authenticated/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
 }
 export interface FileRouteTypes {
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/dashboard/'
     | '/admin/clients/$id'
+    | '/admin/clients/$id/nutrition'
     | '/admin/clients/$id/onboarding'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/admin/clients/$id'
+    | '/admin/clients/$id/nutrition'
     | '/admin/clients/$id/onboarding'
   id:
     | '__root__'
@@ -202,6 +214,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/admin/clients/$id'
+    | '/_authenticated/admin/clients/$id/nutrition'
     | '/_authenticated/admin/clients/$id/onboarding'
   fileRoutesById: FileRoutesById
 }
@@ -320,15 +333,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminClientsIdOnboardingRouteImport
       parentRoute: typeof AuthenticatedAdminClientsIdRoute
     }
+    '/_authenticated/admin/clients/$id/nutrition': {
+      id: '/_authenticated/admin/clients/$id/nutrition'
+      path: '/nutrition'
+      fullPath: '/admin/clients/$id/nutrition'
+      preLoaderRoute: typeof AuthenticatedAdminClientsIdNutritionRouteImport
+      parentRoute: typeof AuthenticatedAdminClientsIdRoute
+    }
   }
 }
 
 interface AuthenticatedAdminClientsIdRouteChildren {
+  AuthenticatedAdminClientsIdNutritionRoute: typeof AuthenticatedAdminClientsIdNutritionRoute
   AuthenticatedAdminClientsIdOnboardingRoute: typeof AuthenticatedAdminClientsIdOnboardingRoute
 }
 
 const AuthenticatedAdminClientsIdRouteChildren: AuthenticatedAdminClientsIdRouteChildren =
   {
+    AuthenticatedAdminClientsIdNutritionRoute:
+      AuthenticatedAdminClientsIdNutritionRoute,
     AuthenticatedAdminClientsIdOnboardingRoute:
       AuthenticatedAdminClientsIdOnboardingRoute,
   }

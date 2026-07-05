@@ -179,7 +179,10 @@ function AdminNutritionPage() {
                 notes,
               })
               .eq("id", plan.id);
-            if (error) return toast.error(error.message);
+            if (error) {
+              toast.error(error.message);
+              return;
+            }
             toast.success("Параметры сохранены");
             await reload();
           }}
