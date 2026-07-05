@@ -171,7 +171,11 @@ function AdminExercises() {
             >
               <div className="aspect-video w-full overflow-hidden bg-background/40">
                 {e.gif_url ? (
-                  <img src={e.gif_url} alt={e.name} className="h-full w-full object-cover" />
+                  <ExerciseMedia
+                    url={e.gif_url}
+                    alt={e.name}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-widest text-warm-gray/60">
                     нет медиа
