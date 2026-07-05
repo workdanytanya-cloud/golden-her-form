@@ -120,7 +120,7 @@ export function NutritionSetup({
           }}
           className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-3 text-sm uppercase tracking-widest text-background hover:scale-[1.02] disabled:opacity-60"
         >
-          {busy ? "Генерируем…" : submitLabel}
+          {busy ? "Думаю…" : submitLabel}
         </button>
         {onCancel && (
           <button
