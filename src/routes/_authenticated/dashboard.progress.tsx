@@ -53,7 +53,7 @@ const METRICS: {
 ];
 
 function ProgressPage() {
-  const { user } = useAuth();
+  const { effectiveUserId } = useAuth();
   const [items, setItems] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -73,11 +73,11 @@ function ProgressPage() {
 
 
   const load = () => {
-    if (!user) return;
+    if (!effectiveUserId) return;
     void supabase
       .from("measurements")
       .select("id, measured_on, weight_kg, waist_cm, hips_cm, chest_cm, note")
-      .eq("user_id", user.id)
+      .eq("user_id", effectiveUserId)
       .order("measured_on", { ascending: true })
       .then(({ data }) => {
         setItems((data ?? []) as Measurement[]);
@@ -85,7 +85,8 @@ function ProgressPage() {
       });
   };
 
-  useEffect(load, [user]);
+  useEffect(load, [effectiveUserId]);
+
 
   const filtered = useMemo(() => {
     return items.filter((m) => {
