@@ -470,13 +470,24 @@ function SectionBlock({
                   onClick={() => onOpen(i, s)}
                   className="flex flex-1 items-center gap-3 text-left"
                 >
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gold/10 text-gold">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gold/10 text-gold">
                     {e.gif_url ? (
-                      <img
-                        src={e.gif_url}
-                        alt=""
-                        className="h-full w-full rounded-xl object-cover"
-                      />
+                      /\.(mp4|webm|mov|m4v)(\?|$)/i.test(e.gif_url) ? (
+                        <video
+                          src={e.gif_url}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={e.gif_url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      )
                     ) : (
                       <ImageIcon className="h-5 w-5 opacity-60" />
                     )}
@@ -917,6 +928,15 @@ function MediaCard({
         {url ? (
           isVideo ? (
             <video src={url} controls className="h-full w-full object-cover" />
+          ) : /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url) ? (
+            <video
+              src={url}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-cover"
+            />
           ) : (
             <img src={url} alt={label} className="h-full w-full object-cover" />
           )
