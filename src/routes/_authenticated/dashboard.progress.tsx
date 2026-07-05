@@ -52,21 +52,11 @@ const METRICS: {
   { key: "chest_cm", label: "Грудь", unit: "см", color: "oklch(0.75 0.14 140)" },
 ];
 
-const emptyForm = {
-  measured_on: format(new Date(), "yyyy-MM-dd"),
-  weight_kg: "",
-  waist_cm: "",
-  hips_cm: "",
-  chest_cm: "",
-  note: "",
-};
-
 function ProgressPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
+
 
   // Filters
   const [from, setFrom] = useState<Date | undefined>(subDays(new Date(), 90));
