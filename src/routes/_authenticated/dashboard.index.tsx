@@ -26,24 +26,24 @@ type Measurement = {
 };
 
 function DashboardOverview() {
-  const { user, accessStatus } = useAuth();
+  const { effectiveUserId, effectiveAccessStatus } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!effectiveUserId) return;
     void supabase
       .from("profiles")
       .select("full_name, goal, height_cm")
-      .eq("id", user.id)
+      .eq("id", effectiveUserId)
       .maybeSingle()
       .then(({ data }) => setProfile(data as Profile | null));
 
     void supabase
       .from("measurements")
       .select("id, measured_on, weight_kg, waist_cm")
-      .eq("user_id", user.id)
+      .eq("user_id", effectiveUserId)
       .order("measured_on", { ascending: false })
       .limit(5)
       .then(({ data }) => setMeasurements((data ?? []) as Measurement[]));
@@ -51,10 +51,11 @@ function DashboardOverview() {
     void supabase
       .from("onboarding_responses")
       .select("completed_at")
-      .eq("user_id", user.id)
+      .eq("user_id", effectiveUserId)
       .maybeSingle()
       .then(({ data }) => setOnboardingDone(Boolean((data as { completed_at?: string } | null)?.completed_at)));
-  }, [user]);
+  }, [effectiveUserId]);
+
 
   const latest = measurements[0];
   const previous = measurements[1];
