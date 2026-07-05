@@ -73,7 +73,7 @@ function DashboardOverview() {
       />
 
       <JourneyStepper
-        effectiveAccessStatus={effectiveAccessStatus}
+        accessStatus={effectiveAccessStatus}
         onboardingDone={Boolean(onboardingDone)}
         measurementsCount={measurements.length}
       />
