@@ -337,25 +337,36 @@ export function MeasurementWizard({ userId, onSaved }: { userId: string; onSaved
         </div>
       )}
 
-      <div className="mt-6 flex items-start gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-coral/25 to-gold/25 text-gold">
-          <Icon className="h-5 w-5" />
+      <div className="mt-6 grid gap-6 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-start">
+        <div className="flex items-start gap-4 order-2 sm:order-1">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-coral/25 to-gold/25 text-gold">
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-display text-xl text-ivory md:text-2xl">
+              {step.title}{" "}
+              {step.optional && (
+                <span className="ml-2 rounded-full border border-gold/25 px-2 py-0.5 align-middle text-[10px] uppercase tracking-widest text-warm-gray">
+                  можно пропустить
+                </span>
+              )}
+            </h3>
+            <p className="mt-1.5 flex items-start gap-2 text-sm leading-relaxed text-warm-gray">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold/80" />
+              <span>{step.hint}</span>
+            </p>
+          </div>
         </div>
-        <div className="flex-1">
-          <h3 className="font-display text-xl text-ivory md:text-2xl">
-            {step.title}{" "}
-            {step.optional && (
-              <span className="ml-2 rounded-full border border-gold/25 px-2 py-0.5 align-middle text-[10px] uppercase tracking-widest text-warm-gray">
-                можно пропустить
-              </span>
-            )}
-          </h3>
-          <p className="mt-1.5 flex items-start gap-2 text-sm leading-relaxed text-warm-gray">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold/80" />
-            <span>{step.hint}</span>
+
+        {/* Visual body-diagram hint */}
+        <div className="order-1 sm:order-2 rounded-2xl border border-gold/15 bg-background/40 p-3">
+          <BodyDiagram zone={zoneForStep(step.key)} />
+          <p className="mt-2 text-center text-[10px] uppercase tracking-widest text-gold/80">
+            {zoneCaption(step.key)}
           </p>
         </div>
       </div>
+
 
       {/* Highlighted input */}
       <div className="mt-6">
