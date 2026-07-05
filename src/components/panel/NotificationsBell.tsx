@@ -43,8 +43,13 @@ export function NotificationsBell() {
 
   useEffect(() => {
     load();
+    const channelName = `admin_notifications_changes_${
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : Date.now()
+    }`;
     const channel = supabase
-      .channel("admin_notifications_changes")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "admin_notifications" },
