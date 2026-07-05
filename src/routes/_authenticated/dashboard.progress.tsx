@@ -114,25 +114,8 @@ function ProgressPage() {
     [items],
   );
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    setSaving(true);
-    const { error } = await supabase.from("measurements").insert({
-      user_id: user.id,
-      measured_on: form.measured_on,
-      weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
-      waist_cm: form.waist_cm ? Number(form.waist_cm) : null,
-      hips_cm: form.hips_cm ? Number(form.hips_cm) : null,
-      chest_cm: form.chest_cm ? Number(form.chest_cm) : null,
-      note: form.note || null,
-    });
-    setSaving(false);
-    if (error) return toast.error("Не удалось сохранить: " + error.message);
-    toast.success("Замер добавлен");
-    setForm(emptyForm);
-    load();
-  };
+
+
 
   const remove = async (id: string) => {
     const { error } = await supabase.from("measurements").delete().eq("id", id);
