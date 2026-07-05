@@ -132,8 +132,14 @@ function fullBodyDay(letter: "A" | "B" | "C", withCardio: boolean): DayTemplate 
       "Комплекс на все крупные мышечные группы: работаем над силой ног и ягодиц, укрепляем спину и грудной отдел, добавляем стабилизацию корпуса. Задача — прокачать основные паттерны и удержать нейтральную поясницу.",
     warmup: WARMUP_STANDARD,
     main: [
-      { category: "strength_lower", muscleHint: letter === "A" ? ["квадрицепс"] : ["ягодицы", "задняя поверхность"] },
-      { category: "strength_upper", muscleHint: letter === "B" ? ["грудные"] : ["спина", "широчайшие"] },
+      {
+        category: "strength_lower",
+        muscleHint: letter === "A" ? ["квадрицепс"] : ["ягодицы", "задняя поверхность"],
+      },
+      {
+        category: "strength_upper",
+        muscleHint: letter === "B" ? ["грудные"] : ["спина", "широчайшие"],
+      },
       { category: "strength_lower", muscleHint: ["ягодицы"] },
       { category: "strength_upper", muscleHint: letter === "A" ? ["спина"] : ["плечи"] },
       { category: "core" },
@@ -276,7 +282,12 @@ function planWeek(input: ProgramInput): DayTemplate[] {
   }
   if (goal === "weight_loss") {
     if (sessions_per_week >= 4)
-      return [fullBodyDay("A", true), fullBodyDay("B", true), fullBodyDay("C", true), fullBodyDay("A", true)];
+      return [
+        fullBodyDay("A", true),
+        fullBodyDay("B", true),
+        fullBodyDay("C", true),
+        fullBodyDay("A", true),
+      ];
     return [fullBodyDay("A", true), fullBodyDay("B", true), fullBodyDay("C", true)];
   }
   // tone / maintain
@@ -306,7 +317,9 @@ function pickExerciseForSlot(
     excludeTags.add("high_impact");
   }
   const restrictedNames = new Set<string>([
-    ...(input.has_injuries || input.goal === "rehab" ? ["jumping-jack", "kb-swing", "mountain-climber"] : []),
+    ...(input.has_injuries || input.goal === "rehab"
+      ? ["jumping-jack", "kb-swing", "mountain-climber"]
+      : []),
   ]);
 
   const pool = exercises.filter((e) => {
@@ -329,7 +342,8 @@ function pickExerciseForSlot(
     let s = Math.random();
     if (slot.muscleHint) {
       const hits = slot.muscleHint.reduce(
-        (a, m) => a + (e.muscle_groups.some((g) => g.toLowerCase().includes(m.toLowerCase())) ? 3 : 0),
+        (a, m) =>
+          a + (e.muscle_groups.some((g) => g.toLowerCase().includes(m.toLowerCase())) ? 3 : 0),
         0,
       );
       s += hits;
@@ -352,7 +366,11 @@ function toSet(e: Exercise, slot: SlotSpec, input: ProgramInput): ExerciseSet {
   let reps = slot.reps ?? e.default_reps;
   let sets = slot.sets ?? e.default_sets;
   let rest = slot.rest ?? e.rest_seconds;
-  if (slot.category === "strength_upper" || slot.category === "strength_lower" || slot.category === "strength_full") {
+  if (
+    slot.category === "strength_upper" ||
+    slot.category === "strength_lower" ||
+    slot.category === "strength_full"
+  ) {
     if (input.goal === "muscle_gain") {
       reps = "8-10";
       sets = Math.max(sets, 4);

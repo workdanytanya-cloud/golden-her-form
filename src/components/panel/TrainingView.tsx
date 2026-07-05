@@ -82,9 +82,9 @@ export function TrainingView({
           {GOAL_LABEL[goal]} · {sessionsPerWeek} тренировки в неделю
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-warm-gray">
-          Программа собрана под твою цель и уровень подготовки ({levelLabel(level)}) на основе анкеты.
-          Каждая тренировка — с чёткой задачей, разминкой, силовым блоком и заминкой. Занятия расставлены
-          по неделе с восстановлением между ними.
+          Программа собрана под твою цель и уровень подготовки ({levelLabel(level)}) на основе
+          анкеты. Каждая тренировка — с чёткой задачей, разминкой, силовым блоком и заминкой.
+          Занятия расставлены по неделе с восстановлением между ними.
         </p>
         {notes && (
           <div className="mt-4 rounded-2xl border border-gold/25 bg-background/40 p-4 text-sm">
@@ -163,7 +163,9 @@ export function TrainingView({
                 exercise_id: newId,
                 tempo: newEx?.tempo ?? target.tempo,
               };
-              await onDayPatch?.(day.day_index, { [openExercise.section]: arr } as Partial<ProgramDay>);
+              await onDayPatch?.(day.day_index, {
+                [openExercise.section]: arr,
+              } as Partial<ProgramDay>);
             }
             setOpenExercise(null);
             toast.success("Упражнение заменено");
@@ -172,7 +174,9 @@ export function TrainingView({
             if (!day) return;
             const arr = [...day[openExercise.section]];
             arr[openExercise.index] = { ...arr[openExercise.index], ...patch };
-            await onDayPatch?.(day.day_index, { [openExercise.section]: arr } as Partial<ProgramDay>);
+            await onDayPatch?.(day.day_index, {
+              [openExercise.section]: arr,
+            } as Partial<ProgramDay>);
             setOpenExercise((s) => (s ? { ...s, set: { ...s.set, ...patch } } : null));
             toast.success("Сохранено");
           }}
@@ -360,7 +364,9 @@ function DaySection({
             <p className="eyebrow">{day.focus}</p>
             <h3 className="mt-1 font-display text-2xl text-ivory md:text-3xl">{day.title}</h3>
             {day.description && (
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-warm-gray">{day.description}</p>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-warm-gray">
+                {day.description}
+              </p>
             )}
           </div>
         </div>
@@ -466,7 +472,11 @@ function SectionBlock({
                 >
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gold/10 text-gold">
                     {e.gif_url ? (
-                      <img src={e.gif_url} alt="" className="h-full w-full rounded-xl object-cover" />
+                      <img
+                        src={e.gif_url}
+                        alt=""
+                        className="h-full w-full rounded-xl object-cover"
+                      />
                     ) : (
                       <ImageIcon className="h-5 w-5 opacity-60" />
                     )}
@@ -474,7 +484,8 @@ function SectionBlock({
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-display text-base text-ivory">{e.name}</p>
                     <p className="mt-0.5 text-[11px] text-warm-gray">
-                      {CATEGORY_LABEL[e.category]} · {e.muscle_groups.slice(0, 2).join(" · ") || "—"}
+                      {CATEGORY_LABEL[e.category]} ·{" "}
+                      {e.muscle_groups.slice(0, 2).join(" · ") || "—"}
                     </p>
                     {s.note && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-gold/10 px-2 py-0.5 text-[10px] text-gold">
@@ -490,14 +501,18 @@ function SectionBlock({
                       <span className="text-warm-gray">×</span>
                       {s.reps}
                     </p>
-                    <p className="text-[10px] uppercase tracking-widest text-warm-gray">подходы×повт.</p>
+                    <p className="text-[10px] uppercase tracking-widest text-warm-gray">
+                      подходы×повт.
+                    </p>
                   </div>
                   <div>
                     <p className="inline-flex items-center gap-1 text-warm-gray">
                       <Timer className="h-3 w-3" /> {s.rest_seconds}с
                     </p>
                     {s.tempo && s.tempo !== "iso" && (
-                      <p className="text-[10px] uppercase tracking-widest text-warm-gray">темп {s.tempo}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-warm-gray">
+                        темп {s.tempo}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -797,7 +812,14 @@ function ExerciseDialog({
           <div className="grid gap-3 sm:grid-cols-3">
             <NumField label="Подходы" value={sets} onChange={setSets} min={1} max={10} />
             <TextField label="Повторы" value={reps} onChange={setReps} placeholder="10-12" />
-            <NumField label="Отдых, сек" value={rest} onChange={setRest} min={0} max={300} step={5} />
+            <NumField
+              label="Отдых, сек"
+              value={rest}
+              onChange={setRest}
+              min={0}
+              max={300}
+              step={5}
+            />
             <div className="sm:col-span-3">
               <label className="text-[11px] uppercase tracking-widest text-warm-gray">
                 Заметка клиенту
@@ -929,7 +951,9 @@ function NumField({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">{label}</span>
+      <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">
+        {label}
+      </span>
       <input
         type="number"
         value={value}
@@ -956,7 +980,9 @@ function TextField({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">{label}</span>
+      <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">
+        {label}
+      </span>
       <input
         type="text"
         value={value}

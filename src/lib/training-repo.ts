@@ -196,7 +196,10 @@ export async function updateDayPatch(
   programId: string,
   dayIndex: number,
   patch: Partial<
-    Pick<DayRow, "title" | "focus" | "description" | "warmup" | "exercises" | "cooldown" | "day_note">
+    Pick<
+      DayRow,
+      "title" | "focus" | "description" | "warmup" | "exercises" | "cooldown" | "day_note"
+    >
   >,
 ) {
   const dbPatch: Record<string, unknown> = {};

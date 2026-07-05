@@ -134,7 +134,8 @@ function TrainingInner() {
   if (!program)
     return (
       <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center text-warm-gray">
-        Программа пока не создана. Заполни анкету и открой доступ — программа соберётся автоматически.
+        Программа пока не создана. Заполни анкету и открой доступ — программа соберётся
+        автоматически.
       </div>
     );
 

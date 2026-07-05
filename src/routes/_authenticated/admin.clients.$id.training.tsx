@@ -215,10 +215,12 @@ function ParamsEditor({
     <section className="rounded-3xl border border-gold/15 bg-surface/40 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-widest text-warm-gray">Параметры программы</p>
+          <p className="text-[11px] uppercase tracking-widest text-warm-gray">
+            Параметры программы
+          </p>
           <p className="mt-1 text-sm text-warm-gray">
-            Из анкеты: {profile.sessions_per_week} тренировки в неделю · {GOAL_LABEL[profile.goal]} ·{" "}
-            {profile.level}
+            Из анкеты: {profile.sessions_per_week} тренировки в неделю · {GOAL_LABEL[profile.goal]}{" "}
+            · {profile.level}
           </p>
         </div>
         {program.targets_manual && (
@@ -243,7 +245,9 @@ function ParamsEditor({
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">Цель</span>
+          <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">
+            Цель
+          </span>
           <select
             value={goal}
             onChange={(e) => setGoal(e.target.value as ProgramGoal)}
