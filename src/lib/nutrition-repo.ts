@@ -198,11 +198,12 @@ export async function updateDayMeals(
   meals: MealEntry[],
   dayNote?: string,
 ) {
-  const patch: { meals: unknown; day_note?: string } = { meals: meals as unknown };
+  const patch: Record<string, unknown> = { meals: meals as unknown };
   if (dayNote !== undefined) patch.day_note = dayNote;
   const { error } = await supabase
     .from("nutrition_plan_days")
-    .update(patch)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(patch as any)
     .eq("plan_id", planId)
     .eq("day_index", dayIndex);
   if (error) throw error;
