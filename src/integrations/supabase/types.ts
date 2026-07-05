@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          measurement_id: string | null
+          message: string
+          type: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          measurement_id?: string | null
+          message: string
+          type?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          measurement_id?: string | null
+          message?: string
+          type?: string
+        }
+        Relationships: []
+      }
       measurements: {
         Row: {
           chest_cm: number | null

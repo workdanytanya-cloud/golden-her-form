@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { Menu, X, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { NotificationsBell } from "./NotificationsBell";
 
 export type PanelNavItem = {
   to: string;
@@ -44,14 +45,18 @@ export function PanelShell({
             <span className="ml-2 text-[10px] uppercase tracking-widest text-gold">{brandSuffix}</span>
           )}
         </Link>
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="rounded-full border border-gold/25 p-2 text-ivory"
-          aria-label="Меню"
-        >
-          {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-        </button>
+        <div className="flex items-center gap-2">
+          {role === "admin" && <NotificationsBell />}
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="rounded-full border border-gold/25 p-2 text-ivory"
+            aria-label="Меню"
+          >
+            {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
+
 
       <div className="mx-auto flex max-w-7xl">
         {/* Sidebar */}
@@ -75,11 +80,18 @@ export function PanelShell({
               )}
             </Link>
 
-            <div className="mt-6 rounded-2xl border border-gold/15 bg-background/40 p-4">
-              <p className="text-[11px] uppercase tracking-widest text-warm-gray">
-                {role === "admin" ? "Тренер" : "Клиент"}
-              </p>
-              <p className="mt-1 truncate font-display text-sm text-ivory">{user?.email}</p>
+            <div className="mt-6 flex items-start gap-3 rounded-2xl border border-gold/15 bg-background/40 p-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] uppercase tracking-widest text-warm-gray">
+                  {role === "admin" ? "Тренер" : "Клиент"}
+                </p>
+                <p className="mt-1 truncate font-display text-sm text-ivory">{user?.email}</p>
+              </div>
+              {role === "admin" && (
+                <div className="hidden md:block">
+                  <NotificationsBell />
+                </div>
+              )}
             </div>
 
             <nav className="mt-8 flex flex-1 flex-col gap-1">
