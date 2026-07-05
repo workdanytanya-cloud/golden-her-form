@@ -44,6 +44,13 @@ function DashboardOverview() {
       .order("measured_on", { ascending: false })
       .limit(5)
       .then(({ data }) => setMeasurements((data ?? []) as Measurement[]));
+
+    void supabase
+      .from("onboarding_responses")
+      .select("completed_at")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setOnboardingDone(Boolean((data as { completed_at?: string } | null)?.completed_at)));
   }, [user]);
 
   const latest = measurements[0];
