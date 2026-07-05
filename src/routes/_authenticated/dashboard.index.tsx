@@ -196,6 +196,8 @@ function DashboardOverview() {
           </table>
         </div>
       </section>
+        </div>
+      </AccessGate>
     </div>
   );
 }
