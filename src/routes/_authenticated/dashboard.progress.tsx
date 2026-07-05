@@ -445,11 +445,12 @@ function ProgressPage() {
       </div>
 
       {/* Add measurement (excluded from PDF) */}
-      {user && (
+      {effectiveUserId && (
         <section>
-          <MeasurementWizard userId={user.id} onSaved={load} />
+          <MeasurementWizard userId={effectiveUserId} onSaved={load} />
         </section>
       )}
+
 
         </div>
       </AccessGate>
