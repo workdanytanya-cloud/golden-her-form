@@ -75,6 +75,10 @@ function ProgressPage() {
     chest_cm: false,
   });
 
+  const printRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+
+
   const load = () => {
     if (!user) return;
     void supabase
