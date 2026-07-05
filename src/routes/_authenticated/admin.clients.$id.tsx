@@ -100,7 +100,13 @@ function ClientDetail() {
 
   const setAccessStatus = async (next: AccessStatus) => {
     setUpdatingAccess(true);
-    const payload: Record<string, unknown> = {
+    const payload: {
+      user_id: string;
+      status: AccessStatus;
+      notes: string | null;
+      activated_at?: string | null;
+      activated_by?: string | null;
+    } = {
       user_id: id,
       status: next,
       notes: notesDraft.trim() || null,
