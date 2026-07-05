@@ -1,9 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
-import { ArrowLeft, ClipboardList, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ClipboardList, Pause, Play, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  ACCESS_STATUS_LABEL,
+  ACCESS_STATUS_TONE,
+  isAccessStatus,
+  type AccessStatus,
+} from "@/lib/access";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id")({
   component: ClientDetail,
