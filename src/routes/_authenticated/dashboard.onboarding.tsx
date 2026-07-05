@@ -260,6 +260,7 @@ function OnboardingPage() {
     if (error) return toast.error(error.message);
     if (asCompleted) {
       setCompleted(payload.completed_at as string);
+      await refreshAccess();
       toast.success("Анкета отправлена тренеру");
       void navigate({ to: "/dashboard" });
     } else {
