@@ -143,7 +143,7 @@ const PREGNANCY = [
 const TIMEFRAME = ["1 месяц", "3 месяца", "6 месяцев", "Год и больше"];
 
 function OnboardingPage() {
-  const { user, refreshAccess } = useAuth();
+  const { effectiveUserId, refreshAccess, impersonation } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState<FormState>(empty);
   const [loading, setLoading] = useState(true);
