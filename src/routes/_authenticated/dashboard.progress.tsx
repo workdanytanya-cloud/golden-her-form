@@ -532,6 +532,8 @@ function ProgressPage() {
           </div>
         </form>
       </section>
+        </div>
+      </AccessGate>
     </div>
   );
 }
