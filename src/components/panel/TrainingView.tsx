@@ -917,6 +917,15 @@ function MediaCard({
         {url ? (
           isVideo ? (
             <video src={url} controls className="h-full w-full object-cover" />
+          ) : /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url) ? (
+            <video
+              src={url}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-cover"
+            />
           ) : (
             <img src={url} alt={label} className="h-full w-full object-cover" />
           )
