@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Info,
-  Plus,
   Ruler,
   Scale,
   Sparkles,
