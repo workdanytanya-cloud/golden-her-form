@@ -33,7 +33,7 @@ export function Hero() {
         className="absolute inset-0 -z-10"
         style={{
           background:
-            "linear-gradient(180deg, rgba(30,15,10,0.35) 0%, rgba(30,15,10,0.15) 35%, rgba(247,232,208,0.55) 80%, oklch(0.965 0.024 78) 100%), radial-gradient(70% 60% at 15% 30%, rgba(255,150,90,0.28), transparent 70%), radial-gradient(60% 60% at 90% 80%, rgba(255,200,110,0.30), transparent 70%)",
+            "linear-gradient(180deg, rgba(11,10,8,0.55) 0%, rgba(11,10,8,0.25) 35%, rgba(11,10,8,0.85) 100%), radial-gradient(70% 60% at 15% 30%, rgba(230,120,70,0.22), transparent 70%), radial-gradient(60% 60% at 90% 80%, rgba(220,170,90,0.20), transparent 70%)",
         }}
         aria-hidden
       />
@@ -53,7 +53,7 @@ export function Hero() {
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <a
               href="#cta"
-              className="group inline-flex items-center gap-3 rounded-2xl bg-gold px-7 py-4 text-sm font-medium tracking-wide text-foreground transition-transform hover:scale-[1.02]"
+              className="group inline-flex items-center gap-3 rounded-full bg-gold px-7 py-4 text-sm font-medium tracking-wide text-background transition-transform hover:scale-[1.02]"
               style={{ boxShadow: "0 12px 40px -12px oklch(0.78 0.15 78 / 0.6)" }}
             >
               Начать трансформацию
@@ -63,7 +63,7 @@ export function Hero() {
             </a>
             <a
               href="#cta"
-              className="inline-flex items-center gap-3 rounded-2xl border border-ivory/30 px-7 py-4 text-sm font-medium text-ivory transition-colors hover:border-coral hover:text-coral"
+              className="inline-flex items-center gap-3 rounded-full border border-ivory/30 px-7 py-4 text-sm font-medium text-ivory transition-colors hover:border-coral hover:text-coral"
             >
               Бесплатная консультация
             </a>

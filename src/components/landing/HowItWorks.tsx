@@ -39,7 +39,7 @@ export function HowItWorks() {
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
         <div className="max-w-3xl">
           <p className="eyebrow">Как это работает</p>
-          <h2 className="mt-6 font-display text-4xl leading-tight text-foreground sm:text-5xl lg:text-6xl">
+          <h2 className="mt-6 font-display text-4xl leading-tight text-ivory sm:text-5xl lg:text-6xl">
             Шесть шагов <span className="gold-text italic">до результата.</span>
           </h2>
         </div>
@@ -69,12 +69,12 @@ export function HowItWorks() {
                 >
                   <div className={flip ? "lg:pl-16" : "lg:pr-16 lg:text-right"}>
                     <div className="font-display text-4xl text-gold sm:text-5xl">{s.n}</div>
-                    <h3 className="mt-2 font-display text-2xl text-foreground sm:text-3xl">{s.title}</h3>
-                    <p className="mt-3 text-sm leading-relaxed text-foreground/65 lg:max-w-sm lg:ml-auto">
+                    <h3 className="mt-2 font-display text-2xl text-ivory sm:text-3xl">{s.title}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-ivory/65 lg:max-w-sm lg:ml-auto">
                       {flip ? null : s.text}
                     </p>
                     {flip && (
-                      <p className="mt-3 text-sm leading-relaxed text-foreground/65 lg:max-w-sm">
+                      <p className="mt-3 text-sm leading-relaxed text-ivory/65 lg:max-w-sm">
                         {s.text}
                       </p>
                     )}

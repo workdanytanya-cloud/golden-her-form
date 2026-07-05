@@ -44,7 +44,7 @@ export function Faq() {
         <Reveal>
           <div className="text-center">
             <p className="eyebrow">FAQ</p>
-            <h2 className="mt-6 font-display text-4xl leading-tight text-foreground sm:text-5xl lg:text-6xl">
+            <h2 className="mt-6 font-display text-4xl leading-tight text-ivory sm:text-5xl lg:text-6xl">
               Частые <span className="gold-text italic">вопросы.</span>
             </h2>
           </div>
@@ -54,10 +54,10 @@ export function Faq() {
           <Accordion type="single" collapsible className="mt-14 divide-y divide-gold/15">
             {faqs.map((f, i) => (
               <AccordionItem key={f.q} value={`item-${i}`} className="border-none">
-                <AccordionTrigger className="py-6 text-left font-display text-lg text-foreground hover:no-underline sm:text-xl [&[data-state=open]>svg]:text-gold">
+                <AccordionTrigger className="py-6 text-left font-display text-lg text-ivory hover:no-underline sm:text-xl [&[data-state=open]>svg]:text-gold">
                   {f.q}
                 </AccordionTrigger>
-                <AccordionContent className="pb-6 text-sm leading-relaxed text-foreground/65 sm:text-base">
+                <AccordionContent className="pb-6 text-sm leading-relaxed text-ivory/65 sm:text-base">
                   {f.a}
                 </AccordionContent>
               </AccordionItem>

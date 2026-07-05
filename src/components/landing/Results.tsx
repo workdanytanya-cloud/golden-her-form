@@ -28,10 +28,10 @@ export function Results() {
           <div className="lg:col-span-6">
             <Reveal>
               <p className="eyebrow">Результаты</p>
-              <h2 className="mt-6 font-display text-4xl leading-tight text-foreground sm:text-5xl lg:text-6xl">
+              <h2 className="mt-6 font-display text-4xl leading-tight text-ivory sm:text-5xl lg:text-6xl">
                 Реальные <span className="gold-text italic">трансформации.</span>
               </h2>
-              <p className="mt-6 max-w-md text-sm leading-relaxed text-foreground/65">
+              <p className="mt-6 max-w-md text-sm leading-relaxed text-ivory/65">
                 Потяни ползунок и посмотри, как меняется тело за 3–6 месяцев работы. Никакой
                 ретуши, никаких обещаний за неделю.
               </p>
@@ -51,7 +51,7 @@ export function Results() {
                       <Star key={k} className="h-4 w-4 fill-gold" strokeWidth={0} />
                     ))}
                   </div>
-                  <blockquote className="mt-4 font-display text-lg leading-relaxed text-foreground">
+                  <blockquote className="mt-4 font-display text-lg leading-relaxed text-ivory">
                     “{t.text}”
                   </blockquote>
                   <figcaption className="mt-5 text-xs uppercase tracking-[0.24em] text-warm-gray">
@@ -89,7 +89,7 @@ function StatMini({
   if (decimals) {
     return (
       <div>
-        <div className="font-display text-3xl text-foreground sm:text-4xl">
+        <div className="font-display text-3xl text-ivory sm:text-4xl">
           {value.toFixed(1)}
           {suffix}
         </div>
@@ -99,7 +99,7 @@ function StatMini({
   }
   return (
     <div>
-      <div className="font-display text-3xl text-foreground sm:text-4xl">
+      <div className="font-display text-3xl text-ivory sm:text-4xl">
         <CountUp to={value} suffix={suffix} />
       </div>
       <div className="mt-2 text-xs uppercase tracking-[0.24em] text-warm-gray">{label}</div>

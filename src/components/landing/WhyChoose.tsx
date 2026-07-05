@@ -55,7 +55,7 @@ export function WhyChoose() {
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
         <div className="max-w-3xl">
           <p className="eyebrow">Почему меня выбирают</p>
-          <h2 className="mt-6 font-display text-4xl leading-tight text-foreground sm:text-5xl lg:text-6xl">
+          <h2 className="mt-6 font-display text-4xl leading-tight text-ivory sm:text-5xl lg:text-6xl">
             Не курс, не марафон —<br />
             <span className="gold-text italic">персональная работа.</span>
           </h2>
@@ -77,8 +77,8 @@ export function WhyChoose() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gold/40 text-gold transition-transform duration-500 group-hover:scale-110">
                     <Icon strokeWidth={1.5} className="h-5 w-5" />
                   </div>
-                  <h3 className="mt-6 font-display text-2xl text-foreground">{it.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-foreground/65">{it.text}</p>
+                  <h3 className="mt-6 font-display text-2xl text-ivory">{it.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-ivory/65">{it.text}</p>
                   <div className="mt-8 text-[10px] uppercase tracking-[0.32em] text-warm-gray">
                     0{i + 1}
                   </div>
