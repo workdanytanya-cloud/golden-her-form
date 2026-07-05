@@ -17,16 +17,17 @@ export function AccessGate({
   level: Level;
   children: React.ReactNode;
 }) {
-  const { role, accessStatus, loading } = useAuth();
+  const { effectiveRole, effectiveAccessStatus, loading } = useAuth();
 
   if (loading) return null;
-  if (role === "admin") return <>{children}</>;
-  if (!accessStatus) return <>{children}</>;
+  if (effectiveRole === "admin") return <>{children}</>;
+  if (!effectiveAccessStatus) return <>{children}</>;
 
-  const allowed = isAllowed(accessStatus, level);
+  const allowed = isAllowed(effectiveAccessStatus, level);
   if (allowed) return <>{children}</>;
 
-  return <LockedCard status={accessStatus} level={level} />;
+  return <LockedCard status={effectiveAccessStatus} level={level} />;
+
 }
 
 function isAllowed(status: AccessStatus, level: Level) {

@@ -1,9 +1,10 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut, Eye } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { NotificationsBell } from "./NotificationsBell";
+
 
 export type PanelNavItem = {
   to: string;
@@ -21,7 +22,7 @@ export function PanelShell({
   nav: PanelNavItem[];
   children: ReactNode;
 }) {
-  const { signOut, user, role } = useAuth();
+  const { signOut, user, role, impersonation, stopImpersonation } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -35,9 +36,32 @@ export function PanelShell({
   const isActive = (item: PanelNavItem) =>
     item.exact ? pathname === item.to : pathname === item.to || pathname.startsWith(item.to + "/");
 
+  const handleExitImpersonation = () => {
+    stopImpersonation();
+    toast.success("Вы вышли из режима просмотра");
+    void navigate({ to: "/admin" });
+  };
+
   return (
     <div className="min-h-screen bg-background text-ivory">
+      {impersonation && (
+        <div className="sticky top-0 z-50 flex items-center justify-between gap-3 border-b border-gold/30 bg-gradient-to-r from-coral/25 via-background/80 to-gold/25 px-4 py-2 text-xs text-ivory backdrop-blur">
+          <div className="flex items-center gap-2 min-w-0">
+            <Eye className="h-4 w-4 shrink-0 text-gold" />
+            <span className="truncate">
+              Просмотр как клиент: <b className="text-gold">{impersonation.name}</b>
+            </span>
+          </div>
+          <button
+            onClick={handleExitImpersonation}
+            className="shrink-0 rounded-full border border-gold/40 px-3 py-1 text-[11px] uppercase tracking-widest text-ivory hover:bg-gold/15"
+          >
+            Выйти из режима
+          </button>
+        </div>
+      )}
       {/* Mobile top bar */}
+
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-gold/10 bg-background/80 px-4 py-3 backdrop-blur md:hidden">
         <Link to="/" className="font-display text-lg">
           Panova<span className="text-coral">PRO</span>

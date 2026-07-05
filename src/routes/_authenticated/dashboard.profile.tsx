@@ -28,17 +28,17 @@ const empty: ProfileForm = {
 };
 
 function ProfilePage() {
-  const { user } = useAuth();
+  const { user, effectiveUserId, impersonation } = useAuth();
   const [form, setForm] = useState<ProfileForm>(empty);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!effectiveUserId) return;
     void supabase
       .from("profiles")
       .select("full_name, phone, goal, height_cm, birth_date")
-      .eq("id", user.id)
+      .eq("id", effectiveUserId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
@@ -49,14 +49,20 @@ function ProfilePage() {
             height_cm: data.height_cm != null ? String(data.height_cm) : "",
             birth_date: data.birth_date ?? "",
           });
+        } else {
+          setForm(empty);
         }
         setLoading(false);
       });
-  }, [user]);
+  }, [effectiveUserId]);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!effectiveUserId) return;
+    if (impersonation) {
+      toast.error("Режим просмотра как клиент — сохранение отключено");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
@@ -67,11 +73,12 @@ function ProfilePage() {
         height_cm: form.height_cm ? Number(form.height_cm) : null,
         birth_date: form.birth_date || null,
       })
-      .eq("id", user.id);
+      .eq("id", effectiveUserId);
     setSaving(false);
     if (error) return toast.error("Не удалось сохранить: " + error.message);
     toast.success("Профиль обновлён");
   };
+
 
   return (
     <div className="space-y-6">

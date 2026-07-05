@@ -16,7 +16,9 @@ import {
   StickyNote,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+
 
 type FormState = {
   measured_on: string;
@@ -114,11 +116,13 @@ const numberSchema = (min: number, max: number) =>
     });
 
 export function MeasurementWizard({ userId, onSaved }: { userId: string; onSaved: () => void }) {
+  const { impersonation } = useAuth();
   const [stage, setStage] = useState<"intro" | "steps" | "note">("intro");
   const [stepIdx, setStepIdx] = useState(0);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
+
 
   const allChecked = CHECKLIST.every((c) => checked[c.key]);
   const step = STEPS[stepIdx];
@@ -159,8 +163,13 @@ export function MeasurementWizard({ userId, onSaved }: { userId: string; onSaved
   };
 
   const save = async () => {
+    if (impersonation) {
+      toast.error("Режим просмотра как клиент — сохранение отключено");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from("measurements").insert({
+
       user_id: userId,
       measured_on: form.measured_on,
       weight_kg: form.weight_kg ? Number(form.weight_kg) : null,

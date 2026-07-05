@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 export type AppRole = "admin" | "client";
 export type AccessStatus = "pending_onboarding" | "awaiting_approval" | "active" | "suspended";
 
+export type Impersonation = { userId: string; name: string } | null;
+
 type AuthState = {
   session: Session | null;
   user: User | null;
@@ -13,21 +15,49 @@ type AuthState = {
   loading: boolean;
   refreshAccess: () => Promise<void>;
   signOut: () => Promise<void>;
+  // Impersonation ("View as client")
+  impersonation: Impersonation;
+  startImpersonation: (userId: string, name: string) => void;
+  stopImpersonation: () => void;
+  // Effective identity used by dashboard pages
+  effectiveUserId: string | null;
+  effectiveRole: AppRole | null;
+  effectiveAccessStatus: AccessStatus | null;
 };
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
+const IMPERSONATION_KEY = "panovapro.impersonation";
+
+function readStoredImpersonation(): Impersonation {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(IMPERSONATION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.userId === "string") return parsed;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [accessStatus, setAccessStatus] = useState<AccessStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [impersonation, setImpersonation] = useState<Impersonation>(() => readStoredImpersonation());
+  const [impersonatedAccess, setImpersonatedAccess] = useState<AccessStatus | null>(null);
 
   const refreshAccess = useCallback(async () => {
     if (!session) return;
     const s = await fetchAccess(session.user.id);
     setAccessStatus(s);
-  }, [session]);
+    if (impersonation) {
+      const ia = await fetchAccess(impersonation.userId);
+      setImpersonatedAccess(ia);
+    }
+  }, [session, impersonation]);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -35,6 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!s) {
         setRole(null);
         setAccessStatus(null);
+        setImpersonation(null);
+        setImpersonatedAccess(null);
+        if (typeof window !== "undefined") window.localStorage.removeItem(IMPERSONATION_KEY);
         return;
       }
       setTimeout(() => {
@@ -58,13 +91,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Load impersonated access status whenever impersonation changes
+  useEffect(() => {
+    if (!impersonation) {
+      setImpersonatedAccess(null);
+      return;
+    }
+    void fetchAccess(impersonation.userId).then(setImpersonatedAccess);
+  }, [impersonation]);
+
+  const startImpersonation = useCallback((userId: string, name: string) => {
+    const value: Impersonation = { userId, name };
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(IMPERSONATION_KEY, JSON.stringify(value));
+    }
+    setImpersonation(value);
+  }, []);
+
+  const stopImpersonation = useCallback(() => {
+    if (typeof window !== "undefined") window.localStorage.removeItem(IMPERSONATION_KEY);
+    setImpersonation(null);
+    setImpersonatedAccess(null);
+  }, []);
+
   const signOut = async () => {
+    stopImpersonation();
     await supabase.auth.signOut();
   };
 
+  // Only admins may impersonate — ignore stored value otherwise
+  const activeImpersonation = role === "admin" ? impersonation : null;
+
+  const effectiveUserId = activeImpersonation?.userId ?? session?.user?.id ?? null;
+  const effectiveRole: AppRole | null = activeImpersonation ? "client" : role;
+  const effectiveAccessStatus: AccessStatus | null = activeImpersonation
+    ? impersonatedAccess
+    : accessStatus;
+
   return (
     <AuthContext.Provider
-      value={{ session, user: session?.user ?? null, role, accessStatus, loading, refreshAccess, signOut }}
+      value={{
+        session,
+        user: session?.user ?? null,
+        role,
+        accessStatus,
+        loading,
+        refreshAccess,
+        signOut,
+        impersonation: activeImpersonation,
+        startImpersonation,
+        stopImpersonation,
+        effectiveUserId,
+        effectiveRole,
+        effectiveAccessStatus,
+      }}
     >
       {children}
     </AuthContext.Provider>
