@@ -39,13 +39,19 @@ const emptyForm = {
   note: "",
 };
 
+type Access = { status: string; activated_at: string | null; notes: string | null };
+
 function ClientDetail() {
   const { id } = Route.useParams();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [items, setItems] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [access, setAccess] = useState<Access | null>(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
+  const [updatingAccess, setUpdatingAccess] = useState(false);
 
   const load = () => {
     void supabase
@@ -64,9 +70,57 @@ function ClientDetail() {
         setItems((data ?? []) as Measurement[]);
         setLoading(false);
       });
+
+    void supabase
+      .from("client_access")
+      .select("status, activated_at, notes")
+      .eq("user_id", id)
+      .maybeSingle()
+      .then(({ data }) => setAccess((data ?? null) as Access | null));
+
+    void supabase
+      .from("onboarding_responses")
+      .select("completed_at")
+      .eq("user_id", id)
+      .maybeSingle()
+      .then(({ data }) =>
+        setOnboardingCompleted(Boolean((data as { completed_at?: string } | null)?.completed_at)),
+      );
   };
 
   useEffect(load, [id]);
+
+  const grantAccess = async () => {
+    if (!user) return;
+    setUpdatingAccess(true);
+    const { error } = await supabase
+      .from("client_access")
+      .upsert(
+        {
+          user_id: id,
+          status: "active",
+          activated_at: new Date().toISOString(),
+          activated_by: user.id,
+        },
+        { onConflict: "user_id" },
+      );
+    setUpdatingAccess(false);
+    if (error) return toast.error(error.message);
+    toast.success("Доступ к курсу открыт");
+    load();
+  };
+
+  const revokeAccess = async () => {
+    setUpdatingAccess(true);
+    const { error } = await supabase
+      .from("client_access")
+      .update({ status: "suspended" })
+      .eq("user_id", id);
+    setUpdatingAccess(false);
+    if (error) return toast.error(error.message);
+    toast.success("Доступ приостановлен");
+    load();
+  };
 
   const addMeasurement = async (e: React.FormEvent) => {
     e.preventDefault();
