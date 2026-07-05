@@ -18,11 +18,13 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedDashboardTrainingRouteImport } from './routes/_authenticated/dashboard.training'
 import { Route as AuthenticatedDashboardProgressRouteImport } from './routes/_authenticated/dashboard.progress'
 import { Route as AuthenticatedDashboardProfileRouteImport } from './routes/_authenticated/dashboard.profile'
 import { Route as AuthenticatedDashboardOnboardingRouteImport } from './routes/_authenticated/dashboard.onboarding'
 import { Route as AuthenticatedDashboardNutritionRouteImport } from './routes/_authenticated/dashboard.nutrition'
 import { Route as AuthenticatedAdminClientsIdRouteImport } from './routes/_authenticated/admin.clients.$id'
+import { Route as AuthenticatedAdminClientsIdTrainingRouteImport } from './routes/_authenticated/admin.clients.$id.training'
 import { Route as AuthenticatedAdminClientsIdOnboardingRouteImport } from './routes/_authenticated/admin.clients.$id.onboarding'
 import { Route as AuthenticatedAdminClientsIdNutritionRouteImport } from './routes/_authenticated/admin.clients.$id.nutrition'
 
@@ -71,6 +73,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedDashboardTrainingRoute =
+  AuthenticatedDashboardTrainingRouteImport.update({
+    id: '/training',
+    path: '/training',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardProgressRoute =
   AuthenticatedDashboardProgressRouteImport.update({
     id: '/progress',
@@ -101,6 +109,12 @@ const AuthenticatedAdminClientsIdRoute =
     path: '/clients/$id',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminClientsIdTrainingRoute =
+  AuthenticatedAdminClientsIdTrainingRouteImport.update({
+    id: '/training',
+    path: '/training',
+    getParentRoute: () => AuthenticatedAdminClientsIdRoute,
+  } as any)
 const AuthenticatedAdminClientsIdOnboardingRoute =
   AuthenticatedAdminClientsIdOnboardingRouteImport.update({
     id: '/onboarding',
@@ -125,11 +139,13 @@ export interface FileRoutesByFullPath {
   '/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
   '/dashboard/progress': typeof AuthenticatedDashboardProgressRoute
+  '/dashboard/training': typeof AuthenticatedDashboardTrainingRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/admin/clients/$id': typeof AuthenticatedAdminClientsIdRouteWithChildren
   '/admin/clients/$id/nutrition': typeof AuthenticatedAdminClientsIdNutritionRoute
   '/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
+  '/admin/clients/$id/training': typeof AuthenticatedAdminClientsIdTrainingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -140,11 +156,13 @@ export interface FileRoutesByTo {
   '/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
   '/dashboard/progress': typeof AuthenticatedDashboardProgressRoute
+  '/dashboard/training': typeof AuthenticatedDashboardTrainingRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/admin/clients/$id': typeof AuthenticatedAdminClientsIdRouteWithChildren
   '/admin/clients/$id/nutrition': typeof AuthenticatedAdminClientsIdNutritionRoute
   '/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
+  '/admin/clients/$id/training': typeof AuthenticatedAdminClientsIdTrainingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -159,11 +177,13 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/_authenticated/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
   '/_authenticated/dashboard/progress': typeof AuthenticatedDashboardProgressRoute
+  '/_authenticated/dashboard/training': typeof AuthenticatedDashboardTrainingRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/admin/clients/$id': typeof AuthenticatedAdminClientsIdRouteWithChildren
   '/_authenticated/admin/clients/$id/nutrition': typeof AuthenticatedAdminClientsIdNutritionRoute
   '/_authenticated/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
+  '/_authenticated/admin/clients/$id/training': typeof AuthenticatedAdminClientsIdTrainingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -178,11 +198,13 @@ export interface FileRouteTypes {
     | '/dashboard/onboarding'
     | '/dashboard/profile'
     | '/dashboard/progress'
+    | '/dashboard/training'
     | '/admin/'
     | '/dashboard/'
     | '/admin/clients/$id'
     | '/admin/clients/$id/nutrition'
     | '/admin/clients/$id/onboarding'
+    | '/admin/clients/$id/training'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -193,11 +215,13 @@ export interface FileRouteTypes {
     | '/dashboard/onboarding'
     | '/dashboard/profile'
     | '/dashboard/progress'
+    | '/dashboard/training'
     | '/admin'
     | '/dashboard'
     | '/admin/clients/$id'
     | '/admin/clients/$id/nutrition'
     | '/admin/clients/$id/onboarding'
+    | '/admin/clients/$id/training'
   id:
     | '__root__'
     | '/'
@@ -211,11 +235,13 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/onboarding'
     | '/_authenticated/dashboard/profile'
     | '/_authenticated/dashboard/progress'
+    | '/_authenticated/dashboard/training'
     | '/_authenticated/admin/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/admin/clients/$id'
     | '/_authenticated/admin/clients/$id/nutrition'
     | '/_authenticated/admin/clients/$id/onboarding'
+    | '/_authenticated/admin/clients/$id/training'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -291,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/dashboard/training': {
+      id: '/_authenticated/dashboard/training'
+      path: '/training'
+      fullPath: '/dashboard/training'
+      preLoaderRoute: typeof AuthenticatedDashboardTrainingRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/progress': {
       id: '/_authenticated/dashboard/progress'
       path: '/progress'
@@ -326,6 +359,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminClientsIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/clients/$id/training': {
+      id: '/_authenticated/admin/clients/$id/training'
+      path: '/training'
+      fullPath: '/admin/clients/$id/training'
+      preLoaderRoute: typeof AuthenticatedAdminClientsIdTrainingRouteImport
+      parentRoute: typeof AuthenticatedAdminClientsIdRoute
+    }
     '/_authenticated/admin/clients/$id/onboarding': {
       id: '/_authenticated/admin/clients/$id/onboarding'
       path: '/onboarding'
@@ -346,6 +386,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminClientsIdRouteChildren {
   AuthenticatedAdminClientsIdNutritionRoute: typeof AuthenticatedAdminClientsIdNutritionRoute
   AuthenticatedAdminClientsIdOnboardingRoute: typeof AuthenticatedAdminClientsIdOnboardingRoute
+  AuthenticatedAdminClientsIdTrainingRoute: typeof AuthenticatedAdminClientsIdTrainingRoute
 }
 
 const AuthenticatedAdminClientsIdRouteChildren: AuthenticatedAdminClientsIdRouteChildren =
@@ -354,6 +395,8 @@ const AuthenticatedAdminClientsIdRouteChildren: AuthenticatedAdminClientsIdRoute
       AuthenticatedAdminClientsIdNutritionRoute,
     AuthenticatedAdminClientsIdOnboardingRoute:
       AuthenticatedAdminClientsIdOnboardingRoute,
+    AuthenticatedAdminClientsIdTrainingRoute:
+      AuthenticatedAdminClientsIdTrainingRoute,
   }
 
 const AuthenticatedAdminClientsIdRouteWithChildren =
@@ -380,6 +423,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardOnboardingRoute: typeof AuthenticatedDashboardOnboardingRoute
   AuthenticatedDashboardProfileRoute: typeof AuthenticatedDashboardProfileRoute
   AuthenticatedDashboardProgressRoute: typeof AuthenticatedDashboardProgressRoute
+  AuthenticatedDashboardTrainingRoute: typeof AuthenticatedDashboardTrainingRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
 }
 
@@ -390,6 +434,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
       AuthenticatedDashboardOnboardingRoute,
     AuthenticatedDashboardProfileRoute: AuthenticatedDashboardProfileRoute,
     AuthenticatedDashboardProgressRoute: AuthenticatedDashboardProgressRoute,
+    AuthenticatedDashboardTrainingRoute: AuthenticatedDashboardTrainingRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   }
 
