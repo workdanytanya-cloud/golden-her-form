@@ -142,7 +142,7 @@ const PREGNANCY = [
 const TIMEFRAME = ["1 месяц", "3 месяца", "6 месяцев", "Год и больше"];
 
 function OnboardingPage() {
-  const { user } = useAuth();
+  const { user, refreshAccess } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState<FormState>(empty);
   const [loading, setLoading] = useState(true);
@@ -260,6 +260,7 @@ function OnboardingPage() {
     if (error) return toast.error(error.message);
     if (asCompleted) {
       setCompleted(payload.completed_at as string);
+      await refreshAccess();
       toast.success("Анкета отправлена тренеру");
       void navigate({ to: "/dashboard" });
     } else {

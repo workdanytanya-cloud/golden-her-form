@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
-import { ArrowRight, ClipboardList, Sparkles } from "lucide-react";
+import { AccessGate } from "@/components/panel/AccessGate";
+import { ArrowRight, Clock, ClipboardList, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardOverview,
@@ -23,7 +24,7 @@ type Measurement = {
 };
 
 function DashboardOverview() {
-  const { user } = useAuth();
+  const { user, accessStatus } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
@@ -68,7 +69,7 @@ function DashboardOverview() {
         description="Отслеживайте прогресс, обновляйте замеры и держите цель перед глазами."
       />
 
-      {onboardingDone === false && (
+      {onboardingDone === false && accessStatus === "pending_onboarding" && (
         <Link
           to="/dashboard/onboarding"
           className="group flex items-center gap-4 rounded-3xl border border-coral/40 bg-gradient-to-r from-coral/15 via-transparent to-gold/15 p-6 transition-transform hover:scale-[1.01]"
@@ -79,12 +80,29 @@ function DashboardOverview() {
           <div className="flex-1">
             <p className="eyebrow">Первый шаг</p>
             <p className="mt-1 font-display text-lg text-ivory">
-              Заполните первичную анкету — на её основе тренер соберёт программу
+              Заполните первичную анкету — все разделы откроются после отправки
             </p>
           </div>
           <ArrowRight className="h-5 w-5 shrink-0 text-gold transition-transform group-hover:translate-x-1" />
         </Link>
       )}
+
+      {accessStatus === "awaiting_approval" && (
+        <div className="flex items-start gap-4 rounded-3xl border border-gold/25 bg-gradient-to-r from-gold/10 via-transparent to-coral/10 p-6">
+          <div className="rounded-2xl bg-gold/20 p-3 text-gold">
+            <Clock className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="eyebrow">Анкета отправлена</p>
+            <p className="mt-1 font-display text-lg text-ivory">
+              Тренер проверяет вашу анкету — доступ к курсу и трекингу прогресса откроется после назначения программы
+            </p>
+          </div>
+        </div>
+      )}
+
+      <AccessGate level="onboarding_submitted">
+        <div className="space-y-10">
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -178,6 +196,8 @@ function DashboardOverview() {
           </table>
         </div>
       </section>
+        </div>
+      </AccessGate>
     </div>
   );
 }

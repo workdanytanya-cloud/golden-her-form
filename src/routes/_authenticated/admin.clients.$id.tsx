@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
-import { ArrowLeft, ClipboardList, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ClipboardList, Lock, Plus, Trash2, Unlock } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id")({
@@ -38,13 +39,19 @@ const emptyForm = {
   note: "",
 };
 
+type Access = { status: string; activated_at: string | null; notes: string | null };
+
 function ClientDetail() {
   const { id } = Route.useParams();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [items, setItems] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [access, setAccess] = useState<Access | null>(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
+  const [updatingAccess, setUpdatingAccess] = useState(false);
 
   const load = () => {
     void supabase
@@ -63,9 +70,57 @@ function ClientDetail() {
         setItems((data ?? []) as Measurement[]);
         setLoading(false);
       });
+
+    void supabase
+      .from("client_access")
+      .select("status, activated_at, notes")
+      .eq("user_id", id)
+      .maybeSingle()
+      .then(({ data }) => setAccess((data ?? null) as Access | null));
+
+    void supabase
+      .from("onboarding_responses")
+      .select("completed_at")
+      .eq("user_id", id)
+      .maybeSingle()
+      .then(({ data }) =>
+        setOnboardingCompleted(Boolean((data as { completed_at?: string } | null)?.completed_at)),
+      );
   };
 
   useEffect(load, [id]);
+
+  const grantAccess = async () => {
+    if (!user) return;
+    setUpdatingAccess(true);
+    const { error } = await supabase
+      .from("client_access")
+      .upsert(
+        {
+          user_id: id,
+          status: "active",
+          activated_at: new Date().toISOString(),
+          activated_by: user.id,
+        },
+        { onConflict: "user_id" },
+      );
+    setUpdatingAccess(false);
+    if (error) return toast.error(error.message);
+    toast.success("Доступ к курсу открыт");
+    load();
+  };
+
+  const revokeAccess = async () => {
+    setUpdatingAccess(true);
+    const { error } = await supabase
+      .from("client_access")
+      .update({ status: "suspended" })
+      .eq("user_id", id);
+    setUpdatingAccess(false);
+    if (error) return toast.error(error.message);
+    toast.success("Доступ приостановлен");
+    load();
+  };
 
   const addMeasurement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,6 +172,15 @@ function ClientDetail() {
             <ClipboardList className="h-4 w-4" /> Анкета онбординга
           </Link>
         }
+      />
+
+      <AccessManager
+        status={access?.status ?? null}
+        activatedAt={access?.activated_at ?? null}
+        onboardingCompleted={onboardingCompleted}
+        onGrant={grantAccess}
+        onRevoke={revokeAccess}
+        loading={updatingAccess}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -273,3 +337,89 @@ function F({ label, span, children }: { label: string; span?: string; children: 
     </label>
   );
 }
+
+function AccessManager({
+  status,
+  activatedAt,
+  onboardingCompleted,
+  onGrant,
+  onRevoke,
+  loading,
+}: {
+  status: string | null;
+  activatedAt: string | null;
+  onboardingCompleted: boolean;
+  onGrant: () => void;
+  onRevoke: () => void;
+  loading: boolean;
+}) {
+  const isActive = status === "active";
+  const isAwaiting = status === "awaiting_approval";
+  const isPending = status === "pending_onboarding" || status === null;
+  const isSuspended = status === "suspended";
+
+  const label = isActive
+    ? "Курс открыт"
+    : isAwaiting
+      ? "Ожидает подтверждения тренера"
+      : isSuspended
+        ? "Доступ приостановлен"
+        : "Анкета не заполнена";
+
+  const tone = isActive
+    ? "from-emerald-500/20 to-transparent ring-emerald-500/40 text-emerald-200"
+    : isAwaiting
+      ? "from-gold/20 to-transparent ring-gold/40 text-gold"
+      : isSuspended
+        ? "from-coral/20 to-transparent ring-coral/40 text-coral"
+        : "from-surface/60 to-transparent ring-gold/15 text-warm-gray";
+
+  return (
+    <section
+      className={`flex flex-col gap-4 rounded-3xl bg-gradient-to-br ${tone} p-6 ring-1 backdrop-blur md:flex-row md:items-center md:justify-between`}
+    >
+      <div>
+        <p className="text-[11px] uppercase tracking-widest opacity-80">Доступ к курсу</p>
+        <p className="mt-1 font-display text-xl text-ivory">{label}</p>
+        {isActive && activatedAt && (
+          <p className="mt-1 text-xs text-warm-gray">
+            Открыт {new Date(activatedAt).toLocaleDateString("ru-RU")}
+          </p>
+        )}
+        {isPending && (
+          <p className="mt-1 text-xs text-warm-gray">
+            Клиент увидит только раздел анкеты, пока не отправит её
+          </p>
+        )}
+        {isAwaiting && (
+          <p className="mt-1 text-xs text-warm-gray">
+            Проверьте ответы клиента и откройте доступ к курсу и трекингу прогресса
+          </p>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {!isActive && (
+          <button
+            onClick={onGrant}
+            disabled={loading || (!onboardingCompleted && !isSuspended)}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+            title={!onboardingCompleted && !isSuspended ? "Дождитесь заполнения анкеты" : undefined}
+          >
+            <Unlock className="h-4 w-4" />
+            {isSuspended ? "Возобновить доступ" : "Открыть курс"}
+          </button>
+        )}
+        {isActive && (
+          <button
+            onClick={onRevoke}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-full border border-coral/40 px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-coral/15 disabled:opacity-50"
+          >
+            <Lock className="h-4 w-4" /> Приостановить
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+

@@ -16,6 +16,7 @@ import { Calendar as CalendarIcon, Download, Plus, Trash2, X } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader } from "@/components/panel/PanelShell";
+import { AccessGate } from "@/components/panel/AccessGate";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -229,6 +230,8 @@ function ProgressPage() {
         description="Наблюдайте динамику на графике и держите замеры под рукой в календаре."
       />
 
+      <AccessGate level="active">
+        <div className="space-y-10">
       {/* Filters */}
       <div className="flex flex-col gap-4 rounded-3xl border border-gold/15 bg-surface/40 p-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -529,6 +532,8 @@ function ProgressPage() {
           </div>
         </form>
       </section>
+        </div>
+      </AccessGate>
     </div>
   );
 }
