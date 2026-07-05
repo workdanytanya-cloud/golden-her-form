@@ -75,23 +75,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Tanya Fitness — Премиальный женский фитнес-коучинг" },
+      { title: "PanovaPRO — Татьяна Панова · Персональный фитнес-коучинг" },
       {
         name: "description",
         content:
-          "Персональные программы тренировок и питания от Тани — 10+ лет опыта работы с женщинами. Онлайн-коучинг, дисциплина, результат.",
+          "Татьяна Панова — фитнес-тренер и наставник с опытом 15+ лет. 10 000+ подопечных, авторская система похудения без срывов и голодовок.",
       },
-      { name: "author", content: "Tanya Fitness" },
-      { property: "og:title", content: "Tanya Fitness — Премиальный женский фитнес-коучинг" },
+      { name: "author", content: "PanovaPRO · Татьяна Панова" },
+      { property: "og:title", content: "PanovaPRO — Татьяна Панова" },
       {
         property: "og:description",
         content:
-          "10+ лет опыта. 500+ довольных клиенток. Индивидуальный подход, персональные планы, ощутимый результат.",
+          "Авторская система похудения. 17+ лет в фитнесе, 15+ лет в тренерстве, 10 000+ подопечных.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@tanya_fitness" },
-      { name: "theme-color", content: "#0B0B0C" },
+      { name: "theme-color", content: "#0B0A08" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
