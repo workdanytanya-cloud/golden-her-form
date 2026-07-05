@@ -174,6 +174,15 @@ function ClientDetail() {
         }
       />
 
+      <AccessManager
+        status={access?.status ?? null}
+        activatedAt={access?.activated_at ?? null}
+        onboardingCompleted={onboardingCompleted}
+        onGrant={grantAccess}
+        onRevoke={revokeAccess}
+        loading={updatingAccess}
+      />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Телефон" value={profile?.phone || "—"} />
         <StatCard label="Рост" value={profile?.height_cm ? `${profile.height_cm} см` : "—"} />
