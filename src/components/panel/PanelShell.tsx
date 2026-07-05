@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { Menu, X, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { NotificationsBell } from "./NotificationsBell";
 
 export type PanelNavItem = {
   to: string;
