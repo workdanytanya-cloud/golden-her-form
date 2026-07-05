@@ -160,6 +160,15 @@ function AuthPage() {
             </button>
           </form>
 
+          {mode === "signin" && (
+            <Link
+              to="/forgot-password"
+              className="mt-4 block text-center text-xs text-warm-gray transition-colors hover:text-gold"
+            >
+              Забыли пароль?
+            </Link>
+          )}
+
           <button
             type="button"
             onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
