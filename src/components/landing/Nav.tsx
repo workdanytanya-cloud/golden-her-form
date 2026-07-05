@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth";
 import logoAsset from "@/assets/logo.png.asset.json";
 
 const links = [
