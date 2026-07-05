@@ -230,6 +230,8 @@ function ProgressPage() {
         description="Наблюдайте динамику на графике и держите замеры под рукой в календаре."
       />
 
+      <AccessGate level="active">
+        <div className="space-y-10">
       {/* Filters */}
       <div className="flex flex-col gap-4 rounded-3xl border border-gold/15 bg-surface/40 p-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
