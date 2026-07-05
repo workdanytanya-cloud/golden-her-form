@@ -163,8 +163,13 @@ export function MeasurementWizard({ userId, onSaved }: { userId: string; onSaved
   };
 
   const save = async () => {
+    if (impersonation) {
+      toast.error("Режим просмотра как клиент — сохранение отключено");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from("measurements").insert({
+
       user_id: userId,
       measured_on: form.measured_on,
       weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
