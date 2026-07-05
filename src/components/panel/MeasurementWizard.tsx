@@ -116,11 +116,13 @@ const numberSchema = (min: number, max: number) =>
     });
 
 export function MeasurementWizard({ userId, onSaved }: { userId: string; onSaved: () => void }) {
+  const { impersonation } = useAuth();
   const [stage, setStage] = useState<"intro" | "steps" | "note">("intro");
   const [stepIdx, setStepIdx] = useState(0);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
+
 
   const allChecked = CHECKLIST.every((c) => checked[c.key]);
   const step = STEPS[stepIdx];
