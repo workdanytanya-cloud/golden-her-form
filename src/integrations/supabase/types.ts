@@ -14,27 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      measurements: {
+        Row: {
+          chest_cm: number | null
+          created_at: string
+          hips_cm: number | null
+          id: string
+          measured_on: string
+          note: string | null
+          updated_at: string
+          user_id: string
+          waist_cm: number | null
+          weight_kg: number | null
+        }
+        Insert: {
+          chest_cm?: number | null
+          created_at?: string
+          hips_cm?: number | null
+          id?: string
+          measured_on?: string
+          note?: string | null
+          updated_at?: string
+          user_id: string
+          waist_cm?: number | null
+          weight_kg?: number | null
+        }
+        Update: {
+          chest_cm?: number | null
+          created_at?: string
+          hips_cm?: number | null
+          id?: string
+          measured_on?: string
+          note?: string | null
+          updated_at?: string
+          user_id?: string
+          waist_cm?: number | null
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          birth_date: string | null
           created_at: string
           full_name: string | null
+          goal: string | null
+          height_cm: number | null
           id: string
           phone: string | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          birth_date?: string | null
           created_at?: string
           full_name?: string | null
+          goal?: string | null
+          height_cm?: number | null
           id: string
           phone?: string | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          birth_date?: string | null
           created_at?: string
           full_name?: string | null
+          goal?: string | null
+          height_cm?: number | null
           id?: string
           phone?: string | null
           updated_at?: string
