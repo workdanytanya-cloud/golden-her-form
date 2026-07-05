@@ -44,7 +44,9 @@ type Access = { status: string; activated_at: string | null; notes: string | nul
 
 function ClientDetail() {
   const { id } = Route.useParams();
-  const { user } = useAuth();
+  const { user, startImpersonation } = useAuth();
+  const navigate = useNavigate();
+
   const [profile, setProfile] = useState<Profile | null>(null);
   const [items, setItems] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
