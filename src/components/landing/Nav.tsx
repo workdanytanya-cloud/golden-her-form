@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import logoAsset from "@/assets/logo.png.asset.json";
 
 const links = [
   { href: "#about", label: "О тренере" },
