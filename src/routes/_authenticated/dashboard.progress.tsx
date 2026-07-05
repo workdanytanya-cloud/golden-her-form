@@ -12,7 +12,8 @@ import {
 } from "recharts";
 import { format, subDays } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Calendar as CalendarIcon, Download, Plus, Trash2, X } from "lucide-react";
+import { Calendar as CalendarIcon, Download, Trash2, X } from "lucide-react";
+import { MeasurementWizard } from "@/components/panel/MeasurementWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader } from "@/components/panel/PanelShell";
