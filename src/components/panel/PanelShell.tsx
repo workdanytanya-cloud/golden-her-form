@@ -55,6 +55,8 @@ export function PanelShell({
             {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
         </div>
+      </div>
+
 
       <div className="mx-auto flex max-w-7xl">
         {/* Sidebar */}
