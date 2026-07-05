@@ -12,7 +12,8 @@ import {
 } from "recharts";
 import { format, subDays } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Calendar as CalendarIcon, Download, Plus, Trash2, X } from "lucide-react";
+import { Calendar as CalendarIcon, Download, Trash2, X } from "lucide-react";
+import { MeasurementWizard } from "@/components/panel/MeasurementWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader } from "@/components/panel/PanelShell";
@@ -51,21 +52,11 @@ const METRICS: {
   { key: "chest_cm", label: "Грудь", unit: "см", color: "oklch(0.75 0.14 140)" },
 ];
 
-const emptyForm = {
-  measured_on: format(new Date(), "yyyy-MM-dd"),
-  weight_kg: "",
-  waist_cm: "",
-  hips_cm: "",
-  chest_cm: "",
-  note: "",
-};
-
 function ProgressPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
+
 
   // Filters
   const [from, setFrom] = useState<Date | undefined>(subDays(new Date(), 90));
@@ -123,25 +114,8 @@ function ProgressPage() {
     [items],
   );
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    setSaving(true);
-    const { error } = await supabase.from("measurements").insert({
-      user_id: user.id,
-      measured_on: form.measured_on,
-      weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
-      waist_cm: form.waist_cm ? Number(form.waist_cm) : null,
-      hips_cm: form.hips_cm ? Number(form.hips_cm) : null,
-      chest_cm: form.chest_cm ? Number(form.chest_cm) : null,
-      note: form.note || null,
-    });
-    setSaving(false);
-    if (error) return toast.error("Не удалось сохранить: " + error.message);
-    toast.success("Замер добавлен");
-    setForm(emptyForm);
-    load();
-  };
+
+
 
   const remove = async (id: string) => {
     const { error } = await supabase.from("measurements").delete().eq("id", id);
@@ -470,76 +444,12 @@ function ProgressPage() {
       </div>
 
       {/* Add measurement (excluded from PDF) */}
-      <section>
-        <h2 className="font-display text-2xl">Добавить замер</h2>
-        <form
-          onSubmit={submit}
-          className="mt-4 grid gap-4 rounded-3xl border border-gold/15 bg-surface/40 p-6 md:grid-cols-6"
-        >
-          <F label="Дата" span="md:col-span-2">
-            <input
-              type="date"
-              required
-              value={form.measured_on}
-              onChange={(e) => setForm({ ...form, measured_on: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <F label="Вес, кг">
-            <input
-              type="number"
-              step="0.1"
-              value={form.weight_kg}
-              onChange={(e) => setForm({ ...form, weight_kg: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <F label="Талия">
-            <input
-              type="number"
-              step="0.1"
-              value={form.waist_cm}
-              onChange={(e) => setForm({ ...form, waist_cm: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <F label="Бёдра">
-            <input
-              type="number"
-              step="0.1"
-              value={form.hips_cm}
-              onChange={(e) => setForm({ ...form, hips_cm: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <F label="Грудь">
-            <input
-              type="number"
-              step="0.1"
-              value={form.chest_cm}
-              onChange={(e) => setForm({ ...form, chest_cm: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <F label="Заметка" span="md:col-span-5">
-            <input
-              type="text"
-              placeholder="Самочувствие, тренировки, питание…"
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
-              className={inputCls}
-            />
-          </F>
-          <div className="flex items-end">
-            <button
-              disabled={saving}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
-            >
-              <Plus className="h-4 w-4" /> Добавить
-            </button>
-          </div>
-        </form>
-      </section>
+      {user && (
+        <section>
+          <MeasurementWizard userId={user.id} onSaved={load} />
+        </section>
+      )}
+
         </div>
       </AccessGate>
     </div>
@@ -594,16 +504,3 @@ function endOfDay(d: Date) {
   return x;
 }
 
-const inputCls =
-  "w-full rounded-xl border border-gold/20 bg-background/40 px-4 py-3 text-sm text-ivory placeholder:text-warm-gray/60 outline-none transition-colors focus:border-gold/60";
-
-function F({ label, span, children }: { label: string; span?: string; children: React.ReactNode }) {
-  return (
-    <label className={`block ${span ?? ""}`}>
-      <span className="mb-1 block text-[11px] uppercase tracking-widest text-warm-gray">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
