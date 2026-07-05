@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader } from "@/components/panel/PanelShell";
+import { SectionHint, FieldHint } from "@/components/panel/Hints";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
 
@@ -73,17 +74,23 @@ function ProfilePage() {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <PanelHeader
         eyebrow="Профиль"
         title="Личные данные"
         description="Эта информация помогает подобрать правильную нагрузку и питание."
       />
 
+      <SectionHint tone="tip">
+        Заполните хотя бы имя, рост и цель — остальное можно добавить позже. Все поля видны только
+        вам и вашему тренеру.
+      </SectionHint>
+
       {loading ? (
         <p className="text-warm-gray">Загрузка…</p>
       ) : (
         <form onSubmit={save} className="max-w-2xl space-y-5 rounded-3xl border border-gold/15 bg-surface/40 p-6">
+
           <Field label="Имя">
             <input
               value={form.full_name}
@@ -129,7 +136,12 @@ function ProfilePage() {
               className={inputCls}
               placeholder="Например: минус 6 кг к лету и подтянутое тело"
             />
+            <FieldHint>
+              Формулируйте конкретно: «минус 6 кг к июню», «поднять 60 кг в приседе», «прийти в форму
+              к отпуску». Конкретная цель проще отслеживается.
+            </FieldHint>
           </Field>
+
           <button
             disabled={saving}
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-6 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
