@@ -82,6 +82,7 @@ export type Database = {
           description: string | null
           fat_per_100g: number
           id: string
+          image_url: string | null
           ingredients: Json
           meal_type: string
           name: string
@@ -92,6 +93,7 @@ export type Database = {
           steps: Json
           tags: string[]
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           calories_per_100g: number
@@ -100,6 +102,7 @@ export type Database = {
           description?: string | null
           fat_per_100g: number
           id?: string
+          image_url?: string | null
           ingredients?: Json
           meal_type: string
           name: string
@@ -110,6 +113,7 @@ export type Database = {
           steps?: Json
           tags?: string[]
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           calories_per_100g?: number
@@ -118,6 +122,7 @@ export type Database = {
           description?: string | null
           fat_per_100g?: number
           id?: string
+          image_url?: string | null
           ingredients?: Json
           meal_type?: string
           name?: string
@@ -128,6 +133,7 @@ export type Database = {
           steps?: Json
           tags?: string[]
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: []
       }

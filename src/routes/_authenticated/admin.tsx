@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { Users, LayoutDashboard } from "lucide-react";
+import { Users, LayoutDashboard, Dumbbell, Utensils } from "lucide-react";
 import { PanelShell, type PanelNavItem } from "@/components/panel/PanelShell";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,7 +19,9 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 const nav: PanelNavItem[] = [
-  { to: "/admin", label: "Клиенты", icon: <Users className="h-4 w-4" />, exact: false },
+  { to: "/admin", label: "Клиенты", icon: <Users className="h-4 w-4" />, exact: true },
+  { to: "/admin/exercises", label: "Упражнения", icon: <Dumbbell className="h-4 w-4" /> },
+  { to: "/admin/dishes", label: "Рационы", icon: <Utensils className="h-4 w-4" /> },
   { to: "/dashboard", label: "Мой кабинет", icon: <LayoutDashboard className="h-4 w-4" /> },
 ];
 

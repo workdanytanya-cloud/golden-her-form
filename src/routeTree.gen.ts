@@ -23,6 +23,8 @@ import { Route as AuthenticatedDashboardProgressRouteImport } from './routes/_au
 import { Route as AuthenticatedDashboardProfileRouteImport } from './routes/_authenticated/dashboard.profile'
 import { Route as AuthenticatedDashboardOnboardingRouteImport } from './routes/_authenticated/dashboard.onboarding'
 import { Route as AuthenticatedDashboardNutritionRouteImport } from './routes/_authenticated/dashboard.nutrition'
+import { Route as AuthenticatedAdminExercisesRouteImport } from './routes/_authenticated/admin.exercises'
+import { Route as AuthenticatedAdminDishesRouteImport } from './routes/_authenticated/admin.dishes'
 import { Route as AuthenticatedAdminClientsIdRouteImport } from './routes/_authenticated/admin.clients.$id'
 import { Route as AuthenticatedAdminClientsIdTrainingRouteImport } from './routes/_authenticated/admin.clients.$id.training'
 import { Route as AuthenticatedAdminClientsIdOnboardingRouteImport } from './routes/_authenticated/admin.clients.$id.onboarding'
@@ -103,6 +105,18 @@ const AuthenticatedDashboardNutritionRoute =
     path: '/nutrition',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedAdminExercisesRoute =
+  AuthenticatedAdminExercisesRouteImport.update({
+    id: '/exercises',
+    path: '/exercises',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminDishesRoute =
+  AuthenticatedAdminDishesRouteImport.update({
+    id: '/dishes',
+    path: '/dishes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminClientsIdRoute =
   AuthenticatedAdminClientsIdRouteImport.update({
     id: '/clients/$id',
@@ -135,6 +149,8 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/admin/dishes': typeof AuthenticatedAdminDishesRoute
+  '/admin/exercises': typeof AuthenticatedAdminExercisesRoute
   '/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
@@ -152,6 +168,8 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/dishes': typeof AuthenticatedAdminDishesRoute
+  '/admin/exercises': typeof AuthenticatedAdminExercisesRoute
   '/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
@@ -173,6 +191,8 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/_authenticated/admin/dishes': typeof AuthenticatedAdminDishesRoute
+  '/_authenticated/admin/exercises': typeof AuthenticatedAdminExercisesRoute
   '/_authenticated/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
   '/_authenticated/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/_authenticated/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
@@ -194,6 +214,8 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/dashboard'
+    | '/admin/dishes'
+    | '/admin/exercises'
     | '/dashboard/nutrition'
     | '/dashboard/onboarding'
     | '/dashboard/profile'
@@ -211,6 +233,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/forgot-password'
     | '/reset-password'
+    | '/admin/dishes'
+    | '/admin/exercises'
     | '/dashboard/nutrition'
     | '/dashboard/onboarding'
     | '/dashboard/profile'
@@ -231,6 +255,8 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
+    | '/_authenticated/admin/dishes'
+    | '/_authenticated/admin/exercises'
     | '/_authenticated/dashboard/nutrition'
     | '/_authenticated/dashboard/onboarding'
     | '/_authenticated/dashboard/profile'
@@ -352,6 +378,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardNutritionRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/admin/exercises': {
+      id: '/_authenticated/admin/exercises'
+      path: '/exercises'
+      fullPath: '/admin/exercises'
+      preLoaderRoute: typeof AuthenticatedAdminExercisesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/dishes': {
+      id: '/_authenticated/admin/dishes'
+      path: '/dishes'
+      fullPath: '/admin/dishes'
+      preLoaderRoute: typeof AuthenticatedAdminDishesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/clients/$id': {
       id: '/_authenticated/admin/clients/$id'
       path: '/clients/$id'
@@ -405,11 +445,15 @@ const AuthenticatedAdminClientsIdRouteWithChildren =
   )
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminDishesRoute: typeof AuthenticatedAdminDishesRoute
+  AuthenticatedAdminExercisesRoute: typeof AuthenticatedAdminExercisesRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminClientsIdRoute: typeof AuthenticatedAdminClientsIdRouteWithChildren
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminDishesRoute: AuthenticatedAdminDishesRoute,
+  AuthenticatedAdminExercisesRoute: AuthenticatedAdminExercisesRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminClientsIdRoute:
     AuthenticatedAdminClientsIdRouteWithChildren,
