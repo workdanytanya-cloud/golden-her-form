@@ -16,6 +16,7 @@ import { Calendar as CalendarIcon, Download, Plus, Trash2, X } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader } from "@/components/panel/PanelShell";
+import { SectionHint } from "@/components/panel/Hints";
 import { AccessGate } from "@/components/panel/AccessGate";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
