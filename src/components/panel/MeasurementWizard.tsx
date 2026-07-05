@@ -16,7 +16,9 @@ import {
   StickyNote,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+
 
 type FormState = {
   measured_on: string;
