@@ -47,11 +47,19 @@ const emptyForm = {
 
 function ClientDetail() {
   const { id } = Route.useParams();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [items, setItems] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [access, setAccess] = useState<{
+    status: AccessStatus;
+    activated_at: string | null;
+    notes: string | null;
+  } | null>(null);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [updatingAccess, setUpdatingAccess] = useState(false);
 
   const load = () => {
     void supabase
@@ -70,9 +78,66 @@ function ClientDetail() {
         setItems((data ?? []) as Measurement[]);
         setLoading(false);
       });
+
+    void supabase
+      .from("client_access")
+      .select("status, activated_at, notes")
+      .eq("user_id", id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const d = data as { status?: string; activated_at?: string | null; notes?: string | null } | null;
+        const status = isAccessStatus(d?.status) ? (d!.status as AccessStatus) : "pending_onboarding";
+        setAccess({
+          status,
+          activated_at: d?.activated_at ?? null,
+          notes: d?.notes ?? null,
+        });
+        setNotesDraft(d?.notes ?? "");
+      });
   };
 
   useEffect(load, [id]);
+
+  const setAccessStatus = async (next: AccessStatus) => {
+    setUpdatingAccess(true);
+    const payload: Record<string, unknown> = {
+      user_id: id,
+      status: next,
+      notes: notesDraft.trim() || null,
+    };
+    if (next === "active") {
+      payload.activated_at = new Date().toISOString();
+      payload.activated_by = user?.id ?? null;
+    }
+    const { error } = await supabase
+      .from("client_access")
+      .upsert(payload, { onConflict: "user_id" });
+    setUpdatingAccess(false);
+    if (error) return toast.error(error.message);
+    toast.success(
+      next === "active"
+        ? "Доступ активирован"
+        : next === "paused"
+          ? "Сопровождение на паузе"
+          : "Статус обновлён",
+    );
+    load();
+  };
+
+  const saveNotes = async () => {
+    if (!access) return;
+    setUpdatingAccess(true);
+    const { error } = await supabase
+      .from("client_access")
+      .upsert(
+        { user_id: id, status: access.status, notes: notesDraft.trim() || null },
+        { onConflict: "user_id" },
+      );
+    setUpdatingAccess(false);
+    if (error) return toast.error(error.message);
+    toast.success("Заметка сохранена");
+    load();
+  };
 
   const addMeasurement = async (e: React.FormEvent) => {
     e.preventDefault();
