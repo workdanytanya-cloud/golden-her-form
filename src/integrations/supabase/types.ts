@@ -131,6 +131,72 @@ export type Database = {
         }
         Relationships: []
       }
+      exercises: {
+        Row: {
+          category: string
+          common_mistakes: Json
+          created_at: string
+          cues: Json
+          default_reps: string
+          default_sets: number
+          description: string | null
+          difficulty: string
+          equipment: string[]
+          gif_url: string | null
+          id: string
+          muscle_groups: string[]
+          name: string
+          rest_seconds: number
+          slug: string
+          tags: string[]
+          tempo: string | null
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          category: string
+          common_mistakes?: Json
+          created_at?: string
+          cues?: Json
+          default_reps?: string
+          default_sets?: number
+          description?: string | null
+          difficulty?: string
+          equipment?: string[]
+          gif_url?: string | null
+          id?: string
+          muscle_groups?: string[]
+          name: string
+          rest_seconds?: number
+          slug: string
+          tags?: string[]
+          tempo?: string | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          category?: string
+          common_mistakes?: Json
+          created_at?: string
+          cues?: Json
+          default_reps?: string
+          default_sets?: number
+          description?: string | null
+          difficulty?: string
+          equipment?: string[]
+          gif_url?: string | null
+          id?: string
+          muscle_groups?: string[]
+          name?: string
+          rest_seconds?: number
+          slug?: string
+          tags?: string[]
+          tempo?: string | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       measurements: {
         Row: {
           chest_cm: number | null
@@ -412,6 +478,116 @@ export type Database = {
           id?: string
           phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      training_program_days: {
+        Row: {
+          cooldown: Json
+          created_at: string
+          day_index: number
+          day_note: string | null
+          description: string | null
+          exercises: Json
+          focus: string | null
+          id: string
+          is_rest: boolean
+          program_id: string
+          title: string
+          updated_at: string
+          warmup: Json
+        }
+        Insert: {
+          cooldown?: Json
+          created_at?: string
+          day_index: number
+          day_note?: string | null
+          description?: string | null
+          exercises?: Json
+          focus?: string | null
+          id?: string
+          is_rest?: boolean
+          program_id: string
+          title?: string
+          updated_at?: string
+          warmup?: Json
+        }
+        Update: {
+          cooldown?: Json
+          created_at?: string
+          day_index?: number
+          day_note?: string | null
+          description?: string | null
+          exercises?: Json
+          focus?: string | null
+          id?: string
+          is_rest?: boolean
+          program_id?: string
+          title?: string
+          updated_at?: string
+          warmup?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_program_days_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "training_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_programs: {
+        Row: {
+          created_at: string
+          equipment: string[]
+          faq: Json
+          generated_at: string
+          goal: string | null
+          has_injuries: boolean
+          id: string
+          injuries_details: string | null
+          level: string
+          location: string | null
+          notes: string | null
+          sessions_per_week: number
+          targets_manual: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipment?: string[]
+          faq?: Json
+          generated_at?: string
+          goal?: string | null
+          has_injuries?: boolean
+          id?: string
+          injuries_details?: string | null
+          level?: string
+          location?: string | null
+          notes?: string | null
+          sessions_per_week?: number
+          targets_manual?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          equipment?: string[]
+          faq?: Json
+          generated_at?: string
+          goal?: string | null
+          has_injuries?: boolean
+          id?: string
+          injuries_details?: string | null
+          level?: string
+          location?: string | null
+          notes?: string | null
+          sessions_per_week?: number
+          targets_manual?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
