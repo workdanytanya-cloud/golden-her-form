@@ -92,13 +92,13 @@ export function Programs() {
                     <span className="rounded-full border border-gold/40 bg-background/40 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-gold backdrop-blur">
                       {p.tag}
                     </span>
-                    <span className="text-[10px] uppercase tracking-[0.24em] text-foreground/60">
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-ivory/70">
                       {p.weeks}
                     </span>
                   </div>
                   <div>
-                    <h3 className="font-display text-3xl text-foreground">{p.title}</h3>
-                    <p className="mt-3 max-w-sm text-sm leading-relaxed text-foreground/75">{p.text}</p>
+                    <h3 className="font-display text-3xl text-ivory">{p.title}</h3>
+                    <p className="mt-3 max-w-sm text-sm leading-relaxed text-ivory/85">{p.text}</p>
                     <div className="mt-6 flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-gold transition-transform duration-500 group-hover:translate-x-1">
                       Подробнее
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
