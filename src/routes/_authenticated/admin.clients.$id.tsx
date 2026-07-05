@@ -1,16 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
-import { ArrowLeft, ClipboardList, Pause, Play, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ClipboardList, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  ACCESS_STATUS_LABEL,
-  ACCESS_STATUS_TONE,
-  isAccessStatus,
-  type AccessStatus,
-} from "@/lib/access";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id")({
   component: ClientDetail,
@@ -47,19 +40,11 @@ const emptyForm = {
 
 function ClientDetail() {
   const { id } = Route.useParams();
-  const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [items, setItems] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [access, setAccess] = useState<{
-    status: AccessStatus;
-    activated_at: string | null;
-    notes: string | null;
-  } | null>(null);
-  const [notesDraft, setNotesDraft] = useState("");
-  const [updatingAccess, setUpdatingAccess] = useState(false);
 
   const load = () => {
     void supabase
@@ -78,72 +63,9 @@ function ClientDetail() {
         setItems((data ?? []) as Measurement[]);
         setLoading(false);
       });
-
-    void supabase
-      .from("client_access")
-      .select("status, activated_at, notes")
-      .eq("user_id", id)
-      .maybeSingle()
-      .then(({ data }) => {
-        const d = data as { status?: string; activated_at?: string | null; notes?: string | null } | null;
-        const status = isAccessStatus(d?.status) ? (d!.status as AccessStatus) : "pending_onboarding";
-        setAccess({
-          status,
-          activated_at: d?.activated_at ?? null,
-          notes: d?.notes ?? null,
-        });
-        setNotesDraft(d?.notes ?? "");
-      });
   };
 
   useEffect(load, [id]);
-
-  const setAccessStatus = async (next: AccessStatus) => {
-    setUpdatingAccess(true);
-    const payload: {
-      user_id: string;
-      status: AccessStatus;
-      notes: string | null;
-      activated_at?: string | null;
-      activated_by?: string | null;
-    } = {
-      user_id: id,
-      status: next,
-      notes: notesDraft.trim() || null,
-    };
-    if (next === "active") {
-      payload.activated_at = new Date().toISOString();
-      payload.activated_by = user?.id ?? null;
-    }
-    const { error } = await supabase
-      .from("client_access")
-      .upsert(payload, { onConflict: "user_id" });
-    setUpdatingAccess(false);
-    if (error) return toast.error(error.message);
-    toast.success(
-      next === "active"
-        ? "Доступ активирован"
-        : next === "paused"
-          ? "Сопровождение на паузе"
-          : "Статус обновлён",
-    );
-    load();
-  };
-
-  const saveNotes = async () => {
-    if (!access) return;
-    setUpdatingAccess(true);
-    const { error } = await supabase
-      .from("client_access")
-      .upsert(
-        { user_id: id, status: access.status, notes: notesDraft.trim() || null },
-        { onConflict: "user_id" },
-      );
-    setUpdatingAccess(false);
-    if (error) return toast.error(error.message);
-    toast.success("Заметка сохранена");
-    load();
-  };
 
   const addMeasurement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,85 +118,6 @@ function ClientDetail() {
           </Link>
         }
       />
-
-      {access && (
-        <section className="rounded-3xl border border-gold/20 bg-surface/40 p-6 md:p-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="eyebrow">Доступ клиента</p>
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                <span
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs uppercase tracking-widest ${ACCESS_STATUS_TONE[access.status]}`}
-                >
-                  {ACCESS_STATUS_LABEL[access.status]}
-                </span>
-                {access.activated_at && (
-                  <span className="text-xs text-warm-gray">
-                    активирован {new Date(access.activated_at).toLocaleDateString("ru-RU")}
-                  </span>
-                )}
-              </div>
-              <p className="mt-3 max-w-lg text-sm text-warm-gray">
-                Пока статус не «Активен», клиент видит только анкету и экран ожидания. Активируйте
-                доступ после проверки анкеты и договорённости о сопровождении.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {access.status !== "active" ? (
-                <button
-                  disabled={updatingAccess}
-                  onClick={() => setAccessStatus("active")}
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
-                >
-                  <Play className="h-4 w-4" /> Активировать
-                </button>
-              ) : (
-                <button
-                  disabled={updatingAccess}
-                  onClick={() => setAccessStatus("paused")}
-                  className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-coral/15 disabled:opacity-60"
-                >
-                  <Pause className="h-4 w-4" /> Поставить на паузу
-                </button>
-              )}
-              {access.status === "paused" && (
-                <button
-                  disabled={updatingAccess}
-                  onClick={() => setAccessStatus("awaiting_approval")}
-                  className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-gold/10 disabled:opacity-60"
-                >
-                  К ожиданию
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="mt-6">
-            <label className="block">
-              <span className="mb-1 block text-[11px] uppercase tracking-widest text-warm-gray">
-                Заметка тренера
-              </span>
-              <textarea
-                rows={2}
-                maxLength={500}
-                value={notesDraft}
-                onChange={(e) => setNotesDraft(e.target.value)}
-                placeholder="Договорённости, пакет, старт сопровождения…"
-                className="w-full rounded-xl border border-gold/20 bg-background/40 px-4 py-3 text-sm text-ivory placeholder:text-warm-gray/60 outline-none transition-colors focus:border-gold/60"
-              />
-            </label>
-            <div className="mt-2 flex justify-end">
-              <button
-                disabled={updatingAccess || notesDraft === (access.notes ?? "")}
-                onClick={saveNotes}
-                className="text-xs uppercase tracking-widest text-gold transition-colors hover:text-ivory disabled:opacity-40"
-              >
-                Сохранить заметку
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Телефон" value={profile?.phone || "—"} />
