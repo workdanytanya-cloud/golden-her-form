@@ -74,17 +74,23 @@ function ProfilePage() {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <PanelHeader
         eyebrow="Профиль"
         title="Личные данные"
         description="Эта информация помогает подобрать правильную нагрузку и питание."
       />
 
+      <SectionHint tone="tip">
+        Заполните хотя бы имя, рост и цель — остальное можно добавить позже. Все поля видны только
+        вам и вашему тренеру.
+      </SectionHint>
+
       {loading ? (
         <p className="text-warm-gray">Загрузка…</p>
       ) : (
         <form onSubmit={save} className="max-w-2xl space-y-5 rounded-3xl border border-gold/15 bg-surface/40 p-6">
+
           <Field label="Имя">
             <input
               value={form.full_name}
