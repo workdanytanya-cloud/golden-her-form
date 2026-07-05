@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth";
 import logoAsset from "@/assets/logo.png.asset.json";
 
 const links = [
@@ -13,6 +15,7 @@ const links = [
 export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const { session } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -47,16 +50,34 @@ export function Nav() {
           ))}
         </nav>
 
-        <div className="hidden lg:block">
-          <a
-            href="#cta"
-            className="inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-background transition-transform hover:scale-[1.03]"
-          >
-            Начать
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </a>
+        <div className="hidden items-center gap-3 lg:flex">
+          {session ? (
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-background transition-transform hover:scale-[1.03]"
+            >
+              Личный кабинет
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/auth"
+                className="text-sm tracking-wide text-ivory/80 transition-colors hover:text-ivory"
+              >
+                Войти
+              </Link>
+              <Link
+                to="/auth"
+                search={{ mode: "signup" }}
+                className="inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-background transition-transform hover:scale-[1.03]"
+              >
+                Начать
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -83,13 +104,24 @@ export function Nav() {
                 {l.label}
               </a>
             ))}
-            <a
-              href="#cta"
-              onClick={() => setOpen(false)}
-              className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-gold px-5 py-3 text-sm font-medium text-background"
-            >
-              Начать трансформацию
-            </a>
+            {session ? (
+              <Link
+                to="/dashboard"
+                onClick={() => setOpen(false)}
+                className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-gold px-5 py-3 text-sm font-medium text-background"
+              >
+                Личный кабинет
+              </Link>
+            ) : (
+              <Link
+                to="/auth"
+                search={{ mode: "signup" }}
+                onClick={() => setOpen(false)}
+                className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-gold px-5 py-3 text-sm font-medium text-background"
+              >
+                Начать трансформацию
+              </Link>
+            )}
           </nav>
         </div>
       )}
