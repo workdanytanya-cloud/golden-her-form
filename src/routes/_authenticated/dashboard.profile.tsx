@@ -136,7 +136,12 @@ function ProfilePage() {
               className={inputCls}
               placeholder="Например: минус 6 кг к лету и подтянутое тело"
             />
+            <FieldHint>
+              Формулируйте конкретно: «минус 6 кг к июню», «поднять 60 кг в приседе», «прийти в форму
+              к отпуску». Конкретная цель проще отслеживается.
+            </FieldHint>
           </Field>
+
           <button
             disabled={saving}
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-6 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
