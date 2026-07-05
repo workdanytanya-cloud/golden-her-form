@@ -504,16 +504,3 @@ function endOfDay(d: Date) {
   return x;
 }
 
-const inputCls =
-  "w-full rounded-xl border border-gold/20 bg-background/40 px-4 py-3 text-sm text-ivory placeholder:text-warm-gray/60 outline-none transition-colors focus:border-gold/60";
-
-function F({ label, span, children }: { label: string; span?: string; children: React.ReactNode }) {
-  return (
-    <label className={`block ${span ?? ""}`}>
-      <span className="mb-1 block text-[11px] uppercase tracking-widest text-warm-gray">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
