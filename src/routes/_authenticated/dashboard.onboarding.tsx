@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader } from "@/components/panel/PanelShell";
+import { SectionHint } from "@/components/panel/Hints";
 import { toast } from "sonner";
 import { CheckCircle2, Save, Send } from "lucide-react";
 
