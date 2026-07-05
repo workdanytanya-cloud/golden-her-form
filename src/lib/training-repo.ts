@@ -1,0 +1,235 @@
+import { supabase } from "@/integrations/supabase/client";
+import {
+  type Exercise,
+  type ExerciseCategory,
+  type ExerciseSet,
+  type ProgramDay,
+  type ProgramInput,
+  type ProgramGoal,
+  type ProgramLevel,
+  type FaqItem,
+  generateProgram,
+  defaultFaq,
+  inferGoal,
+  inferLevel,
+} from "@/lib/training";
+
+export type ProgramRow = {
+  id: string;
+  user_id: string;
+  sessions_per_week: number;
+  goal: string | null;
+  level: string;
+  has_injuries: boolean;
+  injuries_details: string | null;
+  equipment: string[];
+  location: string | null;
+  notes: string | null;
+  faq: FaqItem[];
+  targets_manual: boolean;
+};
+
+export type DayRow = {
+  id: string;
+  program_id: string;
+  day_index: number;
+  is_rest: boolean;
+  title: string;
+  focus: string | null;
+  description: string | null;
+  warmup: ExerciseSet[];
+  exercises: ExerciseSet[];
+  cooldown: ExerciseSet[];
+  day_note: string | null;
+};
+
+export async function loadExercises(): Promise<Exercise[]> {
+  const { data, error } = await supabase.from("exercises").select("*");
+  if (error) throw error;
+  return (data ?? []).map((e) => ({
+    ...e,
+    cues: (e.cues ?? []) as string[],
+    common_mistakes: (e.common_mistakes ?? []) as string[],
+    muscle_groups: e.muscle_groups ?? [],
+    equipment: e.equipment ?? [],
+    tags: e.tags ?? [],
+    category: e.category as ExerciseCategory,
+    difficulty: e.difficulty as Exercise["difficulty"],
+  })) as Exercise[];
+}
+
+export async function loadProgramFor(
+  userId: string,
+): Promise<{ program: ProgramRow | null; days: DayRow[] }> {
+  const { data: program } = await supabase
+    .from("training_programs")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!program) return { program: null, days: [] };
+  const { data: days } = await supabase
+    .from("training_program_days")
+    .select("*")
+    .eq("program_id", program.id)
+    .order("day_index");
+  return {
+    program: {
+      ...program,
+      faq: (program.faq ?? []) as FaqItem[],
+      equipment: program.equipment ?? [],
+    } as ProgramRow,
+    days: (days ?? []).map((d) => ({
+      id: d.id,
+      program_id: d.program_id,
+      day_index: d.day_index,
+      is_rest: d.is_rest,
+      title: d.title,
+      focus: d.focus,
+      description: d.description,
+      warmup: (d.warmup ?? []) as ExerciseSet[],
+      exercises: (d.exercises ?? []) as ExerciseSet[],
+      cooldown: (d.cooldown ?? []) as ExerciseSet[],
+      day_note: d.day_note,
+    })),
+  };
+}
+
+export async function loadProgramProfile(userId: string) {
+  const [onbRes, accessRes] = await Promise.all([
+    supabase
+      .from("onboarding_responses")
+      .select(
+        "activity_level, goal_primary, has_injuries, injuries_details, equipment, training_location, training_days_per_week",
+      )
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase.from("client_access").select("status").eq("user_id", userId).maybeSingle(),
+  ]);
+  const rawSessions = (onbRes.data?.training_days_per_week ?? 3) as number;
+  const sessions_per_week: 3 | 4 = rawSessions >= 4 ? 4 : 3;
+  return {
+    sessions_per_week,
+    goal: inferGoal(onbRes.data?.goal_primary),
+    level: inferLevel(onbRes.data?.activity_level),
+    has_injuries: Boolean(onbRes.data?.has_injuries),
+    injuries_details: onbRes.data?.injuries_details ?? null,
+    equipment: (onbRes.data?.equipment ?? []) as string[],
+    location: onbRes.data?.training_location ?? null,
+    access_status: accessRes.data?.status ?? null,
+  };
+}
+
+export async function createOrReplaceProgram(params: {
+  userId: string;
+  input: ProgramInput;
+  exercises: Exercise[];
+  preserveNotes?: string | null;
+  preserveFaq?: FaqItem[] | null;
+  targetsManual?: boolean;
+}): Promise<{ program: ProgramRow; days: DayRow[] }> {
+  const { userId, input, exercises, preserveNotes, preserveFaq, targetsManual } = params;
+
+  const generatedDays = generateProgram(exercises, input);
+  const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
+
+  const { data: existing } = await supabase
+    .from("training_programs")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const payload = {
+    user_id: userId,
+    sessions_per_week: input.sessions_per_week,
+    goal: input.goal,
+    level: input.level,
+    has_injuries: input.has_injuries,
+    injuries_details: input.injuries_details ?? null,
+    equipment: input.equipment ?? [],
+    location: input.location ?? null,
+    notes: preserveNotes ?? null,
+    faq: faq as unknown as never,
+    targets_manual: targetsManual ?? false,
+    generated_at: new Date().toISOString(),
+  };
+
+  let programId: string;
+  if (existing) {
+    const { data, error } = await supabase
+      .from("training_programs")
+      .update(payload)
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+    if (error) throw error;
+    programId = data.id;
+  } else {
+    const { data, error } = await supabase
+      .from("training_programs")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw error;
+    programId = data.id;
+  }
+
+  await supabase.from("training_program_days").delete().eq("program_id", programId);
+  const rows = generatedDays.map((d) => ({
+    program_id: programId,
+    day_index: d.day_index,
+    is_rest: d.is_rest,
+    title: d.title,
+    focus: d.focus,
+    description: d.description,
+    warmup: d.warmup as unknown as never,
+    exercises: d.exercises as unknown as never,
+    cooldown: d.cooldown as unknown as never,
+    day_note: d.day_note,
+  }));
+  const { error: daysErr } = await supabase.from("training_program_days").insert(rows);
+  if (daysErr) throw daysErr;
+
+  return loadProgramFor(userId).then((r) => ({ program: r.program!, days: r.days }));
+}
+
+export async function updateDayPatch(
+  programId: string,
+  dayIndex: number,
+  patch: Partial<
+    Pick<DayRow, "title" | "focus" | "description" | "warmup" | "exercises" | "cooldown" | "day_note">
+  >,
+) {
+  const dbPatch: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(patch)) dbPatch[k] = v as unknown;
+  const { error } = await supabase
+    .from("training_program_days")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(dbPatch as any)
+    .eq("program_id", programId)
+    .eq("day_index", dayIndex);
+  if (error) throw error;
+}
+
+export async function updateProgramPatch(
+  programId: string,
+  patch: Partial<{
+    notes: string | null;
+    faq: FaqItem[];
+    sessions_per_week: number;
+    goal: string;
+    level: string;
+    targets_manual: boolean;
+  }>,
+) {
+  const dbPatch: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(patch))
+    dbPatch[k] = k === "faq" ? (v as unknown) : (v as unknown);
+  const { error } = await supabase
+    .from("training_programs")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(dbPatch as any)
+    .eq("id", programId);
+  if (error) throw error;
+}
+
+export type { Exercise, ExerciseSet, ProgramDay, ProgramInput, ProgramGoal, ProgramLevel, FaqItem };
