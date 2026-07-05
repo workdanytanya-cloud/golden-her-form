@@ -22,7 +22,7 @@ export function PanelShell({
   nav: PanelNavItem[];
   children: ReactNode;
 }) {
-  const { signOut, user, role } = useAuth();
+  const { signOut, user, role, impersonation, stopImpersonation } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
