@@ -83,6 +83,123 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_responses: {
+        Row: {
+          activity_level: string | null
+          alcohol_frequency: string | null
+          allergies: string | null
+          completed_at: string | null
+          created_at: string
+          diet_type: string | null
+          disliked_foods: string | null
+          energy_level: number | null
+          equipment: string[] | null
+          expectations: string | null
+          experience: string | null
+          extra: Json | null
+          favorite_foods: string | null
+          focus_areas: string[] | null
+          goal_details: string | null
+          goal_primary: string | null
+          has_injuries: boolean | null
+          health_conditions: string | null
+          id: string
+          injuries_details: string | null
+          job_type: string | null
+          meals_per_day: number | null
+          medications: string | null
+          motivation: string | null
+          pregnancy_status: string | null
+          previous_experience: string | null
+          session_duration_min: number | null
+          sleep_hours: number | null
+          smoking: boolean | null
+          stress_level: number | null
+          timeframe: string | null
+          training_days_per_week: number | null
+          training_location: string | null
+          updated_at: string
+          user_id: string
+          water_liters: number | null
+        }
+        Insert: {
+          activity_level?: string | null
+          alcohol_frequency?: string | null
+          allergies?: string | null
+          completed_at?: string | null
+          created_at?: string
+          diet_type?: string | null
+          disliked_foods?: string | null
+          energy_level?: number | null
+          equipment?: string[] | null
+          expectations?: string | null
+          experience?: string | null
+          extra?: Json | null
+          favorite_foods?: string | null
+          focus_areas?: string[] | null
+          goal_details?: string | null
+          goal_primary?: string | null
+          has_injuries?: boolean | null
+          health_conditions?: string | null
+          id?: string
+          injuries_details?: string | null
+          job_type?: string | null
+          meals_per_day?: number | null
+          medications?: string | null
+          motivation?: string | null
+          pregnancy_status?: string | null
+          previous_experience?: string | null
+          session_duration_min?: number | null
+          sleep_hours?: number | null
+          smoking?: boolean | null
+          stress_level?: number | null
+          timeframe?: string | null
+          training_days_per_week?: number | null
+          training_location?: string | null
+          updated_at?: string
+          user_id: string
+          water_liters?: number | null
+        }
+        Update: {
+          activity_level?: string | null
+          alcohol_frequency?: string | null
+          allergies?: string | null
+          completed_at?: string | null
+          created_at?: string
+          diet_type?: string | null
+          disliked_foods?: string | null
+          energy_level?: number | null
+          equipment?: string[] | null
+          expectations?: string | null
+          experience?: string | null
+          extra?: Json | null
+          favorite_foods?: string | null
+          focus_areas?: string[] | null
+          goal_details?: string | null
+          goal_primary?: string | null
+          has_injuries?: boolean | null
+          health_conditions?: string | null
+          id?: string
+          injuries_details?: string | null
+          job_type?: string | null
+          meals_per_day?: number | null
+          medications?: string | null
+          motivation?: string | null
+          pregnancy_status?: string | null
+          previous_experience?: string | null
+          session_duration_min?: number | null
+          sleep_hours?: number | null
+          smoking?: boolean | null
+          stress_level?: number | null
+          timeframe?: string | null
+          training_days_per_week?: number | null
+          training_location?: string | null
+          updated_at?: string
+          user_id?: string
+          water_liters?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
