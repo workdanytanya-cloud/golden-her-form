@@ -44,6 +44,36 @@ export type Database = {
         }
         Relationships: []
       }
+      client_access: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          created_at: string
+          notes: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          created_at?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          created_at?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       measurements: {
         Row: {
           chest_cm: number | null
