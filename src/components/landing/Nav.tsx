@@ -104,13 +104,24 @@ export function Nav() {
                 {l.label}
               </a>
             ))}
-            <a
-              href="#cta"
-              onClick={() => setOpen(false)}
-              className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-gold px-5 py-3 text-sm font-medium text-background"
-            >
-              Начать трансформацию
-            </a>
+            {session ? (
+              <Link
+                to="/dashboard"
+                onClick={() => setOpen(false)}
+                className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-gold px-5 py-3 text-sm font-medium text-background"
+              >
+                Личный кабинет
+              </Link>
+            ) : (
+              <Link
+                to="/auth"
+                search={{ mode: "signup" }}
+                onClick={() => setOpen(false)}
+                className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-gold px-5 py-3 text-sm font-medium text-background"
+              >
+                Начать трансформацию
+              </Link>
+            )}
           </nav>
         </div>
       )}
