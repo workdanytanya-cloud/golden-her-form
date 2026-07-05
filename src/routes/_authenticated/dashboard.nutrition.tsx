@@ -108,7 +108,7 @@ function NutritionInner() {
         autoExcluded={autoExcluded}
         onCancel={plan ? () => setShowSetup(false) : undefined}
         onSubmit={handleGenerate}
-        submitLabel={plan ? "Пересобрать меню" : "Сгенерировать меню"}
+        submitLabel={plan ? "Пересобрать меню" : "Показать рацион"}
       />
     );
   }
