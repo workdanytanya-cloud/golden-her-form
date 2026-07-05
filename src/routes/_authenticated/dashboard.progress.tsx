@@ -158,6 +158,69 @@ function ProgressPage() {
     setTo(new Date());
   };
 
+  const exportPdf = async () => {
+    if (!printRef.current) return;
+    setExporting(true);
+    try {
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import("jspdf"),
+        import("html2canvas-pro"),
+      ]);
+      // Small delay so button state repaints and chart animations settle
+      await new Promise((r) => setTimeout(r, 80));
+      const node = printRef.current;
+      const canvas = await html2canvas(node, {
+        backgroundColor: "#0b0a09",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+
+      if (imgH <= pageH) {
+        pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH);
+      } else {
+        // Slice tall canvas across pages
+        const pageHpx = Math.floor((canvas.width * pageH) / pageW);
+        const slice = document.createElement("canvas");
+        slice.width = canvas.width;
+        const ctx = slice.getContext("2d")!;
+        let y = 0;
+        let first = true;
+        while (y < canvas.height) {
+          const h = Math.min(pageHpx, canvas.height - y);
+          slice.height = h;
+          ctx.fillStyle = "#0b0a09";
+          ctx.fillRect(0, 0, slice.width, slice.height);
+          ctx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+          const partData = slice.toDataURL("image/jpeg", 0.92);
+          const partH = (h * imgW) / canvas.width;
+          if (!first) pdf.addPage();
+          pdf.addImage(partData, "JPEG", 0, 0, imgW, partH);
+          first = false;
+          y += h;
+        }
+      }
+
+      const fromStr = from ? format(from, "yyyy-MM-dd") : "all";
+      const toStr = to ? format(to, "yyyy-MM-dd") : "now";
+      pdf.save(`PanovaPRO_progress_${fromStr}_${toStr}.pdf`);
+      toast.success("Отчёт сохранён");
+    } catch (e) {
+      toast.error("Не удалось сформировать PDF");
+      console.error(e);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+
+
   return (
     <div className="space-y-10">
       <PanelHeader
