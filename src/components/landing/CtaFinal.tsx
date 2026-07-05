@@ -37,7 +37,7 @@ export function CtaFinal() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <a
               href="mailto:hello@panovapro.ru"
-              className="inline-flex items-center gap-3 rounded-full bg-gold px-8 py-4 text-sm font-medium tracking-wide text-foreground transition-transform hover:scale-[1.03]"
+              className="inline-flex items-center gap-3 rounded-2xl bg-gold px-8 py-4 text-sm font-medium tracking-wide text-foreground transition-transform hover:scale-[1.03]"
             >
               Записаться на консультацию
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -46,7 +46,7 @@ export function CtaFinal() {
             </a>
             <a
               href="#programs"
-              className="inline-flex items-center gap-3 rounded-full border border-ivory/30 px-8 py-4 text-sm font-medium text-ivory transition-colors hover:border-gold hover:text-gold"
+              className="inline-flex items-center gap-3 rounded-2xl border border-ivory/30 px-8 py-4 text-sm font-medium text-ivory transition-colors hover:border-gold hover:text-gold"
             >
               Посмотреть программы
             </a>

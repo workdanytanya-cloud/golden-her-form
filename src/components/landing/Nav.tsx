@@ -50,7 +50,7 @@ export function Nav() {
         <div className="hidden lg:block">
           <a
             href="#cta"
-            className="inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-foreground transition-transform hover:scale-[1.03]"
+            className="inline-flex items-center gap-2 rounded-2xl bg-gold px-5 py-2.5 text-sm font-medium text-foreground transition-transform hover:scale-[1.03]"
           >
             Начать
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -86,7 +86,7 @@ export function Nav() {
             <a
               href="#cta"
               onClick={() => setOpen(false)}
-              className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-gold px-5 py-3 text-sm font-medium text-foreground"
+              className="mt-2 inline-flex w-fit items-center gap-2 rounded-2xl bg-gold px-5 py-3 text-sm font-medium text-foreground"
             >
               Начать трансформацию
             </a>
