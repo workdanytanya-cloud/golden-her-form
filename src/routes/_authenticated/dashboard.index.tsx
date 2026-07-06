@@ -6,7 +6,7 @@ import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
 import { JourneyStepper } from "@/components/panel/JourneyStepper";
 import { SectionHint } from "@/components/panel/Hints";
-import { ArrowRight, Clock, ClipboardList, Sparkles, User, LineChart as LineChartIcon } from "lucide-react";
+import { ArrowRight, Clock, ClipboardList, Sparkles, User, LineChart as LineChartIcon, PartyPopper, X } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardOverview,
@@ -30,6 +30,7 @@ function DashboardOverview() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  const [accessNotif, setAccessNotif] = useState<{ id: string; message: string } | null>(null);
 
   useEffect(() => {
     if (!effectiveUserId) return;
@@ -54,7 +55,27 @@ function DashboardOverview() {
       .eq("user_id", effectiveUserId)
       .maybeSingle()
       .then(({ data }) => setOnboardingDone(Boolean((data as { completed_at?: string } | null)?.completed_at)));
+
+    void supabase
+      .from("client_notifications")
+      .select("id, message")
+      .eq("user_id", effectiveUserId)
+      .eq("type", "access_granted")
+      .eq("is_read", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setAccessNotif(data as { id: string; message: string });
+      });
   }, [effectiveUserId]);
+
+  const dismissAccessNotif = async () => {
+    if (!accessNotif) return;
+    const id = accessNotif.id;
+    setAccessNotif(null);
+    await supabase.from("client_notifications").update({ is_read: true }).eq("id", id);
+  };
 
 
   const latest = measurements[0];
@@ -132,6 +153,41 @@ function DashboardOverview() {
           </div>
         </div>
       )}
+
+      {accessNotif && effectiveAccessStatus === "active" && (
+        <div className="relative flex items-start gap-4 rounded-3xl border border-gold/40 bg-gradient-to-r from-gold/15 via-coral/10 to-gold/15 p-6">
+          <div className="rounded-2xl bg-gold/25 p-3 text-gold">
+            <PartyPopper className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="eyebrow text-gold">Доступ открыт</p>
+            <p className="mt-1 font-display text-lg text-ivory">{accessNotif.message}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                to="/dashboard/training"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2 text-sm font-medium text-background hover:scale-[1.02]"
+              >
+                К тренировкам <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                to="/dashboard/nutrition"
+                className="inline-flex items-center gap-2 rounded-full border border-gold/40 px-5 py-2 text-sm text-ivory hover:bg-gold/10"
+              >
+                К питанию
+              </Link>
+            </div>
+          </div>
+          <button
+            onClick={dismissAccessNotif}
+            className="rounded-full p-1 text-warm-gray hover:bg-background/40 hover:text-ivory"
+            aria-label="Скрыть"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+
 
       <AccessGate level="onboarding_submitted">
         <div className="space-y-8">

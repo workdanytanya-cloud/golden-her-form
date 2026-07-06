@@ -4,6 +4,7 @@ import { Menu, X, LogOut, Eye } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { NotificationsBell } from "./NotificationsBell";
+import { ClientNotificationsBell } from "./ClientNotificationsBell";
 
 
 export type PanelNavItem = {
@@ -70,7 +71,7 @@ export function PanelShell({
           )}
         </Link>
         <div className="flex items-center gap-2">
-          {role === "admin" && <NotificationsBell />}
+          {role === "admin" ? <NotificationsBell /> : <ClientNotificationsBell />}
           <button
             onClick={() => setOpen((v) => !v)}
             className="rounded-full border border-gold/25 p-2 text-ivory"
@@ -111,11 +112,9 @@ export function PanelShell({
                 </p>
                 <p className="mt-1 truncate font-display text-sm text-ivory">{user?.email}</p>
               </div>
-              {role === "admin" && (
-                <div className="hidden md:block">
-                  <NotificationsBell />
-                </div>
-              )}
+              <div className="hidden md:block">
+                {role === "admin" ? <NotificationsBell /> : <ClientNotificationsBell />}
+              </div>
             </div>
 
             <nav className="mt-8 flex flex-1 flex-col gap-1">
