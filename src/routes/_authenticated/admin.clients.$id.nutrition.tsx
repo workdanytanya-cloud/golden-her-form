@@ -301,13 +301,30 @@ function TargetsEditor({
             <input
               type="number"
               value={t[k]}
-              disabled={!manual}
-              onChange={(e) => setT({ ...t, [k]: Number(e.target.value) })}
+              disabled={!manual || k === "kcal"}
+              readOnly={k === "kcal"}
+              onChange={(e) => {
+                const v = Number(e.target.value) || 0;
+                setT((prev) => {
+                  const next = { ...prev, [k]: v };
+                  if (k !== "kcal") {
+                    // Auto-recalc total kcal from macros: 4·P + 9·F + 4·C
+                    next.kcal = Math.round(
+                      next.protein_g * 4 + next.fat_g * 9 + next.carbs_g * 4,
+                    );
+                  }
+                  return next;
+                });
+              }}
               className="w-full rounded-lg border border-gold/20 bg-background/40 px-3 py-2 text-sm text-ivory disabled:opacity-60"
             />
           </label>
         ))}
       </div>
+      <p className="mt-2 text-[11px] text-warm-gray">
+        Ккал считаются автоматически из белков, жиров и углеводов (4·Б + 9·Ж + 4·У). Клиент увидит меню только после того, как вы сохраните настройки.
+      </p>
+
 
       <label className="mt-4 block">
         <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">
