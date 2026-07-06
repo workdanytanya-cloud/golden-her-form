@@ -5,12 +5,14 @@ import {
   Dumbbell,
   HelpCircle,
   Image as ImageIcon,
+  Maximize2,
   Play,
   Plus,
   Replace,
   StickyNote,
   Timer,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
