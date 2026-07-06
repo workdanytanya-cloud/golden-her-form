@@ -198,6 +198,8 @@ function NutritionInner() {
         mealsPerDay={plan.meals_per_day as 3 | 5}
         editable={false}
       />
+
+      <FoodSwapGuide />
     </div>
   );
 }
