@@ -5,6 +5,7 @@ import { PanelHeader } from "@/components/panel/PanelShell";
 import { MediaUpload } from "@/components/panel/MediaUpload";
 import { ExerciseMedia } from "@/components/panel/ExerciseMedia";
 import { Search, Save, Trash2, Plus, X } from "lucide-react";
+import { CATEGORY_LABEL } from "@/lib/training";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/exercises")({
@@ -44,7 +45,22 @@ const emptyExercise: Omit<Exercise, "id"> = {
   video_url: null,
 };
 
-const CATEGORIES = ["warmup", "strength", "rehab", "mobility", "cardio", "cooldown", "core"];
+const CATEGORIES = [
+  "warmup",
+  "mobility",
+  "activation",
+  "core",
+  "strength_lower",
+  "strength_upper",
+  "strength_full",
+  "cardio",
+  "cooldown",
+] as const;
+const DIFFICULTY_LABEL: Record<string, string> = {
+  beginner: "Начинающий",
+  intermediate: "Средний",
+  advanced: "Продвинутый",
+};
 const DIFFICULTIES = ["beginner", "intermediate", "advanced"];
 
 function AdminExercises() {
@@ -153,7 +169,7 @@ function AdminExercises() {
           <option value="all">Все категории</option>
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
-              {c}
+              {CATEGORY_LABEL[c as keyof typeof CATEGORY_LABEL] ?? c}
             </option>
           ))}
         </select>
@@ -188,7 +204,7 @@ function AdminExercises() {
                   <div>
                     <div className="font-display text-lg text-ivory">{e.name}</div>
                     <div className="text-[11px] uppercase tracking-widest text-warm-gray">
-                      {e.category} · {e.difficulty}
+                      {CATEGORY_LABEL[e.category as keyof typeof CATEGORY_LABEL] ?? e.category} · {DIFFICULTY_LABEL[e.difficulty] ?? e.difficulty}
                     </div>
                   </div>
                   <button
@@ -251,7 +267,7 @@ function AdminExercises() {
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {CATEGORY_LABEL[c as keyof typeof CATEGORY_LABEL] ?? c}
                   </option>
                 ))}
               </select>
@@ -264,7 +280,7 @@ function AdminExercises() {
               >
                 {DIFFICULTIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {DIFFICULTY_LABEL[c] ?? c}
                   </option>
                 ))}
               </select>
