@@ -12,7 +12,7 @@ const items = [
   {
     icon: UserRound,
     title: "Индивидуальный подход",
-    text: "Тренировки и питание собираются под твоё тело, ритм жизни и цель.",
+    text: "Тренировки и питание разрабатываются под твоё тело, ритм жизни и цель.",
   },
   {
     icon: MessageCircle,
@@ -21,7 +21,7 @@ const items = [
   },
   {
     icon: Apple,
-    title: "Осознанное питание",
+    title: "Баланс питания",
     text: "Без запретов и голода. Учу выстраивать рацион, который работает на результат.",
   },
   {
@@ -56,7 +56,7 @@ export function WhyChoose() {
         <div className="max-w-3xl">
           <p className="eyebrow">Почему меня выбирают</p>
           <h2 className="mt-6 font-display text-4xl leading-tight text-ivory sm:text-5xl lg:text-6xl">
-            Не курс, не марафон —<br />
+            Не марафон —<br />
             <span className="gold-text italic">персональная работа.</span>
           </h2>
         </div>

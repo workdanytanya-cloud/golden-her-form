@@ -21,9 +21,9 @@ export function Footer() {
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-warm-gray">Контакты</p>
             <ul className="mt-5 space-y-3 text-sm text-ivory/80">
-              <li><a href="mailto:hello@panovapro.ru" className="gold-underline">hello@panovapro.ru</a></li>
-              <li><a href="https://t.me/panovapro" target="_blank" rel="noreferrer noopener" className="gold-underline">Telegram</a></li>
-              <li><a href="https://instagram.com/panovapro" target="_blank" rel="noreferrer noopener" className="gold-underline">Instagram</a></li>
+              <li><a href="mailto:panova.fortuna@mail.ru" className="gold-underline">panova.fortuna@mail.ru</a></li>
+              <li><a href="https://t.me/panovapro" target="_blank" rel="noreferrer noopener" className="gold-underline">Telegram - @Tanya_panova</a></li>
+              <li></li>
             </ul>
           </div>
 
