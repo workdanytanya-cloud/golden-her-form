@@ -237,3 +237,63 @@ function StatusBadge({ status }: { status: AccessStatus }) {
     </span>
   );
 }
+
+function ExportContactsButton() {
+  const [busy, setBusy] = useState(false);
+  const fetchContacts = useServerFn(adminExportContacts);
+
+  const handleExport = async () => {
+    setBusy(true);
+    try {
+      const { rows } = await fetchContacts();
+      if (!rows.length) {
+        toast.info("Нет данных для экспорта");
+        return;
+      }
+      const escape = (v: string) => {
+        const s = String(v ?? "");
+        return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const header = ["Имя", "Телефон", "Email", "Дата регистрации"];
+      const lines = [header.join(",")];
+      for (const r of rows) {
+        lines.push(
+          [
+            escape(r.full_name),
+            escape(r.phone),
+            escape(r.email),
+            escape(new Date(r.created_at).toLocaleDateString("ru-RU")),
+          ].join(","),
+        );
+      }
+      // BOM for Excel UTF-8 compatibility
+      const csv = "\ufeff" + lines.join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.download = `contacts_${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Выгружено контактов: ${rows.length}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось выгрузить контакты");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleExport}
+      disabled={busy}
+      className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-background/40 px-4 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10 disabled:opacity-50"
+    >
+      <Download className="h-4 w-4 text-gold" />
+      {busy ? "Готовим..." : "Выгрузить номера и почты"}
+    </button>
+  );
+}
