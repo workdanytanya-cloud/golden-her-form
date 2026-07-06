@@ -168,6 +168,7 @@ function AdminNutritionPage() {
           plan={plan}
           suggested={suggested}
           onSave={async (targets, manual, notes) => {
+            // Save the new targets + notes first
             const { error } = await supabase
               .from("nutrition_plans")
               .update({
@@ -183,11 +184,38 @@ function AdminNutritionPage() {
               toast.error(error.message);
               return;
             }
-            toast.success("Параметры сохранены");
+
+            // If any target actually changed, regenerate the menu so KБЖУ per day
+            // matches the new targets and totals stay consistent.
+            const changed =
+              targets.kcal !== plan.target_kcal ||
+              targets.protein_g !== plan.target_protein_g ||
+              targets.fat_g !== plan.target_fat_g ||
+              targets.carbs_g !== plan.target_carbs_g;
+
+            if (changed) {
+              try {
+                await createOrReplacePlan({
+                  userId: id,
+                  mealsPerDay: (plan.meals_per_day as 3 | 5) ?? 5,
+                  preferred: plan.preferred_products ?? [],
+                  excluded: [...(plan.excluded_products ?? []), ...autoExcluded],
+                  targets,
+                  targetsManual: manual,
+                  dishes,
+                });
+                toast.success("Параметры сохранены — меню пересчитано");
+              } catch (e) {
+                toast.error(`Меню не пересобралось: ${(e as Error).message}`);
+              }
+            } else {
+              toast.success("Параметры сохранены");
+            }
             await reload();
           }}
         />
       )}
+
 
       {!plan || showSetup ? (
         <NutritionSetup
