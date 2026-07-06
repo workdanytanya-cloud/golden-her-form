@@ -23,6 +23,13 @@ import {
   Grid3x3,
   Cylinder,
 } from "lucide-react";
+import kitchenScaleImg from "@/assets/prep/kitchen-scale.jpg";
+import measuringTapeImg from "@/assets/prep/measuring-tape.jpg";
+import floorScaleImg from "@/assets/prep/floor-scale.jpg";
+import resistanceBandImg from "@/assets/prep/resistance-band.jpg";
+import dumbbellsImg from "@/assets/prep/dumbbells.jpg";
+import yogaMatImg from "@/assets/prep/yoga-mat.jpg";
+import mfrRollImg from "@/assets/prep/mfr-roll.jpg";
 
 export const Route = createFileRoute("/_authenticated/dashboard/preparation")({
   component: PreparationPage,
@@ -34,6 +41,7 @@ type Article = {
   title: string;
   lead: string;
   body: ReactNode;
+  image?: { src: string; alt: string };
 };
 
 type Section = {
@@ -64,6 +72,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: kitchenScaleImg, alt: "Кухонные весы" },
       },
       {
         id: "measuring-tape",
@@ -79,6 +88,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: measuringTapeImg, alt: "Сантиметровая лента" },
       },
       {
         id: "floor-scale",
@@ -97,6 +107,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: floorScaleImg, alt: "Напольные весы" },
       },
       {
         id: "resistance-band",
@@ -112,6 +123,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: resistanceBandImg, alt: "Фитнес-резинки" },
       },
       {
         id: "dumbbells",
@@ -126,6 +138,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: dumbbellsImg, alt: "Гантели" },
       },
       {
         id: "yoga-mat",
@@ -140,6 +153,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: yogaMatImg, alt: "Коврик для фитнеса" },
       },
       {
         id: "mfr-roll",
@@ -155,6 +169,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: mfrRollImg, alt: "Ролл для МФР" },
       },
     ],
   },
@@ -497,6 +512,18 @@ function ArticleCard({ article }: { article: Article }) {
       </button>
       {open && (
         <div className="space-y-3 border-t border-gold/10 px-5 pb-6 pt-4 text-sm leading-relaxed text-warm-gray md:text-[15px]">
+          {article.image && (
+            <div className="overflow-hidden rounded-xl border border-gold/10 bg-surface/60">
+              <img
+                src={article.image.src}
+                alt={article.image.alt}
+                loading="lazy"
+                width={768}
+                height={512}
+                className="h-auto w-full object-cover"
+              />
+            </div>
+          )}
           {article.body}
         </div>
       )}
