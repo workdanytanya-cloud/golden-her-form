@@ -23,6 +23,13 @@ import {
   Grid3x3,
   Cylinder,
 } from "lucide-react";
+import kitchenScaleImg from "@/assets/prep/kitchen-scale.jpg";
+import measuringTapeImg from "@/assets/prep/measuring-tape.jpg";
+import floorScaleImg from "@/assets/prep/floor-scale.jpg";
+import resistanceBandImg from "@/assets/prep/resistance-band.jpg";
+import dumbbellsImg from "@/assets/prep/dumbbells.jpg";
+import yogaMatImg from "@/assets/prep/yoga-mat.jpg";
+import mfrRollImg from "@/assets/prep/mfr-roll.jpg";
 
 export const Route = createFileRoute("/_authenticated/dashboard/preparation")({
   component: PreparationPage,
@@ -34,6 +41,7 @@ type Article = {
   title: string;
   lead: string;
   body: ReactNode;
+  image?: { src: string; alt: string };
 };
 
 type Section = {
