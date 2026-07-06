@@ -152,6 +152,29 @@ function AuthPage() {
               />
             </div>
 
+            {mode === "signup" && (
+              <label className="mt-1 flex items-start gap-3 text-xs text-warm-gray">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-gold"
+                />
+                <span>
+                  Я согласен(на) на обработку моих персональных данных в соответствии с{" "}
+                  <Link
+                    to="/privacy"
+                    target="_blank"
+                    className="text-gold underline-offset-2 hover:underline"
+                  >
+                    Политикой конфиденциальности
+                  </Link>
+                  .
+                </span>
+              </label>
+            )}
+
+
             <button
               type="submit"
               disabled={submitting || authLoading}
