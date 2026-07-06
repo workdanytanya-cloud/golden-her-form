@@ -97,7 +97,9 @@ function AdminClients() {
         eyebrow="Админ-панель"
         title="Клиенты"
         description="Новые анкеты вверху. Проверьте, при желании отредактируйте черновики и откройте клиенту доступ."
+        action={<ExportContactsButton />}
       />
+
 
       <div className="grid gap-4 sm:grid-cols-4">
         <StatCard label="Всего клиентов" value={String(clients.length)} tone="gold" />
