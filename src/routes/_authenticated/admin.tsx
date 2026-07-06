@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 const nav: PanelNavItem[] = [
   { to: "/admin", label: "Клиенты", icon: <Users className="h-4 w-4" />, exact: true },
+  { to: "/admin", label: "Анкеты клиентов", icon: <ClipboardList className="h-4 w-4" />, exact: true },
   { to: "/admin/exercises", label: "Упражнения", icon: <Dumbbell className="h-4 w-4" /> },
   { to: "/admin/dishes", label: "Рационы", icon: <Utensils className="h-4 w-4" /> },
   { to: "/dashboard", label: "Мой кабинет", icon: <LayoutDashboard className="h-4 w-4" /> },
