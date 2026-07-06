@@ -143,6 +143,7 @@ function NutritionInner() {
   if (!plan || showSetup) {
     return (
       <div className="space-y-8">
+        <FoodSwapGuide />
         <NutritionSetup
           initialMeals={(plan?.meals_per_day as 3 | 5) ?? 5}
           initialPreferred={plan?.preferred_products}
@@ -152,7 +153,6 @@ function NutritionInner() {
           onSubmit={handleGenerate}
           submitLabel={plan ? "Пересобрать меню" : "Показать рацион"}
         />
-        <FoodSwapGuide />
       </div>
     );
   }
