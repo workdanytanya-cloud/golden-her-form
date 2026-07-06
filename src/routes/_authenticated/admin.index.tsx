@@ -1,12 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
-import { ArrowRight, Clock, Search } from "lucide-react";
+import { ArrowRight, Clock, Download, Search } from "lucide-react";
+import { adminExportContacts } from "@/lib/admin-clients.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminClients,
 });
+
 
 type AccessStatus = "pending_onboarding" | "awaiting_approval" | "active" | "paused" | null;
 
