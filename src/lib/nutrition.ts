@@ -218,17 +218,51 @@ export function generatePlan(dishes: Dish[], opts: GenerateOptions): DayEntry[] 
       const dish = pickWithScore(dishesBySlot[mt], preferred, excluded, recentUse, i);
       if (!dish) continue;
       recentUse.set(dish.id, i);
-      // scale portion to hit slot kcal
+      // Initial portion aimed at slot's share of daily kcal.
       const targetKcal = opts.targets.kcal * distribution[slot];
-      const baseKcal = (dish.calories_per_100g * dish.portion_weight_g) / 100;
-      const ratio = Math.min(1.4, Math.max(0.6, targetKcal / Math.max(baseKcal, 1)));
-      const portion_g = Math.max(60, Math.round((dish.portion_weight_g * ratio) / 5) * 5);
+      const per100 = Math.max(dish.calories_per_100g, 1);
+      const portion_g = Math.max(40, Math.round((targetKcal / per100) * 100));
       meals.push({ slot, dish_id: dish.id, portion_g });
     }
+
+    // Rescale the whole day so total kcal hits the target exactly (±1 kcal).
+    // Portions are stored to 1 g precision — no coarse rounding — so displayed
+    // totals stay in lock-step with target kcal for any manual setting.
+    const dishesById: Record<string, Dish> = {};
+    for (const m of meals) {
+      const d = dishes.find((x) => x.id === m.dish_id);
+      if (d) dishesById[m.dish_id] = d;
+    }
+    const totalKcal = meals.reduce((s, m) => {
+      const d = dishesById[m.dish_id];
+      return d ? s + (d.calories_per_100g * m.portion_g) / 100 : s;
+    }, 0);
+    if (totalKcal > 0) {
+      const scale = opts.targets.kcal / totalKcal;
+      for (const m of meals) m.portion_g = Math.max(30, Math.round(m.portion_g * scale));
+    }
+    // Final micro-adjust: nudge the largest meal by 1 g steps until kcal matches.
+    const kcalOf = (m: MealEntry) => {
+      const d = dishesById[m.dish_id];
+      return d ? (d.calories_per_100g * m.portion_g) / 100 : 0;
+    };
+    let sum = meals.reduce((s, m) => s + kcalOf(m), 0);
+    if (meals.length > 0) {
+      const largest = meals.reduce((a, b) => (kcalOf(a) >= kcalOf(b) ? a : b));
+      const d = dishesById[largest.dish_id];
+      if (d && d.calories_per_100g > 0) {
+        const diffKcal = opts.targets.kcal - sum;
+        const deltaG = Math.round((diffKcal / d.calories_per_100g) * 100);
+        largest.portion_g = Math.max(30, largest.portion_g + deltaG);
+        sum = meals.reduce((s, m) => s + kcalOf(m), 0);
+      }
+    }
+
     days.push({ day_index: i, day_note: null, meals });
   }
   return days;
 }
+
 
 export const PREFERRED_PRODUCT_OPTIONS = [
   { key: "птица", label: "Курица / индейка" },
