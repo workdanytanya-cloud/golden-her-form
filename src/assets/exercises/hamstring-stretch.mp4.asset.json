@@ -1,9 +1,11 @@
 {
   "version": 1,
-  "asset_id": "df93c4f2-847a-4233-9163-aa46428c8771",
+  "asset_id": "f011c749-7015-4274-8f9b-fac9ac7a4b01",
   "project_id": "05338094-25e9-448a-9d8b-230043f555c9",
-  "url": "/__l5e/assets-v1/df93c4f2-847a-4233-9163-aa46428c8771/hamstring-stretch.mp4",
+  "url": "/__l5e/assets-v1/f011c749-7015-4274-8f9b-fac9ac7a4b01/hamstring-stretch.mp4",
+  "r2_key": "a/v1/05338094-25e9-448a-9d8b-230043f555c9/f011c749-7015-4274-8f9b-fac9ac7a4b01/hamstring-stretch.mp4",
   "original_filename": "hamstring-stretch.mp4",
-  "size": 9141848,
-  "created_at": "2026-07-05T10:42:51Z"
+  "size": 6822404,
+  "content_type": "video/mp4",
+  "created_at": "2026-07-06T07:42:29Z"
 }

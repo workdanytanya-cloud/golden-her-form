@@ -1,9 +1,11 @@
 {
   "version": 1,
-  "asset_id": "9ff0335e-cbaa-442b-b8d0-0a1a703fce3a",
+  "asset_id": "83d3242e-9ee0-43ee-bf48-e0ff786a5ecb",
   "project_id": "05338094-25e9-448a-9d8b-230043f555c9",
-  "url": "/__l5e/assets-v1/9ff0335e-cbaa-442b-b8d0-0a1a703fce3a/bird-dog.mp4",
+  "url": "/__l5e/assets-v1/83d3242e-9ee0-43ee-bf48-e0ff786a5ecb/bird-dog.mp4",
+  "r2_key": "a/v1/05338094-25e9-448a-9d8b-230043f555c9/83d3242e-9ee0-43ee-bf48-e0ff786a5ecb/bird-dog.mp4",
   "original_filename": "bird-dog.mp4",
-  "size": 13019044,
-  "created_at": "2026-07-05T10:48:16Z"
+  "size": 8689548,
+  "content_type": "video/mp4",
+  "created_at": "2026-07-06T07:42:35Z"
 }

@@ -1,9 +1,11 @@
 {
   "version": 1,
-  "asset_id": "ea057fdf-896f-4f7a-821e-c31709702ee2",
+  "asset_id": "a1ce2f84-edba-4062-929d-c13f14561c91",
   "project_id": "05338094-25e9-448a-9d8b-230043f555c9",
-  "url": "/__l5e/assets-v1/ea057fdf-896f-4f7a-821e-c31709702ee2/dead-bug.mp4",
+  "url": "/__l5e/assets-v1/a1ce2f84-edba-4062-929d-c13f14561c91/dead-bug.mp4",
+  "r2_key": "a/v1/05338094-25e9-448a-9d8b-230043f555c9/a1ce2f84-edba-4062-929d-c13f14561c91/dead-bug.mp4",
   "original_filename": "dead-bug.mp4",
-  "size": 8537215,
-  "created_at": "2026-07-05T10:48:20Z"
+  "size": 7085882,
+  "content_type": "video/mp4",
+  "created_at": "2026-07-06T07:42:38Z"
 }
