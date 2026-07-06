@@ -1,14 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
-import { ArrowLeft, ClipboardList, Dumbbell, Eye, Lock, Plus, Trash2, Unlock, Utensils } from "lucide-react";
+import { ArrowLeft, ClipboardList, Dumbbell, Eye, KeyRound, Lock, Plus, Save, Trash2, Unlock, UserX, Utensils } from "lucide-react";
 import { toast } from "sonner";
+import {
+  adminDeleteClient,
+  adminUpdateClientPassword,
+  adminUpdateClientProfile,
+} from "@/lib/admin-clients.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/")({
   component: ClientDetail,
 });
+
 
 
 type Profile = {
@@ -18,6 +25,7 @@ type Profile = {
   goal: string | null;
   height_cm: number | null;
   birth_date: string | null;
+  gender: string | null;
   created_at: string;
 };
 
@@ -59,7 +67,7 @@ function ClientDetail() {
   const load = () => {
     void supabase
       .from("profiles")
-      .select("id, full_name, phone, goal, height_cm, birth_date, created_at")
+      .select("id, full_name, phone, goal, height_cm, birth_date, gender, created_at")
       .eq("id", id)
       .maybeSingle()
       .then(({ data }) => setProfile(data as Profile | null));
@@ -213,6 +221,23 @@ function ClientDetail() {
         onRevoke={revokeAccess}
         loading={updatingAccess}
       />
+
+      <ProfileEditor
+        clientId={id}
+        profile={profile}
+        onSaved={load}
+      />
+
+      <AdminActions
+        clientId={id}
+        clientName={profile?.full_name}
+        onDeleted={() => {
+          toast.success("Клиент удалён");
+          void navigate({ to: "/admin" });
+        }}
+      />
+
+
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Телефон" value={profile?.phone || "—"} />
@@ -453,4 +478,249 @@ function AccessManager({
     </section>
   );
 }
+
+function ProfileEditor({
+  clientId,
+  profile,
+  onSaved,
+}: {
+  clientId: string;
+  profile: Profile | null;
+  onSaved: () => void;
+}) {
+  const updateProfile = useServerFn(adminUpdateClientProfile);
+  const [form, setForm] = useState({
+    full_name: "",
+    phone: "",
+    goal: "",
+    height_cm: "",
+    birth_date: "",
+    gender: "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!profile) return;
+    setForm({
+      full_name: profile.full_name ?? "",
+      phone: profile.phone ?? "",
+      goal: profile.goal ?? "",
+      height_cm: profile.height_cm != null ? String(profile.height_cm) : "",
+      birth_date: profile.birth_date ?? "",
+      gender: profile.gender ?? "",
+    });
+  }, [profile]);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await updateProfile({
+        data: {
+          userId: clientId,
+          full_name: form.full_name.trim() || null,
+          phone: form.phone.trim() || null,
+          goal: form.goal.trim() || null,
+          height_cm: form.height_cm ? Number(form.height_cm) : null,
+          birth_date: form.birth_date || null,
+          gender: form.gender || null,
+        },
+      });
+      toast.success("Профиль клиента обновлён");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка сохранения");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section>
+      <h2 className="font-display text-2xl">Профиль клиента</h2>
+      <p className="mt-1 text-sm text-warm-gray">
+        Заполните за клиента, если он не может сделать это сам.
+      </p>
+      <form
+        onSubmit={save}
+        className="mt-4 grid gap-4 rounded-3xl border border-gold/15 bg-surface/40 p-6 md:grid-cols-6"
+      >
+        <F label="Имя" span="md:col-span-3">
+          <input
+            type="text"
+            value={form.full_name}
+            onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+            className={inputCls}
+            maxLength={100}
+          />
+        </F>
+        <F label="Телефон" span="md:col-span-3">
+          <input
+            type="tel"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            className={inputCls}
+          />
+        </F>
+        <F label="Дата рождения" span="md:col-span-2">
+          <input
+            type="date"
+            value={form.birth_date}
+            onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
+            className={inputCls}
+          />
+        </F>
+        <F label="Рост, см" span="md:col-span-2">
+          <input
+            type="number"
+            step="1"
+            value={form.height_cm}
+            onChange={(e) => setForm({ ...form, height_cm: e.target.value })}
+            className={inputCls}
+          />
+        </F>
+        <F label="Пол" span="md:col-span-2">
+          <select
+            value={form.gender}
+            onChange={(e) => setForm({ ...form, gender: e.target.value })}
+            className={inputCls}
+          >
+            <option value="">—</option>
+            <option value="female">Женский</option>
+            <option value="male">Мужской</option>
+          </select>
+        </F>
+        <F label="Цель" span="md:col-span-6">
+          <textarea
+            value={form.goal}
+            onChange={(e) => setForm({ ...form, goal: e.target.value })}
+            rows={2}
+            className={inputCls}
+            maxLength={300}
+          />
+        </F>
+        <div className="md:col-span-6 flex justify-end">
+          <button
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" /> Сохранить профиль
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function AdminActions({
+  clientId,
+  clientName,
+  onDeleted,
+}: {
+  clientId: string;
+  clientName: string | null | undefined;
+  onDeleted: () => void;
+}) {
+  const updatePassword = useServerFn(adminUpdateClientPassword);
+  const deleteClient = useServerFn(adminDeleteClient);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
+  const [delLoading, setDelLoading] = useState(false);
+
+  const submitPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 8) {
+      toast.error("Минимум 8 символов");
+      return;
+    }
+    setPwLoading(true);
+    try {
+      await updatePassword({ data: { userId: clientId, password } });
+      toast.success("Пароль обновлён");
+      setPassword("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  const remove = async () => {
+    const label = clientName || "этого клиента";
+    if (
+      !window.confirm(
+        `Удалить ${label}? Все данные (замеры, программы, анкета) будут стёрты безвозвратно.`,
+      )
+    )
+      return;
+    setDelLoading(true);
+    try {
+      await deleteClient({ data: { userId: clientId } });
+      onDeleted();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка удаления");
+      setDelLoading(false);
+    }
+  };
+
+  return (
+    <section className="grid gap-6 md:grid-cols-2">
+      <div className="rounded-3xl border border-gold/15 bg-surface/40 p-6">
+        <div className="flex items-center gap-2 text-ivory">
+          <KeyRound className="h-4 w-4 text-gold" />
+          <h3 className="font-display text-lg">Сменить пароль</h3>
+        </div>
+        <p className="mt-1 text-xs text-warm-gray">
+          Задайте новый пароль. Сообщите его клиенту любым удобным способом.
+        </p>
+        <form onSubmit={submitPassword} className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Минимум 8 символов"
+              minLength={8}
+              maxLength={72}
+              className={`${inputCls} pr-12`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-warm-gray hover:text-gold"
+            >
+              {showPassword ? "Скрыть" : "Показать"}
+            </button>
+          </div>
+          <button
+            disabled={pwLoading || password.length < 8}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
+          >
+            <KeyRound className="h-4 w-4" /> Обновить
+          </button>
+        </form>
+      </div>
+
+      <div className="rounded-3xl border border-coral/25 bg-coral/5 p-6">
+        <div className="flex items-center gap-2 text-ivory">
+          <UserX className="h-4 w-4 text-coral" />
+          <h3 className="font-display text-lg">Удалить клиента</h3>
+        </div>
+        <p className="mt-1 text-xs text-warm-gray">
+          Полное удаление аккаунта и всех связанных данных. Действие необратимо.
+        </p>
+        <button
+          type="button"
+          onClick={remove}
+          disabled={delLoading}
+          className="mt-4 inline-flex items-center gap-2 rounded-full border border-coral/40 px-5 py-3 text-sm text-coral transition-colors hover:bg-coral/15 disabled:opacity-60"
+        >
+          <Trash2 className="h-4 w-4" /> {delLoading ? "Удаляем…" : "Удалить безвозвратно"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 
