@@ -45,7 +45,22 @@ const emptyExercise: Omit<Exercise, "id"> = {
   video_url: null,
 };
 
-const CATEGORIES = ["warmup", "strength", "rehab", "mobility", "cardio", "cooldown", "core"];
+const CATEGORIES = [
+  "warmup",
+  "mobility",
+  "activation",
+  "core",
+  "strength_lower",
+  "strength_upper",
+  "strength_full",
+  "cardio",
+  "cooldown",
+] as const;
+const DIFFICULTY_LABEL: Record<string, string> = {
+  beginner: "Начинающий",
+  intermediate: "Средний",
+  advanced: "Продвинутый",
+};
 const DIFFICULTIES = ["beginner", "intermediate", "advanced"];
 
 function AdminExercises() {
