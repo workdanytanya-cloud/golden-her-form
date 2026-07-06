@@ -1,14 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
-import { ArrowLeft, ClipboardList, Dumbbell, Eye, Lock, Plus, Trash2, Unlock, Utensils } from "lucide-react";
+import { ArrowLeft, ClipboardList, Dumbbell, Eye, KeyRound, Lock, Plus, Save, Trash2, Unlock, UserX, Utensils } from "lucide-react";
 import { toast } from "sonner";
+import {
+  adminDeleteClient,
+  adminUpdateClientPassword,
+  adminUpdateClientProfile,
+} from "@/lib/admin-clients.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/")({
   component: ClientDetail,
 });
+
 
 
 type Profile = {
