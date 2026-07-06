@@ -36,19 +36,21 @@ export function CtaFinal() {
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <a
-              href="mailto:hello@panovapro.ru"
+              href="https://t.me/Tanya_panova"
+              target="_blank"
+              rel="noreferrer noopener"
               className="inline-flex items-center gap-3 rounded-lg bg-gold px-8 py-4 text-sm font-medium tracking-wide text-background transition-transform hover:scale-[1.03]"
             >
-              Записаться на консультацию
+              Написать в Telegram
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
             </a>
             <a
-              href="#programs"
+              href="mailto:panova.fortuna@mail.ru"
               className="inline-flex items-center gap-3 rounded-lg border border-ivory/30 px-8 py-4 text-sm font-medium text-ivory transition-colors hover:border-gold hover:text-gold"
             >
-              Посмотреть программы
+              panova.fortuna@mail.ru
             </a>
           </div>
         </Reveal>
