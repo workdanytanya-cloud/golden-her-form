@@ -6,7 +6,7 @@ import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
 import { ArrowLeft, ClipboardList, Dumbbell, Eye, Lock, Plus, Trash2, Unlock, Utensils } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/admin/clients/$id")({
+export const Route = createFileRoute("/_authenticated/admin/clients/$id/")({
   component: ClientDetail,
 });
 
