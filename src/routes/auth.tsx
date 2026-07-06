@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
