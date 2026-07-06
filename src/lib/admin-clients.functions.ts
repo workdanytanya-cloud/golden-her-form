@@ -42,7 +42,15 @@ export const adminDeleteClient = createServerFn({ method: "POST" })
       throw new Error("Нельзя удалить свой собственный аккаунт");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+
+    // Best-effort cleanup for tables without ON DELETE CASCADE
+    const uid = data.userId;
+    await supabaseAdmin.from("admin_notifications").delete().eq("client_id", uid);
+    await supabaseAdmin.from("onboarding_responses").delete().eq("user_id", uid);
+    await supabaseAdmin.from("nutrition_plans").delete().eq("user_id", uid);
+    await supabaseAdmin.from("client_access").delete().eq("user_id", uid);
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(uid);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
