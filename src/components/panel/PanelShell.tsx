@@ -118,11 +118,11 @@ export function PanelShell({
             </div>
 
             <nav className="mt-8 flex flex-1 flex-col gap-1">
-              {nav.map((item) => {
+              {nav.map((item, idx) => {
                 const active = isActive(item);
                 return (
                   <Link
-                    key={item.to}
+                    key={`${item.to}-${item.label}-${idx}`}
                     to={item.to as unknown as "/"}
                     onClick={() => setOpen(false)}
                     className={[
