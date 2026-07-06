@@ -222,6 +222,23 @@ function ClientDetail() {
         loading={updatingAccess}
       />
 
+      <ProfileEditor
+        clientId={id}
+        profile={profile}
+        onSaved={load}
+      />
+
+      <AdminActions
+        clientId={id}
+        clientName={profile?.full_name}
+        onDeleted={() => {
+          toast.success("Клиент удалён");
+          void navigate({ to: "/admin" });
+        }}
+      />
+
+
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Телефон" value={profile?.phone || "—"} />
         <StatCard label="Рост" value={profile?.height_cm ? `${profile.height_cm} см` : "—"} />
