@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../lib/auth";
 import { supabase } from "../integrations/supabase/client";
 import { Toaster } from "../components/ui/sonner";
+import { ScrollToTop } from "../components/ui/ScrollToTop";
 
 function NotFoundComponent() {
   return (
