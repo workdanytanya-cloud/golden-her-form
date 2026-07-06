@@ -16,6 +16,12 @@ import {
   Leaf,
   Sparkles,
   ChevronDown,
+  Scale,
+  Ruler,
+  Weight,
+  Dumbbell,
+  Grid3x3,
+  Cylinder,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/preparation")({
