@@ -512,6 +512,18 @@ function ArticleCard({ article }: { article: Article }) {
       </button>
       {open && (
         <div className="space-y-3 border-t border-gold/10 px-5 pb-6 pt-4 text-sm leading-relaxed text-warm-gray md:text-[15px]">
+          {article.image && (
+            <div className="overflow-hidden rounded-xl border border-gold/10 bg-surface/60">
+              <img
+                src={article.image.src}
+                alt={article.image.alt}
+                loading="lazy"
+                width={768}
+                height={512}
+                className="h-auto w-full object-cover"
+              />
+            </div>
+          )}
           {article.body}
         </div>
       )}
