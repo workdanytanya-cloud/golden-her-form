@@ -41,7 +41,7 @@ export function Hero() {
       <div className="relative mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-between px-6 pt-32 pb-16 lg:px-10 lg:pt-40">
         <div className="max-w-3xl">
           <p className="eyebrow animate-reveal">PanovaPRO · Татьяна Панова</p>
-          <h1 className="mt-6 font-display text-5xl leading-[0.95] text-ivory sm:text-6xl lg:text-[7rem]">
+          <h1 className="mt-6 font-display text-4xl leading-[1.02] text-ivory sm:text-6xl sm:leading-[0.95] lg:text-[7rem]">
             От неуверенности —<br />
             <span className="gold-text italic">к фигуре мечты.</span>
           </h1>
