@@ -1,9 +1,11 @@
 {
   "version": 1,
-  "asset_id": "bdd61ffe-76b9-43c0-8f12-fed16401e470",
+  "asset_id": "bfdc396e-9ca1-4dc7-8177-ffb01432d7b2",
   "project_id": "05338094-25e9-448a-9d8b-230043f555c9",
-  "url": "/__l5e/assets-v1/bdd61ffe-76b9-43c0-8f12-fed16401e470/cat-thoracic.mp4",
+  "url": "/__l5e/assets-v1/bfdc396e-9ca1-4dc7-8177-ffb01432d7b2/cat-thoracic.mp4",
+  "r2_key": "a/v1/05338094-25e9-448a-9d8b-230043f555c9/bfdc396e-9ca1-4dc7-8177-ffb01432d7b2/cat-thoracic.mp4",
   "original_filename": "cat-thoracic.mp4",
-  "size": 8704645,
-  "created_at": "2026-07-05T10:43:00Z"
+  "size": 7461964,
+  "content_type": "video/mp4",
+  "created_at": "2026-07-06T07:42:26Z"
 }
