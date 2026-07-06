@@ -55,6 +55,8 @@ export function About() {
             <p className="eyebrow">PanovaPRO · Обо мне</p>
             <h2 className="mt-6 font-display text-4xl leading-tight text-ivory sm:text-5xl lg:text-6xl">
               Меня зовут <span className="gold-text italic">Татьяна Панова.</span>
+              <br />
+              <br />
               <br />И я знаю, как <span className="text-coral italic">вернуть</span> тебя себе.
             </h2>
 
@@ -76,7 +78,10 @@ export function About() {
                 комфортно на праздниках и в отпуске.
               </p>
               <p className="text-ivory">
-                От неуверенности и комплексов к фигуре мечты — всего один шаг.{" "}
+                От неуверенности и комплексов к фигуре мечты — всего один шаг.
+                <br />
+                <br />
+                <br />
                 <span className="gold-text">Давайте сделаем его вместе.</span>
               </p>
             </div>
