@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Nav } from "@/components/landing/Nav";
 import { Footer } from "@/components/landing/Footer";
 import { useAuth } from "@/lib/auth";
-import { getProgramBySlug, programs } from "@/lib/programs-data";
+import { getProgramBySlug, programs, type ProgramDetail } from "@/lib/programs-data";
 
 export const Route = createFileRoute("/programs/$slug")({
   loader: ({ params }) => {
