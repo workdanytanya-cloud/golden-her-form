@@ -87,3 +87,51 @@ export const adminUpdateClientProfile = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const adminExportContacts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: profiles, error: pErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, phone, created_at")
+      .order("created_at", { ascending: false });
+    if (pErr) throw new Error(pErr.message);
+
+    // Fetch emails via Auth Admin API (paginated)
+    const emailMap = new Map<string, string>();
+    let page = 1;
+    const perPage = 1000;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+      if (error) throw new Error(error.message);
+      for (const u of data.users) {
+        if (u.email) emailMap.set(u.id, u.email);
+      }
+      if (data.users.length < perPage) break;
+      page += 1;
+      if (page > 20) break;
+    }
+
+    // Exclude admins from the export
+    const { data: adminRoles } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin");
+    const adminIds = new Set((adminRoles ?? []).map((r: { user_id: string }) => r.user_id));
+
+    const rows = (profiles ?? [])
+      .filter((p) => !adminIds.has(p.id))
+      .map((p) => ({
+        full_name: p.full_name ?? "",
+        phone: p.phone ?? "",
+        email: emailMap.get(p.id) ?? "",
+        created_at: p.created_at,
+      }));
+
+    return { rows };
+  });
+
