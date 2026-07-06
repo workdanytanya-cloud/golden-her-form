@@ -144,16 +144,26 @@ function AuthPage() {
               <label className="mb-1.5 block text-xs uppercase tracking-wider text-warm-gray">
                 Пароль
               </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-gold/20 bg-background/50 px-4 py-3 text-ivory outline-none transition-colors focus:border-gold/60"
-                placeholder="Минимум 8 символов"
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                minLength={8}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-gold/20 bg-background/50 px-4 py-3 pr-12 text-ivory outline-none transition-colors focus:border-gold/60"
+                  placeholder="Минимум 8 символов"
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-warm-gray transition-colors hover:text-gold"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             {mode === "signup" && (
