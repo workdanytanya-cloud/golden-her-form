@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -39,6 +40,9 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,16 +144,26 @@ function AuthPage() {
               <label className="mb-1.5 block text-xs uppercase tracking-wider text-warm-gray">
                 Пароль
               </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-gold/20 bg-background/50 px-4 py-3 text-ivory outline-none transition-colors focus:border-gold/60"
-                placeholder="Минимум 8 символов"
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                minLength={8}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-gold/20 bg-background/50 px-4 py-3 pr-12 text-ivory outline-none transition-colors focus:border-gold/60"
+                  placeholder="Минимум 8 символов"
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-warm-gray transition-colors hover:text-gold"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             {mode === "signup" && (
