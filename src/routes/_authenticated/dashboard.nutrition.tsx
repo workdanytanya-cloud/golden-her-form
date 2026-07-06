@@ -142,15 +142,18 @@ function NutritionInner() {
 
   if (!plan || showSetup) {
     return (
-      <NutritionSetup
-        initialMeals={(plan?.meals_per_day as 3 | 5) ?? 5}
-        initialPreferred={plan?.preferred_products}
-        suggestedTargets={suggested}
-        autoExcluded={autoExcluded}
-        onCancel={plan ? () => setShowSetup(false) : undefined}
-        onSubmit={handleGenerate}
-        submitLabel={plan ? "Пересобрать меню" : "Показать рацион"}
-      />
+      <div className="space-y-8">
+        <NutritionSetup
+          initialMeals={(plan?.meals_per_day as 3 | 5) ?? 5}
+          initialPreferred={plan?.preferred_products}
+          suggestedTargets={suggested}
+          autoExcluded={autoExcluded}
+          onCancel={plan ? () => setShowSetup(false) : undefined}
+          onSubmit={handleGenerate}
+          submitLabel={plan ? "Пересобрать меню" : "Показать рацион"}
+        />
+        <FoodSwapGuide />
+      </div>
     );
   }
 
