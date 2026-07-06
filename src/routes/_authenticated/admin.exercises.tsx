@@ -63,6 +63,25 @@ const DIFFICULTY_LABEL: Record<string, string> = {
 };
 const DIFFICULTIES = ["beginner", "intermediate", "advanced"];
 
+async function downloadMedia(url: string, slug: string) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const ext = (url.split("?")[0].split(".").pop() || "bin").toLowerCase();
+    const a = document.createElement("a");
+    const objectUrl = URL.createObjectURL(blob);
+    a.href = objectUrl;
+    a.download = `${slug}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(url, "_blank", "noopener");
+  }
+}
+
+
 function AdminExercises() {
   const [items, setItems] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
