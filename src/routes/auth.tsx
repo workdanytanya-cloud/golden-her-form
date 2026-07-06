@@ -37,10 +37,15 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup" && !consent) {
+      toast.error("Нужно согласие на обработку персональных данных");
+      return;
+    }
     setSubmitting(true);
     try {
       const parsedEmail = emailSchema.parse(email);
@@ -147,9 +152,32 @@ function AuthPage() {
               />
             </div>
 
+            {mode === "signup" && (
+              <label className="mt-1 flex items-start gap-3 text-xs text-warm-gray">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-gold"
+                />
+                <span>
+                  Я согласен(на) на обработку моих персональных данных в соответствии с{" "}
+                  <Link
+                    to="/privacy"
+                    target="_blank"
+                    className="text-gold underline-offset-2 hover:underline"
+                  >
+                    Политикой конфиденциальности
+                  </Link>
+                  .
+                </span>
+              </label>
+            )}
+
+
             <button
               type="submit"
-              disabled={submitting || authLoading}
+              disabled={submitting || authLoading || (mode === "signup" && !consent)}
               className="mt-2 w-full rounded-full bg-gold px-6 py-3.5 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
             >
               {submitting
