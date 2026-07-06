@@ -164,8 +164,10 @@ function NutritionInner() {
   }));
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6">
+      <FoodSwapGuide />
+
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
         <p className="text-sm text-warm-gray">
           {plan.meals_per_day === 3 ? "3 приёма пищи" : "5 приёмов пищи"} · целевые{" "}
           <b className="text-ivory">{plan.target_kcal}</b> ккал
@@ -198,8 +200,6 @@ function NutritionInner() {
         mealsPerDay={plan.meals_per_day as 3 | 5}
         editable={false}
       />
-
-      <FoodSwapGuide />
     </div>
   );
 }
