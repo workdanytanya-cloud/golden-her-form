@@ -210,7 +210,7 @@ function AdminExercises() {
                   <ExerciseMedia
                     url={e.gif_url}
                     alt={e.name}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-contain"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-widest text-warm-gray/60">
