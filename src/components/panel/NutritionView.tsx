@@ -349,14 +349,33 @@ function MealDialog({
                 Ингредиенты на порцию {portion} г
               </h4>
               <ul className="mt-2 space-y-1 text-sm">
-                {dish.ingredients.map((ing, i) => (
-                  <li key={i} className="flex items-center justify-between border-b border-gold/10 py-1.5">
-                    <span className="text-ivory">{ing.raw}</span>
-                    <span className="text-warm-gray">
-                      {Math.round(ing.raw_g * ratio)} г сырого / {Math.round(ing.cooked_g * ratio)} г готового
-                    </span>
-                  </li>
-                ))}
+                {dish.ingredients.map((ing, i) => {
+                  const raw = Math.round(ing.raw_g * ratio);
+                  const cooked = Math.round(ing.cooked_g * ratio);
+                  const lower = ing.raw.toLowerCase();
+                  const isEggWhite = /белок/.test(lower) && /яич|яйц/.test(lower);
+                  const isWholeEgg =
+                    !isEggWhite && (/\bяйц/.test(lower) || /яйцо|яйца|яичн/.test(lower));
+                  let amount: string;
+                  if (isEggWhite) {
+                    const pcs = Math.max(1, Math.round(raw / 33));
+                    amount = `${pcs} шт (~${pcs * 33} г белка)`;
+                  } else if (isWholeEgg) {
+                    const pcs = Math.max(1, Math.round(raw / 50));
+                    amount = `${pcs} шт (~${pcs * 50} г)`;
+                  } else {
+                    amount = `${raw} г сырого / ${cooked} г готового`;
+                  }
+                  return (
+                    <li
+                      key={i}
+                      className="flex items-center justify-between border-b border-gold/10 py-1.5"
+                    >
+                      <span className="text-ivory">{ing.raw}</span>
+                      <span className="text-warm-gray">{amount}</span>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
             <section>
