@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { MediaUpload } from "@/components/panel/MediaUpload";
 import { ExerciseMedia } from "@/components/panel/ExerciseMedia";
-import { Search, Save, Trash2, Plus, X } from "lucide-react";
+import { Search, Save, Trash2, Plus, X, Download } from "lucide-react";
 import { CATEGORY_LABEL } from "@/lib/training";
 import { toast } from "sonner";
 
@@ -62,6 +62,25 @@ const DIFFICULTY_LABEL: Record<string, string> = {
   advanced: "Продвинутый",
 };
 const DIFFICULTIES = ["beginner", "intermediate", "advanced"];
+
+async function downloadMedia(url: string, slug: string) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const ext = (url.split("?")[0].split(".").pop() || "bin").toLowerCase();
+    const a = document.createElement("a");
+    const objectUrl = URL.createObjectURL(blob);
+    a.href = objectUrl;
+    a.download = `${slug}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(url, "_blank", "noopener");
+  }
+}
+
 
 function AdminExercises() {
   const [items, setItems] = useState<Exercise[]>([]);
@@ -207,13 +226,25 @@ function AdminExercises() {
                       {CATEGORY_LABEL[e.category as keyof typeof CATEGORY_LABEL] ?? e.category} · {DIFFICULTY_LABEL[e.difficulty] ?? e.difficulty}
                     </div>
                   </div>
-                  <button
-                    onClick={() => remove(e.id)}
-                    className="rounded-full p-1.5 text-warm-gray hover:bg-coral/15 hover:text-coral"
-                    aria-label="Удалить"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {(e.gif_url || e.video_url) && (
+                      <button
+                        onClick={() => downloadMedia(e.gif_url ?? e.video_url!, e.slug)}
+                        className="rounded-full p-1.5 text-warm-gray hover:bg-gold/15 hover:text-gold"
+                        aria-label="Скачать медиа"
+                        title="Скачать медиа"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => remove(e.id)}
+                      className="rounded-full p-1.5 text-warm-gray hover:bg-coral/15 hover:text-coral"
+                      aria-label="Удалить"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="text-xs text-warm-gray">
                   {e.default_sets}×{e.default_reps} · отдых {e.rest_seconds}с
