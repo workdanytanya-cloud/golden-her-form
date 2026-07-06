@@ -48,7 +48,7 @@ export function ClientNotificationsBell() {
         setItems(data as Notification[]);
       });
 
-    const channelName = `client_notifications_${userId}`;
+    const channelName = `client_notifications_${userId}_${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
       .channel(channelName)
       .on(
