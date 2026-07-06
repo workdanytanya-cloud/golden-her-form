@@ -6,7 +6,7 @@ import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
 import { JourneyStepper } from "@/components/panel/JourneyStepper";
 import { SectionHint } from "@/components/panel/Hints";
-import { ArrowRight, Clock, ClipboardList, Sparkles, User, LineChart as LineChartIcon } from "lucide-react";
+import { ArrowRight, Clock, ClipboardList, Sparkles, User, LineChart as LineChartIcon, PartyPopper, X } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardOverview,
@@ -30,6 +30,7 @@ function DashboardOverview() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  const [accessNotif, setAccessNotif] = useState<{ id: string; message: string } | null>(null);
 
   useEffect(() => {
     if (!effectiveUserId) return;
@@ -54,7 +55,27 @@ function DashboardOverview() {
       .eq("user_id", effectiveUserId)
       .maybeSingle()
       .then(({ data }) => setOnboardingDone(Boolean((data as { completed_at?: string } | null)?.completed_at)));
+
+    void supabase
+      .from("client_notifications")
+      .select("id, message")
+      .eq("user_id", effectiveUserId)
+      .eq("type", "access_granted")
+      .eq("is_read", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setAccessNotif(data as { id: string; message: string });
+      });
   }, [effectiveUserId]);
+
+  const dismissAccessNotif = async () => {
+    if (!accessNotif) return;
+    const id = accessNotif.id;
+    setAccessNotif(null);
+    await supabase.from("client_notifications").update({ is_read: true }).eq("id", id);
+  };
 
 
   const latest = measurements[0];
