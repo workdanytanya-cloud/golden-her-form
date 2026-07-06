@@ -28,6 +28,7 @@ import { Route as AuthenticatedDashboardNutritionRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminExercisesRouteImport } from './routes/_authenticated/admin.exercises'
 import { Route as AuthenticatedAdminDishesRouteImport } from './routes/_authenticated/admin.dishes'
 import { Route as AuthenticatedAdminClientsIdRouteImport } from './routes/_authenticated/admin.clients.$id'
+import { Route as AuthenticatedAdminClientsIdIndexRouteImport } from './routes/_authenticated/admin.clients.$id.index'
 import { Route as AuthenticatedAdminClientsIdTrainingRouteImport } from './routes/_authenticated/admin.clients.$id.training'
 import { Route as AuthenticatedAdminClientsIdOnboardingRouteImport } from './routes/_authenticated/admin.clients.$id.onboarding'
 import { Route as AuthenticatedAdminClientsIdNutritionRouteImport } from './routes/_authenticated/admin.clients.$id.nutrition'
@@ -136,6 +137,12 @@ const AuthenticatedAdminClientsIdRoute =
     path: '/clients/$id',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminClientsIdIndexRoute =
+  AuthenticatedAdminClientsIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminClientsIdRoute,
+  } as any)
 const AuthenticatedAdminClientsIdTrainingRoute =
   AuthenticatedAdminClientsIdTrainingRouteImport.update({
     id: '/training',
@@ -177,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/admin/clients/$id/nutrition': typeof AuthenticatedAdminClientsIdNutritionRoute
   '/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
   '/admin/clients/$id/training': typeof AuthenticatedAdminClientsIdTrainingRoute
+  '/admin/clients/$id/': typeof AuthenticatedAdminClientsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -194,10 +202,10 @@ export interface FileRoutesByTo {
   '/dashboard/training': typeof AuthenticatedDashboardTrainingRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
-  '/admin/clients/$id': typeof AuthenticatedAdminClientsIdRouteWithChildren
   '/admin/clients/$id/nutrition': typeof AuthenticatedAdminClientsIdNutritionRoute
   '/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
   '/admin/clients/$id/training': typeof AuthenticatedAdminClientsIdTrainingRoute
+  '/admin/clients/$id': typeof AuthenticatedAdminClientsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -223,6 +231,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/clients/$id/nutrition': typeof AuthenticatedAdminClientsIdNutritionRoute
   '/_authenticated/admin/clients/$id/onboarding': typeof AuthenticatedAdminClientsIdOnboardingRoute
   '/_authenticated/admin/clients/$id/training': typeof AuthenticatedAdminClientsIdTrainingRoute
+  '/_authenticated/admin/clients/$id/': typeof AuthenticatedAdminClientsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -248,6 +257,7 @@ export interface FileRouteTypes {
     | '/admin/clients/$id/nutrition'
     | '/admin/clients/$id/onboarding'
     | '/admin/clients/$id/training'
+    | '/admin/clients/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -265,10 +275,10 @@ export interface FileRouteTypes {
     | '/dashboard/training'
     | '/admin'
     | '/dashboard'
-    | '/admin/clients/$id'
     | '/admin/clients/$id/nutrition'
     | '/admin/clients/$id/onboarding'
     | '/admin/clients/$id/training'
+    | '/admin/clients/$id'
   id:
     | '__root__'
     | '/'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/clients/$id/nutrition'
     | '/_authenticated/admin/clients/$id/onboarding'
     | '/_authenticated/admin/clients/$id/training'
+    | '/_authenticated/admin/clients/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -439,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminClientsIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/clients/$id/': {
+      id: '/_authenticated/admin/clients/$id/'
+      path: '/'
+      fullPath: '/admin/clients/$id/'
+      preLoaderRoute: typeof AuthenticatedAdminClientsIdIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminClientsIdRoute
+    }
     '/_authenticated/admin/clients/$id/training': {
       id: '/_authenticated/admin/clients/$id/training'
       path: '/training'
@@ -467,6 +485,7 @@ interface AuthenticatedAdminClientsIdRouteChildren {
   AuthenticatedAdminClientsIdNutritionRoute: typeof AuthenticatedAdminClientsIdNutritionRoute
   AuthenticatedAdminClientsIdOnboardingRoute: typeof AuthenticatedAdminClientsIdOnboardingRoute
   AuthenticatedAdminClientsIdTrainingRoute: typeof AuthenticatedAdminClientsIdTrainingRoute
+  AuthenticatedAdminClientsIdIndexRoute: typeof AuthenticatedAdminClientsIdIndexRoute
 }
 
 const AuthenticatedAdminClientsIdRouteChildren: AuthenticatedAdminClientsIdRouteChildren =
@@ -477,6 +496,8 @@ const AuthenticatedAdminClientsIdRouteChildren: AuthenticatedAdminClientsIdRoute
       AuthenticatedAdminClientsIdOnboardingRoute,
     AuthenticatedAdminClientsIdTrainingRoute:
       AuthenticatedAdminClientsIdTrainingRoute,
+    AuthenticatedAdminClientsIdIndexRoute:
+      AuthenticatedAdminClientsIdIndexRoute,
   }
 
 const AuthenticatedAdminClientsIdRouteWithChildren =
