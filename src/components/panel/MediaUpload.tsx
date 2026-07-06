@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Upload, X, Loader2 } from "lucide-react";
+import { Upload, X, Loader2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -62,6 +62,17 @@ export function MediaUpload({
           >
             <X className="h-4 w-4" />
           </button>
+          <a
+            href={value}
+            download
+            target="_blank"
+            rel="noreferrer"
+            className="absolute right-10 top-2 rounded-full bg-background/80 p-1 text-ivory hover:bg-gold/70"
+            aria-label="Скачать"
+            title="Скачать"
+          >
+            <Download className="h-4 w-4" />
+          </a>
         </div>
       ) : (
         <button
