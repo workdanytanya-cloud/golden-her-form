@@ -204,7 +204,7 @@ function AdminExercises() {
                   <div>
                     <div className="font-display text-lg text-ivory">{e.name}</div>
                     <div className="text-[11px] uppercase tracking-widest text-warm-gray">
-                      {e.category} · {e.difficulty}
+                      {CATEGORY_LABEL[e.category as keyof typeof CATEGORY_LABEL] ?? e.category} · {DIFFICULTY_LABEL[e.difficulty] ?? e.difficulty}
                     </div>
                   </div>
                   <button
