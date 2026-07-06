@@ -207,13 +207,25 @@ function AdminExercises() {
                       {CATEGORY_LABEL[e.category as keyof typeof CATEGORY_LABEL] ?? e.category} · {DIFFICULTY_LABEL[e.difficulty] ?? e.difficulty}
                     </div>
                   </div>
-                  <button
-                    onClick={() => remove(e.id)}
-                    className="rounded-full p-1.5 text-warm-gray hover:bg-coral/15 hover:text-coral"
-                    aria-label="Удалить"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {(e.gif_url || e.video_url) && (
+                      <button
+                        onClick={() => downloadMedia(e.gif_url ?? e.video_url!, e.slug)}
+                        className="rounded-full p-1.5 text-warm-gray hover:bg-gold/15 hover:text-gold"
+                        aria-label="Скачать медиа"
+                        title="Скачать медиа"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => remove(e.id)}
+                      className="rounded-full p-1.5 text-warm-gray hover:bg-coral/15 hover:text-coral"
+                      aria-label="Удалить"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="text-xs text-warm-gray">
                   {e.default_sets}×{e.default_reps} · отдых {e.rest_seconds}с
