@@ -1,55 +1,6 @@
-import weightloss from "@/assets/program-weightloss.jpg";
-import home from "@/assets/program-home.jpg";
-import stretch from "@/assets/program-stretch.jpg";
-import tone from "@/assets/program-tone.jpg";
-import nutrition from "@/assets/program-nutrition.jpg";
-import coaching from "@/assets/program-coaching.jpg";
+import { Link } from "@tanstack/react-router";
+import { programs } from "@/lib/programs-data";
 import { Reveal } from "@/components/ui/Reveal";
-
-const programs = [
-  {
-    img: weightloss,
-    tag: "Снижение веса",
-    title: "Похудение",
-    text: "12-недельная программа с плавным дефицитом, силовыми и кардио-блоками.",
-    weeks: "12 недель",
-  },
-  {
-    img: home,
-    tag: "Дом",
-    title: "Домашние тренировки",
-    text: "Без зала и сложного оборудования. Занимайся в любой точке мира.",
-    weeks: "8 недель",
-  },
-  {
-    img: stretch,
-    tag: "Гибкость",
-    title: "Растяжка",
-    text: "Мягкие сессии на восстановление подвижности и глубокое расслабление.",
-    weeks: "6 недель",
-  },
-  {
-    img: tone,
-    tag: "Форма",
-    title: "Мышечный тонус",
-    text: "Силовая работа на подтянутое тело и красивый рельеф — без \"мужского\" эффекта.",
-    weeks: "10 недель",
-  },
-  {
-    img: nutrition,
-    tag: "Питание",
-    title: "Сбалансированное питание",
-    text: "Индивидуальный расчёт КБЖУ и план, который работает в реальной жизни.",
-    weeks: "Каждый месяц",
-  },
-  {
-    img: coaching,
-    tag: "Premium",
-    title: "Персональный коучинг",
-    text: "Прямая работа со мной 1:1. Ежедневная поддержка, разборы, корректировка.",
-    weeks: "3 месяца",
-  },
-];
 
 export function Programs() {
   return (
@@ -70,8 +21,12 @@ export function Programs() {
 
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {programs.map((p, i) => (
-            <Reveal key={p.title} delay={i * 80}>
-              <article className="group relative aspect-[3/4] w-full overflow-hidden rounded-3xl border border-gold/12">
+            <Reveal key={p.slug} delay={i * 80}>
+              <Link
+                to="/programs/$slug"
+                params={{ slug: p.slug }}
+                className="group relative block aspect-[3/4] w-full overflow-hidden rounded-3xl border border-gold/12 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              >
                 <img
                   src={p.img}
                   alt={p.title}
@@ -107,7 +62,7 @@ export function Programs() {
                     </div>
                   </div>
                 </div>
-              </article>
+              </Link>
             </Reveal>
           ))}
         </div>
