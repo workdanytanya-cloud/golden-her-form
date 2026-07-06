@@ -479,13 +479,13 @@ function SectionBlock({
                           loop
                           muted
                           playsInline
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                         />
                       ) : (
                         <img
                           src={e.gif_url}
                           alt=""
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                         />
                       )
                     ) : (
