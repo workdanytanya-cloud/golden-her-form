@@ -25,6 +25,7 @@ type Profile = {
   goal: string | null;
   height_cm: number | null;
   birth_date: string | null;
+  gender: string | null;
   created_at: string;
 };
 
