@@ -479,13 +479,13 @@ function SectionBlock({
                           loop
                           muted
                           playsInline
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                         />
                       ) : (
                         <img
                           src={e.gif_url}
                           alt=""
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                         />
                       )
                     ) : (
@@ -927,7 +927,7 @@ function MediaCard({
       <div className="flex aspect-video items-center justify-center bg-background/60 text-warm-gray">
         {url ? (
           isVideo ? (
-            <video src={url} controls className="h-full w-full object-cover" />
+            <video src={url} controls className="h-full w-full object-contain" />
           ) : /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url) ? (
             <video
               src={url}
@@ -935,10 +935,10 @@ function MediaCard({
               loop
               muted
               playsInline
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           ) : (
-            <img src={url} alt={label} className="h-full w-full object-cover" />
+            <img src={url} alt={label} className="h-full w-full object-contain" />
           )
         ) : (
           <div className="flex flex-col items-center gap-2 text-warm-gray">
