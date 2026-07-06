@@ -15,6 +15,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProgramsSlugRouteImport } from './routes/programs.$slug'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
@@ -60,6 +61,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProgramsSlugRoute = ProgramsSlugRouteImport.update({
+  id: '/programs/$slug',
+  path: '/programs/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/programs/$slug': typeof ProgramsSlugRoute
   '/admin/dishes': typeof AuthenticatedAdminDishesRoute
   '/admin/exercises': typeof AuthenticatedAdminExercisesRoute
   '/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/programs/$slug': typeof ProgramsSlugRoute
   '/admin/dishes': typeof AuthenticatedAdminDishesRoute
   '/admin/exercises': typeof AuthenticatedAdminExercisesRoute
   '/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
@@ -217,6 +225,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/programs/$slug': typeof ProgramsSlugRoute
   '/_authenticated/admin/dishes': typeof AuthenticatedAdminDishesRoute
   '/_authenticated/admin/exercises': typeof AuthenticatedAdminExercisesRoute
   '/_authenticated/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
@@ -243,6 +252,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/dashboard'
+    | '/programs/$slug'
     | '/admin/dishes'
     | '/admin/exercises'
     | '/dashboard/nutrition'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/privacy'
     | '/reset-password'
+    | '/programs/$slug'
     | '/admin/dishes'
     | '/admin/exercises'
     | '/dashboard/nutrition'
@@ -289,6 +300,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
+    | '/programs/$slug'
     | '/_authenticated/admin/dishes'
     | '/_authenticated/admin/exercises'
     | '/_authenticated/dashboard/nutrition'
@@ -313,6 +325,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ProgramsSlugRoute: typeof ProgramsSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/programs/$slug': {
+      id: '/programs/$slug'
+      path: '/programs/$slug'
+      fullPath: '/programs/$slug'
+      preLoaderRoute: typeof ProgramsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard': {
@@ -571,6 +591,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ProgramsSlugRoute: ProgramsSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
