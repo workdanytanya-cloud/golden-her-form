@@ -280,7 +280,7 @@ function AdminExercises() {
               >
                 {DIFFICULTIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {DIFFICULTY_LABEL[c] ?? c}
                   </option>
                 ))}
               </select>
