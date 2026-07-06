@@ -6,6 +6,7 @@ import { PanelHeader } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
 import { NutritionView } from "@/components/panel/NutritionView";
 import { NutritionSetup } from "@/components/panel/NutritionSetup";
+import { FoodSwapGuide } from "@/components/panel/FoodSwapGuide";
 import { useAuth } from "@/lib/auth";
 import {
   loadDishes,
@@ -141,15 +142,18 @@ function NutritionInner() {
 
   if (!plan || showSetup) {
     return (
-      <NutritionSetup
-        initialMeals={(plan?.meals_per_day as 3 | 5) ?? 5}
-        initialPreferred={plan?.preferred_products}
-        suggestedTargets={suggested}
-        autoExcluded={autoExcluded}
-        onCancel={plan ? () => setShowSetup(false) : undefined}
-        onSubmit={handleGenerate}
-        submitLabel={plan ? "Пересобрать меню" : "Показать рацион"}
-      />
+      <div className="space-y-8">
+        <NutritionSetup
+          initialMeals={(plan?.meals_per_day as 3 | 5) ?? 5}
+          initialPreferred={plan?.preferred_products}
+          suggestedTargets={suggested}
+          autoExcluded={autoExcluded}
+          onCancel={plan ? () => setShowSetup(false) : undefined}
+          onSubmit={handleGenerate}
+          submitLabel={plan ? "Пересобрать меню" : "Показать рацион"}
+        />
+        <FoodSwapGuide />
+      </div>
     );
   }
 
@@ -194,6 +198,8 @@ function NutritionInner() {
         mealsPerDay={plan.meals_per_day as 3 | 5}
         editable={false}
       />
+
+      <FoodSwapGuide />
     </div>
   );
 }
