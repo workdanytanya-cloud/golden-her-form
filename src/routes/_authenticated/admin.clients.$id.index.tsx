@@ -67,7 +67,7 @@ function ClientDetail() {
   const load = () => {
     void supabase
       .from("profiles")
-      .select("id, full_name, phone, goal, height_cm, birth_date, created_at")
+      .select("id, full_name, phone, goal, height_cm, birth_date, gender, created_at")
       .eq("id", id)
       .maybeSingle()
       .then(({ data }) => setProfile(data as Profile | null));
