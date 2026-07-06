@@ -31,7 +31,7 @@ export const Route = createFileRoute("/programs/$slug")({
 function ProgramPage() {
   const { program } = Route.useLoaderData();
   const { session } = useAuth();
-  const p = program;
+  const p: ProgramDetail = program;
   const others = programs.filter((x) => x.slug !== p.slug).slice(0, 3);
 
   return (
