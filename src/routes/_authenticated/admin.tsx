@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { Users, LayoutDashboard, Dumbbell, Utensils } from "lucide-react";
+import { Users, LayoutDashboard, Dumbbell, Utensils, ClipboardList } from "lucide-react";
 import { PanelShell, type PanelNavItem } from "@/components/panel/PanelShell";
 import { supabase } from "@/integrations/supabase/client";
 
