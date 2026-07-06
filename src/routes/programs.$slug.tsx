@@ -72,13 +72,14 @@ function ProgramPage() {
                     <path d="M5 12h14M13 6l6 6-6 6" />
                   </svg>
                 </Link>
-                <Link
-                  to="/"
-                  hash="contact"
+                <a
+                  href="https://t.me/Tanya_panova"
+                  target="_blank"
+                  rel="noreferrer noopener"
                   className="inline-flex items-center gap-2 rounded-lg border border-gold/30 px-6 py-3 text-sm text-ivory transition-colors hover:border-gold hover:text-gold"
                 >
                   Задать вопрос
-                </Link>
+                </a>
               </div>
             </div>
 
