@@ -72,6 +72,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: kitchenScaleImg, alt: "Кухонные весы" },
       },
       {
         id: "measuring-tape",
@@ -87,6 +88,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: measuringTapeImg, alt: "Сантиметровая лента" },
       },
       {
         id: "floor-scale",
@@ -105,6 +107,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: floorScaleImg, alt: "Напольные весы" },
       },
       {
         id: "resistance-band",
@@ -120,6 +123,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: resistanceBandImg, alt: "Фитнес-резинки" },
       },
       {
         id: "dumbbells",
@@ -134,6 +138,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: dumbbellsImg, alt: "Гантели" },
       },
       {
         id: "yoga-mat",
@@ -148,6 +153,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: yogaMatImg, alt: "Коврик для фитнеса" },
       },
       {
         id: "mfr-roll",
@@ -163,6 +169,7 @@ const sections: Section[] = [
             </p>
           </>
         ),
+        image: { src: mfrRollImg, alt: "Ролл для МФР" },
       },
     ],
   },
