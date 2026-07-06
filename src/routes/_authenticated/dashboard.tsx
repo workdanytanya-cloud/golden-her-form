@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { BookOpen, ClipboardList, Dumbbell, LayoutDashboard, LineChart, User, Utensils, Users } from "lucide-react";
+import { Utensils as UtensilsIcon, Dumbbell as DumbbellIcon } from "lucide-react";
 import { PanelShell, type PanelNavItem } from "@/components/panel/PanelShell";
 import { useAuth } from "@/lib/auth";
 
