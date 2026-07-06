@@ -169,7 +169,7 @@ function AdminExercises() {
           <option value="all">Все категории</option>
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
-              {c}
+              {CATEGORY_LABEL[c as keyof typeof CATEGORY_LABEL] ?? c}
             </option>
           ))}
         </select>
