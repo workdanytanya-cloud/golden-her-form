@@ -37,10 +37,15 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup" && !consent) {
+      toast.error("Нужно согласие на обработку персональных данных");
+      return;
+    }
     setSubmitting(true);
     try {
       const parsedEmail = emailSchema.parse(email);
