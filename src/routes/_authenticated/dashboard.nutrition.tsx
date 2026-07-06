@@ -6,6 +6,7 @@ import { PanelHeader } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
 import { NutritionView } from "@/components/panel/NutritionView";
 import { NutritionSetup } from "@/components/panel/NutritionSetup";
+import { FoodSwapGuide } from "@/components/panel/FoodSwapGuide";
 import { useAuth } from "@/lib/auth";
 import {
   loadDishes,
