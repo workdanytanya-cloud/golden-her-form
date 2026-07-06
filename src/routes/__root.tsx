@@ -85,7 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Татьяна Панова — фитнес-тренер и наставник с опытом 15+ лет. 10 000+ подопечных, авторская система похудения без срывов и голодовок.",
       },
       { name: "author", content: "PanovaPRO · Татьяна Панова" },
-      { property: "og:title", content: "PanovaPRO — Татьяна Панова" },
+      { property: "og:title", content: "PanovaPRO — Татьяна Панова · Персональный фитнес-коучинг" },
       {
         property: "og:description",
         content:
@@ -94,6 +94,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#0B0A08" },
+      { name: "twitter:title", content: "PanovaPRO — Татьяна Панова · Персональный фитнес-коучинг" },
+      { name: "description", content: "Авторская система похудения от Татьяны Пановой. 15+ лет тренерства, 10 000+ подопечных. Без срывов и голодовок." },
+      { property: "og:description", content: "Авторская система похудения от Татьяны Пановой. 15+ лет тренерства, 10 000+ подопечных. Без срывов и голодовок." },
+      { name: "twitter:description", content: "Авторская система похудения от Татьяны Пановой. 15+ лет тренерства, 10 000+ подопечных. Без срывов и голодовок." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/92c4b0bf-dde0-4528-9299-67144c9da9ef" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/92c4b0bf-dde0-4528-9299-67144c9da9ef" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
