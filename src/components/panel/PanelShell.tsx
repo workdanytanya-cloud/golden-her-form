@@ -44,7 +44,7 @@ export function PanelShell({
   };
 
   return (
-    <div className="min-h-screen bg-background text-ivory">
+    <div className="min-h-screen overflow-x-hidden bg-background text-ivory">
       {impersonation && (
         <div className="sticky top-0 z-50 flex items-center justify-between gap-3 border-b border-gold/30 bg-gradient-to-r from-coral/25 via-background/80 to-gold/25 px-4 py-2 text-xs text-ivory backdrop-blur">
           <div className="flex items-center gap-2 min-w-0">
@@ -165,7 +165,9 @@ export function PanelShell({
         )}
 
         {/* Main */}
-        <main className="min-h-screen flex-1 px-4 py-8 md:px-10 md:py-12">{children}</main>
+        <main className="min-h-screen min-w-0 flex-1 overflow-x-hidden px-3 py-6 sm:px-6 md:px-10 md:py-12">
+          {children}
+        </main>
       </div>
     </div>
   );
@@ -183,13 +185,13 @@ export function PanelHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 border-b border-gold/10 pb-6 md:flex-row md:items-end md:justify-between">
-      <div>
+    <div className="flex flex-col gap-4 border-b border-gold/10 pb-6 md:flex-row md:items-end md:justify-between md:gap-6">
+      <div className="min-w-0">
         <p className="eyebrow">{eyebrow}</p>
-        <h1 className="mt-2 font-display text-3xl md:text-4xl">{title}</h1>
+        <h1 className="mt-2 font-display text-2xl sm:text-3xl md:text-4xl">{title}</h1>
         {description && <p className="mt-2 max-w-2xl text-sm text-warm-gray">{description}</p>}
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }

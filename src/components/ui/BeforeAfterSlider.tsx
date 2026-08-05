@@ -47,7 +47,7 @@ export function BeforeAfterSlider({
   return (
     <div
       ref={containerRef}
-      className="relative aspect-[4/5] w-full select-none overflow-hidden rounded-3xl border border-gold/20 bg-surface"
+      className="relative aspect-[4/5] w-full max-w-full touch-pan-y select-none overflow-hidden rounded-3xl border border-gold/20 bg-surface"
       onMouseDown={(e) => {
         dragging.current = true;
         update(e.clientX);
@@ -89,7 +89,7 @@ export function BeforeAfterSlider({
         className="absolute inset-y-0 w-px bg-gold"
         style={{ left: `${pos}%` }}
       >
-        <div className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-gold bg-background/80 backdrop-blur">
+        <div className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-gold bg-background/80 backdrop-blur sm:h-12 sm:w-12">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gold">
             <path d="M9 6l-6 6 6 6M15 6l6 6-6 6" />
           </svg>

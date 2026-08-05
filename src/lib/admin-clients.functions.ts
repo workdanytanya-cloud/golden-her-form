@@ -13,7 +13,7 @@ async function assertAdmin(ctx: { supabase: any; userId: string }) {
 
 export const adminUpdateClientPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { userId: string; password: string }) =>
+  .validator((input: { userId: string; password: string }) =>
     z
       .object({
         userId: z.string().uuid(),
@@ -33,7 +33,7 @@ export const adminUpdateClientPassword = createServerFn({ method: "POST" })
 
 export const adminDeleteClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { userId: string }) =>
+  .validator((input: { userId: string }) =>
     z.object({ userId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -57,7 +57,7 @@ export const adminDeleteClient = createServerFn({ method: "POST" })
 
 export const adminUpdateClientProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (input: {
       userId: string;
       full_name?: string | null;

@@ -3,106 +3,99 @@ import { Reveal } from "@/components/ui/Reveal";
 import { CountUp } from "@/components/ui/CountUp";
 import before from "@/assets/before.jpg";
 import after from "@/assets/after.jpg";
-import { Star } from "lucide-react";
+import measurementsPhoto from "@/assets/trainer-measurements.jpg";
 
-const testimonials = [
+const cases = [
   {
     name: "Анна, 34",
-    text: "За 4 месяца сбросила 11 кг и наконец полюбила своё отражение. Программа честная, без чудес — только работа и поддержка Тани.",
+    result: "−11 кг за 4 месяца",
+    detail: "Вернула энергию и полюбила отражение в зеркале.",
   },
   {
     name: "Юлия, 28",
-    text: "Раньше не могла заставить себя тренироваться регулярно. С Таней это стало ритуалом, а не наказанием. Тело подтянулось за 8 недель.",
+    result: "Тонус за 8 недель",
+    detail: "Тренировки стали привычкой, тело подтянулось.",
   },
   {
     name: "Марина, 41",
-    text: "После двух родов не верила, что смогу вернуть форму. Смогла. Спасибо за терпение и внимание к каждой мелочи.",
+    result: "Форма после родов",
+    detail: "Вернула талию и удерживает результат полгода.",
   },
+];
+
+const stats = [
+  { value: 10000, suffix: "+", label: "Подопечных", decimals: false },
+  { value: 98, suffix: "%", label: "Достигают цели", decimals: false },
+  { value: 12, suffix: " нед", label: "Средний срок", decimals: false },
+  { value: 4.9, suffix: "/5", label: "Рейтинг", decimals: true },
 ];
 
 export function Results() {
   return (
-    <section id="results" className="relative bg-background py-24 lg:py-40">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        <div className="grid gap-16 lg:grid-cols-12 lg:gap-14">
-          <div className="lg:col-span-6">
-            <Reveal>
-              <p className="eyebrow">Результаты</p>
-              <h2 className="mt-6 font-display text-4xl leading-tight text-ivory sm:text-5xl lg:text-6xl">
-                Реальные <span className="gold-text italic">трансформации.</span>
-              </h2>
-              <p className="mt-6 max-w-md text-sm leading-relaxed text-ivory/65">
-                Потяни ползунок и посмотри, как меняется тело за 3–6 месяцев работы. Никакой
-                ретуши, никаких обещаний за неделю.
-              </p>
-            </Reveal>
+    <section id="results" className="section-y relative bg-background">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+        <Reveal>
+          <p className="eyebrow">Результаты</p>
+          <h2 className="mt-5 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
+            Это <span className="gold-text italic">работает.</span>
+          </h2>
+          <p className="mt-4 max-w-lg text-sm text-ivory/65">
+            Реальные трансформации за 3–6 месяцев. Без ретуши.
+          </p>
+        </Reveal>
 
-            <Reveal delay={200} className="mt-10">
-              <BeforeAfterSlider before={before} after={after} />
-            </Reveal>
-          </div>
+        <div className="mt-10 grid gap-10 lg:grid-cols-12 lg:gap-12">
+          <Reveal delay={100} className="lg:col-span-7">
+            <BeforeAfterSlider before={before} after={after} />
+          </Reveal>
 
-          <div className="flex flex-col justify-center gap-6 lg:col-span-6">
-            {testimonials.map((t, i) => (
-              <Reveal key={t.name} delay={i * 120}>
-                <figure className="glass rounded-2xl p-7">
-                  <div className="flex items-center gap-1 text-gold">
-                    {Array.from({ length: 5 }).map((_, k) => (
-                      <Star key={k} className="h-4 w-4 fill-gold" strokeWidth={0} />
-                    ))}
-                  </div>
-                  <blockquote className="mt-4 font-display text-lg leading-relaxed text-ivory">
-                    “{t.text}”
-                  </blockquote>
-                  <figcaption className="mt-5 text-xs uppercase tracking-[0.24em] text-warm-gray">
-                    {t.name}
-                  </figcaption>
-                </figure>
-              </Reveal>
-            ))}
-          </div>
+          <Reveal delay={180} className="flex flex-col justify-center lg:col-span-5">
+            <div className="overflow-hidden rounded-2xl border border-gold/15">
+              <img
+                src={measurementsPhoto}
+                alt="Контроль прогресса с клиентом"
+                className="aspect-[4/3] w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+            <p className="mt-4 text-sm text-ivory/60">
+              Замеры и корректировка плана каждые 2 недели.
+            </p>
+          </Reveal>
         </div>
 
-        {/* Stat strip */}
-        <div className="mt-20 grid grid-cols-2 gap-4 border-t border-gold/15 pt-10 sm:grid-cols-4 sm:gap-8">
-          <StatMini value={10000} suffix="+" label="Подопечных" />
-          <StatMini value={98} suffix="%" label="Достигают цели" />
-          <StatMini value={12} suffix=" нед" label="Средний срок" />
-          <StatMini value={4.9} suffix="/5" label="Рейтинг отзывов" decimals />
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((s, i) => (
+            <Reveal key={s.label} delay={i * 80}>
+              <div className="card-interactive stat-pulse rounded-2xl border border-gold/15 bg-surface/50 p-5 text-center sm:p-6">
+                <div className="font-display text-3xl text-ivory sm:text-4xl">
+                  {s.decimals ? (
+                    <>
+                      {s.value.toFixed(1)}
+                      {s.suffix}
+                    </>
+                  ) : (
+                    <CountUp to={s.value} suffix={s.suffix} />
+                  )}
+                </div>
+                <div className="mt-2 text-[10px] uppercase tracking-[0.24em] text-warm-gray">{s.label}</div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        <div className="mt-10 grid gap-4 sm:grid-cols-3">
+          {cases.map((c, i) => (
+            <Reveal key={c.name} delay={i * 100}>
+              <article className="card-interactive h-full rounded-2xl border border-gold/12 bg-surface/40 p-5 sm:p-6">
+                <p className="font-display text-lg text-gold">{c.result}</p>
+                <p className="mt-2 text-sm leading-relaxed text-ivory/75">{c.detail}</p>
+                <p className="mt-4 text-xs uppercase tracking-[0.24em] text-warm-gray">{c.name}</p>
+              </article>
+            </Reveal>
+          ))}
         </div>
       </div>
     </section>
-  );
-}
-
-function StatMini({
-  value,
-  suffix,
-  label,
-  decimals,
-}: {
-  value: number;
-  suffix: string;
-  label: string;
-  decimals?: boolean;
-}) {
-  if (decimals) {
-    return (
-      <div>
-        <div className="font-display text-3xl text-ivory sm:text-4xl">
-          {value.toFixed(1)}
-          {suffix}
-        </div>
-        <div className="mt-2 text-xs uppercase tracking-[0.24em] text-warm-gray">{label}</div>
-      </div>
-    );
-  }
-  return (
-    <div>
-      <div className="font-display text-3xl text-ivory sm:text-4xl">
-        <CountUp to={value} suffix={suffix} />
-      </div>
-      <div className="mt-2 text-xs uppercase tracking-[0.24em] text-warm-gray">{label}</div>
-    </div>
   );
 }

@@ -35,12 +35,12 @@ function ProgramPage() {
   const others = programs.filter((x) => x.slug !== p.slug).slice(0, 3);
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <Nav />
 
       {/* Hero */}
-      <section className="relative pt-32 lg:pt-40">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10">
+      <section className="relative pt-24 sm:pt-28 lg:pt-40">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
           <Link
             to="/"
             hash="programs"
@@ -230,7 +230,7 @@ function ProgramPage() {
 
 function NotFound() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <Nav />
       <section className="mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center px-6 text-center">
         <p className="eyebrow">404</p>

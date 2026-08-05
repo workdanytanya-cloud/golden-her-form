@@ -43,7 +43,7 @@ const items = [
 
 export function WhyChoose() {
   return (
-    <section id="why" className="relative bg-background py-24 lg:py-40">
+    <section id="why" className="relative bg-background py-16 sm:py-24 lg:py-40">
       {/* soft gradient */}
       <div
         className="absolute inset-0 -z-10 opacity-60"
@@ -52,10 +52,10 @@ export function WhyChoose() {
             "radial-gradient(50% 40% at 80% 10%, rgba(200,154,74,0.10), transparent 60%), radial-gradient(50% 40% at 10% 90%, rgba(200,154,74,0.06), transparent 60%)",
         }}
       />
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <div className="max-w-3xl">
           <p className="eyebrow">Почему меня выбирают</p>
-          <h2 className="mt-6 font-display text-4xl leading-tight text-ivory sm:text-5xl lg:text-6xl">
+          <h2 className="mt-6 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
             Не марафон —<br />
             <span className="gold-text italic">персональная работа.</span>
           </h2>
@@ -66,7 +66,7 @@ export function WhyChoose() {
             const Icon = it.icon;
             return (
               <Reveal key={it.title} delay={i * 80}>
-                <article className="group relative h-full overflow-hidden rounded-3xl border border-gold/12 bg-surface/60 p-8 transition-all duration-500 hover:border-gold/40 hover:bg-surface">
+                <article className="group relative h-full overflow-hidden rounded-3xl border border-gold/12 bg-surface/60 p-6 transition-all duration-500 hover:border-gold/40 hover:bg-surface sm:p-8">
                   <div
                     className="absolute inset-x-0 top-0 h-px opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                     style={{
@@ -77,7 +77,7 @@ export function WhyChoose() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gold/40 text-gold transition-transform duration-500 group-hover:scale-110">
                     <Icon strokeWidth={1.5} className="h-5 w-5" />
                   </div>
-                  <h3 className="mt-6 font-display text-2xl text-ivory">{it.title}</h3>
+                  <h3 className="mt-6 font-display text-xl text-ivory sm:text-2xl">{it.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-ivory/65">{it.text}</p>
                   <div className="mt-8 text-[10px] uppercase tracking-[0.32em] text-warm-gray">
                     0{i + 1}

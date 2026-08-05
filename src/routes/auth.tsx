@@ -93,13 +93,13 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-ivory">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
+    <div className="min-h-screen overflow-x-hidden bg-background text-ivory">
+      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12 sm:px-6 sm:py-16">
         <Link to="/" className="mb-10 text-center font-display text-2xl text-ivory">
           Panova<span className="text-gold">PRO</span>
         </Link>
 
-        <div className="glass rounded-3xl p-8">
+        <div className="glass rounded-3xl p-6 sm:p-8">
           <h1 className="font-display text-3xl text-ivory">
             {mode === "signin" ? "Вход" : "Регистрация"}
           </h1>

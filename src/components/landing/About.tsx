@@ -1,5 +1,5 @@
-import aboutPhoto from "@/assets/trainer-stretch.jpg.asset.json";
-import matPhoto from "@/assets/trainer-mat.jpg.asset.json";
+import aboutPhoto from "@/assets/trainer-stretch.jpg";
+import matPhoto from "@/assets/trainer-mat.jpg";
 import { Reveal } from "@/components/ui/Reveal";
 
 const timeline = [
@@ -18,14 +18,14 @@ const bullets = [
 
 export function About() {
   return (
-    <section id="about" className="relative bg-background py-24 lg:py-40">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+    <section id="about" className="relative bg-background py-16 sm:py-24 lg:py-40">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <div className="grid gap-16 lg:grid-cols-12 lg:gap-20">
           <Reveal className="lg:col-span-5">
             <div className="relative">
               <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl border border-gold/25">
                 <img
-                  src={aboutPhoto.url}
+                  src={aboutPhoto}
                   alt="Татьяна Панова — фитнес-тренер"
                   className="h-full w-full object-cover"
                   loading="lazy"
@@ -40,7 +40,13 @@ export function About() {
               </div>
               {/* second photo */}
               <div className="absolute -bottom-10 -left-6 hidden aspect-[3/4] w-40 overflow-hidden rounded-2xl border border-coral/40 shadow-2xl sm:block">
-                <img src={matPhoto.url} alt="Тренировка" className="h-full w-full object-cover" loading="lazy" />
+                <img src={matPhoto} alt="Тренировка" className="h-full w-full object-cover" loading="lazy" />
+              </div>
+              <div className="glass mt-6 max-w-full rounded-2xl p-5 sm:hidden">
+                <p className="eyebrow">Миссия</p>
+                <p className="mt-2 font-display text-lg leading-snug text-ivory">
+                  Гармония с телом и едой — навсегда.
+                </p>
               </div>
               <div className="glass absolute -top-6 -right-4 hidden max-w-[220px] rounded-2xl p-5 sm:block">
                 <p className="eyebrow">Миссия</p>
@@ -53,11 +59,10 @@ export function About() {
 
           <Reveal className="lg:col-span-7" delay={120}>
             <p className="eyebrow">PanovaPRO · Обо мне</p>
-            <h2 className="mt-6 font-display text-4xl leading-tight text-ivory sm:text-5xl lg:text-6xl">
+            <h2 className="mt-6 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
               Меня зовут <span className="gold-text italic">Татьяна Панова.</span>
-              <br />
-              <br />
-              <br />И я знаю, как <span className="text-coral italic">вернуть</span> тебя себе.
+              <span className="mt-4 block sm:mt-6" />
+              И я знаю, как <span className="text-coral italic">вернуть</span> тебя себе.
             </h2>
 
             <div className="mt-8 space-y-5 max-w-xl text-base leading-relaxed text-ivory/75">
@@ -78,21 +83,18 @@ export function About() {
                 комфортно на праздниках и в отпуске.
               </p>
               <p className="text-ivory">
-                От неуверенности и комплексов к фигуре мечты — всего один шаг.
-                <br />
-                <br />
-                <br />
+                От неуверенности и комплексов к фигуре мечты — всего один шаг.{" "}
                 <span className="gold-text">Давайте сделаем его вместе.</span>
               </p>
             </div>
 
-            <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mt-10 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
               {bullets.map((b) => (
                 <div
                   key={b}
-                  className="rounded-2xl border border-gold/25 bg-surface/60 px-4 py-4 text-center"
+                  className="rounded-2xl border border-gold/25 bg-surface/60 px-3 py-3 text-center sm:px-4 sm:py-4"
                 >
-                  <p className="font-display text-sm text-ivory">{b}</p>
+                  <p className="font-display text-xs leading-snug text-ivory sm:text-sm">{b}</p>
                 </div>
               ))}
             </div>

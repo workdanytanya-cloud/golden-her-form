@@ -16,6 +16,14 @@ dist-ssr
 .nitro
 *.local
 
+# Env secrets (never commit real keys)
+.env
+.env.*
+!.env.example
+
+# Lovable CDN media (download with: npm run assets:fetch) — ~400MB
+public/__l5e/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

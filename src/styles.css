@@ -116,6 +116,8 @@
 
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -124,6 +126,20 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    min-width: 0;
+  }
+
+  img,
+  video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  a[href^="mailto:"],
+  .break-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   ::selection {
@@ -214,6 +230,63 @@
 
 @utility animate-marquee {
   animation: marquee 40s linear infinite;
+}
+
+@utility section-pad {
+  padding-top: 3.25rem;
+  padding-bottom: 3.25rem;
+  @media (width >= 640px) {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+  @media (width >= 1024px) {
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+  }
+}
+
+@utility section-y {
+  padding-top: 3.25rem;
+  padding-bottom: 3.25rem;
+  @media (width >= 640px) {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+  @media (width >= 1024px) {
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+  }
+}
+
+@utility card-interactive {
+  transition:
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.4s ease,
+    box-shadow 0.4s ease;
+  &:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in oklab, var(--gold) 38%, transparent);
+    box-shadow: 0 16px 40px -14px oklch(0.78 0.15 78 / 0.22);
+  }
+}
+
+@keyframes stat-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.78 0.15 78 / 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 1px oklch(0.78 0.15 78 / 0.12);
+  }
+}
+
+@utility stat-pulse {
+  animation: stat-pulse 3.5s ease-in-out infinite;
+}
+
+@utility safe-px {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
 }
 
 @media (prefers-reduced-motion: reduce) {

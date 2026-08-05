@@ -1,4 +1,4 @@
-import ctaBg from "@/assets/cta-bg.jpg";
+import consultationPhoto from "@/assets/trainer-consultation.jpg";
 import { Reveal } from "@/components/ui/Reveal";
 
 export function CtaFinal() {
@@ -6,8 +6,8 @@ export function CtaFinal() {
     <section id="cta" className="relative overflow-hidden bg-background">
       <div className="absolute inset-0">
         <img
-          src={ctaBg}
-          alt="Начни трансформацию"
+          src={consultationPhoto}
+          alt="Бесплатная консультация"
           className="h-full w-full object-cover"
           loading="lazy"
           width={1920}
@@ -17,29 +17,30 @@ export function CtaFinal() {
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(11,11,12,0.55) 0%, rgba(11,11,12,0.35) 50%, rgba(11,11,12,0.85) 100%)",
+              "linear-gradient(180deg, rgba(11,11,12,0.55) 0%, rgba(11,11,12,0.35) 50%, rgba(11,11,12,0.88) 100%)",
           }}
         />
       </div>
 
-      <div className="relative mx-auto max-w-5xl px-6 py-32 text-center lg:px-10 lg:py-48">
+      <div className="relative mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 sm:py-24 lg:px-10 lg:py-36">
         <Reveal>
-          <p className="eyebrow">Пора начать</p>
-          <h2 className="mt-6 font-display text-5xl leading-[0.95] text-ivory sm:text-6xl lg:text-[6.5rem]">
-            Твой момент —<br />
-            <span className="gold-text italic">сейчас.</span>
+          <p className="eyebrow">Заявка</p>
+          <h2 className="mt-5 font-display text-3xl leading-[1.05] text-ivory sm:text-5xl sm:leading-[0.95] md:text-6xl lg:text-[5rem]">
+            Начните
+            <br />
+            <span className="gold-text italic">сегодня.</span>
           </h2>
-          <p className="mx-auto mt-8 max-w-xl text-base leading-relaxed text-ivory/80 sm:text-lg">
-            Оставь заявку — я свяжусь с тобой в течение дня, отвечу на вопросы и подберу программу
-            под твою цель. Первая консультация бесплатно.
+          <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-ivory/80 sm:text-base">
+            Оставьте заявку — свяжусь в течение дня, отвечу на вопросы и подберу программу.
+            Первая консультация бесплатно.
           </p>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
             <a
               href="https://t.me/Tanya_panova"
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex items-center gap-3 rounded-lg bg-gold px-8 py-4 text-sm font-medium tracking-wide text-background transition-transform hover:scale-[1.03]"
+              className="inline-flex items-center justify-center gap-3 rounded-lg bg-gold px-6 py-3.5 text-sm font-medium tracking-wide text-background transition-transform hover:scale-[1.03] sm:px-8 sm:py-4"
             >
               Написать в Telegram
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -48,7 +49,7 @@ export function CtaFinal() {
             </a>
             <a
               href="mailto:panova.fortuna@mail.ru"
-              className="inline-flex items-center gap-3 rounded-lg border border-ivory/30 px-8 py-4 text-sm font-medium text-ivory transition-colors hover:border-gold hover:text-gold"
+              className="break-anywhere inline-flex items-center justify-center gap-3 rounded-lg border border-ivory/30 px-6 py-3.5 text-sm font-medium text-ivory transition-colors hover:border-gold hover:text-gold sm:px-8 sm:py-4"
             >
               panova.fortuna@mail.ru
             </a>

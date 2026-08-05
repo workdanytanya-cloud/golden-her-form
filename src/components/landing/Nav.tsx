@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
-import logoAsset from "@/assets/logo.png.asset.json";
+import logo from "@/assets/logo.png";
 
 const links = [
-  { href: "#about", label: "О тренере" },
-  { href: "#why", label: "Почему я" },
-  { href: "#programs", label: "Программы" },
   { href: "#results", label: "Результаты" },
-  { href: "#how", label: "Как это работает" },
+  { href: "#programs", label: "Программы" },
+  { href: "#how", label: "Сопровождение" },
+  { href: "#reviews", label: "Отзывы" },
   { href: "#faq", label: "FAQ" },
 ];
 
@@ -24,21 +23,28 @@ export function Nav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
         scrolled ? "backdrop-blur-xl bg-background/70 border-b border-gold/10" : ""
       }`}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
-        <Link to="/" className="flex items-center gap-3">
-          <img src={logoAsset.url} alt="PanovaPRO" className="h-10 w-10 object-contain" />
-          <span className="font-display text-lg tracking-wide text-ivory">
+      <div className="safe-px mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 sm:py-5 lg:px-10">
+        <Link to="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <img src={logo} alt="PanovaPRO" className="h-9 w-9 shrink-0 object-contain sm:h-10 sm:w-10" />
+          <span className="truncate font-display text-base tracking-wide text-ivory sm:text-lg">
             Panova<span className="text-gold">PRO</span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-9 lg:flex">
+        <nav className="hidden items-center gap-8 lg:flex">
           {links.map((l) => (
             <a
               key={l.href}
@@ -66,16 +72,15 @@ export function Nav() {
               >
                 Войти
               </Link>
-              <Link
-                to="/auth"
-                search={{ mode: "signup" }}
+              <a
+                href="#cta"
                 className="inline-flex items-center gap-2 rounded-lg bg-gold px-5 py-2.5 text-sm font-medium text-background transition-transform hover:scale-[1.03]"
               >
-                Начать
+                Заявка
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
-              </Link>
+              </a>
             </>
           )}
         </div>
@@ -113,14 +118,13 @@ export function Nav() {
                 Личный кабинет
               </Link>
             ) : (
-              <Link
-                to="/auth"
-                search={{ mode: "signup" }}
+              <a
+                href="#cta"
                 onClick={() => setOpen(false)}
                 className="mt-2 inline-flex w-fit items-center gap-2 rounded-lg bg-gold px-5 py-3 text-sm font-medium text-background"
               >
-                Начать трансформацию
-              </Link>
+                Оставить заявку
+              </a>
             )}
           </nav>
         </div>
