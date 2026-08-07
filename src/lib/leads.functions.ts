@@ -212,7 +212,7 @@ export const submitLead = createServerFn({ method: "POST" })
       ? `Заявка: ${data.full_name} — ${data.program_title}`
       : `Новая заявка: ${data.full_name}`;
 
-    console.info("[leads] NOTIFY_ENV_CHECK", {
+    console.info("[leads] NOTIFY_ENV_CHECK v9ed24a9", {
       telegramToken: Boolean(envGet("TELEGRAM_BOT_TOKEN")),
       telegramChat: Boolean(envGet("TELEGRAM_CHAT_ID")),
       smtpHost: Boolean(envGet("SMTP_HOST")),
