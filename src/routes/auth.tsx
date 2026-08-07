@@ -5,6 +5,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { PostSignupGuide } from "@/components/ui/PostSignupGuide";
 
 const searchSchema = z.object({
   redirect: z.string().optional(),
@@ -55,6 +56,16 @@ function AuthPage() {
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [postSignup, setPostSignup] = useState<{
+    email: string;
+    password: string;
+    fullName: string;
+  } | null>(null);
+
+  const goAfterSignup = async () => {
+    await refreshAccess();
+    await navigate({ to: search.redirect ?? "/dashboard/onboarding" });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,14 +99,18 @@ function AuthPage() {
           if (signInError) throw signInError;
         }
 
-        toast.success("Аккаунт создан. Заполните анкету.");
         try {
           localStorage.removeItem("panovapro.installDismissed");
+          localStorage.setItem("panovapro.pendingInstall", "1");
         } catch {
           /* ignore */
         }
-        await refreshAccess();
-        await navigate({ to: search.redirect ?? "/dashboard/onboarding" });
+
+        setPostSignup({
+          email: parsedEmail,
+          password: parsedPassword,
+          fullName: parsedName,
+        });
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: parsedEmail,
@@ -121,6 +136,17 @@ function AuthPage() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-ivory">
+      {postSignup && (
+        <PostSignupGuide
+          email={postSignup.email}
+          password={postSignup.password}
+          fullName={postSignup.fullName}
+          onDone={() => {
+            setPostSignup(null);
+            void goAfterSignup();
+          }}
+        />
+      )}
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12 sm:px-6 sm:py-16">
         <Link to="/" className="mb-10 text-center font-display text-2xl text-ivory">
           Panova<span className="text-gold">PRO</span>
@@ -139,8 +165,9 @@ function AuthPage() {
           <form
             onSubmit={handleSubmit}
             className="mt-6 space-y-4"
-            autoComplete={mode === "signup" ? "on" : "on"}
+            autoComplete="on"
             name={mode === "signup" ? "signup" : "login"}
+            method="post"
           >
             {mode === "signup" && (
               <div>
@@ -202,7 +229,8 @@ function AuthPage() {
               </div>
               {mode === "signup" && (
                 <p className="mt-2 text-[11px] text-warm-gray">
-                  После создания браузер предложит сохранить пароль — согласитесь, чтобы не вводить его каждый раз.
+                  После создания аккаунта предложим сохранить пароль в браузере и добавить сайт на
+                  рабочий стол.
                 </p>
               )}
             </div>

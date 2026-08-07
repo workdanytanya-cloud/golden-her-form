@@ -7,9 +7,8 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 /**
- * Offers "Add to Home Screen" after signup / when browser supports install.
- * Chrome/Android: native beforeinstallprompt.
- * iOS Safari: manual Share → На экран «Домой».
+ * Soft reminder to add site to home screen — only when user chose
+ * «Напомнить позже» after signup (panovapro.pendingInstall).
  */
 export function InstallAppPrompt({ onClose }: { onClose?: () => void }) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
@@ -20,6 +19,7 @@ export function InstallAppPrompt({ onClose }: { onClose?: () => void }) {
     if (typeof window === "undefined") return;
     if (window.matchMedia("(display-mode: standalone)").matches) return;
     if (localStorage.getItem("panovapro.installDismissed") === "1") return;
+    if (localStorage.getItem("panovapro.pendingInstall") !== "1") return;
 
     const ua = window.navigator.userAgent;
     const ios =
@@ -30,22 +30,19 @@ export function InstallAppPrompt({ onClose }: { onClose?: () => void }) {
     const onBip = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
-      // Only auto-show install on dashboard after signup flag, or when user is on /auth|/dashboard
-      const path = window.location.pathname;
-      if (path.startsWith("/dashboard") || path.startsWith("/auth")) {
-        setVisible(true);
-      }
     };
     window.addEventListener("beforeinstallprompt", onBip);
 
-    // iOS: show once on auth/dashboard only, not while filling long forms on first paint of every page
+    const path = window.location.pathname;
+    const onCabinet =
+      path === "/dashboard" ||
+      path === "/dashboard/" ||
+      path.startsWith("/dashboard/");
+    // Don't cover the long onboarding form
+    const onOnboarding = path.includes("/onboarding");
     let t: number | undefined;
-    if (ios) {
-      const path = window.location.pathname;
-      const showHere = path === "/auth" || path === "/dashboard" || path === "/dashboard/";
-      if (showHere) {
-        t = window.setTimeout(() => setVisible(true), 1200);
-      }
+    if (onCabinet && !onOnboarding) {
+      t = window.setTimeout(() => setVisible(true), 1500);
     }
 
     return () => {
@@ -58,6 +55,7 @@ export function InstallAppPrompt({ onClose }: { onClose?: () => void }) {
 
   const dismiss = () => {
     localStorage.setItem("panovapro.installDismissed", "1");
+    localStorage.removeItem("panovapro.pendingInstall");
     setVisible(false);
     onClose?.();
   };
@@ -78,8 +76,8 @@ export function InstallAppPrompt({ onClose }: { onClose?: () => void }) {
           <p className="mt-1 font-display text-lg text-ivory">Добавить сайт на рабочий стол</p>
           {isIos ? (
             <p className="mt-2 text-sm leading-relaxed text-warm-gray">
-              Нажмите <Share className="mx-0.5 inline h-3.5 w-3.5 text-gold" /> «Поделиться» → «На экран „Домой“».
-              Сайт откроется как приложение, без поиска в браузере.
+              Нажмите <Share className="mx-0.5 inline h-3.5 w-3.5 text-gold" /> «Поделиться» → «На
+              экран „Домой“». Сайт откроется как приложение, без поиска в браузере.
             </p>
           ) : (
             <p className="mt-2 text-sm leading-relaxed text-warm-gray">
