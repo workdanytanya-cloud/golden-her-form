@@ -164,6 +164,30 @@ export type GenerateOptions = {
   targets: NutritionTargets;
 };
 
+const TABLE_TAG_RE = /^table_\d+$/;
+
+/**
+ * Если в анкете выбран стол Певзнера — берём только блюда с тегом table_N.
+ * Иначе — общую библиотеку (тег general или без тегов table_*).
+ */
+export function filterDishesForMedicalTable(
+  dishes: Dish[],
+  medicalDietTable: string | null | undefined,
+): Dish[] {
+  const tableId =
+    medicalDietTable && medicalDietTable !== "none" ? medicalDietTable : null;
+
+  if (tableId) {
+    const specific = dishes.filter((d) => d.tags.includes(tableId));
+    return specific.length > 0 ? specific : dishes;
+  }
+
+  const general = dishes.filter(
+    (d) => d.tags.includes("general") || !d.tags.some((t) => TABLE_TAG_RE.test(t)),
+  );
+  return general.length > 0 ? general : dishes;
+}
+
 function pickWithScore(
   candidates: Dish[],
   preferred: Set<string>,

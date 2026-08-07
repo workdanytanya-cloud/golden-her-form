@@ -7,7 +7,9 @@ import {
   type NutritionTargets,
   calcTargets,
   generatePlan,
+  filterDishesForMedicalTable,
 } from "@/lib/nutrition";
+import { MEDICAL_DIET_NONE } from "@/lib/medical-diet-tables";
 
 export type PlanRow = {
   id: string;
@@ -43,6 +45,22 @@ export async function loadDishes(): Promise<Dish[]> {
     ingredients: (d.ingredients ?? []) as Dish["ingredients"],
     steps: (d.steps ?? []) as string[],
   })) as Dish[];
+}
+
+/** Стол Певзнера из поля extra анкеты (medical_diet_table). */
+export async function loadMedicalDietTable(userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("onboarding_responses")
+    .select("extra")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const extra =
+    data?.extra && typeof data.extra === "object" && !Array.isArray(data.extra)
+      ? (data.extra as Record<string, unknown>)
+      : null;
+  const raw = typeof extra?.medical_diet_table === "string" ? extra.medical_diet_table : null;
+  if (!raw || raw === MEDICAL_DIET_NONE) return null;
+  return raw;
 }
 
 export async function loadPlanFor(userId: string): Promise<{ plan: PlanRow | null; days: DayRow[] }> {
@@ -132,7 +150,10 @@ export async function createOrReplacePlan(params: {
 }): Promise<{ plan: PlanRow; days: DayRow[] }> {
   const { userId, mealsPerDay, preferred, excluded, targets, targetsManual, dishes } = params;
 
-  const days = generatePlan(dishes, {
+  const medicalTable = await loadMedicalDietTable(userId);
+  const pool = filterDishesForMedicalTable(dishes, medicalTable);
+
+  const days = generatePlan(pool, {
     mealsPerDay,
     preferredProducts: preferred,
     excludedProducts: excluded,
@@ -224,5 +245,5 @@ export function scalePortionForSwap(oldDish: Dish, oldPortion: number, newDish: 
   return Math.max(60, Math.round(g / 5) * 5);
 }
 
-export { calcTargets };
+export { calcTargets, filterDishesForMedicalTable };
 export type { DayEntry, MealEntry, Dish, NutritionTargets };

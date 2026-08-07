@@ -5,6 +5,7 @@ import { PanelHeader } from "@/components/panel/PanelShell";
 import { MediaUpload } from "@/components/panel/MediaUpload";
 import { Search, Save, Trash2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
+import { MEDICAL_DIET_TABLES } from "@/lib/medical-diet-tables";
 
 export const Route = createFileRoute("/_authenticated/admin/dishes")({
   component: AdminDishes,
@@ -50,6 +51,7 @@ function AdminDishes() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [meal, setMeal] = useState<string>("all");
+  const [tableFilter, setTableFilter] = useState<string>("all");
   const [editing, setEditing] = useState<Dish | (Omit<Dish, "id"> & { id?: string }) | null>(null);
 
   const load = () => {
@@ -61,7 +63,8 @@ function AdminDishes() {
       )
       .order("meal_type")
       .order("name")
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) toast.error(error.message);
         setItems((data ?? []) as Dish[]);
         setLoading(false);
       });
@@ -70,15 +73,21 @@ function AdminDishes() {
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return items.filter(
-      (e) =>
-        (meal === "all" || e.meal_type === meal) &&
-        (!t ||
-          e.name.toLowerCase().includes(t) ||
-          e.slug.toLowerCase().includes(t) ||
-          e.tags.some((m) => m.toLowerCase().includes(t))),
-    );
-  }, [items, q, meal]);
+    return items.filter((e) => {
+      if (meal !== "all" && e.meal_type !== meal) return false;
+      if (tableFilter === "general") {
+        if (!e.tags.includes("general")) return false;
+      } else if (tableFilter !== "all" && !e.tags.includes(tableFilter)) {
+        return false;
+      }
+      if (!t) return true;
+      return (
+        e.name.toLowerCase().includes(t) ||
+        e.slug.toLowerCase().includes(t) ||
+        e.tags.some((m) => m.toLowerCase().includes(t))
+      );
+    });
+  }, [items, q, meal, tableFilter]);
 
   const save = async () => {
     if (!editing) return;
@@ -122,7 +131,7 @@ function AdminDishes() {
       <PanelHeader
         eyebrow="Библиотека"
         title="Рационы"
-        description="Все блюда в базе. Загружайте фото готового блюда, видео-рецепты и корректируйте состав."
+        description="Общая библиотека и рационы столов Певзнера №1–15. Фото, видео-рецепты, состав и КБЖУ."
         action={
           <button
             onClick={() => setEditing({ ...emptyDish })}
@@ -152,6 +161,19 @@ function AdminDishes() {
           {MEAL_TYPES.map((c) => (
             <option key={c} value={c}>
               {c}
+            </option>
+          ))}
+        </select>
+        <select
+          value={tableFilter}
+          onChange={(e) => setTableFilter(e.target.value)}
+          className="rounded-full border border-gold/20 bg-surface/40 px-4 py-3 text-sm text-ivory"
+        >
+          <option value="all">Все столы</option>
+          <option value="general">Общая библиотека</option>
+          {MEDICAL_DIET_TABLES.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.title}
             </option>
           ))}
         </select>
