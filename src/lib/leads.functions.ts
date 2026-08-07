@@ -1,6 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import fs from "node:fs";
+import path from "node:path";
+
+/** Bump when changing notify logic — must appear in toast / logs */
+export const LEADS_BUILD = "disk-env-v2";
 
 const leadInputSchema = z.object({
   full_name: z.string().trim().min(2, "Укажите фамилию и имя").max(120),
@@ -17,15 +22,66 @@ const leadInputSchema = z.object({
   program_slug: z.string().max(80).nullable().optional(),
   program_title: z.string().max(120).nullable().optional(),
   message: z.string().trim().max(1000).nullable().optional(),
-  /** Honeypot — bots fill this; humans leave empty */
   website: z.string().max(200).optional(),
 });
 
 export type LeadInput = z.infer<typeof leadInputSchema>;
 
-/** Dynamic access — Vite must not inline these as undefined at build time */
+function parseEnvFile(filePath: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!fs.existsSync(filePath)) return out;
+  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
+let cachedFileEnv: Record<string, string> | null = null;
+let cachedFileEnvPath: string | null = null;
+
+function loadFileEnv(): Record<string, string> {
+  if (cachedFileEnv) return cachedFileEnv;
+  const candidates = [
+    path.join(process.cwd(), ".env"),
+    "/var/www/panovapro/.env",
+    path.resolve(".env"),
+  ];
+  for (const file of candidates) {
+    try {
+      const parsed = parseEnvFile(file);
+      if (Object.keys(parsed).length > 0) {
+        cachedFileEnv = parsed;
+        cachedFileEnvPath = file;
+        return parsed;
+      }
+    } catch {
+      /* try next */
+    }
+  }
+  cachedFileEnv = {};
+  cachedFileEnvPath = null;
+  return cachedFileEnv;
+}
+
+/** process.env first, then .env on disk (fixes PM2 not injecting custom keys) */
 function envGet(key: string): string {
-  return String((process.env as Record<string, string | undefined>)[key] ?? "").trim();
+  const fromProcess = String(
+    (process.env as Record<string, string | undefined>)[key] ?? "",
+  ).trim();
+  if (fromProcess) return fromProcess;
+  return String(loadFileEnv()[key] ?? "").trim();
 }
 
 const MESSENGER_LABEL: Record<string, string> = {
@@ -42,11 +98,11 @@ async function notifyTelegram(text: string) {
     console.warn("[leads] Telegram not configured", {
       hasToken: Boolean(token),
       hasChatId: Boolean(chatIdRaw),
+      envFile: cachedFileEnvPath,
     });
     return { ok: false as const, reason: "telegram_not_configured" };
   }
 
-  // Numeric chat ids must be numbers for Telegram API
   const chat_id = /^-?\d+$/.test(chatIdRaw) ? Number(chatIdRaw) : chatIdRaw;
 
   try {
@@ -148,7 +204,6 @@ async function notifyEmailResend(subject: string, text: string, replyTo?: string
   }
 }
 
-/** Prefer Gmail/SMTP; fall back to Resend if configured */
 async function notifyEmail(subject: string, text: string, replyTo?: string) {
   const smtp = await notifyEmailSmtp(subject, text, replyTo);
   if (smtp.ok) return smtp;
@@ -173,14 +228,16 @@ function formatLeadMessage(data: z.infer<typeof leadInputSchema>) {
   return lines.join("\n");
 }
 
-/** Public: submit lead from landing / program pages */
 export const submitLead = createServerFn({ method: "POST" })
   .validator((input: unknown) => leadInputSchema.parse(input))
   .handler(async ({ data }) => {
     if (data.website) {
-      // Bot filled honeypot — pretend success
-      return { ok: true, id: null as string | null };
+      return { ok: true, id: null as string | null, build: LEADS_BUILD };
     }
+
+    // Force (re)load .env from disk each submit in case PM2 started without env
+    cachedFileEnv = null;
+    loadFileEnv();
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const row = {
@@ -212,14 +269,16 @@ export const submitLead = createServerFn({ method: "POST" })
       ? `Заявка: ${data.full_name} — ${data.program_title}`
       : `Новая заявка: ${data.full_name}`;
 
-    console.info("[leads] NOTIFY_ENV_CHECK v9ed24a9", {
+    const envFlags = {
       telegramToken: Boolean(envGet("TELEGRAM_BOT_TOKEN")),
       telegramChat: Boolean(envGet("TELEGRAM_CHAT_ID")),
       smtpHost: Boolean(envGet("SMTP_HOST")),
       smtpUser: Boolean(envGet("SMTP_USER")),
       smtpPass: Boolean(envGet("SMTP_PASS")),
-      supabaseUrl: Boolean(envGet("SUPABASE_URL")),
-    });
+      envFile: cachedFileEnvPath,
+      cwd: process.cwd(),
+    };
+    console.info(`[leads] NOTIFY_ENV_CHECK ${LEADS_BUILD}`, envFlags);
 
     const [tg, mail] = await Promise.all([
       notifyTelegram(text),
@@ -236,7 +295,9 @@ export const submitLead = createServerFn({ method: "POST" })
     return {
       ok: true,
       id: inserted.id as string,
+      build: LEADS_BUILD,
       notified,
+      envFlags,
       notify: {
         telegram: tg.ok,
         email: mail.ok,

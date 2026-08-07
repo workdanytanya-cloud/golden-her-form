@@ -92,8 +92,15 @@ function LeadFormDialog({
   }) => Promise<{
     ok: boolean;
     id: string | null;
+    build?: string;
     notified?: boolean;
-    notify?: { telegram: boolean; email: boolean; telegramReason: string | null };
+    envFlags?: Record<string, unknown>;
+    notify?: {
+      telegram: boolean;
+      email: boolean;
+      telegramReason: string | null;
+      emailReason: string | null;
+    };
   }>;
 }) {
   const formId = useId();
@@ -130,9 +137,19 @@ function LeadFormDialog({
         },
       });
       if (result.notified === false) {
+        const reasons = [
+          result.notify?.telegramReason,
+          result.notify?.emailReason,
+        ]
+          .filter(Boolean)
+          .join(", ");
         toast.success("Заявка сохранена в базе.", {
-          description:
-            "Уведомление в Telegram/почту не ушло — проверьте TELEGRAM_BOT_TOKEN и что вы нажали /start у бота.",
+          description: `Уведомление не ушло (${reasons || "нет канала"}). Сборка: ${result.build ?? "?"}`,
+          duration: 12000,
+        });
+      } else if (result.build) {
+        toast.success("Заявка отправлена! Свяжусь с вами в ближайшее время.", {
+          description: `Сборка: ${result.build}`,
         });
       } else {
         toast.success("Заявка отправлена! Свяжусь с вами в ближайшее время.");
