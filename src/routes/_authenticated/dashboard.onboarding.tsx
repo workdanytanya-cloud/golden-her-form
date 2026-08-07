@@ -1,5 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PanelHeader } from "@/components/panel/PanelShell";
@@ -357,25 +366,42 @@ function OnboardingPage() {
   }: {
     label: string;
     fieldKey?: string;
-    children: React.ReactNode;
+    children: ReactNode;
   }) => {
     const required = fieldKey ? REQUIRED_FIELDS.some((r) => r.key === fieldKey) : false;
     const missing = fieldKey ? missingKeys.has(fieldKey) : false;
+    const controlId = fieldKey ? `onb-${fieldKey}` : undefined;
+
+    let hasTextControl = false;
+    const enhanced = Children.map(children, (child) => {
+      if (!isValidElement(child) || !controlId) return child;
+      const t = child.type;
+      if (t === "input" || t === "textarea" || t === "select") {
+        hasTextControl = true;
+        const el = child as ReactElement<{ id?: string }>;
+        return cloneElement(el, { id: el.props.id ?? controlId });
+      }
+      return child;
+    });
+
     return (
-      <label
+      <div
         ref={
           fieldKey
-            ? (el: HTMLLabelElement | null) => {
+            ? (el: HTMLDivElement | null) => {
                 fieldRefs.current[fieldKey] = el;
               }
             : undefined
         }
         className={[
           "block scroll-mt-24 rounded-xl",
-          missing ? "ring-2 ring-coral/70 p-3 -m-3 bg-coral/5" : "",
+          missing ? "ring-2 ring-coral/70 -m-3 bg-coral/5 p-3" : "",
         ].join(" ")}
       >
-        <span className="mb-2 flex items-center gap-1 text-[11px] uppercase tracking-widest text-warm-gray">
+        <label
+          htmlFor={hasTextControl ? controlId : undefined}
+          className="mb-2 flex items-center gap-1 text-[11px] uppercase tracking-widest text-warm-gray"
+        >
           {label}
           {required && <span className="text-coral">*</span>}
           {missing && (
@@ -383,9 +409,9 @@ function OnboardingPage() {
               <AlertCircle className="h-3 w-3" /> обязательно
             </span>
           )}
-        </span>
-        {children}
-      </label>
+        </label>
+        <div className="relative z-0">{enhanced}</div>
+      </div>
     );
   };
 
@@ -563,7 +589,15 @@ function OnboardingPage() {
       <Section title="Здоровье" step="3">
         <Field label="Есть травмы или ограничения?">
           <div className="flex gap-2">
-            <Chip active={form.has_injuries} onClick={() => set("has_injuries", true)}>
+            <Chip
+              active={form.has_injuries}
+              onClick={() => {
+                set("has_injuries", true);
+                window.setTimeout(() => {
+                  document.getElementById("onb-injuries_details")?.focus();
+                }, 50);
+              }}
+            >
               Да
             </Chip>
             <Chip active={!form.has_injuries} onClick={() => set("has_injuries", false)}>
@@ -574,6 +608,7 @@ function OnboardingPage() {
         {form.has_injuries && (
           <Field label="Опишите травмы / ограничения" fieldKey="injuries_details">
             <textarea
+              id="onb-injuries_details"
               rows={2}
               maxLength={500}
               value={form.injuries_details}
@@ -583,7 +618,7 @@ function OnboardingPage() {
             />
           </Field>
         )}
-        <Field label="Хронические заболевания / особенности здоровья">
+        <Field label="Хронические заболевания / особенности здоровья" fieldKey="health_conditions">
           <textarea
             rows={2}
             maxLength={500}
@@ -593,7 +628,7 @@ function OnboardingPage() {
             placeholder="Гипотериоз, диастаз, гипертония…"
           />
         </Field>
-        <Field label="Лекарства, которые принимаете постоянно">
+        <Field label="Лекарства, которые принимаете постоянно" fieldKey="medications">
           <textarea
             rows={2}
             maxLength={500}
@@ -848,12 +883,16 @@ function Chip({
 }: {
   active: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        onClick();
+        // Don't keep focus on the chip — next tap/type goes to text fields
+        (e.currentTarget as HTMLButtonElement).blur();
+      }}
       className={[
         "rounded-full border px-4 py-2 text-sm transition-all",
         active
@@ -867,4 +906,4 @@ function Chip({
 }
 
 const inputCls =
-  "w-full rounded-xl border border-gold/20 bg-background/40 px-4 py-3 text-sm text-ivory placeholder:text-warm-gray/60 outline-none transition-colors focus:border-gold/60";
+  "w-full rounded-xl border border-gold/20 bg-background/40 px-4 py-3 text-sm text-ivory caret-ivory placeholder:text-warm-gray/60 outline-none transition-colors focus:border-gold/60 touch-manipulation";

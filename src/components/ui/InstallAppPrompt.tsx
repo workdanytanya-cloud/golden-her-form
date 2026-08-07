@@ -20,6 +20,8 @@ export function InstallAppPrompt({ onClose }: { onClose?: () => void }) {
     if (typeof window === "undefined") return;
     if (window.matchMedia("(display-mode: standalone)").matches) return;
     if (localStorage.getItem("panovapro.installDismissed") === "1") return;
+    // Don't cover the onboarding form while the client is filling it
+    if (window.location.pathname.includes("/onboarding")) return;
 
     const ua = window.navigator.userAgent;
     const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -32,7 +34,6 @@ export function InstallAppPrompt({ onClose }: { onClose?: () => void }) {
     };
     window.addEventListener("beforeinstallprompt", onBip);
 
-    // iOS: show tip after short delay (no native install event)
     let t: number | undefined;
     if (ios) {
       t = window.setTimeout(() => setVisible(true), 800);
