@@ -142,6 +142,21 @@
     word-break: break-word;
   }
 
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* iOS: avoid zoom + focus glitches on small text */
+    touch-action: manipulation;
+  }
+
+  @media (width >= 640px) {
+    input,
+    textarea,
+    select {
+      font-size: inherit;
+    }
+  }
+
   ::selection {
     background: color-mix(in oklab, var(--gold) 40%, transparent);
     color: var(--ivory);

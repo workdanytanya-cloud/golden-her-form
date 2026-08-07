@@ -20,23 +20,32 @@ export function InstallAppPrompt({ onClose }: { onClose?: () => void }) {
     if (typeof window === "undefined") return;
     if (window.matchMedia("(display-mode: standalone)").matches) return;
     if (localStorage.getItem("panovapro.installDismissed") === "1") return;
-    // Don't cover the onboarding form while the client is filling it
-    if (window.location.pathname.includes("/onboarding")) return;
 
     const ua = window.navigator.userAgent;
-    const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const ios =
+      /iPad|iPhone|iPod/.test(ua) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     setIsIos(ios);
 
     const onBip = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
-      setVisible(true);
+      // Only auto-show install on dashboard after signup flag, or when user is on /auth|/dashboard
+      const path = window.location.pathname;
+      if (path.startsWith("/dashboard") || path.startsWith("/auth")) {
+        setVisible(true);
+      }
     };
     window.addEventListener("beforeinstallprompt", onBip);
 
+    // iOS: show once on auth/dashboard only, not while filling long forms on first paint of every page
     let t: number | undefined;
     if (ios) {
-      t = window.setTimeout(() => setVisible(true), 800);
+      const path = window.location.pathname;
+      const showHere = path === "/auth" || path === "/dashboard" || path === "/dashboard/";
+      if (showHere) {
+        t = window.setTimeout(() => setVisible(true), 1200);
+      }
     }
 
     return () => {
