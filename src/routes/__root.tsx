@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../lib/auth";
+import { ThemeProvider, THEME_BOOT_SCRIPT } from "../lib/theme";
 import { supabase } from "../integrations/supabase/client";
 import { Toaster } from "../components/ui/sonner";
 import { ScrollToTop } from "../components/ui/ScrollToTop";
@@ -128,9 +129,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru" className="dark">
+    <html lang="ru" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body>
         {children}
@@ -155,14 +157,16 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <LeadFormProvider>
-          <Outlet />
-          <ScrollToTop />
-          <InstallAppPrompt />
-          <Toaster />
-        </LeadFormProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <LeadFormProvider>
+            <Outlet />
+            <ScrollToTop />
+            <InstallAppPrompt />
+            <Toaster />
+          </LeadFormProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

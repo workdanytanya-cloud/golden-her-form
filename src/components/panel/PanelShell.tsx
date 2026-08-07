@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { NotificationsBell } from "./NotificationsBell";
 import { ClientNotificationsBell } from "./ClientNotificationsBell";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 
 export type PanelNavItem = {
@@ -71,6 +72,7 @@ export function PanelShell({
           )}
         </Link>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {role === "admin" ? <NotificationsBell /> : <ClientNotificationsBell />}
           <button
             onClick={() => setOpen((v) => !v)}
@@ -112,7 +114,8 @@ export function PanelShell({
                 </p>
                 <p className="mt-1 truncate font-display text-sm text-ivory">{user?.email}</p>
               </div>
-              <div className="hidden md:block">
+              <div className="hidden items-center gap-2 md:flex">
+                <ThemeToggle />
                 {role === "admin" ? <NotificationsBell /> : <ClientNotificationsBell />}
               </div>
             </div>
@@ -146,12 +149,18 @@ export function PanelShell({
               })}
             </nav>
 
-            <button
-              onClick={handleSignOut}
-              className="mt-6 flex items-center justify-center gap-2 rounded-full border border-gold/30 px-4 py-3 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-coral/15"
-            >
-              <LogOut className="h-4 w-4" /> Выйти
-            </button>
+            <div className="mt-6 flex flex-col gap-2">
+              <div className="flex items-center justify-between rounded-2xl border border-gold/15 bg-background/40 px-4 py-3 md:hidden">
+                <span className="text-xs text-warm-gray">Тема оформления</span>
+                <ThemeToggle />
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center justify-center gap-2 rounded-full border border-gold/30 px-4 py-3 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-coral/15"
+              >
+                <LogOut className="h-4 w-4" /> Выйти
+              </button>
+            </div>
           </div>
         </aside>
 

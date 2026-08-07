@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { redeemPromoCode } from "@/lib/promo.functions";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const searchSchema = z.object({
   redirect: z.string().optional(),
@@ -195,6 +196,9 @@ function AuthPage() {
         <Link to="/" className="mb-10 text-center font-display text-2xl text-ivory">
           Panova<span className="text-gold">PRO</span>
         </Link>
+        <div className="mb-4 flex justify-end">
+          <ThemeToggle />
+        </div>
 
         <div className="glass rounded-3xl p-6 sm:p-8">
           <h1 className="font-display text-3xl text-ivory">
