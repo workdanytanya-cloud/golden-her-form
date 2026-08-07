@@ -1,7 +1,10 @@
 import consultationPhoto from "@/assets/trainer-consultation.jpg";
 import { Reveal } from "@/components/ui/Reveal";
+import { useLeadForm } from "@/components/ui/LeadFormModal";
 
 export function CtaFinal() {
+  const { openLeadForm } = useLeadForm();
+
   return (
     <section id="cta" className="relative overflow-hidden" style={{ backgroundColor: "#1a1410" }}>
       <div className="absolute inset-0 z-0">
@@ -34,23 +37,23 @@ export function CtaFinal() {
           </p>
 
           <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <a
-              href="https://t.me/Tanya_panova"
-              target="_blank"
-              rel="noreferrer noopener"
+            <button
+              type="button"
+              onClick={() => openLeadForm({ source: "general" })}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-coral px-6 py-3.5 text-sm font-semibold tracking-wide text-white transition-transform hover:scale-[1.03]"
             >
-              Написать в Telegram
+              Оставить заявку
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
-            </a>
-            <a
-              href="mailto:panova.fortuna@mail.ru"
-              className="break-anywhere inline-flex items-center justify-center gap-2 rounded-lg border border-white/40 bg-white/10 px-6 py-3.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/18"
+            </button>
+            <button
+              type="button"
+              onClick={() => openLeadForm({ source: "question" })}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/40 bg-white/10 px-6 py-3.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/18"
             >
-              panova.fortuna@mail.ru
-            </a>
+              Задать вопрос
+            </button>
           </div>
         </Reveal>
       </div>

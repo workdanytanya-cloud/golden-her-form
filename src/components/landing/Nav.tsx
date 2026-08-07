@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
+import { useLeadForm } from "@/components/ui/LeadFormModal";
 import logo from "@/assets/logo.png";
 
 const links = [
@@ -15,6 +16,7 @@ export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { session } = useAuth();
+  const { openLeadForm } = useLeadForm();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -86,15 +88,16 @@ export function Nav() {
               >
                 Войти
               </Link>
-              <a
-                href="#cta"
+              <button
+                type="button"
+                onClick={() => openLeadForm({ source: "general" })}
                 className="inline-flex items-center gap-2 rounded-lg bg-coral px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-[1.03]"
               >
                 Заявка
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
-              </a>
+              </button>
             </>
           )}
         </div>
@@ -136,13 +139,16 @@ export function Nav() {
                 Личный кабинет
               </Link>
             ) : (
-              <a
-                href="#cta"
-                onClick={() => setOpen(false)}
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  openLeadForm({ source: "general" });
+                }}
                 className="mt-2 inline-flex w-fit items-center gap-2 rounded-lg bg-coral px-5 py-3 text-sm font-semibold text-white"
               >
                 Оставить заявку
-              </a>
+              </button>
             )}
           </nav>
         </div>

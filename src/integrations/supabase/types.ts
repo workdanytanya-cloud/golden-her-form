@@ -44,6 +44,57 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          full_name: string
+          age: number
+          phone: string
+          email: string
+          messenger: string
+          source: string
+          program_slug: string | null
+          program_title: string | null
+          message: string | null
+          status: string
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          full_name: string
+          age: number
+          phone: string
+          email: string
+          messenger?: string
+          source?: string
+          program_slug?: string | null
+          program_title?: string | null
+          message?: string | null
+          status?: string
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          full_name?: string
+          age?: number
+          phone?: string
+          email?: string
+          messenger?: string
+          source?: string
+          program_slug?: string | null
+          program_title?: string | null
+          message?: string | null
+          status?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
       client_access: {
         Row: {
           activated_at: string | null

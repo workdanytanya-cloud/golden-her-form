@@ -16,6 +16,7 @@ import { supabase } from "../integrations/supabase/client";
 import { Toaster } from "../components/ui/sonner";
 import { ScrollToTop } from "../components/ui/ScrollToTop";
 import { InstallAppPrompt } from "../components/ui/InstallAppPrompt";
+import { LeadFormProvider } from "../components/ui/LeadFormModal";
 
 function NotFoundComponent() {
   return (
@@ -155,10 +156,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Outlet />
-        <ScrollToTop />
-        <InstallAppPrompt />
-        <Toaster />
+        <LeadFormProvider>
+          <Outlet />
+          <ScrollToTop />
+          <InstallAppPrompt />
+          <Toaster />
+        </LeadFormProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

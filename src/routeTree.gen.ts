@@ -21,6 +21,7 @@ import { Route as ProgramsSlugRouteImport } from './routes/programs.$slug'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminDishesRouteImport } from './routes/_authenticated/admin.dishes'
 import { Route as AuthenticatedAdminExercisesRouteImport } from './routes/_authenticated/admin.exercises'
+import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated/admin.leads'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardNutritionRouteImport } from './routes/_authenticated/dashboard.nutrition'
 import { Route as AuthenticatedDashboardOnboardingRouteImport } from './routes/_authenticated/dashboard.onboarding'
@@ -95,6 +96,11 @@ const AuthenticatedAdminExercisesRoute =
     path: '/exercises',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminLeadsRoute = AuthenticatedAdminLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
     id: '/',
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/programs/$slug': typeof ProgramsSlugRoute
   '/admin/dishes': typeof AuthenticatedAdminDishesRoute
   '/admin/exercises': typeof AuthenticatedAdminExercisesRoute
+  '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/dashboard/preparation': typeof AuthenticatedDashboardPreparationRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/programs/$slug': typeof ProgramsSlugRoute
   '/admin/dishes': typeof AuthenticatedAdminDishesRoute
   '/admin/exercises': typeof AuthenticatedAdminExercisesRoute
+  '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/dashboard/preparation': typeof AuthenticatedDashboardPreparationRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/programs/$slug': typeof ProgramsSlugRoute
   '/_authenticated/admin/dishes': typeof AuthenticatedAdminDishesRoute
   '/_authenticated/admin/exercises': typeof AuthenticatedAdminExercisesRoute
+  '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/_authenticated/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
   '/_authenticated/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/_authenticated/dashboard/preparation': typeof AuthenticatedDashboardPreparationRoute
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | '/programs/$slug'
     | '/admin/dishes'
     | '/admin/exercises'
+    | '/admin/leads'
     | '/dashboard/nutrition'
     | '/dashboard/onboarding'
     | '/dashboard/preparation'
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/programs/$slug'
     | '/admin/dishes'
     | '/admin/exercises'
+    | '/admin/leads'
     | '/dashboard/nutrition'
     | '/dashboard/onboarding'
     | '/dashboard/preparation'
@@ -303,6 +314,7 @@ export interface FileRouteTypes {
     | '/programs/$slug'
     | '/_authenticated/admin/dishes'
     | '/_authenticated/admin/exercises'
+    | '/_authenticated/admin/leads'
     | '/_authenticated/dashboard/nutrition'
     | '/_authenticated/dashboard/onboarding'
     | '/_authenticated/dashboard/preparation'
@@ -412,6 +424,13 @@ declare module '@tanstack/react-router' {
       path: '/exercises'
       fullPath: '/admin/exercises'
       preLoaderRoute: typeof AuthenticatedAdminExercisesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/leads': {
+      id: '/_authenticated/admin/leads'
+      path: '/leads'
+      fullPath: '/admin/leads'
+      preLoaderRoute: typeof AuthenticatedAdminLeadsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/dashboard/': {
@@ -528,6 +547,7 @@ const AuthenticatedAdminClientsIdRouteWithChildren =
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDishesRoute: typeof AuthenticatedAdminDishesRoute
   AuthenticatedAdminExercisesRoute: typeof AuthenticatedAdminExercisesRoute
+  AuthenticatedAdminLeadsRoute: typeof AuthenticatedAdminLeadsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminClientsIdRoute: typeof AuthenticatedAdminClientsIdRouteWithChildren
 }
@@ -535,6 +555,7 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDishesRoute: AuthenticatedAdminDishesRoute,
   AuthenticatedAdminExercisesRoute: AuthenticatedAdminExercisesRoute,
+  AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminClientsIdRoute:
     AuthenticatedAdminClientsIdRouteWithChildren,

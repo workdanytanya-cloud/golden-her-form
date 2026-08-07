@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
 import heroPhoto from "@/assets/trainer-highfive.jpg";
 import { CountUp } from "@/components/ui/CountUp";
+import { useLeadForm } from "@/components/ui/LeadFormModal";
 
 export function Hero() {
   const imgRef = useRef<HTMLDivElement | null>(null);
+  const { openLeadForm } = useLeadForm();
 
   useEffect(() => {
     const el = imgRef.current;
@@ -59,8 +61,9 @@ export function Hero() {
           <p className="mt-3 text-sm text-white/70">15+ лет опыта · 10 000+ подопечных.</p>
 
           <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-            <a
-              href="#cta"
+            <button
+              type="button"
+              onClick={() => openLeadForm({ source: "general" })}
               className="group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-coral px-6 py-3.5 text-sm font-semibold tracking-wide text-white transition-transform hover:scale-[1.02] sm:w-auto"
               style={{ boxShadow: "0 12px 32px -10px rgba(180,70,40,0.55)" }}
             >
@@ -68,7 +71,7 @@ export function Hero() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-transform group-hover:translate-x-1">
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
-            </a>
+            </button>
             <a
               href="#results"
               className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/40 bg-white/10 px-6 py-3.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/18 sm:w-auto"

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Nav } from "@/components/landing/Nav";
 import { Footer } from "@/components/landing/Footer";
-import { useAuth } from "@/lib/auth";
+import { useLeadForm } from "@/components/ui/LeadFormModal";
 import { getProgramBySlug, programs, type ProgramDetail } from "@/lib/programs-data";
 
 export const Route = createFileRoute("/programs/$slug")({
@@ -30,9 +30,16 @@ export const Route = createFileRoute("/programs/$slug")({
 
 function ProgramPage() {
   const { program } = Route.useLoaderData();
-  const { session } = useAuth();
   const p: ProgramDetail = program;
   const others = programs.filter((x) => x.slug !== p.slug).slice(0, 3);
+  const { openLeadForm } = useLeadForm();
+
+  const openProgramLead = (source: "program" | "question" = "program") =>
+    openLeadForm({
+      source,
+      programSlug: p.slug,
+      programTitle: p.title,
+    });
 
   return (
     <main className="landing min-h-screen overflow-x-hidden text-foreground">
@@ -62,24 +69,23 @@ function ProgramPage() {
               </h1>
               <p className="mt-6 max-w-xl text-base leading-relaxed text-ivory/75">{p.intro}</p>
               <div className="mt-10 flex flex-wrap gap-3">
-                <Link
-                  to={session ? "/dashboard" : "/auth"}
-                  search={session ? undefined : { mode: "signup" }}
+                <button
+                  type="button"
+                  onClick={() => openProgramLead("program")}
                   className="inline-flex items-center gap-2 rounded-lg bg-coral px-6 py-3 text-sm font-medium text-white transition-transform hover:scale-[1.03]"
                 >
                   Записаться на программу
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 12h14M13 6l6 6-6 6" />
                   </svg>
-                </Link>
-                <a
-                  href="https://t.me/Tanya_panova"
-                  target="_blank"
-                  rel="noreferrer noopener"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openProgramLead("question")}
                   className="inline-flex items-center gap-2 rounded-lg border border-gold/30 px-6 py-3 text-sm text-ivory transition-colors hover:border-gold hover:text-gold"
                 >
                   Задать вопрос
-                </a>
+                </button>
               </div>
             </div>
 
@@ -177,19 +183,18 @@ function ProgramPage() {
             Готова начать <span className="gold-text">«{p.title}»</span>?
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-sm leading-relaxed text-ivory/70">
-            Заполни анкету — я подберу интенсивность, питание и график под тебя. Первый шаг занимает
-            5 минут.
+            Оставьте заявку — подберу интенсивность, питание и график. Без регистрации на этом шаге.
           </p>
-          <Link
-            to={session ? "/dashboard" : "/auth"}
-            search={session ? undefined : { mode: "signup" }}
+          <button
+            type="button"
+            onClick={() => openProgramLead("program")}
             className="mt-10 inline-flex items-center gap-2 rounded-lg bg-coral px-7 py-3.5 text-sm font-medium text-white transition-transform hover:scale-[1.03]"
           >
             Записаться
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
-          </Link>
+          </button>
         </div>
       </section>
 
