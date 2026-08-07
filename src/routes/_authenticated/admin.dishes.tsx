@@ -6,6 +6,7 @@ import { MediaUpload } from "@/components/panel/MediaUpload";
 import { Search, Save, Trash2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { MEDICAL_DIET_TABLES } from "@/lib/medical-diet-tables";
+import { MEAL_TYPE_LABEL, mealTypeLabel } from "@/lib/nutrition";
 
 export const Route = createFileRoute("/_authenticated/admin/dishes")({
   component: AdminDishes,
@@ -44,7 +45,16 @@ const emptyDish: Omit<Dish, "id"> = {
   video_url: null,
 };
 
-const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
+const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
+
+function formatTagLabel(tag: string): string {
+  if (tag === "general") return "общая";
+  const m = /^table_(\d+)$/.exec(tag);
+  if (m) return `Стол №${m[1]}`;
+  const m2 = /^стол_(\d+)$/.exec(tag);
+  if (m2) return `Стол №${m2[1]}`;
+  return tag;
+}
 
 function AdminDishes() {
   const [items, setItems] = useState<Dish[]>([]);
@@ -160,7 +170,7 @@ function AdminDishes() {
           <option value="all">Все приёмы</option>
           {MEAL_TYPES.map((c) => (
             <option key={c} value={c}>
-              {c}
+              {MEAL_TYPE_LABEL[c]}
             </option>
           ))}
         </select>
@@ -204,7 +214,7 @@ function AdminDishes() {
                   <div>
                     <div className="font-display text-lg text-ivory">{e.name}</div>
                     <div className="text-[11px] uppercase tracking-widest text-warm-gray">
-                      {e.meal_type} · {e.portion_weight_g} г
+                      {mealTypeLabel(e.meal_type)} · {e.portion_weight_g} г
                     </div>
                   </div>
                   <button
@@ -226,7 +236,7 @@ function AdminDishes() {
                         key={m}
                         className="rounded-full bg-gold/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-gold"
                       >
-                        {m}
+                        {formatTagLabel(m)}
                       </span>
                     ))}
                   </div>
@@ -268,7 +278,7 @@ function AdminDishes() {
               >
                 {MEAL_TYPES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {MEAL_TYPE_LABEL[c]}
                   </option>
                 ))}
               </select>

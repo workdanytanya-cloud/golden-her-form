@@ -121,6 +121,17 @@ export const SLOT_LABEL: Record<Slot, string> = {
   dinner: "Ужин",
 };
 
+export const MEAL_TYPE_LABEL: Record<Dish["meal_type"], string> = {
+  breakfast: "Завтрак",
+  lunch: "Обед",
+  dinner: "Ужин",
+  snack: "Перекус",
+};
+
+export function mealTypeLabel(mealType: string): string {
+  return MEAL_TYPE_LABEL[mealType as Dish["meal_type"]] ?? mealType;
+}
+
 function slotMealType(slot: Slot): Dish["meal_type"] {
   if (slot === "breakfast") return "breakfast";
   if (slot === "lunch") return "lunch";
