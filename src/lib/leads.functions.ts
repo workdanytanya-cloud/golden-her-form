@@ -24,7 +24,14 @@ const leadInputSchema = z.object({
     .trim()
     .min(10, "Укажите телефон")
     .max(32)
-    .regex(/^[+\d\s()-]+$/, "Некорректный телефон"),
+    .regex(/^[+\d\s()-]+$/, "Некорректный телефон")
+    .refine(
+      (v) => {
+        const d = v.replace(/\D/g, "");
+        return d.length === 11 && d.startsWith("7");
+      },
+      "Введите номер полностью: +7 (XXX) XXX-XX-XX",
+    ),
   email: z.string().trim().email("Укажите действующий email").max(255),
   messenger: z.enum(["telegram", "max", "whatsapp", "any"]),
   source: z.enum(["general", "program", "question"]).default("general"),

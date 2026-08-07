@@ -11,6 +11,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { submitLead } from "@/lib/leads.functions";
+import { formatRuPhoneInput, isCompleteRuPhone, digitsOnlyPhone } from "@/lib/phone";
 
 export type LeadFormOpenOptions = {
   source?: "general" | "program" | "question";
@@ -108,7 +109,7 @@ function LeadFormDialog({
   const formId = useId();
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+7 ");
   const [email, setEmail] = useState("");
   const [messenger, setMessenger] = useState<"telegram" | "max" | "whatsapp" | "any">("telegram");
   const [website, setWebsite] = useState("");
@@ -123,6 +124,10 @@ function LeadFormDialog({
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isCompleteRuPhone(phone)) {
+      toast.error("Введите номер телефона полностью: +7 (XXX) XXX-XX-XX");
+      return;
+    }
     setSending(true);
     const watchdog = window.setTimeout(() => {
       setSending(false);
@@ -269,13 +274,23 @@ function LeadFormDialog({
             <input
               required
               type="tel"
+              inputMode="numeric"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(formatRuPhoneInput(e.target.value))}
+              onFocus={() => {
+                if (!phone.trim() || phone.trim() === "+") setPhone("+7 ");
+              }}
+              onBlur={() => {
+                if (digitsOnlyPhone(phone).length <= 1) setPhone("+7 ");
+              }}
               className={inputCls}
-              placeholder="+7 900 000-00-00"
+              placeholder="+7 (900) 000-00-00"
               autoComplete="tel"
+              maxLength={18}
             />
-            <p className="mt-1 text-[11px] text-[#8a7f76]">Номер, на котором есть выбранный мессенджер</p>
+            <p className="mt-1 text-[11px] text-[#8a7f76]">
+              Формат: +7 (900) 000-00-00 — номер с выбранным мессенджером
+            </p>
           </div>
 
           <div>
