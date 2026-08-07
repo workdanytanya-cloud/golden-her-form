@@ -519,8 +519,8 @@ function ArticleCard({ article }: { article: Article }) {
                 alt={article.image.alt}
                 loading="lazy"
                 width={768}
-                height={512}
-                className="h-auto w-full object-cover"
+                height={576}
+                className="aspect-[4/3] h-auto w-full object-cover"
               />
             </div>
           )}
