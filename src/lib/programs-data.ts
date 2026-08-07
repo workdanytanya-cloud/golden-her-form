@@ -8,6 +8,8 @@ import coaching from "@/assets/program-coaching.jpg";
 export type ProgramDetail = {
   slug: string;
   img: string;
+  /** CSS object-position — держит главную композицию в кадре карточки */
+  imgPosition?: string;
   tag: string;
   title: string;
   text: string;
@@ -23,6 +25,7 @@ export const programs: ProgramDetail[] = [
   {
     slug: "weight-loss",
     img: weightloss,
+    imgPosition: "72% 68%",
     tag: "Снижение веса",
     title: "Похудение",
     text: "12-недельная программа с плавным дефицитом, силовыми и кардио-блоками.",
@@ -54,6 +57,7 @@ export const programs: ProgramDetail[] = [
   {
     slug: "home-workouts",
     img: home,
+    imgPosition: "62% 78%",
     tag: "Дом",
     title: "Домашние тренировки",
     text: "Без зала и сложного оборудования. Занимайся в любой точке мира.",
@@ -85,6 +89,7 @@ export const programs: ProgramDetail[] = [
   {
     slug: "stretching",
     img: stretch,
+    imgPosition: "70% 82%",
     tag: "Гибкость",
     title: "Растяжка",
     text: "Мягкие сессии на восстановление подвижности и глубокое расслабление.",
@@ -116,6 +121,7 @@ export const programs: ProgramDetail[] = [
   {
     slug: "tone",
     img: tone,
+    imgPosition: "78% 55%",
     tag: "Форма",
     title: "Мышечный тонус",
     text: "Силовая работа на подтянутое тело и красивый рельеф — без «мужского» эффекта.",
@@ -147,6 +153,7 @@ export const programs: ProgramDetail[] = [
   {
     slug: "nutrition",
     img: nutrition,
+    imgPosition: "78% 48%",
     tag: "Питание",
     title: "Сбалансированное питание",
     text: "Индивидуальный расчёт КБЖУ и план, который работает в реальной жизни.",
@@ -178,6 +185,7 @@ export const programs: ProgramDetail[] = [
   {
     slug: "coaching",
     img: coaching,
+    imgPosition: "58% 62%",
     tag: "Premium",
     title: "Персональный коучинг",
     text: "Прямая работа со мной 1:1. Ежедневная поддержка, разборы, корректировка.",

@@ -32,6 +32,7 @@ export function Programs() {
                   src={p.img}
                   alt={p.title}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+                  style={{ objectPosition: p.imgPosition ?? "center" }}
                   loading="lazy"
                   width={800}
                   height={500}

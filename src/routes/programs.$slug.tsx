@@ -90,7 +90,12 @@ function ProgramPage() {
             </div>
 
             <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl border border-gold/12">
-              <img src={p.img} alt={p.title} className="h-full w-full object-cover" />
+              <img
+                src={p.img}
+                alt={p.title}
+                className="h-full w-full object-cover"
+                style={{ objectPosition: p.imgPosition ?? "center" }}
+              />
               <div
                 className="absolute inset-0"
                 style={{
@@ -210,7 +215,13 @@ function ProgramPage() {
                 params={{ slug: o.slug }}
                 className="group relative block aspect-[3/4] overflow-hidden rounded-3xl border border-gold/12"
               >
-                <img src={o.img} alt={o.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.08]" loading="lazy" />
+                <img
+                  src={o.img}
+                  alt={o.title}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.08]"
+                  style={{ objectPosition: o.imgPosition ?? "center" }}
+                  loading="lazy"
+                />
                 <div
                   className="absolute inset-0"
                   style={{
