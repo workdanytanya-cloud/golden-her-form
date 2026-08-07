@@ -95,6 +95,51 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_codes: {
+        Row: {
+          id: string
+          created_at: string
+          code: string
+          label: string | null
+          program_slug: string | null
+          program_title: string | null
+          status: string
+          created_by: string | null
+          used_by: string | null
+          used_at: string | null
+          expires_at: string | null
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          code: string
+          label?: string | null
+          program_slug?: string | null
+          program_title?: string | null
+          status?: string
+          created_by?: string | null
+          used_by?: string | null
+          used_at?: string | null
+          expires_at?: string | null
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          code?: string
+          label?: string | null
+          program_slug?: string | null
+          program_title?: string | null
+          status?: string
+          created_by?: string | null
+          used_by?: string | null
+          used_at?: string | null
+          expires_at?: string | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
       client_access: {
         Row: {
           activated_at: string | null

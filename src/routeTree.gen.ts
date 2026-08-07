@@ -22,6 +22,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminDishesRouteImport } from './routes/_authenticated/admin.dishes'
 import { Route as AuthenticatedAdminExercisesRouteImport } from './routes/_authenticated/admin.exercises'
 import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated/admin.leads'
+import { Route as AuthenticatedAdminPromosRouteImport } from './routes/_authenticated/admin.promos'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardNutritionRouteImport } from './routes/_authenticated/dashboard.nutrition'
 import { Route as AuthenticatedDashboardOnboardingRouteImport } from './routes/_authenticated/dashboard.onboarding'
@@ -99,6 +100,11 @@ const AuthenticatedAdminExercisesRoute =
 const AuthenticatedAdminLeadsRoute = AuthenticatedAdminLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminPromosRoute = AuthenticatedAdminPromosRouteImport.update({
+  id: '/promos',
+  path: '/promos',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
 const AuthenticatedDashboardIndexRoute =
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/admin/dishes': typeof AuthenticatedAdminDishesRoute
   '/admin/exercises': typeof AuthenticatedAdminExercisesRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/admin/promos': typeof AuthenticatedAdminPromosRoute
   '/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/dashboard/preparation': typeof AuthenticatedDashboardPreparationRoute
@@ -210,6 +217,7 @@ export interface FileRoutesByTo {
   '/admin/dishes': typeof AuthenticatedAdminDishesRoute
   '/admin/exercises': typeof AuthenticatedAdminExercisesRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/admin/promos': typeof AuthenticatedAdminPromosRoute
   '/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/dashboard/preparation': typeof AuthenticatedDashboardPreparationRoute
@@ -237,6 +245,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/dishes': typeof AuthenticatedAdminDishesRoute
   '/_authenticated/admin/exercises': typeof AuthenticatedAdminExercisesRoute
   '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/_authenticated/admin/promos': typeof AuthenticatedAdminPromosRoute
   '/_authenticated/dashboard/nutrition': typeof AuthenticatedDashboardNutritionRoute
   '/_authenticated/dashboard/onboarding': typeof AuthenticatedDashboardOnboardingRoute
   '/_authenticated/dashboard/preparation': typeof AuthenticatedDashboardPreparationRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/admin/dishes'
     | '/admin/exercises'
     | '/admin/leads'
+    | '/admin/promos'
     | '/dashboard/nutrition'
     | '/dashboard/onboarding'
     | '/dashboard/preparation'
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/admin/dishes'
     | '/admin/exercises'
     | '/admin/leads'
+    | '/admin/promos'
     | '/dashboard/nutrition'
     | '/dashboard/onboarding'
     | '/dashboard/preparation'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/dishes'
     | '/_authenticated/admin/exercises'
     | '/_authenticated/admin/leads'
+    | '/_authenticated/admin/promos'
     | '/_authenticated/dashboard/nutrition'
     | '/_authenticated/dashboard/onboarding'
     | '/_authenticated/dashboard/preparation'
@@ -433,6 +445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLeadsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/promos': {
+      id: '/_authenticated/admin/promos'
+      path: '/promos'
+      fullPath: '/admin/promos'
+      preLoaderRoute: typeof AuthenticatedAdminPromosRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
       path: '/'
@@ -548,6 +567,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDishesRoute: typeof AuthenticatedAdminDishesRoute
   AuthenticatedAdminExercisesRoute: typeof AuthenticatedAdminExercisesRoute
   AuthenticatedAdminLeadsRoute: typeof AuthenticatedAdminLeadsRoute
+  AuthenticatedAdminPromosRoute: typeof AuthenticatedAdminPromosRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminClientsIdRoute: typeof AuthenticatedAdminClientsIdRouteWithChildren
 }
@@ -556,6 +576,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDishesRoute: AuthenticatedAdminDishesRoute,
   AuthenticatedAdminExercisesRoute: AuthenticatedAdminExercisesRoute,
   AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
+  AuthenticatedAdminPromosRoute: AuthenticatedAdminPromosRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminClientsIdRoute:
     AuthenticatedAdminClientsIdRouteWithChildren,
