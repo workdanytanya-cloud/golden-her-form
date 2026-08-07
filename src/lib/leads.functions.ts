@@ -31,51 +31,75 @@ const MESSENGER_LABEL: Record<string, string> = {
 };
 
 async function notifyTelegram(text: string) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-  if (!token || !chatId) return { ok: false as const, reason: "telegram_not_configured" };
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      disable_web_page_preview: true,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    console.error("Telegram notify failed", body);
-    return { ok: false as const, reason: "telegram_failed" };
+  const token = (process.env.TELEGRAM_BOT_TOKEN || "").trim();
+  const chatIdRaw = (process.env.TELEGRAM_CHAT_ID || "").trim();
+  if (!token || !chatIdRaw) {
+    console.warn("[leads] Telegram not configured", {
+      hasToken: Boolean(token),
+      hasChatId: Boolean(chatIdRaw),
+    });
+    return { ok: false as const, reason: "telegram_not_configured" };
   }
-  return { ok: true as const };
+
+  // Numeric chat ids must be numbers for Telegram API
+  const chat_id = /^-?\d+$/.test(chatIdRaw) ? Number(chatIdRaw) : chatIdRaw;
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id,
+        text,
+        disable_web_page_preview: true,
+      }),
+    });
+    const body = await res.text();
+    if (!res.ok) {
+      console.error("[leads] Telegram notify failed", res.status, body);
+      return { ok: false as const, reason: "telegram_failed", detail: body };
+    }
+    console.info("[leads] Telegram notify ok");
+    return { ok: true as const };
+  } catch (e) {
+    console.error("[leads] Telegram network error", e);
+    return { ok: false as const, reason: "telegram_network" };
+  }
 }
 
 async function notifyEmail(subject: string, text: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.LEAD_NOTIFY_EMAIL || "panova.fortuna@gmail.com";
-  const from = process.env.LEAD_NOTIFY_FROM || "PanovaPRO <onboarding@resend.dev>";
-  if (!apiKey) return { ok: false as const, reason: "email_not_configured" };
-
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject,
-      text,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    console.error("Email notify failed", body);
-    return { ok: false as const, reason: "email_failed" };
+  const apiKey = (process.env.RESEND_API_KEY || "").trim();
+  const to = (process.env.LEAD_NOTIFY_EMAIL || "panova.fortuna@gmail.com").trim();
+  const from = (process.env.LEAD_NOTIFY_FROM || "PanovaPRO <onboarding@resend.dev>").trim();
+  if (!apiKey || apiKey.includes("...")) {
+    return { ok: false as const, reason: "email_not_configured" };
   }
-  return { ok: true as const };
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject,
+        text,
+      }),
+    });
+    const body = await res.text();
+    if (!res.ok) {
+      console.error("[leads] Email notify failed", res.status, body);
+      return { ok: false as const, reason: "email_failed", detail: body };
+    }
+    console.info("[leads] Email notify ok");
+    return { ok: true as const };
+  } catch (e) {
+    console.error("[leads] Email network error", e);
+    return { ok: false as const, reason: "email_network" };
+  }
 }
 
 function formatLeadMessage(data: z.infer<typeof leadInputSchema>) {
@@ -135,11 +159,25 @@ export const submitLead = createServerFn({ method: "POST" })
       : `Новая заявка: ${data.full_name}`;
 
     const [tg, mail] = await Promise.all([notifyTelegram(text), notifyEmail(subject, text)]);
-    if (!tg.ok && !mail.ok) {
-      console.warn("Lead saved but no notify channel configured", { tg, mail });
+    const notified = tg.ok || mail.ok;
+    if (!notified) {
+      console.warn("[leads] Lead saved but notify failed", {
+        telegram: tg.reason,
+        email: mail.reason,
+      });
     }
 
-    return { ok: true, id: inserted.id as string };
+    return {
+      ok: true,
+      id: inserted.id as string,
+      notified,
+      notify: {
+        telegram: tg.ok,
+        email: mail.ok,
+        telegramReason: tg.ok ? null : tg.reason,
+        emailReason: mail.ok ? null : mail.reason,
+      },
+    };
   });
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {

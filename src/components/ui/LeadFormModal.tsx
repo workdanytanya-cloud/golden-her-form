@@ -87,7 +87,14 @@ function LeadFormDialog({
 }: {
   opts: LeadFormOpenOptions;
   onClose: () => void;
-  submit: (args: { data: Record<string, unknown> }) => Promise<{ ok: boolean; id: string | null }>;
+  submit: (args: {
+    data: Record<string, unknown>;
+  }) => Promise<{
+    ok: boolean;
+    id: string | null;
+    notified?: boolean;
+    notify?: { telegram: boolean; email: boolean; telegramReason: string | null };
+  }>;
 }) {
   const formId = useId();
   const [fullName, setFullName] = useState("");
@@ -109,7 +116,7 @@ function LeadFormDialog({
     e.preventDefault();
     setSending(true);
     try {
-      await submit({
+      const result = await submit({
         data: {
           full_name: fullName,
           age: Number(age),
@@ -122,7 +129,14 @@ function LeadFormDialog({
           website,
         },
       });
-      toast.success("Заявка отправлена! Свяжусь с вами в ближайшее время.");
+      if (result.notified === false) {
+        toast.success("Заявка сохранена в базе.", {
+          description:
+            "Уведомление в Telegram/почту не ушло — проверьте TELEGRAM_BOT_TOKEN и что вы нажали /start у бота.",
+        });
+      } else {
+        toast.success("Заявка отправлена! Свяжусь с вами в ближайшее время.");
+      }
       onClose();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Ошибка отправки";
