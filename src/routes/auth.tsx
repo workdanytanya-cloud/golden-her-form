@@ -18,7 +18,15 @@ export const Route = createFileRoute("/auth")({
   beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getSession();
     if (data.session) {
-      throw redirect({ to: search.redirect ?? "/dashboard/onboarding" });
+      if (search.redirect) {
+        throw redirect({ to: search.redirect });
+      }
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.session.user.id);
+      const isAdmin = roles?.some((r) => r.role === "admin");
+      throw redirect({ to: isAdmin ? "/admin" : "/dashboard/onboarding" });
     }
   },
   component: AuthPage,
@@ -119,7 +127,19 @@ function AuthPage() {
         if (error) throw error;
         toast.success("С возвращением!");
         await refreshAccess();
-        await navigate({ to: search.redirect ?? "/dashboard" });
+
+        const { data: userData } = await supabase.auth.getUser();
+        let dest = search.redirect ?? "/dashboard";
+        if (userData.user && !search.redirect) {
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", userData.user.id);
+          if (roles?.some((r) => r.role === "admin")) {
+            dest = "/admin";
+          }
+        }
+        await navigate({ to: dest });
       }
     } catch (err) {
       const raw =
