@@ -228,6 +228,7 @@ function OnboardingPage() {
     effectiveRole,
     effectiveAccessStatus,
     effectiveUnlockSource,
+    user,
     loading: authLoading,
   } = useAuth();
   const navigate = useNavigate();
@@ -243,6 +244,7 @@ function OnboardingPage() {
     effectiveAccessStatus,
     effectiveUnlockSource,
     effectiveRole,
+    user?.email,
   );
 
   if (!authLoading && !unlocked) {

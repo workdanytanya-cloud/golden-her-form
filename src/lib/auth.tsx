@@ -6,6 +6,18 @@ export type AppRole = "admin" | "client";
 export type AccessStatus = "pending_onboarding" | "awaiting_approval" | "active" | "suspended";
 export type UnlockSource = "promo" | "payment" | null;
 
+/** Trainer / site owner — full cabinet access without promo */
+export const TRAINER_EMAILS = ["panova.fortuna@gmail.com"] as const;
+
+export function isTrainerEmail(email?: string | null): boolean {
+  if (!email) return false;
+  return (TRAINER_EMAILS as readonly string[]).includes(email.trim().toLowerCase());
+}
+
+export function isAdminRole(role: AppRole | null, email?: string | null): boolean {
+  return role === "admin" || isTrainerEmail(email);
+}
+
 export type Impersonation = { userId: string; name: string } | null;
 
 type AccessInfo = {
@@ -52,8 +64,9 @@ export function isEnrollmentUnlocked(
   status: AccessStatus | null,
   unlockSource: UnlockSource,
   role: AppRole | null,
+  email?: string | null,
 ): boolean {
-  if (role === "admin") return true;
+  if (isAdminRole(role, email)) return true;
   if (status === "active" || status === "awaiting_approval") return true;
   return unlockSource === "promo" || unlockSource === "payment";
 }
@@ -94,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       setTimeout(() => {
-        void fetchRole(s.user.id).then(setRole);
+        void fetchRole(s.user.id, s.user.email).then(setRole);
         void fetchAccess(s.user.id).then(applyAccess);
       }, 0);
     });
@@ -103,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       if (data.session) {
         void Promise.all([
-          fetchRole(data.session.user.id).then(setRole),
+          fetchRole(data.session.user.id, data.session.user.email).then(setRole),
           fetchAccess(data.session.user.id).then(applyAccess),
         ]).finally(() => setLoading(false));
       } else {
@@ -141,23 +154,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  const activeImpersonation = role === "admin" ? impersonation : null;
+  const trainer = isAdminRole(role, session?.user?.email);
+  const activeImpersonation = trainer ? impersonation : null;
 
   const effectiveUserId = activeImpersonation?.userId ?? session?.user?.id ?? null;
-  const effectiveRole: AppRole | null = activeImpersonation ? "client" : role;
+  const effectiveRole: AppRole | null = activeImpersonation
+    ? "client"
+    : trainer
+      ? "admin"
+      : role;
   const effectiveAccessStatus: AccessStatus | null = activeImpersonation
     ? impersonatedAccess?.status ?? null
-    : accessStatus;
+    : trainer
+      ? "active"
+      : accessStatus;
   const effectiveUnlockSource: UnlockSource = activeImpersonation
     ? impersonatedAccess?.unlockSource ?? null
-    : unlockSource;
+    : trainer
+      ? "promo"
+      : unlockSource;
 
   return (
     <AuthContext.Provider
       value={{
         session,
         user: session?.user ?? null,
-        role,
+        role: trainer ? "admin" : role,
         accessStatus,
         unlockSource,
         loading,
@@ -177,16 +199,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-async function fetchRole(userId: string): Promise<AppRole | null> {
+async function fetchRole(
+  userId: string,
+  email?: string | null,
+): Promise<AppRole | null> {
+  if (isTrainerEmail(email)) return "admin";
+
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
-    .eq("user_id", userId)
-    .order("role", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (error || !data) return null;
-  return data.role as AppRole;
+    .eq("user_id", userId);
+  if (error || !data?.length) return null;
+  if (data.some((r) => r.role === "admin")) return "admin";
+  if (data.some((r) => r.role === "client")) return "client";
+  return null;
 }
 
 async function fetchAccess(userId: string): Promise<AccessInfo> {

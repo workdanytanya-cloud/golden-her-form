@@ -3,6 +3,7 @@ import { ClipboardList, Clock, Lock, Ticket } from "lucide-react";
 import {
   useAuth,
   isEnrollmentUnlocked,
+  isTrainerEmail,
   type AccessStatus,
 } from "@/lib/auth";
 
@@ -26,17 +27,19 @@ export function AccessGate({
     effectiveRole,
     effectiveAccessStatus,
     effectiveUnlockSource,
+    user,
     loading,
   } = useAuth();
 
   if (loading) return null;
-  if (effectiveRole === "admin") return <>{children}</>;
+  if (effectiveRole === "admin" || isTrainerEmail(user?.email)) return <>{children}</>;
 
   const status: AccessStatus = effectiveAccessStatus ?? "pending_onboarding";
   const unlocked = isEnrollmentUnlocked(
     status,
     effectiveUnlockSource,
     effectiveRole,
+    user?.email,
   );
 
   if (!unlocked) {

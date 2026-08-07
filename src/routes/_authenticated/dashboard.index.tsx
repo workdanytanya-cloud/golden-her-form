@@ -31,11 +31,13 @@ function DashboardOverview() {
     effectiveAccessStatus,
     effectiveUnlockSource,
     effectiveRole,
+    user,
   } = useAuth();
   const enrollmentOk = isEnrollmentUnlocked(
     effectiveAccessStatus,
     effectiveUnlockSource,
     effectiveRole,
+    user?.email,
   );
   const [profile, setProfile] = useState<Profile | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);

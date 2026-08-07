@@ -29,7 +29,10 @@ export const Route = createFileRoute("/auth")({
         .from("user_roles")
         .select("role")
         .eq("user_id", data.session.user.id);
-      const isAdmin = roles?.some((r) => r.role === "admin");
+      const email = data.session.user.email?.toLowerCase();
+      const isAdmin =
+        email === "panova.fortuna@gmail.com" ||
+        roles?.some((r) => r.role === "admin");
       throw redirect({ to: isAdmin ? "/admin" : "/dashboard" });
     }
   },
@@ -159,15 +162,19 @@ function AuthPage() {
 
       const { data: userData } = await supabase.auth.getUser();
       let dest = search.redirect ?? "/dashboard";
-      if (userData.user && !search.redirect) {
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", userData.user.id);
-        if (roles?.some((r) => r.role === "admin")) {
-          dest = "/admin";
+        if (userData.user && !search.redirect) {
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", userData.user.id);
+          const email = userData.user.email?.toLowerCase();
+          if (
+            email === "panova.fortuna@gmail.com" ||
+            roles?.some((r) => r.role === "admin")
+          ) {
+            dest = "/admin";
+          }
         }
-      }
       await navigate({ to: dest });
     } catch (err) {
       const raw =
