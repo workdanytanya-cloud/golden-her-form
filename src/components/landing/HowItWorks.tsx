@@ -2,7 +2,7 @@ import { Reveal } from "@/components/ui/Reveal";
 import consultationPhoto from "@/assets/trainer-consultation.jpg";
 import sessionPhoto from "@/assets/trainer-session.jpg";
 import measurementsPhoto from "@/assets/trainer-measurements.jpg";
-import highfivePhoto from "@/assets/trainer-highfive.jpg";
+import highfivePhoto from "@/assets/trainer-highfive.png";
 
 const steps = [
   {
