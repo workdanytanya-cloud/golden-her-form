@@ -15,6 +15,7 @@ import { AuthProvider } from "../lib/auth";
 import { supabase } from "../integrations/supabase/client";
 import { Toaster } from "../components/ui/sonner";
 import { ScrollToTop } from "../components/ui/ScrollToTop";
+import { InstallAppPrompt } from "../components/ui/InstallAppPrompt";
 
 function NotFoundComponent() {
   return (
@@ -95,6 +96,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#0B0A08" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "PanovaPRO" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { name: "twitter:title", content: "PanovaPRO — Татьяна Панова · Персональный фитнес-коучинг" },
       { name: "description", content: "Авторская система похудения от Татьяны Пановой. 15+ лет тренерства, 10 000+ подопечных. Без срывов и голодовок." },
       { property: "og:description", content: "Авторская система похудения от Татьяны Пановой. 15+ лет тренерства, 10 000+ подопечных. Без срывов и голодовок." },
@@ -105,6 +109,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/pwa-icon-192.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -151,6 +157,7 @@ function RootComponent() {
       <AuthProvider>
         <Outlet />
         <ScrollToTop />
+        <InstallAppPrompt />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

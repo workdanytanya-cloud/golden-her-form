@@ -169,8 +169,16 @@ async function fetchAccess(userId: string): Promise<AccessStatus | null> {
     .select("status")
     .eq("user_id", userId)
     .maybeSingle();
-  if (error || !data) return null;
-  return data.status as AccessStatus;
+  if (error) return "pending_onboarding";
+  if (data?.status) return data.status as AccessStatus;
+
+  // Fallback for older accounts without a row (before signup trigger)
+  const { error: insertError } = await supabase.from("client_access").insert({
+    user_id: userId,
+    status: "pending_onboarding",
+  });
+  if (insertError) return "pending_onboarding";
+  return "pending_onboarding";
 }
 
 export function useAuth() {

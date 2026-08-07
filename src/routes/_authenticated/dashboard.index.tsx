@@ -100,7 +100,8 @@ function DashboardOverview() {
       />
 
       {/* Крупная приветственная карточка для новичков */}
-      {onboardingDone === false && effectiveAccessStatus === "pending_onboarding" && (
+      {onboardingDone === false &&
+        (effectiveAccessStatus === "pending_onboarding" || !effectiveAccessStatus) && (
         <section className="overflow-hidden rounded-3xl border border-coral/30 bg-gradient-to-br from-coral/15 via-background/40 to-gold/15 p-6 md:p-8">
           <p className="eyebrow">Первый шаг</p>
           <h2 className="mt-2 font-display text-2xl text-ivory md:text-3xl">
@@ -108,7 +109,7 @@ function DashboardOverview() {
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-warm-gray">
             Это займёт 5–7 минут. Расскажите о цели, здоровье и привычках — тренер составит план
-            тренировок и питания именно под вас. После отправки анкеты откроется курс и трекинг замеров.
+            тренировок и питания именно под вас. Курс и замеры откроются после допуска тренера.
           </p>
           <ol className="mt-5 grid gap-3 text-sm text-warm-gray md:grid-cols-3">
             <li className="rounded-2xl border border-gold/15 bg-background/40 p-4">

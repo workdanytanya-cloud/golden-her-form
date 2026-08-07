@@ -12,7 +12,13 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 });
 
 
-type AccessStatus = "pending_onboarding" | "awaiting_approval" | "active" | "paused" | null;
+type AccessStatus =
+  | "pending_onboarding"
+  | "awaiting_approval"
+  | "active"
+  | "suspended"
+  | "paused"
+  | null;
 
 type Client = {
   id: string;
@@ -28,6 +34,7 @@ const STATUS_ORDER: Record<string, number> = {
   awaiting_approval: 0,
   pending_onboarding: 2,
   active: 3,
+  suspended: 4,
   paused: 4,
 };
 
@@ -222,6 +229,10 @@ function StatusBadge({ status }: { status: AccessStatus }) {
     active: {
       label: "Активен",
       cls: "border-gold/40 bg-gold/10 text-gold",
+    },
+    suspended: {
+      label: "Приостановлен",
+      cls: "border-warm-gray/40 bg-warm-gray/10 text-warm-gray",
     },
     paused: {
       label: "Приостановлен",

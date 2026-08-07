@@ -53,7 +53,7 @@ const METRICS: {
 ];
 
 function ProgressPage() {
-  const { effectiveUserId } = useAuth();
+  const { effectiveUserId, effectiveRole, effectiveAccessStatus } = useAuth();
   const [items, setItems] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -67,13 +67,19 @@ function ProgressPage() {
     hips_cm: false,
     chest_cm: false,
   });
-
   const printRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
 
+  const canLoadProgress =
+    effectiveRole === "admin" || effectiveAccessStatus === "active";
+
   const load = () => {
-    if (!effectiveUserId) return;
+    if (!effectiveUserId || !canLoadProgress) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
     void supabase
       .from("measurements")
       .select("id, measured_on, weight_kg, waist_cm, hips_cm, chest_cm, note")
@@ -85,7 +91,7 @@ function ProgressPage() {
       });
   };
 
-  useEffect(load, [effectiveUserId]);
+  useEffect(load, [effectiveUserId, canLoadProgress]);
 
 
   const filtered = useMemo(() => {

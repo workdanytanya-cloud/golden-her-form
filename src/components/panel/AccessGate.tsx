@@ -5,10 +5,10 @@ import { useAuth, type AccessStatus } from "@/lib/auth";
 type Level = "onboarding_submitted" | "active";
 
 /**
- * Wraps a section. Blocks access based on client_access.status.
- * - level="onboarding_submitted": needs status in ('awaiting_approval', 'active').
- * - level="active": needs status === 'active' (course).
- * Admins bypass. If accessStatus is null (still loading or admin/unset), pass through.
+ * Blocks client sections by client_access.status.
+ * - onboarding_submitted: awaiting_approval | active
+ * - active: только после допуска тренера (status === 'active')
+ * Admins bypass. Missing status treated as pending_onboarding (locked).
  */
 export function AccessGate({
   level,
@@ -21,13 +21,11 @@ export function AccessGate({
 
   if (loading) return null;
   if (effectiveRole === "admin") return <>{children}</>;
-  if (!effectiveAccessStatus) return <>{children}</>;
 
-  const allowed = isAllowed(effectiveAccessStatus, level);
-  if (allowed) return <>{children}</>;
+  const status: AccessStatus = effectiveAccessStatus ?? "pending_onboarding";
+  if (isAllowed(status, level)) return <>{children}</>;
 
-  return <LockedCard status={effectiveAccessStatus} level={level} />;
-
+  return <LockedCard status={status} level={level} />;
 }
 
 function isAllowed(status: AccessStatus, level: Level) {
@@ -61,9 +59,9 @@ function LockedCard({ status, level }: { status: AccessStatus; level: Level }) {
         : "Раздел недоступен";
 
   const description = isPending
-    ? "Все разделы личного кабинета откроются после того, как вы заполните и отправите анкету онбординга. На её основе тренер соберёт вашу программу."
+    ? "Разделы курса откроются после анкеты и допуска тренера."
     : isAwaiting && level === "active"
-      ? "Анкета отправлена. Как только тренер проверит её и назначит вам программу — раздел курса и трекинг прогресса откроются автоматически."
+      ? "Анкета отправлена. Курс откроется после проверки тренером."
       : isSuspended
         ? "Свяжитесь с тренером, чтобы возобновить доступ."
         : "Обратитесь к тренеру.";

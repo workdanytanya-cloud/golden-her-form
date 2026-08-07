@@ -17,7 +17,7 @@ export const Route = createFileRoute("/auth")({
   beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getSession();
     if (data.session) {
-      throw redirect({ to: search.redirect ?? "/dashboard" });
+      throw redirect({ to: search.redirect ?? "/dashboard/onboarding" });
     }
   },
   component: AuthPage,
@@ -30,10 +30,24 @@ const passwordSchema = z
   .max(72, "Слишком длинный пароль");
 const nameSchema = z.string().trim().min(1, "Введите имя").max(100);
 
+function mapAuthError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("email not confirmed")) {
+    return "Email ещё не подтверждён. В Supabase отключите подтверждение почты или подтвердите пользователя в Authentication → Users.";
+  }
+  if (m.includes("invalid login credentials")) {
+    return "Неверный email или пароль";
+  }
+  if (m.includes("user already registered")) {
+    return "Этот email уже зарегистрирован. Войдите или восстановите пароль.";
+  }
+  return message;
+}
+
 function AuthPage() {
   const search = useSearch({ from: "/auth" });
   const navigate = useNavigate();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, refreshAccess } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">(search.mode ?? "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,8 +55,6 @@ function AuthPage() {
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,16 +69,33 @@ function AuthPage() {
 
       if (mode === "signup") {
         const parsedName = nameSchema.parse(fullName);
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email: parsedEmail,
           password: parsedPassword,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/dashboard/onboarding`,
             data: { full_name: parsedName },
           },
         });
         if (error) throw error;
-        toast.success("Аккаунт создан. Добро пожаловать!");
+
+        // If project requires email confirm, session may be null — sign in right away when allowed
+        if (!signUpData.session) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: parsedEmail,
+            password: parsedPassword,
+          });
+          if (signInError) throw signInError;
+        }
+
+        toast.success("Аккаунт создан. Заполните анкету.");
+        try {
+          localStorage.removeItem("panovapro.installDismissed");
+        } catch {
+          /* ignore */
+        }
+        await refreshAccess();
+        await navigate({ to: search.redirect ?? "/dashboard/onboarding" });
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: parsedEmail,
@@ -74,19 +103,17 @@ function AuthPage() {
         });
         if (error) throw error;
         toast.success("С возвращением!");
+        await refreshAccess();
+        await navigate({ to: search.redirect ?? "/dashboard" });
       }
-
-      // brief delay so onAuthStateChange fires + role loads
-      await new Promise((r) => setTimeout(r, 150));
-      await navigate({ to: search.redirect ?? "/dashboard" });
     } catch (err) {
-      const message =
+      const raw =
         err instanceof z.ZodError
           ? err.errors[0].message
           : err instanceof Error
             ? err.message
             : "Ошибка авторизации";
-      toast.error(message);
+      toast.error(mapAuthError(raw));
     } finally {
       setSubmitting(false);
     }
@@ -109,7 +136,12 @@ function AuthPage() {
               : "Создайте аккаунт и начните трансформацию"}
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            className="mt-6 space-y-4"
+            autoComplete={mode === "signup" ? "on" : "on"}
+            name={mode === "signup" ? "signup" : "login"}
+          >
             {mode === "signup" && (
               <div>
                 <label className="mb-1.5 block text-xs uppercase tracking-wider text-warm-gray">
@@ -117,12 +149,14 @@ function AuthPage() {
                 </label>
                 <input
                   type="text"
+                  name="name"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full rounded-xl border border-gold/20 bg-background/50 px-4 py-3 text-ivory outline-none transition-colors focus:border-gold/60"
                   placeholder="Ваше имя"
                   maxLength={100}
+                  autoComplete="name"
                 />
               </div>
             )}
@@ -132,12 +166,13 @@ function AuthPage() {
               </label>
               <input
                 type="email"
+                name="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl border border-gold/20 bg-background/50 px-4 py-3 text-ivory outline-none transition-colors focus:border-gold/60"
                 placeholder="you@example.com"
-                autoComplete="email"
+                autoComplete="username"
               />
             </div>
             <div>
@@ -147,6 +182,7 @@ function AuthPage() {
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
+                  name="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -164,6 +200,11 @@ function AuthPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {mode === "signup" && (
+                <p className="mt-2 text-[11px] text-warm-gray">
+                  После создания браузер предложит сохранить пароль — согласитесь, чтобы не вводить его каждый раз.
+                </p>
+              )}
             </div>
 
             {mode === "signup" && (
@@ -187,7 +228,6 @@ function AuthPage() {
                 </span>
               </label>
             )}
-
 
             <button
               type="submit"
