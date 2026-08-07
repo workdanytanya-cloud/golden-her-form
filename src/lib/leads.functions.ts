@@ -67,7 +67,47 @@ async function notifyTelegram(text: string) {
   }
 }
 
-async function notifyEmail(subject: string, text: string) {
+async function notifyEmailSmtp(subject: string, text: string, replyTo?: string) {
+  const host = (process.env.SMTP_HOST || "").trim();
+  const user = (process.env.SMTP_USER || "").trim();
+  const pass = (process.env.SMTP_PASS || "").trim();
+  const to = (process.env.LEAD_NOTIFY_EMAIL || "panova.fortuna@gmail.com").trim();
+  const fromName = (process.env.LEAD_NOTIFY_FROM_NAME || "PanovaPRO").trim();
+  const port = Number(process.env.SMTP_PORT || "465");
+
+  if (!host || !user || !pass) {
+    return { ok: false as const, reason: "smtp_not_configured" };
+  }
+
+  try {
+    const nodemailer = await import("nodemailer");
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+    });
+
+    await transporter.sendMail({
+      from: `"${fromName}" <${user}>`,
+      to,
+      replyTo: replyTo || undefined,
+      subject,
+      text,
+    });
+    console.info("[leads] SMTP email notify ok →", to);
+    return { ok: true as const };
+  } catch (e) {
+    console.error("[leads] SMTP email error", e);
+    return {
+      ok: false as const,
+      reason: "smtp_failed",
+      detail: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+async function notifyEmailResend(subject: string, text: string, replyTo?: string) {
   const apiKey = (process.env.RESEND_API_KEY || "").trim();
   const to = (process.env.LEAD_NOTIFY_EMAIL || "panova.fortuna@gmail.com").trim();
   const from = (process.env.LEAD_NOTIFY_FROM || "PanovaPRO <onboarding@resend.dev>").trim();
@@ -85,21 +125,30 @@ async function notifyEmail(subject: string, text: string) {
       body: JSON.stringify({
         from,
         to: [to],
+        reply_to: replyTo || undefined,
         subject,
         text,
       }),
     });
     const body = await res.text();
     if (!res.ok) {
-      console.error("[leads] Email notify failed", res.status, body);
+      console.error("[leads] Resend notify failed", res.status, body);
       return { ok: false as const, reason: "email_failed", detail: body };
     }
-    console.info("[leads] Email notify ok");
+    console.info("[leads] Resend email notify ok");
     return { ok: true as const };
   } catch (e) {
-    console.error("[leads] Email network error", e);
+    console.error("[leads] Resend network error", e);
     return { ok: false as const, reason: "email_network" };
   }
+}
+
+/** Prefer Gmail/SMTP; fall back to Resend if configured */
+async function notifyEmail(subject: string, text: string, replyTo?: string) {
+  const smtp = await notifyEmailSmtp(subject, text, replyTo);
+  if (smtp.ok) return smtp;
+  if (smtp.reason !== "smtp_not_configured") return smtp;
+  return notifyEmailResend(subject, text, replyTo);
 }
 
 function formatLeadMessage(data: z.infer<typeof leadInputSchema>) {
@@ -158,7 +207,10 @@ export const submitLead = createServerFn({ method: "POST" })
       ? `Заявка: ${data.full_name} — ${data.program_title}`
       : `Новая заявка: ${data.full_name}`;
 
-    const [tg, mail] = await Promise.all([notifyTelegram(text), notifyEmail(subject, text)]);
+    const [tg, mail] = await Promise.all([
+      notifyTelegram(text),
+      notifyEmail(subject, text, data.email),
+    ]);
     const notified = tg.ok || mail.ok;
     if (!notified) {
       console.warn("[leads] Lead saved but notify failed", {
