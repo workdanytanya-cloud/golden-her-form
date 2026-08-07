@@ -37,7 +37,7 @@ export function Results() {
         <Reveal>
           <p className="eyebrow">Результаты</p>
           <h2 className="mt-5 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
-            Это <span className="gold-text italic">работает.</span>
+            Это <span className="gold-text">работает.</span>
           </h2>
           <p className="mt-4 max-w-lg text-sm text-ivory/65">
             Реальные трансформации за 3–6 месяцев. Без ретуши.

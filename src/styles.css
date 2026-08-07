@@ -4,11 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Luxury fitness palette — black / warm gray / ivory / gold */
+/* Luxury fitness palette — black / warm gray / ivory / gold (cabinet & auth) */
 
 @theme inline {
-  --font-display: "Fraunces", "Playfair Display", ui-serif, Georgia, serif;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Unbounded", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Onest", ui-sans-serif, system-ui, sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -165,8 +165,70 @@
 
 @utility font-display {
   font-family: var(--font-display);
-  font-optical-sizing: auto;
-  letter-spacing: -0.02em;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+/* Light marketing surface — pearl / peach / blush, coral accent */
+.landing {
+  color-scheme: light;
+  --gold: oklch(0.62 0.13 72);
+  --gold-soft: oklch(0.78 0.1 78);
+  --coral: oklch(0.6 0.19 28);
+  --coral-soft: oklch(0.72 0.14 32);
+  --ivory: oklch(0.24 0.028 45);
+  --warm-gray: oklch(0.5 0.02 55);
+  --surface: oklch(0.97 0.012 72);
+  --background: oklch(0.985 0.008 78);
+  --foreground: oklch(0.24 0.028 45);
+  --card: oklch(0.995 0.005 80);
+  --card-foreground: oklch(0.24 0.028 45);
+  --border: oklch(0.9 0.015 70);
+  --input: oklch(0.9 0.015 70);
+  --muted: oklch(0.95 0.01 75);
+  --muted-foreground: oklch(0.5 0.02 55);
+  --primary: oklch(0.6 0.19 28);
+  --primary-foreground: oklch(0.99 0.005 80);
+  --secondary: oklch(0.95 0.012 72);
+  --secondary-foreground: oklch(0.24 0.028 45);
+  --ring: oklch(0.6 0.19 28);
+
+  background-color: var(--background);
+  background-image:
+    radial-gradient(90% 55% at 0% -5%, oklch(0.9 0.045 45 / 0.55), transparent 58%),
+    radial-gradient(75% 45% at 100% 0%, oklch(0.92 0.04 25 / 0.4), transparent 52%),
+    radial-gradient(70% 50% at 70% 100%, oklch(0.93 0.035 85 / 0.35), transparent 55%),
+    linear-gradient(180deg, oklch(0.992 0.006 80) 0%, oklch(0.978 0.012 72) 100%);
+}
+
+.landing .glass {
+  background: color-mix(in oklab, white 78%, transparent);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid color-mix(in oklab, var(--coral) 14%, transparent);
+}
+
+.landing .eyebrow {
+  color: var(--coral);
+  letter-spacing: 0.22em;
+}
+
+.landing .gold-text {
+  background: linear-gradient(120deg, oklch(0.58 0.16 45) 0%, var(--coral) 55%, oklch(0.65 0.14 75) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: normal;
+}
+
+.landing .card-interactive:hover {
+  border-color: color-mix(in oklab, var(--coral) 32%, transparent);
+  box-shadow: 0 18px 44px -16px oklch(0.55 0.12 40 / 0.22);
+}
+
+.landing ::selection {
+  background: color-mix(in oklab, var(--coral) 35%, transparent);
+  color: oklch(0.22 0.03 45);
 }
 
 @utility hairline {

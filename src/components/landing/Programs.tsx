@@ -9,7 +9,7 @@ export function Programs() {
         <Reveal>
           <p className="eyebrow">Программы</p>
           <h2 className="mt-5 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
-            Что <span className="gold-text italic">подойдёт вам?</span>
+            Что <span className="gold-text">подойдёт вам?</span>
           </h2>
           <p className="mt-4 max-w-md text-sm text-ivory/60">
             План подстраивается под вашу цель после короткой анкеты.
@@ -44,11 +44,11 @@ export function Programs() {
                     <span className="rounded-full border border-gold/40 bg-background/40 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-gold backdrop-blur">
                       {p.tag}
                     </span>
-                    <span className="text-[10px] uppercase tracking-[0.24em] text-ivory/60">{p.weeks}</span>
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-white/60">{p.weeks}</span>
                   </div>
                   <div>
-                    <h3 className="font-display text-xl text-ivory sm:text-2xl">{p.title}</h3>
-                    <p className="mt-2 line-clamp-2 text-sm text-ivory/75">{p.text.split(".")[0]}.</p>
+                    <h3 className="font-display text-xl text-white sm:text-2xl">{p.title}</h3>
+                    <p className="mt-2 line-clamp-2 text-sm text-white/75">{p.text.split(".")[0]}.</p>
                     <div className="mt-4 flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-gold transition-transform duration-500 group-hover:translate-x-1">
                       Подробнее
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

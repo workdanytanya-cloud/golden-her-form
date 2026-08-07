@@ -23,14 +23,14 @@ export function Testimonials() {
         className="absolute inset-0 -z-10 opacity-50"
         style={{
           background:
-            "radial-gradient(50% 40% at 80% 10%, rgba(200,154,74,0.10), transparent 60%), radial-gradient(50% 40% at 10% 90%, rgba(200,154,74,0.06), transparent 60%)",
+            "radial-gradient(50% 40% at 80% 10%, oklch(0.7 0.1 35 / 0.12), transparent 60%), radial-gradient(50% 40% at 10% 90%, oklch(0.75 0.08 75 / 0.1), transparent 60%)",
         }}
       />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <Reveal>
           <p className="eyebrow">Отзывы</p>
           <h2 className="mt-5 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
-            Голоса <span className="gold-text italic">клиентов.</span>
+            Голоса <span className="gold-text">клиентов.</span>
           </h2>
         </Reveal>
 

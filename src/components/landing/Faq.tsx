@@ -41,7 +41,7 @@ export function Faq() {
           <div className="text-center">
             <p className="eyebrow">FAQ</p>
             <h2 className="mt-5 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
-              Остались <span className="gold-text italic">вопросы?</span>
+              Остались <span className="gold-text">вопросы?</span>
             </h2>
           </div>
         </Reveal>

@@ -35,7 +35,7 @@ function ProgramPage() {
   const others = programs.filter((x) => x.slug !== p.slug).slice(0, 3);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
+    <main className="landing min-h-screen overflow-x-hidden text-foreground">
       <Nav />
 
       {/* Hero */}
@@ -65,7 +65,7 @@ function ProgramPage() {
                 <Link
                   to={session ? "/dashboard" : "/auth"}
                   search={session ? undefined : { mode: "signup" }}
-                  className="inline-flex items-center gap-2 rounded-lg bg-gold px-6 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.03]"
+                  className="inline-flex items-center gap-2 rounded-lg bg-coral px-6 py-3 text-sm font-medium text-white transition-transform hover:scale-[1.03]"
                 >
                   Записаться на программу
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -174,7 +174,7 @@ function ProgramPage() {
       <section className="border-t border-gold/10 py-24 lg:py-32">
         <div className="mx-auto max-w-4xl px-6 text-center lg:px-10">
           <h2 className="font-display text-3xl leading-tight text-ivory sm:text-4xl lg:text-5xl">
-            Готова начать <span className="gold-text italic">«{p.title}»</span>?
+            Готова начать <span className="gold-text">«{p.title}»</span>?
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-sm leading-relaxed text-ivory/70">
             Заполни анкету — я подберу интенсивность, питание и график под тебя. Первый шаг занимает
@@ -183,7 +183,7 @@ function ProgramPage() {
           <Link
             to={session ? "/dashboard" : "/auth"}
             search={session ? undefined : { mode: "signup" }}
-            className="mt-10 inline-flex items-center gap-2 rounded-lg bg-gold px-7 py-3.5 text-sm font-medium text-background transition-transform hover:scale-[1.03]"
+            className="mt-10 inline-flex items-center gap-2 rounded-lg bg-coral px-7 py-3.5 text-sm font-medium text-white transition-transform hover:scale-[1.03]"
           >
             Записаться
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -230,7 +230,7 @@ function ProgramPage() {
 
 function NotFound() {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
+    <main className="landing min-h-screen overflow-x-hidden text-foreground">
       <Nav />
       <section className="mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center px-6 text-center">
         <p className="eyebrow">404</p>
@@ -239,7 +239,7 @@ function NotFound() {
         <Link
           to="/"
           hash="programs"
-          className="mt-10 inline-flex items-center gap-2 rounded-lg bg-gold px-6 py-3 text-sm font-medium text-background"
+          className="mt-10 inline-flex items-center gap-2 rounded-lg bg-coral px-6 py-3 text-sm font-medium text-white"
         >
           К программам
         </Link>

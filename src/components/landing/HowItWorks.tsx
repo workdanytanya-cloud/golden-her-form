@@ -42,7 +42,7 @@ export function HowItWorks() {
         <Reveal>
           <p className="eyebrow">Сопровождение</p>
           <h2 className="mt-5 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
-            Как это <span className="gold-text italic">проходит?</span>
+            Как это <span className="gold-text">проходит?</span>
           </h2>
         </Reveal>
 
