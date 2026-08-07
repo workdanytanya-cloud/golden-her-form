@@ -513,14 +513,14 @@ function ArticleCard({ article }: { article: Article }) {
       {open && (
         <div className="space-y-3 border-t border-gold/10 px-5 pb-6 pt-4 text-sm leading-relaxed text-warm-gray md:text-[15px]">
           {article.image && (
-            <div className="overflow-hidden rounded-xl border border-gold/10 bg-surface/60">
+            <div className="-mx-1 overflow-hidden rounded-xl border border-gold/10 bg-background/40 sm:mx-0">
               <img
                 src={article.image.src}
                 alt={article.image.alt}
                 loading="lazy"
-                width={768}
-                height={576}
-                className="aspect-[4/3] h-auto w-full object-cover"
+                decoding="async"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 720px"
+                className="mx-auto block h-auto w-full max-h-[min(70vh,560px)] object-contain object-center"
               />
             </div>
           )}
