@@ -147,6 +147,7 @@ export type Database = {
           created_at: string
           notes: string | null
           status: string
+          unlock_source: string | null
           updated_at: string
           user_id: string
         }
@@ -156,6 +157,7 @@ export type Database = {
           created_at?: string
           notes?: string | null
           status?: string
+          unlock_source?: string | null
           updated_at?: string
           user_id: string
         }
@@ -165,6 +167,7 @@ export type Database = {
           created_at?: string
           notes?: string | null
           status?: string
+          unlock_source?: string | null
           updated_at?: string
           user_id?: string
         }

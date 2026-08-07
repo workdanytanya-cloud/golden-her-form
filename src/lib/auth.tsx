@@ -4,25 +4,31 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type AppRole = "admin" | "client";
 export type AccessStatus = "pending_onboarding" | "awaiting_approval" | "active" | "suspended";
+export type UnlockSource = "promo" | "payment" | null;
 
 export type Impersonation = { userId: string; name: string } | null;
+
+type AccessInfo = {
+  status: AccessStatus;
+  unlockSource: UnlockSource;
+};
 
 type AuthState = {
   session: Session | null;
   user: User | null;
   role: AppRole | null;
   accessStatus: AccessStatus | null;
+  unlockSource: UnlockSource;
   loading: boolean;
   refreshAccess: () => Promise<void>;
   signOut: () => Promise<void>;
-  // Impersonation ("View as client")
   impersonation: Impersonation;
   startImpersonation: (userId: string, name: string) => void;
   stopImpersonation: () => void;
-  // Effective identity used by dashboard pages
   effectiveUserId: string | null;
   effectiveRole: AppRole | null;
   effectiveAccessStatus: AccessStatus | null;
+  effectiveUnlockSource: UnlockSource;
 };
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -41,23 +47,39 @@ function readStoredImpersonation(): Impersonation {
   return null;
 }
 
+/** Registration + questionnaire unlocked; full course still needs status=active */
+export function isEnrollmentUnlocked(
+  status: AccessStatus | null,
+  unlockSource: UnlockSource,
+  role: AppRole | null,
+): boolean {
+  if (role === "admin") return true;
+  if (status === "active" || status === "awaiting_approval") return true;
+  return unlockSource === "promo" || unlockSource === "payment";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [accessStatus, setAccessStatus] = useState<AccessStatus | null>(null);
+  const [unlockSource, setUnlockSource] = useState<UnlockSource>(null);
   const [loading, setLoading] = useState(true);
   const [impersonation, setImpersonation] = useState<Impersonation>(() => readStoredImpersonation());
-  const [impersonatedAccess, setImpersonatedAccess] = useState<AccessStatus | null>(null);
+  const [impersonatedAccess, setImpersonatedAccess] = useState<AccessInfo | null>(null);
+
+  const applyAccess = useCallback((info: AccessInfo) => {
+    setAccessStatus(info.status);
+    setUnlockSource(info.unlockSource);
+  }, []);
 
   const refreshAccess = useCallback(async () => {
     if (!session) return;
-    const s = await fetchAccess(session.user.id);
-    setAccessStatus(s);
+    const info = await fetchAccess(session.user.id);
+    applyAccess(info);
     if (impersonation) {
-      const ia = await fetchAccess(impersonation.userId);
-      setImpersonatedAccess(ia);
+      setImpersonatedAccess(await fetchAccess(impersonation.userId));
     }
-  }, [session, impersonation]);
+  }, [session, impersonation, applyAccess]);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -65,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!s) {
         setRole(null);
         setAccessStatus(null);
+        setUnlockSource(null);
         setImpersonation(null);
         setImpersonatedAccess(null);
         if (typeof window !== "undefined") window.localStorage.removeItem(IMPERSONATION_KEY);
@@ -72,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setTimeout(() => {
         void fetchRole(s.user.id).then(setRole);
-        void fetchAccess(s.user.id).then(setAccessStatus);
+        void fetchAccess(s.user.id).then(applyAccess);
       }, 0);
     });
 
@@ -81,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session) {
         void Promise.all([
           fetchRole(data.session.user.id).then(setRole),
-          fetchAccess(data.session.user.id).then(setAccessStatus),
+          fetchAccess(data.session.user.id).then(applyAccess),
         ]).finally(() => setLoading(false));
       } else {
         setLoading(false);
@@ -89,9 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [applyAccess]);
 
-  // Load impersonated access status whenever impersonation changes
   useEffect(() => {
     if (!impersonation) {
       setImpersonatedAccess(null);
@@ -119,14 +141,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  // Only admins may impersonate — ignore stored value otherwise
   const activeImpersonation = role === "admin" ? impersonation : null;
 
   const effectiveUserId = activeImpersonation?.userId ?? session?.user?.id ?? null;
   const effectiveRole: AppRole | null = activeImpersonation ? "client" : role;
   const effectiveAccessStatus: AccessStatus | null = activeImpersonation
-    ? impersonatedAccess
+    ? impersonatedAccess?.status ?? null
     : accessStatus;
+  const effectiveUnlockSource: UnlockSource = activeImpersonation
+    ? impersonatedAccess?.unlockSource ?? null
+    : unlockSource;
 
   return (
     <AuthContext.Provider
@@ -135,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: session?.user ?? null,
         role,
         accessStatus,
+        unlockSource,
         loading,
         refreshAccess,
         signOut,
@@ -144,6 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         effectiveUserId,
         effectiveRole,
         effectiveAccessStatus,
+        effectiveUnlockSource,
       }}
     >
       {children}
@@ -163,22 +189,31 @@ async function fetchRole(userId: string): Promise<AppRole | null> {
   return data.role as AppRole;
 }
 
-async function fetchAccess(userId: string): Promise<AccessStatus | null> {
+async function fetchAccess(userId: string): Promise<AccessInfo> {
   const { data, error } = await supabase
     .from("client_access")
-    .select("status")
+    .select("status, unlock_source")
     .eq("user_id", userId)
     .maybeSingle();
-  if (error) return "pending_onboarding";
-  if (data?.status) return data.status as AccessStatus;
 
-  // Fallback for older accounts without a row (before signup trigger)
+  if (error) {
+    return { status: "pending_onboarding", unlockSource: null };
+  }
+  if (data?.status) {
+    return {
+      status: data.status as AccessStatus,
+      unlockSource: (data.unlock_source as UnlockSource) ?? null,
+    };
+  }
+
   const { error: insertError } = await supabase.from("client_access").insert({
     user_id: userId,
     status: "pending_onboarding",
   });
-  if (insertError) return "pending_onboarding";
-  return "pending_onboarding";
+  if (insertError) {
+    return { status: "pending_onboarding", unlockSource: null };
+  }
+  return { status: "pending_onboarding", unlockSource: null };
 }
 
 export function useAuth() {

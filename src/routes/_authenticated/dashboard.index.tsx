@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
+import { useAuth, isEnrollmentUnlocked } from "@/lib/auth";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
 import { JourneyStepper } from "@/components/panel/JourneyStepper";
 import { SectionHint } from "@/components/panel/Hints";
-import { ArrowRight, Clock, ClipboardList, Sparkles, User, LineChart as LineChartIcon, PartyPopper, X } from "lucide-react";
+import { ArrowRight, Clock, ClipboardList, Sparkles, User, LineChart as LineChartIcon, PartyPopper, X, Ticket } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardOverview,
@@ -26,7 +26,17 @@ type Measurement = {
 };
 
 function DashboardOverview() {
-  const { effectiveUserId, effectiveAccessStatus } = useAuth();
+  const {
+    effectiveUserId,
+    effectiveAccessStatus,
+    effectiveUnlockSource,
+    effectiveRole,
+  } = useAuth();
+  const enrollmentOk = isEnrollmentUnlocked(
+    effectiveAccessStatus,
+    effectiveUnlockSource,
+    effectiveRole,
+  );
   const [profile, setProfile] = useState<Profile | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
@@ -101,7 +111,31 @@ function DashboardOverview() {
 
       {/* Крупная приветственная карточка для новичков */}
       {onboardingDone === false &&
-        (effectiveAccessStatus === "pending_onboarding" || !effectiveAccessStatus) && (
+        (effectiveAccessStatus === "pending_onboarding" || !effectiveAccessStatus) &&
+        !enrollmentOk && (
+        <section className="overflow-hidden rounded-3xl border border-coral/30 bg-gradient-to-br from-coral/15 via-background/40 to-gold/15 p-6 md:p-8">
+          <p className="eyebrow">Доступ по приглашению</p>
+          <h2 className="mt-2 font-display text-2xl text-ivory md:text-3xl">
+            Нужен промокод после оплаты
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-warm-gray">
+            Регистрация и анкета открываются после оплаты. Если оплатили наличными — введите
+            промокод, который выдал тренер.
+          </p>
+          <Link
+            to="/auth"
+            search={{ mode: "promo" }}
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-6 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02]"
+          >
+            <Ticket className="h-4 w-4" /> Ввести промокод
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </section>
+      )}
+
+      {onboardingDone === false &&
+        (effectiveAccessStatus === "pending_onboarding" || !effectiveAccessStatus) &&
+        enrollmentOk && (
         <section className="overflow-hidden rounded-3xl border border-coral/30 bg-gradient-to-br from-coral/15 via-background/40 to-gold/15 p-6 md:p-8">
           <p className="eyebrow">Первый шаг</p>
           <h2 className="mt-2 font-display text-2xl text-ivory md:text-3xl">

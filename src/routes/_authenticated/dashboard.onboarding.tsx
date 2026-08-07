@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
+import { useAuth, isEnrollmentUnlocked } from "@/lib/auth";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { SectionHint } from "@/components/panel/Hints";
 import { toast } from "sonner";
@@ -221,7 +221,15 @@ const PREGNANCY = [
 const TIMEFRAME = ["1 месяц", "3 месяца", "6 месяцев", "Год и больше"];
 
 function OnboardingPage() {
-  const { effectiveUserId, refreshAccess, impersonation } = useAuth();
+  const {
+    effectiveUserId,
+    refreshAccess,
+    impersonation,
+    effectiveRole,
+    effectiveAccessStatus,
+    effectiveUnlockSource,
+    loading: authLoading,
+  } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState<FormState>(empty);
   const [extraBase, setExtraBase] = useState<Record<string, unknown>>({});
@@ -230,6 +238,31 @@ function OnboardingPage() {
   const [completed, setCompleted] = useState<string | null>(null);
   const [missingKeys, setMissingKeys] = useState<Set<string>>(new Set());
   const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  const unlocked = isEnrollmentUnlocked(
+    effectiveAccessStatus,
+    effectiveUnlockSource,
+    effectiveRole,
+  );
+
+  if (!authLoading && !unlocked) {
+    return (
+      <div className="mx-auto max-w-xl space-y-6 text-center">
+        <PanelHeader
+          eyebrow="Анкета"
+          title="Нужен промокод"
+          description="Анкета доступна после оплаты. Если оплатили наличными — активируйте промокод от тренера."
+        />
+        <Link
+          to="/auth"
+          search={{ mode: "promo" }}
+          className="inline-flex rounded-full bg-gold px-6 py-3 text-sm font-medium text-background"
+        >
+          Ввести промокод
+        </Link>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (!effectiveUserId) return;

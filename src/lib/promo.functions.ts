@@ -177,14 +177,30 @@ export const redeemPromoCode = createServerFn({ method: "POST" })
       throw new Error("Промокод уже использован");
     }
 
+    const { data: existing } = await supabaseAdmin
+      .from("client_access")
+      .select("status, activated_at, activated_by, unlock_source")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+
+    // Promo only unlocks enrollment (анкета). Same pipeline as before:
+    // pending_onboarding → awaiting_approval → trainer sets active.
+    const status =
+      existing?.status === "active" ||
+      existing?.status === "awaiting_approval" ||
+      existing?.status === "suspended"
+        ? existing.status
+        : "pending_onboarding";
+
     const now = new Date().toISOString();
     const { error: accessErr } = await supabaseAdmin.from("client_access").upsert(
       {
         user_id: context.userId,
-        status: "active",
-        activated_at: now,
-        activated_by: context.userId,
-        notes: `Промокод ${code}`,
+        status,
+        unlock_source: "promo",
+        activated_at: existing?.activated_at ?? null,
+        activated_by: existing?.activated_by ?? null,
+        notes: existing?.notes || `Промокод ${code}`,
         updated_at: now,
       },
       { onConflict: "user_id" },
@@ -192,7 +208,7 @@ export const redeemPromoCode = createServerFn({ method: "POST" })
 
     if (accessErr) {
       console.error("promo access", accessErr);
-      throw new Error("Промокод принят, но доступ не открылся. Напишите тренеру.");
+      throw new Error("Промокод принят, но доступ к анкете не открылся. Напишите тренеру.");
     }
 
     // Ensure profile row exists
