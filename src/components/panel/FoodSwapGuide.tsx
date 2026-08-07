@@ -212,21 +212,21 @@ export function FoodSwapGuide() {
               </button>
 
               {open && (
-                <div className="border-t border-gold/15 bg-black/20 px-2 py-3 sm:px-4">
+                <div className="border-t border-gold/15 bg-muted/70 px-2 py-3 sm:px-4 dark:bg-black/20">
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[560px] border-separate border-spacing-y-1 text-sm">
                       <thead>
-                        <tr className="text-[11px] uppercase tracking-widest text-gold">
-                          <th className="px-3 py-2 text-left font-medium">Продукт</th>
-                          <th className="px-3 py-2 text-left font-medium">Вес по списку</th>
-                          <th className="px-3 py-2 text-left font-medium">Готовый вес</th>
-                          <th className="px-3 py-2 text-left font-medium">Важно</th>
+                        <tr className="text-[11px] font-semibold uppercase tracking-widest text-gold">
+                          <th className="px-3 py-2 text-left font-semibold">Продукт</th>
+                          <th className="px-3 py-2 text-left font-semibold">Вес по списку</th>
+                          <th className="px-3 py-2 text-left font-semibold">Готовый вес</th>
+                          <th className="px-3 py-2 text-left font-semibold">Важно</th>
                         </tr>
                       </thead>
                       <tbody>
                         {s.rows.map((r, i) => (
-                          <tr key={i} className="rounded-xl bg-ivory/[0.03]">
-                            <td className="rounded-l-xl px-3 py-2 text-ivory">{r.product}</td>
+                          <tr key={i} className="rounded-xl bg-card/90 dark:bg-ivory/[0.03]">
+                            <td className="rounded-l-xl px-3 py-2 font-medium text-ivory">{r.product}</td>
                             <td className="px-3 py-2 text-warm-gray">{r.raw}</td>
                             <td className="px-3 py-2 text-warm-gray">{r.cooked}</td>
                             <td className="rounded-r-xl px-3 py-2 text-warm-gray">{r.note}</td>
@@ -236,7 +236,7 @@ export function FoodSwapGuide() {
                     </table>
                   </div>
                   {s.footer && (
-                    <p className="mt-3 flex items-start gap-2 rounded-xl border border-gold/20 bg-black/30 px-3 py-2 text-xs text-ivory">
+                    <p className="mt-3 flex items-start gap-2 rounded-xl border border-gold/25 bg-card px-3 py-2 text-xs text-ivory shadow-sm dark:border-gold/20 dark:bg-black/30 dark:shadow-none">
                       <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
                       <span>{s.footer}</span>
                     </p>
@@ -255,9 +255,9 @@ export function FoodSwapGuide() {
 
 function TeaCoffeeCard() {
   return (
-    <article className="rounded-2xl border border-gold/30 bg-gradient-to-br from-amber-900/30 via-black/30 to-transparent p-5">
+    <article className="rounded-2xl border border-gold/30 bg-gradient-to-br from-amber-500/10 via-surface/80 to-card p-5 dark:from-amber-900/30 dark:via-black/30 dark:to-transparent">
       <div className="flex items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-full border border-gold/40 bg-black/40 text-gold">
+        <span className="grid h-10 w-10 place-items-center rounded-full border border-gold/40 bg-card text-gold shadow-sm dark:bg-black/40">
           <Coffee className="h-5 w-5" />
         </span>
         <div>
@@ -302,7 +302,7 @@ function TeaCoffeeCard() {
         />
       </div>
 
-      <p className="mt-4 flex items-start gap-2 rounded-xl border border-gold/20 bg-black/30 px-3 py-2 text-xs text-ivory">
+      <p className="mt-4 flex items-start gap-2 rounded-xl border border-gold/25 bg-card px-3 py-2 text-xs text-ivory shadow-sm dark:bg-black/30">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
         <span>
           Правило простое: сам напиток — свободно, всё сладкое и жирное к нему — считаем. И
@@ -315,12 +315,12 @@ function TeaCoffeeCard() {
 
 function Block({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="rounded-xl border border-gold/20 bg-black/25 p-4">
-      <p className="text-[11px] uppercase tracking-widest text-gold">{title}</p>
-      <ul className="mt-2 space-y-1.5 text-sm text-ivory/90">
+    <div className="rounded-xl border border-gold/25 bg-card p-4 shadow-sm dark:border-gold/20 dark:bg-black/25 dark:shadow-none">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-gold">{title}</p>
+      <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-ivory">
         {items.map((t, i) => (
           <li key={i} className="flex gap-2">
-            <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
             <span>{t}</span>
           </li>
         ))}
