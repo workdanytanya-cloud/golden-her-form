@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 /** Bump when changing notify logic — must appear in toast / logs */
-export const LEADS_BUILD = "disk-env-v2";
+export const LEADS_BUILD = "nohang-v1";
 
 const leadInputSchema = z.object({
   full_name: z.string().trim().min(2, "Укажите фамилию и имя").max(120),
@@ -91,6 +91,25 @@ const MESSENGER_LABEL: Record<string, string> = {
   any: "Любой мессенджер",
 };
 
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  onTimeout: T,
+): Promise<T> {
+  return new Promise((resolve) => {
+    const t = setTimeout(() => resolve(onTimeout), ms);
+    promise
+      .then((v) => {
+        clearTimeout(t);
+        resolve(v);
+      })
+      .catch(() => {
+        clearTimeout(t);
+        resolve(onTimeout);
+      });
+  });
+}
+
 async function notifyTelegram(text: string) {
   const token = envGet("TELEGRAM_BOT_TOKEN");
   const chatIdRaw = envGet("TELEGRAM_CHAT_ID");
@@ -114,6 +133,7 @@ async function notifyTelegram(text: string) {
         text,
         disable_web_page_preview: true,
       }),
+      signal: AbortSignal.timeout(8000),
     });
     const body = await res.text();
     if (!res.ok) {
@@ -147,6 +167,9 @@ async function notifyEmailSmtp(subject: string, text: string, replyTo?: string) 
       port,
       secure: port === 465,
       auth: { user, pass },
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 8000,
     });
 
     await transporter.sendMail({
@@ -190,6 +213,7 @@ async function notifyEmailResend(subject: string, text: string, replyTo?: string
         subject,
         text,
       }),
+      signal: AbortSignal.timeout(8000),
     });
     const body = await res.text();
     if (!res.ok) {
@@ -281,8 +305,14 @@ export const submitLead = createServerFn({ method: "POST" })
     console.info(`[leads] NOTIFY_ENV_CHECK ${LEADS_BUILD}`, envFlags);
 
     const [tg, mail] = await Promise.all([
-      notifyTelegram(text),
-      notifyEmail(subject, text, data.email),
+      withTimeout(notifyTelegram(text), 10000, {
+        ok: false as const,
+        reason: "telegram_timeout",
+      }),
+      withTimeout(notifyEmail(subject, text, data.email), 10000, {
+        ok: false as const,
+        reason: "email_timeout",
+      }),
     ]);
     const notified = tg.ok || mail.ok;
     if (!notified) {

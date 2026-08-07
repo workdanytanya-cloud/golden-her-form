@@ -122,6 +122,10 @@ function LeadFormDialog({
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
+    const watchdog = window.setTimeout(() => {
+      setSending(false);
+      toast.error("Сервер не ответил вовремя. Проверьте заявку в админке «Заявки» или попробуйте снова.");
+    }, 25000);
     try {
       const result = await submit({
         data: {
@@ -136,6 +140,7 @@ function LeadFormDialog({
           website,
         },
       });
+      window.clearTimeout(watchdog);
       if (result.notified === false) {
         const reasons = [
           result.notify?.telegramReason,
@@ -156,9 +161,11 @@ function LeadFormDialog({
       }
       onClose();
     } catch (err) {
+      window.clearTimeout(watchdog);
       const msg = err instanceof Error ? err.message : "Ошибка отправки";
       toast.error(msg);
     } finally {
+      window.clearTimeout(watchdog);
       setSending(false);
     }
   };
