@@ -23,6 +23,11 @@ const leadInputSchema = z.object({
 
 export type LeadInput = z.infer<typeof leadInputSchema>;
 
+/** Dynamic access — Vite must not inline these as undefined at build time */
+function envGet(key: string): string {
+  return String((process.env as Record<string, string | undefined>)[key] ?? "").trim();
+}
+
 const MESSENGER_LABEL: Record<string, string> = {
   telegram: "Telegram",
   max: "MAX",
@@ -31,8 +36,8 @@ const MESSENGER_LABEL: Record<string, string> = {
 };
 
 async function notifyTelegram(text: string) {
-  const token = (process.env.TELEGRAM_BOT_TOKEN || "").trim();
-  const chatIdRaw = (process.env.TELEGRAM_CHAT_ID || "").trim();
+  const token = envGet("TELEGRAM_BOT_TOKEN");
+  const chatIdRaw = envGet("TELEGRAM_CHAT_ID");
   if (!token || !chatIdRaw) {
     console.warn("[leads] Telegram not configured", {
       hasToken: Boolean(token),
@@ -68,12 +73,12 @@ async function notifyTelegram(text: string) {
 }
 
 async function notifyEmailSmtp(subject: string, text: string, replyTo?: string) {
-  const host = (process.env.SMTP_HOST || "").trim();
-  const user = (process.env.SMTP_USER || "").trim();
-  const pass = (process.env.SMTP_PASS || "").trim();
-  const to = (process.env.LEAD_NOTIFY_EMAIL || "panova.fortuna@gmail.com").trim();
-  const fromName = (process.env.LEAD_NOTIFY_FROM_NAME || "PanovaPRO").trim();
-  const port = Number(process.env.SMTP_PORT || "465");
+  const host = envGet("SMTP_HOST");
+  const user = envGet("SMTP_USER");
+  const pass = envGet("SMTP_PASS");
+  const to = envGet("LEAD_NOTIFY_EMAIL") || "panova.fortuna@gmail.com";
+  const fromName = envGet("LEAD_NOTIFY_FROM_NAME") || "PanovaPRO";
+  const port = Number(envGet("SMTP_PORT") || "465");
 
   if (!host || !user || !pass) {
     return { ok: false as const, reason: "smtp_not_configured" };
@@ -108,9 +113,9 @@ async function notifyEmailSmtp(subject: string, text: string, replyTo?: string) 
 }
 
 async function notifyEmailResend(subject: string, text: string, replyTo?: string) {
-  const apiKey = (process.env.RESEND_API_KEY || "").trim();
-  const to = (process.env.LEAD_NOTIFY_EMAIL || "panova.fortuna@gmail.com").trim();
-  const from = (process.env.LEAD_NOTIFY_FROM || "PanovaPRO <onboarding@resend.dev>").trim();
+  const apiKey = envGet("RESEND_API_KEY");
+  const to = envGet("LEAD_NOTIFY_EMAIL") || "panova.fortuna@gmail.com";
+  const from = envGet("LEAD_NOTIFY_FROM") || "PanovaPRO <onboarding@resend.dev>";
   if (!apiKey || apiKey.includes("...")) {
     return { ok: false as const, reason: "email_not_configured" };
   }
@@ -206,6 +211,15 @@ export const submitLead = createServerFn({ method: "POST" })
     const subject = data.program_title
       ? `Заявка: ${data.full_name} — ${data.program_title}`
       : `Новая заявка: ${data.full_name}`;
+
+    console.info("[leads] NOTIFY_ENV_CHECK", {
+      telegramToken: Boolean(envGet("TELEGRAM_BOT_TOKEN")),
+      telegramChat: Boolean(envGet("TELEGRAM_CHAT_ID")),
+      smtpHost: Boolean(envGet("SMTP_HOST")),
+      smtpUser: Boolean(envGet("SMTP_USER")),
+      smtpPass: Boolean(envGet("SMTP_PASS")),
+      supabaseUrl: Boolean(envGet("SUPABASE_URL")),
+    });
 
     const [tg, mail] = await Promise.all([
       notifyTelegram(text),
