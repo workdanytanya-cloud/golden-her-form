@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import heroPhoto from "@/assets/trainer-highfive.jpg";
+import heroPhoto from "@/assets/trainer-highfive.png";
 import { CountUp } from "@/components/ui/CountUp";
 import { useLeadForm } from "@/components/ui/LeadFormModal";
 
@@ -31,7 +31,7 @@ export function Hero() {
         style={{
           backgroundImage: `url(${heroPhoto})`,
           backgroundSize: "cover",
-          backgroundPosition: "center 30%",
+          backgroundPosition: "center 40%",
         }}
         aria-hidden
       />
@@ -39,7 +39,7 @@ export function Hero() {
         className="absolute inset-0 z-[1]"
         style={{
           background:
-            "linear-gradient(180deg, rgba(14,11,9,0.78) 0%, rgba(14,11,9,0.45) 38%, rgba(14,11,9,0.92) 100%), radial-gradient(70% 55% at 12% 28%, rgba(200,90,50,0.28), transparent 65%)",
+            "linear-gradient(105deg, rgba(14,11,9,0.88) 0%, rgba(14,11,9,0.55) 42%, rgba(14,11,9,0.35) 68%, rgba(14,11,9,0.72) 100%), linear-gradient(180deg, rgba(14,11,9,0.55) 0%, transparent 35%, rgba(14,11,9,0.9) 100%)",
         }}
         aria-hidden
       />
