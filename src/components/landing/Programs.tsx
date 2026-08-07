@@ -41,23 +41,35 @@ export function Programs() {
                   className="absolute inset-0"
                   style={{
                     background:
-                      "linear-gradient(180deg, rgba(14,11,9,0.35) 0%, rgba(14,11,9,0.25) 40%, rgba(14,11,9,0.88) 100%)",
+                      "linear-gradient(180deg, rgba(10,8,6,0.45) 0%, rgba(10,8,6,0.2) 38%, rgba(10,8,6,0.75) 68%, rgba(10,8,6,0.94) 100%)",
                   }}
                 />
-                <div className="relative z-10 flex h-full w-full flex-col justify-between p-4">
+                <div className="relative z-10 flex h-full w-full flex-col justify-between p-4 text-white">
                   <div className="flex items-start justify-between gap-2">
                     <span className="rounded-full bg-coral px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
                       {p.tag}
                     </span>
-                    <span className="rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white backdrop-blur-sm">
+                    <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white backdrop-blur-sm">
                       {p.weeks}
                     </span>
                   </div>
                   <div>
-                    <h3 className="font-display text-lg leading-tight text-white sm:text-xl">
+                    <h3
+                      className="font-display text-lg leading-tight sm:text-xl"
+                      style={{
+                        color: "#ffffff",
+                        textShadow: "0 1px 2px rgba(0,0,0,0.55), 0 2px 12px rgba(0,0,0,0.35)",
+                      }}
+                    >
                       {p.title}
                     </h3>
-                    <span className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-coral-soft transition-transform duration-300 group-hover:translate-x-1">
+                    <span
+                      className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold transition-transform duration-300 group-hover:translate-x-1"
+                      style={{
+                        color: "#ffb39a",
+                        textShadow: "0 1px 2px rgba(0,0,0,0.45)",
+                      }}
+                    >
                       Выбрать
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                         <path d="M5 12h14M13 6l6 6-6 6" />

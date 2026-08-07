@@ -154,11 +154,9 @@
   --sidebar-ring: oklch(0.72 0.11 75);
 }
 
-/* Gold/coral CTAs: always dark ink on accent in light mode (text-background would be too light) */
-:root:not(.dark) .bg-gold,
-:root:not(.dark) .bg-coral,
-:root:not(.dark) .from-coral.to-gold,
-:root:not(.dark) .from-coral {
+/* Gold/coral CTAs on light theme: dark ink on accent fills (not all coral-tinted text) */
+:root:not(.dark) :is(a, button).bg-gold,
+:root:not(.dark) :is(a, button).bg-coral {
   color: oklch(0.16 0.02 55);
 }
 
