@@ -41,8 +41,8 @@ export function HowItWorks() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <Reveal>
           <p className="eyebrow">Сопровождение</p>
-          <h2 className="mt-5 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
-            Как это <span className="gold-text">проходит?</span>
+          <h2 className="mt-4 font-display text-2xl leading-snug text-ivory sm:text-3xl md:text-4xl">
+            Как это <span className="text-coral">проходит?</span>
           </h2>
         </Reveal>
 
@@ -61,8 +61,8 @@ export function HowItWorks() {
                   <span className="absolute left-5 top-5 font-display text-3xl text-gold/80">{s.n}</span>
                 </div>
                 <div className="p-5 sm:p-6">
-                  <h3 className="font-display text-xl text-ivory sm:text-2xl">{s.title}</h3>
-                  <p className="mt-2 text-sm text-ivory/65">{s.text}</p>
+                  <h3 className="font-display text-lg text-ivory sm:text-xl">{s.title}</h3>
+                  <p className="mt-2 text-base text-warm-gray">{s.text}</p>
                 </div>
               </article>
             </Reveal>

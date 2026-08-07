@@ -175,13 +175,13 @@
   color-scheme: light;
   --gold: oklch(0.62 0.13 72);
   --gold-soft: oklch(0.78 0.1 78);
-  --coral: oklch(0.6 0.19 28);
-  --coral-soft: oklch(0.72 0.14 32);
-  --ivory: oklch(0.24 0.028 45);
-  --warm-gray: oklch(0.5 0.02 55);
-  --surface: oklch(0.97 0.012 72);
+  --coral: oklch(0.55 0.18 28);
+  --coral-soft: oklch(0.68 0.14 32);
+  --ivory: oklch(0.22 0.03 45);
+  --warm-gray: oklch(0.42 0.025 50);
+  --surface: oklch(0.96 0.01 72);
   --background: oklch(0.985 0.008 78);
-  --foreground: oklch(0.24 0.028 45);
+  --foreground: oklch(0.22 0.03 45);
   --card: oklch(0.995 0.005 80);
   --card-foreground: oklch(0.24 0.028 45);
   --border: oklch(0.9 0.015 70);
@@ -210,14 +210,15 @@
 
 .landing .eyebrow {
   color: var(--coral);
-  letter-spacing: 0.22em;
+  letter-spacing: 0.18em;
+  font-weight: 600;
 }
 
 .landing .gold-text {
-  background: linear-gradient(120deg, oklch(0.58 0.16 45) 0%, var(--coral) 55%, oklch(0.65 0.14 75) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--coral);
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
   font-style: normal;
 }
 

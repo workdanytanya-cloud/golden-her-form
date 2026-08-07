@@ -29,8 +29,8 @@ export function Testimonials() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <Reveal>
           <p className="eyebrow">Отзывы</p>
-          <h2 className="mt-5 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
-            Голоса <span className="gold-text">клиентов.</span>
+          <h2 className="mt-4 font-display text-2xl leading-snug text-ivory sm:text-3xl md:text-4xl">
+            Голоса <span className="text-coral">клиентов.</span>
           </h2>
         </Reveal>
 
@@ -43,7 +43,7 @@ export function Testimonials() {
                     <Star key={k} className="h-4 w-4 fill-gold" strokeWidth={0} />
                   ))}
                 </div>
-                <blockquote className="mt-4 font-display text-base leading-relaxed text-ivory sm:text-lg">
+                <blockquote className="mt-4 text-base leading-relaxed text-ivory sm:text-lg">
                   «{t.text}»
                 </blockquote>
                 <figcaption className="mt-5 text-xs uppercase tracking-[0.24em] text-warm-gray">

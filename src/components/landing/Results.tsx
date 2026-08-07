@@ -36,10 +36,10 @@ export function Results() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <Reveal>
           <p className="eyebrow">Результаты</p>
-          <h2 className="mt-5 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
-            Это <span className="gold-text">работает.</span>
+          <h2 className="mt-4 font-display text-2xl leading-snug text-ivory sm:text-3xl md:text-4xl">
+            Это <span className="text-coral">работает.</span>
           </h2>
-          <p className="mt-4 max-w-lg text-sm text-ivory/65">
+          <p className="mt-3 max-w-lg text-base text-warm-gray">
             Реальные трансформации за 3–6 месяцев. Без ретуши.
           </p>
         </Reveal>
@@ -58,7 +58,7 @@ export function Results() {
                 loading="lazy"
               />
             </div>
-            <p className="mt-4 text-sm text-ivory/60">
+            <p className="mt-4 text-base text-warm-gray">
               Замеры и корректировка плана каждые 2 недели.
             </p>
           </Reveal>
@@ -68,7 +68,7 @@ export function Results() {
           {stats.map((s, i) => (
             <Reveal key={s.label} delay={i * 80}>
               <div className="card-interactive stat-pulse rounded-2xl border border-gold/15 bg-surface/50 p-5 text-center sm:p-6">
-                <div className="font-display text-3xl text-ivory sm:text-4xl">
+                <div className="font-display text-2xl text-ivory sm:text-3xl">
                   {s.decimals ? (
                     <>
                       {s.value.toFixed(1)}
@@ -88,8 +88,8 @@ export function Results() {
           {cases.map((c, i) => (
             <Reveal key={c.name} delay={i * 100}>
               <article className="card-interactive h-full rounded-2xl border border-gold/12 bg-surface/40 p-5 sm:p-6">
-                <p className="font-display text-lg text-gold">{c.result}</p>
-                <p className="mt-2 text-sm leading-relaxed text-ivory/75">{c.detail}</p>
+                <p className="font-display text-lg text-coral">{c.result}</p>
+                <p className="mt-2 text-base leading-relaxed text-warm-gray">{c.detail}</p>
                 <p className="mt-4 text-xs uppercase tracking-[0.24em] text-warm-gray">{c.name}</p>
               </article>
             </Reveal>

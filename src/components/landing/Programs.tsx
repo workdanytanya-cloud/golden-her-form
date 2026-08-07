@@ -8,10 +8,10 @@ export function Programs() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <Reveal>
           <p className="eyebrow">Программы</p>
-          <h2 className="mt-5 font-display text-3xl leading-tight text-ivory sm:text-4xl md:text-5xl lg:text-6xl">
-            Что <span className="gold-text">подойдёт вам?</span>
+          <h2 className="mt-4 font-display text-2xl leading-snug text-ivory sm:text-3xl md:text-4xl">
+            Что <span className="text-coral">подойдёт вам?</span>
           </h2>
-          <p className="mt-4 max-w-md text-sm text-ivory/60">
+          <p className="mt-3 max-w-md text-base text-warm-gray">
             План подстраивается под вашу цель после короткой анкеты.
           </p>
         </Reveal>
