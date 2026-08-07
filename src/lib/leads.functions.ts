@@ -5,7 +5,16 @@ import fs from "node:fs";
 import path from "node:path";
 
 /** Bump when changing notify logic — must appear in toast / logs */
-export const LEADS_BUILD = "nohang-v1";
+export const LEADS_BUILD = "webhook-v1";
+
+function abortAfter(ms: number): AbortSignal {
+  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
+    return AbortSignal.timeout(ms);
+  }
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
 
 const leadInputSchema = z.object({
   full_name: z.string().trim().min(2, "Укажите фамилию и имя").max(120),
@@ -110,22 +119,72 @@ function withTimeout<T>(
   });
 }
 
-async function notifyTelegram(text: string) {
+type NotifyResult =
+  | { ok: true }
+  | { ok: false; reason: string; detail?: string };
+
+/** HTTPS webhook (Make.com / n8n / Albato) — works from RU VPS when Telegram/Gmail are blocked */
+async function notifyWebhook(
+  text: string,
+  data: z.infer<typeof leadInputSchema>,
+  leadId: string,
+): Promise<NotifyResult> {
+  const url = envGet("LEAD_WEBHOOK_URL");
+  if (!url) {
+    return { ok: false, reason: "webhook_not_configured" };
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        lead_id: leadId,
+        full_name: data.full_name,
+        age: data.age,
+        phone: data.phone,
+        email: data.email,
+        messenger: data.messenger,
+        source: data.source,
+        program_slug: data.program_slug ?? null,
+        program_title: data.program_title ?? null,
+        message: data.message ?? null,
+      }),
+      signal: abortAfter(10000),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error("[leads] Webhook failed", res.status, body);
+      return { ok: false, reason: "webhook_failed", detail: body.slice(0, 200) };
+    }
+    console.info("[leads] Webhook notify ok");
+    return { ok: true };
+  } catch (e) {
+    console.error("[leads] Webhook network error", e);
+    return {
+      ok: false,
+      reason: "webhook_network",
+      detail: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+async function notifyTelegram(text: string): Promise<NotifyResult> {
   const token = envGet("TELEGRAM_BOT_TOKEN");
   const chatIdRaw = envGet("TELEGRAM_CHAT_ID");
   if (!token || !chatIdRaw) {
-    console.warn("[leads] Telegram not configured", {
-      hasToken: Boolean(token),
-      hasChatId: Boolean(chatIdRaw),
-      envFile: cachedFileEnvPath,
-    });
-    return { ok: false as const, reason: "telegram_not_configured" };
+    return { ok: false, reason: "telegram_not_configured" };
   }
 
   const chat_id = /^-?\d+$/.test(chatIdRaw) ? Number(chatIdRaw) : chatIdRaw;
+  // On RU VPS api.telegram.org is often blocked — set TELEGRAM_API_BASE to a proxy if needed
+  const apiBase = (
+    envGet("TELEGRAM_API_BASE") || "https://api.telegram.org"
+  ).replace(/\/$/, "");
 
   try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    const res = await fetch(`${apiBase}/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -133,22 +192,81 @@ async function notifyTelegram(text: string) {
         text,
         disable_web_page_preview: true,
       }),
-      signal: AbortSignal.timeout(8000),
+      signal: abortAfter(8000),
     });
     const body = await res.text();
     if (!res.ok) {
       console.error("[leads] Telegram notify failed", res.status, body);
-      return { ok: false as const, reason: "telegram_failed", detail: body };
+      return { ok: false, reason: "telegram_failed", detail: body };
     }
     console.info("[leads] Telegram notify ok");
-    return { ok: true as const };
+    return { ok: true };
   } catch (e) {
     console.error("[leads] Telegram network error", e);
-    return { ok: false as const, reason: "telegram_network" };
+    return {
+      ok: false,
+      reason: "telegram_network",
+      detail: e instanceof Error ? e.message : String(e),
+    };
   }
 }
 
-async function notifyEmailSmtp(subject: string, text: string, replyTo?: string) {
+async function notifyEmailResend(
+  subject: string,
+  text: string,
+  replyTo?: string,
+): Promise<NotifyResult> {
+  const apiKey = envGet("RESEND_API_KEY");
+  const to = envGet("LEAD_NOTIFY_EMAIL") || "panova.fortuna@gmail.com";
+  const from =
+    envGet("LEAD_NOTIFY_FROM") || "PanovaPRO <onboarding@resend.dev>";
+  if (!apiKey || apiKey.includes("...")) {
+    return { ok: false, reason: "email_not_configured" };
+  }
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        reply_to: replyTo || undefined,
+        subject,
+        text,
+      }),
+      signal: abortAfter(8000),
+    });
+    const body = await res.text();
+    if (!res.ok) {
+      console.error("[leads] Resend notify failed", res.status, body);
+      return { ok: false, reason: "email_failed", detail: body };
+    }
+    console.info("[leads] Resend email notify ok");
+    return { ok: true };
+  } catch (e) {
+    console.error("[leads] Resend network error", e);
+    return {
+      ok: false,
+      reason: "email_network",
+      detail: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+async function notifyEmailSmtp(
+  subject: string,
+  text: string,
+  replyTo?: string,
+): Promise<NotifyResult> {
+  // Gmail SMTP from Timeweb/RU VPS usually fails — enable only with SMTP_ENABLED=1
+  if (envGet("SMTP_ENABLED") !== "1") {
+    return { ok: false, reason: "smtp_skipped" };
+  }
+
   const host = envGet("SMTP_HOST");
   const user = envGet("SMTP_USER");
   const pass = envGet("SMTP_PASS");
@@ -157,7 +275,7 @@ async function notifyEmailSmtp(subject: string, text: string, replyTo?: string) 
   const port = Number(envGet("SMTP_PORT") || "465");
 
   if (!host || !user || !pass) {
-    return { ok: false as const, reason: "smtp_not_configured" };
+    return { ok: false, reason: "smtp_not_configured" };
   }
 
   try {
@@ -180,59 +298,25 @@ async function notifyEmailSmtp(subject: string, text: string, replyTo?: string) 
       text,
     });
     console.info("[leads] SMTP email notify ok →", to);
-    return { ok: true as const };
+    return { ok: true };
   } catch (e) {
     console.error("[leads] SMTP email error", e);
     return {
-      ok: false as const,
+      ok: false,
       reason: "smtp_failed",
       detail: e instanceof Error ? e.message : String(e),
     };
   }
 }
 
-async function notifyEmailResend(subject: string, text: string, replyTo?: string) {
-  const apiKey = envGet("RESEND_API_KEY");
-  const to = envGet("LEAD_NOTIFY_EMAIL") || "panova.fortuna@gmail.com";
-  const from = envGet("LEAD_NOTIFY_FROM") || "PanovaPRO <onboarding@resend.dev>";
-  if (!apiKey || apiKey.includes("...")) {
-    return { ok: false as const, reason: "email_not_configured" };
-  }
-
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: [to],
-        reply_to: replyTo || undefined,
-        subject,
-        text,
-      }),
-      signal: AbortSignal.timeout(8000),
-    });
-    const body = await res.text();
-    if (!res.ok) {
-      console.error("[leads] Resend notify failed", res.status, body);
-      return { ok: false as const, reason: "email_failed", detail: body };
-    }
-    console.info("[leads] Resend email notify ok");
-    return { ok: true as const };
-  } catch (e) {
-    console.error("[leads] Resend network error", e);
-    return { ok: false as const, reason: "email_network" };
-  }
-}
-
-async function notifyEmail(subject: string, text: string, replyTo?: string) {
-  const smtp = await notifyEmailSmtp(subject, text, replyTo);
-  if (smtp.ok) return smtp;
-  if (smtp.reason !== "smtp_not_configured") return smtp;
-  return notifyEmailResend(subject, text, replyTo);
+async function notifyEmail(
+  subject: string,
+  text: string,
+  replyTo?: string,
+): Promise<NotifyResult> {
+  const resend = await notifyEmailResend(subject, text, replyTo);
+  if (resend.ok || resend.reason !== "email_not_configured") return resend;
+  return notifyEmailSmtp(subject, text, replyTo);
 }
 
 function formatLeadMessage(data: z.infer<typeof leadInputSchema>) {
@@ -294,17 +378,21 @@ export const submitLead = createServerFn({ method: "POST" })
       : `Новая заявка: ${data.full_name}`;
 
     const envFlags = {
+      webhook: Boolean(envGet("LEAD_WEBHOOK_URL")),
       telegramToken: Boolean(envGet("TELEGRAM_BOT_TOKEN")),
       telegramChat: Boolean(envGet("TELEGRAM_CHAT_ID")),
-      smtpHost: Boolean(envGet("SMTP_HOST")),
-      smtpUser: Boolean(envGet("SMTP_USER")),
-      smtpPass: Boolean(envGet("SMTP_PASS")),
+      resend: Boolean(envGet("RESEND_API_KEY")),
+      smtpEnabled: envGet("SMTP_ENABLED") === "1",
       envFile: cachedFileEnvPath,
       cwd: process.cwd(),
     };
     console.info(`[leads] NOTIFY_ENV_CHECK ${LEADS_BUILD}`, envFlags);
 
-    const [tg, mail] = await Promise.all([
+    const [hook, tg, mail] = await Promise.all([
+      withTimeout(notifyWebhook(text, data, inserted.id as string), 12000, {
+        ok: false as const,
+        reason: "webhook_timeout",
+      }),
       withTimeout(notifyTelegram(text), 10000, {
         ok: false as const,
         reason: "telegram_timeout",
@@ -314,9 +402,10 @@ export const submitLead = createServerFn({ method: "POST" })
         reason: "email_timeout",
       }),
     ]);
-    const notified = tg.ok || mail.ok;
+    const notified = hook.ok || tg.ok || mail.ok;
     if (!notified) {
       console.warn("[leads] Lead saved but notify failed", {
+        webhook: hook.reason,
         telegram: tg.reason,
         email: mail.reason,
       });
@@ -329,8 +418,10 @@ export const submitLead = createServerFn({ method: "POST" })
       notified,
       envFlags,
       notify: {
+        webhook: hook.ok,
         telegram: tg.ok,
         email: mail.ok,
+        webhookReason: hook.ok ? null : hook.reason,
         telegramReason: tg.ok ? null : tg.reason,
         emailReason: mail.ok ? null : mail.reason,
       },

@@ -96,8 +96,10 @@ function LeadFormDialog({
     notified?: boolean;
     envFlags?: Record<string, unknown>;
     notify?: {
+      webhook?: boolean;
       telegram: boolean;
       email: boolean;
+      webhookReason?: string | null;
       telegramReason: string | null;
       emailReason: string | null;
     };
@@ -143,13 +145,14 @@ function LeadFormDialog({
       window.clearTimeout(watchdog);
       if (result.notified === false) {
         const reasons = [
+          result.notify?.webhookReason,
           result.notify?.telegramReason,
           result.notify?.emailReason,
         ]
-          .filter(Boolean)
+          .filter((r) => r && r !== "webhook_not_configured" && r !== "smtp_skipped")
           .join(", ");
         toast.success("Заявка сохранена в базе.", {
-          description: `Уведомление не ушло (${reasons || "нет канала"}). Сборка: ${result.build ?? "?"}`,
+          description: `Уведомление не ушло (${reasons || "настройте LEAD_WEBHOOK_URL"}). Сборка: ${result.build ?? "?"}`,
           duration: 12000,
         });
       } else if (result.build) {

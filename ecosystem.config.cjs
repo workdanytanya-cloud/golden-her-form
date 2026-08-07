@@ -32,12 +32,11 @@ const fileEnv = loadEnvFile(envPath);
 const notifyKeys = [
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
+  "LEAD_WEBHOOK_URL",
   "TELEGRAM_BOT_TOKEN",
   "TELEGRAM_CHAT_ID",
-  "SMTP_HOST",
-  "SMTP_USER",
-  "SMTP_PASS",
-  "LEAD_NOTIFY_EMAIL",
+  "RESEND_API_KEY",
+  "SMTP_ENABLED",
 ];
 console.log(
   "[ecosystem] loading",
