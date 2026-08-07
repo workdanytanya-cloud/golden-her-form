@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PanelHeader } from "@/components/panel/PanelShell";
-import { formatDietLabel } from "@/lib/diet-tables";
+import { formatMedicalDietTable } from "@/lib/medical-diet-tables";
 import { ArrowLeft, ClipboardList } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/onboarding")({
@@ -148,7 +148,21 @@ function AdminClientOnboarding() {
           </Group>
 
           <Group title="Питание">
-            <Row label="Тип питания" value={formatDietLabel(s("diet_type"))} />
+            <Row label="Тип питания" value={s("diet_type")} />
+            <Row
+              label="Лечебный стол"
+              value={formatMedicalDietTable(
+                (() => {
+                  const extra = get("extra");
+                  if (extra && typeof extra === "object" && !Array.isArray(extra)) {
+                    const id = (extra as Record<string, unknown>).medical_diet_table;
+                    return typeof id === "string" ? id : null;
+                  }
+                  return null;
+                })(),
+              )}
+              multiline
+            />
             <Row label="Приёмов пищи" value={n("meals_per_day")} />
             <Row label="Аллергии" value={s("allergies")} />
             <Row label="Любимые продукты" value={s("favorite_foods")} multiline />
