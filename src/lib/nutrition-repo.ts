@@ -63,6 +63,22 @@ export async function loadMedicalDietTable(userId: string): Promise<string | nul
   return raw;
 }
 
+/**
+ * Пул блюд для клиента: general ИЛИ только выбранный стол.
+ * Блюда из плана, которых нет в пуле, добавляются только для отображения
+ * (чтобы старое меню не «ломалось»), но не для новых замен — см. swapPool.
+ */
+export async function loadDishesForClient(
+  userId: string,
+  planMealDishIds: string[] = [],
+): Promise<{ pool: Dish[]; all: Dish[]; medicalTable: string | null }> {
+  const [all, medicalTable] = await Promise.all([loadDishes(), loadMedicalDietTable(userId)]);
+  const pool = filterDishesForMedicalTable(all, medicalTable);
+  const poolIds = new Set(pool.map((d) => d.id));
+  const orphans = all.filter((d) => planMealDishIds.includes(d.id) && !poolIds.has(d.id));
+  return { pool, all: [...pool, ...orphans], medicalTable };
+}
+
 export async function loadPlanFor(userId: string): Promise<{ plan: PlanRow | null; days: DayRow[] }> {
   const { data: plan } = await supabase
     .from("nutrition_plans")
@@ -152,6 +168,13 @@ export async function createOrReplacePlan(params: {
 
   const medicalTable = await loadMedicalDietTable(userId);
   const pool = filterDishesForMedicalTable(dishes, medicalTable);
+  if (pool.length === 0) {
+    throw new Error(
+      medicalTable
+        ? `Нет блюд для ${medicalTable}. Добавьте рационы этого стола в библиотеку.`
+        : "Нет блюд общей библиотеки (тег general). Рационы лечебных столов без выбора стола не используются.",
+    );
+  }
 
   const days = generatePlan(pool, {
     mealsPerDay,

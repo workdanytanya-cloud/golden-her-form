@@ -8,6 +8,7 @@ import { NutritionSetup } from "@/components/panel/NutritionSetup";
 import { supabase } from "@/integrations/supabase/client";
 import {
   loadDishes,
+  loadDishesForClient,
   loadPlanFor,
   loadTargetProfile,
   extractExcludedFromText,
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/_authenticated/admin/clients/$id/nutritio
 function AdminNutritionPage() {
   const { id } = Route.useParams();
   const [dishes, setDishes] = useState<Dish[]>([]);
+  const [swapDishes, setSwapDishes] = useState<Dish[]>([]);
   const [plan, setPlan] = useState<PlanRow | null>(null);
   const [days, setDays] = useState<DayRow[]>([]);
   const [profileName, setProfileName] = useState<string>("");
@@ -43,13 +45,15 @@ function AdminNutritionPage() {
 
   const reload = async () => {
     setLoading(true);
-    const [d, p, prof, profRow] = await Promise.all([
-      loadDishes(),
-      loadPlanFor(id),
+    const p = await loadPlanFor(id);
+    const planIds = p.days.flatMap((d) => d.meals.map((m) => m.dish_id));
+    const [{ all, pool }, prof, profRow] = await Promise.all([
+      loadDishesForClient(id, planIds),
       loadTargetProfile(id),
       supabase.from("profiles").select("full_name").eq("id", id).maybeSingle(),
     ]);
-    setDishes(d);
+    setDishes(all);
+    setSwapDishes(pool);
     setPlan(p.plan);
     setDays(p.days);
     setSuggested(calcTargets(prof));
@@ -80,7 +84,7 @@ function AdminNutritionPage() {
         excluded: autoExcluded,
         targets,
         targetsManual: plan?.targets_manual,
-        dishes,
+        dishes: await loadDishes(),
       });
       await reload();
       setShowSetup(false);
@@ -230,6 +234,7 @@ function AdminNutritionPage() {
       ) : (
         <NutritionView
           dishes={dishes}
+          swapDishes={swapDishes}
           days={days.map((d) => ({ day_index: d.day_index, day_note: d.day_note, meals: d.meals }))}
           targets={{
             kcal: plan.target_kcal,

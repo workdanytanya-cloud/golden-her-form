@@ -178,8 +178,9 @@ export type GenerateOptions = {
 const TABLE_TAG_RE = /^table_\d+$/;
 
 /**
- * Если в анкете выбран стол Певзнера — берём только блюда с тегом table_N.
- * Иначе — общую библиотеку (тег general или без тегов table_*).
+ * Без лечебного стола — только общая библиотека (тег general).
+ * Со столом table_N — только блюда этого стола.
+ * Блюда других столов никогда не подмешиваются.
  */
 export function filterDishesForMedicalTable(
   dishes: Dish[],
@@ -189,14 +190,16 @@ export function filterDishesForMedicalTable(
     medicalDietTable && medicalDietTable !== "none" ? medicalDietTable : null;
 
   if (tableId) {
-    const specific = dishes.filter((d) => d.tags.includes(tableId));
-    return specific.length > 0 ? specific : dishes;
+    return dishes.filter((d) => d.tags.includes(tableId));
   }
 
-  const general = dishes.filter(
-    (d) => d.tags.includes("general") || !d.tags.some((t) => TABLE_TAG_RE.test(t)),
-  );
-  return general.length > 0 ? general : dishes;
+  // Только general — без рационов столов Певзнера
+  return dishes.filter((d) => d.tags.includes("general"));
+}
+
+/** Есть ли у блюда привязка к лечебному столу. */
+export function isMedicalTableDish(dish: Pick<Dish, "tags">): boolean {
+  return dish.tags.some((t) => TABLE_TAG_RE.test(t));
 }
 
 function pickWithScore(

@@ -17,6 +17,8 @@ import {
 
 type Props = {
   dishes: Dish[];
+  /** Пул для замены блюд. Если не задан — как dishes. Сюда не должны попадать чужие лечебные столы. */
+  swapDishes?: Dish[];
   days: DayEntry[];
   targets: NutritionTargets;
   mealsPerDay: 3 | 5;
@@ -30,6 +32,7 @@ type Props = {
 
 export function NutritionView({
   dishes,
+  swapDishes,
   days,
   targets,
   mealsPerDay,
@@ -45,6 +48,7 @@ export function NutritionView({
     for (const d of dishes) m[d.id] = d;
     return m;
   }, [dishes]);
+  const swapPool = swapDishes ?? dishes;
 
   const [dayIndex, setDayIndex] = useState(0);
   const [openMeal, setOpenMeal] = useState<{ slot: Slot; meal: MealEntry } | null>(null);
@@ -157,7 +161,7 @@ export function NutritionView({
           key={`${openMeal.slot}-${openMeal.meal.dish_id}-${openMeal.meal.portion_g}`}
           dish={dishesById[openMeal.meal.dish_id]}
           meal={openMeal.meal}
-          allDishes={dishes}
+          allDishes={swapPool}
           editable={editable}
           onClose={() => setOpenMeal(null)}
           onSwap={async (newId) => {

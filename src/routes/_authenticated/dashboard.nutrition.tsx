@@ -10,6 +10,7 @@ import { FoodSwapGuide } from "@/components/panel/FoodSwapGuide";
 import { useAuth } from "@/lib/auth";
 import {
   loadDishes,
+  loadDishesForClient,
   loadPlanFor,
   loadTargetProfile,
   extractExcludedFromText,
@@ -42,6 +43,7 @@ function NutritionPage() {
 function NutritionInner() {
   const { effectiveUserId } = useAuth();
   const [dishes, setDishes] = useState<Dish[]>([]);
+  const [swapDishes, setSwapDishes] = useState<Dish[]>([]);
   const [plan, setPlan] = useState<PlanRow | null>(null);
   const [days, setDays] = useState<DayRow[]>([]);
   const [suggested, setSuggested] = useState({ kcal: 0, protein_g: 0, fat_g: 0, carbs_g: 0 });
@@ -52,11 +54,13 @@ function NutritionInner() {
   const reload = async () => {
     if (!effectiveUserId) return;
     setLoading(true);
-    const [d, p, prof] = await Promise.all([
-      loadDishes(),
-      loadPlanFor(effectiveUserId),
+    const p = await loadPlanFor(effectiveUserId);
+    const planIds = p.days.flatMap((d) => d.meals.map((m) => m.dish_id));
+    const [{ all, pool }, prof] = await Promise.all([
+      loadDishesForClient(effectiveUserId, planIds),
       loadTargetProfile(effectiveUserId),
     ]);
+    const d = all;
     const freshTargets = calcTargets(prof);
     const freshExcluded = extractExcludedFromText(prof.allergies, prof.disliked_foods);
 
@@ -82,7 +86,7 @@ function NutritionInner() {
             excluded: freshExcluded,
             targets: freshTargets,
             targetsManual: false,
-            dishes: d,
+            dishes: await loadDishes(),
           });
           finalPlan = res.plan;
           finalDays = res.days;
@@ -98,6 +102,7 @@ function NutritionInner() {
     }
 
     setDishes(d);
+    setSwapDishes(pool);
     setPlan(finalPlan);
     setDays(finalDays);
     setSuggested(freshTargets);
@@ -128,7 +133,7 @@ function NutritionInner() {
         excluded: autoExcluded,
         targets,
         targetsManual: plan?.targets_manual,
-        dishes,
+        dishes: await loadDishes(),
       });
       await reload();
       setShowSetup(false);
@@ -190,6 +195,7 @@ function NutritionInner() {
 
       <NutritionView
         dishes={dishes}
+        swapDishes={swapDishes}
         days={dayEntries}
         targets={{
           kcal: plan.target_kcal,
