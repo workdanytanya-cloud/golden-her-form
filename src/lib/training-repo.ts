@@ -12,7 +12,22 @@ import {
   defaultFaq,
   inferGoal,
   inferLevel,
+  isImpactOrJumpExercise,
+  needsJointCare,
 } from "@/lib/training";
+
+async function loadLatestWeightKg(userId: string): Promise<number | null> {
+  const { data } = await supabase
+    .from("measurements")
+    .select("weight_kg")
+    .eq("user_id", userId)
+    .not("weight_kg", "is", null)
+    .order("measured_on", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const w = data?.weight_kg;
+  return typeof w === "number" && Number.isFinite(w) ? w : w != null ? Number(w) : null;
+}
 
 export type ProgramRow = {
   id: string;
@@ -95,7 +110,7 @@ export async function loadProgramFor(
 }
 
 export async function loadProgramProfile(userId: string) {
-  const [onbRes, accessRes] = await Promise.all([
+  const [onbRes, accessRes, weight_kg] = await Promise.all([
     supabase
       .from("onboarding_responses")
       .select(
@@ -104,6 +119,7 @@ export async function loadProgramProfile(userId: string) {
       .eq("user_id", userId)
       .maybeSingle(),
     supabase.from("client_access").select("status").eq("user_id", userId).maybeSingle(),
+    loadLatestWeightKg(userId),
   ]);
   const rawSessions = (onbRes.data?.training_days_per_week ?? 3) as number;
   const sessions_per_week: 3 | 4 = rawSessions >= 4 ? 4 : 3;
@@ -115,6 +131,7 @@ export async function loadProgramProfile(userId: string) {
     injuries_details: onbRes.data?.injuries_details ?? null,
     equipment: (onbRes.data?.equipment ?? []) as string[],
     location: onbRes.data?.training_location ?? null,
+    weight_kg,
     access_status: accessRes.data?.status ?? null,
   };
 }
@@ -236,3 +253,4 @@ export async function updateProgramPatch(
 }
 
 export type { Exercise, ExerciseSet, ProgramDay, ProgramInput, ProgramGoal, ProgramLevel, FaqItem };
+export { isImpactOrJumpExercise, needsJointCare };

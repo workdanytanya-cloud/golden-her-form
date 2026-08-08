@@ -63,7 +63,35 @@ export type ProgramInput = {
   injuries_details?: string | null;
   equipment?: string[];
   location?: string | null;
+  /** Последний известный вес клиента (кг). При >85 — без прыжков/ударных. */
+  weight_kg?: number | null;
 };
+
+/** Порог: выше — без ударных, прыжковых и жёстких нагрузок на суставы. */
+export const JOINT_CARE_WEIGHT_KG = 85;
+
+const IMPACT_TEXT_RE =
+  /прыж|jump|берпи|burpee|скакал|mountain.?climb|box.?jump|plyo|выпрыг|ударн|кикбокс|high.?knee|jumping.?jack|kb-swing|махи\s*гир/i;
+
+export function needsJointCare(
+  input: Pick<ProgramInput, "has_injuries" | "goal" | "weight_kg">,
+): boolean {
+  if (input.has_injuries || input.goal === "rehab") return true;
+  const w = input.weight_kg;
+  return typeof w === "number" && Number.isFinite(w) && w > JOINT_CARE_WEIGHT_KG;
+}
+
+export function isImpactOrJumpExercise(e: Pick<Exercise, "slug" | "name" | "tags">): boolean {
+  const tags = e.tags.map((t) => t.toLowerCase());
+  if (
+    tags.some((t) =>
+      ["jumping", "high_impact", "plyometric", "impact", "берпи"].includes(t),
+    )
+  ) {
+    return true;
+  }
+  return IMPACT_TEXT_RE.test(`${e.slug} ${e.name}`);
+}
 
 export const WEEKDAY_LABELS = [
   "Понедельник",
@@ -276,6 +304,7 @@ function planWeek(input: ProgramInput): DayTemplate[] {
     if (sessions_per_week >= 4) return [rehabDay("A"), rehabDay("B"), rehabDay("A"), rehabDay("B")];
     return [rehabDay("A"), rehabDay("B"), rehabDay("A")];
   }
+  // Вес >85 кг: ударные/прыжковые отсекаются в pickExerciseForSlot, кардио оставляем (low-impact).
   if (goal === "muscle_gain") {
     if (sessions_per_week >= 4) return [upperDay(), lowerDay(), upperDay(), lowerDay()];
     return [pushDay(), pullDay(), legsDay()];
@@ -292,7 +321,7 @@ function planWeek(input: ProgramInput): DayTemplate[] {
   }
   // tone / maintain
   if (sessions_per_week >= 4) return [upperDay(), lowerDay(), upperDay(), lowerDay()];
-  return [fullBodyDay("A", false), fullBodyDay("B", false), fullBodyDay("C", false)];
+  return [fullBodyDay("A", true), fullBodyDay("B", true), fullBodyDay("C", true)];
 }
 
 // Place training days evenly across the week (Пн..Вс)
@@ -311,29 +340,54 @@ function pickExerciseForSlot(
   usedInDay: Set<string>,
   weekUse: Map<string, number>,
 ): Exercise | null {
+  const jointCare = needsJointCare(input);
   const excludeTags = new Set<string>();
-  if (input.has_injuries || input.goal === "rehab") {
-    // Skip jumping / high-impact
+  if (jointCare) {
     excludeTags.add("high_impact");
+    excludeTags.add("jumping");
+    excludeTags.add("plyometric");
+    excludeTags.add("impact");
   }
-  const restrictedNames = new Set<string>([
-    ...(input.has_injuries || input.goal === "rehab"
-      ? ["jumping-jack", "kb-swing", "mountain-climber"]
-      : []),
-  ]);
+  const restrictedSlugs = new Set<string>(
+    jointCare
+      ? [
+          "jumping-jack",
+          "kb-swing",
+          "mountain-climber",
+          "burpee",
+          "box-jump",
+          "jump-squat",
+          "high-knees",
+        ]
+      : [],
+  );
 
   const pool = exercises.filter((e) => {
     if (e.category !== slot.category) return false;
     if (usedInDay.has(e.id)) return false;
-    if (restrictedNames.has(e.slug)) return false;
-    if (e.tags.some((t) => excludeTags.has(t))) return false;
+    if (restrictedSlugs.has(e.slug)) return false;
+    if (e.tags.some((t) => excludeTags.has(t.toLowerCase()))) return false;
+    if (jointCare && isImpactOrJumpExercise(e)) return false;
     // Level ceiling
     if (input.level === "beginner" && e.difficulty === "advanced") return false;
+    // При защите суставов не берём advanced на низ/кардио
+    if (
+      jointCare &&
+      e.difficulty === "advanced" &&
+      (slot.category === "strength_lower" || slot.category === "cardio")
+    ) {
+      return false;
+    }
     return true;
   });
   if (pool.length === 0) {
-    // relax used-in-day constraint
-    const relaxed = exercises.filter((e) => e.category === slot.category);
+    // relax used-in-day, но сохраняем запрет ударных при jointCare
+    const relaxed = exercises.filter((e) => {
+      if (e.category !== slot.category) return false;
+      if (jointCare && (restrictedSlugs.has(e.slug) || isImpactOrJumpExercise(e))) return false;
+      if (jointCare && e.tags.some((t) => excludeTags.has(t.toLowerCase()))) return false;
+      return true;
+    });
     if (relaxed.length === 0) return null;
     return relaxed[Math.floor(Math.random() * relaxed.length)];
   }
@@ -348,13 +402,12 @@ function pickExerciseForSlot(
       );
       s += hits;
     }
-    // prefer beginner-safe exercises for beginners
     if (input.level === "beginner" && e.difficulty === "beginner") s += 0.5;
-    // penalize heavily-used
     const uses = weekUse.get(e.id) ?? 0;
     s -= uses * 1.5;
-    // rehab prefers rehab-tagged
-    if ((input.has_injuries || input.goal === "rehab") && e.tags.includes("rehab")) s += 2;
+    if (jointCare && e.tags.includes("rehab")) s += 2;
+    if (jointCare && e.tags.includes("low_impact")) s += 2;
+    if (jointCare && e.tags.includes("no_jumping")) s += 1;
     return { e, s };
   });
   scored.sort((a, b) => b.s - a.s);
@@ -482,6 +535,16 @@ export function defaultFaq(input: ProgramInput): FaqItem[] {
           {
             q: "У меня есть противопоказания. Что учитывать?",
             a: "Программа собрана без ударных и рискованных для тебя движений. Если чувствуешь дискомфорт в проблемной зоне — остановись, сообщи тренеру, при необходимости заменим упражнение.",
+          },
+        ]
+      : []),
+    ...(typeof input.weight_kg === "number" &&
+    input.weight_kg > JOINT_CARE_WEIGHT_KG &&
+    !input.has_injuries
+      ? [
+          {
+            q: "Почему в программе нет прыжков и ударных упражнений?",
+            a: `При весе выше ${JOINT_CARE_WEIGHT_KG} кг программа автоматически без прыжков, берпи и жёстких ударных нагрузок на суставы — даже если травм нет. Фокус на контролируемой силе, мобильности и безопасном кардио.`,
           },
         ]
       : []),

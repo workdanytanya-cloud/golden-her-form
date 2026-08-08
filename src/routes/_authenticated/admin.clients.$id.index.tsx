@@ -225,6 +225,7 @@ function ClientDetail() {
       <ProfileEditor
         clientId={id}
         profile={profile}
+        latestWeightKg={latest?.weight_kg ?? null}
         onSaved={load}
       />
 
@@ -482,10 +483,12 @@ function AccessManager({
 function ProfileEditor({
   clientId,
   profile,
+  latestWeightKg,
   onSaved,
 }: {
   clientId: string;
   profile: Profile | null;
+  latestWeightKg: number | null;
   onSaved: () => void;
 }) {
   const updateProfile = useServerFn(adminUpdateClientProfile);
@@ -494,6 +497,7 @@ function ProfileEditor({
     phone: "",
     goal: "",
     height_cm: "",
+    weight_kg: "",
     birth_date: "",
     gender: "",
   });
@@ -506,10 +510,38 @@ function ProfileEditor({
       phone: profile.phone ?? "",
       goal: profile.goal ?? "",
       height_cm: profile.height_cm != null ? String(profile.height_cm) : "",
+      weight_kg: latestWeightKg != null ? String(latestWeightKg) : "",
       birth_date: profile.birth_date ?? "",
       gender: profile.gender ?? "",
     });
-  }, [profile]);
+  }, [profile, latestWeightKg]);
+
+  const saveWeight = async (weight: number) => {
+    const measuredOn = new Date().toISOString().slice(0, 10);
+    const { data: existingRows } = await supabase
+      .from("measurements")
+      .select("id")
+      .eq("user_id", clientId)
+      .eq("measured_on", measuredOn)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const existing = existingRows?.[0];
+    if (existing?.id) {
+      const { error } = await supabase
+        .from("measurements")
+        .update({ weight_kg: weight })
+        .eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("measurements").insert({
+        user_id: clientId,
+        measured_on: measuredOn,
+        weight_kg: weight,
+        note: "Из профиля (админ)",
+      });
+      if (error) throw error;
+    }
+  };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -526,6 +558,11 @@ function ProfileEditor({
           gender: form.gender || null,
         },
       });
+      const weight = form.weight_kg.trim() ? Number(form.weight_kg.replace(",", ".")) : null;
+      if (weight != null && Number.isFinite(weight)) {
+        if (weight < 30 || weight > 250) throw new Error("Вес должен быть от 30 до 250 кг");
+        await saveWeight(weight);
+      }
       toast.success("Профиль клиента обновлён");
       onSaved();
     } catch (err) {
@@ -539,7 +576,8 @@ function ProfileEditor({
     <section>
       <h2 className="font-display text-2xl">Профиль клиента</h2>
       <p className="mt-1 text-sm text-warm-gray">
-        Заполните за клиента, если он не может сделать это сам.
+        Заполните за клиента, если он не может сделать это сам. При весе выше 85 кг в тренировках
+        автоматически убираются прыжки и ударные нагрузки.
       </p>
       <form
         onSubmit={save}
@@ -577,6 +615,16 @@ function ProfileEditor({
             value={form.height_cm}
             onChange={(e) => setForm({ ...form, height_cm: e.target.value })}
             className={inputCls}
+          />
+        </F>
+        <F label="Вес, кг" span="md:col-span-2">
+          <input
+            type="number"
+            step="0.1"
+            value={form.weight_kg}
+            onChange={(e) => setForm({ ...form, weight_kg: e.target.value })}
+            className={inputCls}
+            placeholder="например 86"
           />
         </F>
         <F label="Пол" span="md:col-span-2">

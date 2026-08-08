@@ -10,8 +10,8 @@ import {
   loadProgramFor,
   loadProgramProfile,
   createOrReplaceProgram,
-  updateDayPatch,
-  updateProgramPatch,
+  isImpactOrJumpExercise,
+  needsJointCare,
   type ProgramRow,
   type DayRow,
   type Exercise,
@@ -26,6 +26,32 @@ import {
 export const Route = createFileRoute("/_authenticated/dashboard/training")({
   component: TrainingPage,
 });
+
+function programInputFromProfile(prof: Awaited<ReturnType<typeof loadProgramProfile>>): ProgramInput {
+  return {
+    sessions_per_week: prof.sessions_per_week,
+    goal: prof.goal,
+    level: prof.level,
+    has_injuries: prof.has_injuries,
+    injuries_details: prof.injuries_details,
+    equipment: prof.equipment,
+    location: prof.location,
+    weight_kg: prof.weight_kg,
+  };
+}
+
+function programHasImpactMoves(days: DayRow[], exercises: Exercise[]): boolean {
+  const byId = new Map(exercises.map((e) => [e.id, e]));
+  for (const day of days) {
+    for (const block of [day.warmup, day.exercises, day.cooldown]) {
+      for (const set of block) {
+        const ex = byId.get(set.exercise_id);
+        if (ex && isImpactOrJumpExercise(ex)) return true;
+      }
+    }
+  }
+  return false;
+}
 
 function TrainingPage() {
   return (
@@ -61,21 +87,17 @@ function TrainingInner() {
 
     let currentProgram = p.program;
     let currentDays = p.days;
+    const input = programInputFromProfile(prof);
 
     // Auto-generate on first visit
     if (!currentProgram) {
       try {
         setBusy(true);
-        const input: ProgramInput = {
-          sessions_per_week: prof.sessions_per_week,
-          goal: prof.goal,
-          level: prof.level,
-          has_injuries: prof.has_injuries,
-          injuries_details: prof.injuries_details,
-          equipment: prof.equipment,
-          location: prof.location,
-        };
-        const res = await createOrReplaceProgram({ userId: effectiveUserId, input, exercises: ex });
+        const res = await createOrReplaceProgram({
+          userId: effectiveUserId,
+          input,
+          exercises: ex,
+        });
         currentProgram = res.program;
         currentDays = res.days;
         toast.success("Программа собрана под твою анкету");
@@ -85,23 +107,16 @@ function TrainingInner() {
         setBusy(false);
       }
     } else if (!currentProgram.targets_manual) {
-      // Auto-refresh: если анкета изменилась и параметры не зафиксированы — регенерируем
+      // Auto-refresh: анкета изменилась ИЛИ вес >85, а в программе ещё есть ударные/прыжки
       const changed =
         currentProgram.sessions_per_week !== prof.sessions_per_week ||
         currentProgram.goal !== prof.goal ||
         currentProgram.level !== prof.level ||
         currentProgram.has_injuries !== prof.has_injuries;
-      if (changed) {
+      const jointCareRefresh =
+        needsJointCare(input) && programHasImpactMoves(currentDays, ex);
+      if (changed || jointCareRefresh) {
         try {
-          const input: ProgramInput = {
-            sessions_per_week: prof.sessions_per_week,
-            goal: prof.goal,
-            level: prof.level,
-            has_injuries: prof.has_injuries,
-            injuries_details: prof.injuries_details,
-            equipment: prof.equipment,
-            location: prof.location,
-          };
           const res = await createOrReplaceProgram({
             userId: effectiveUserId,
             input,
@@ -111,7 +126,11 @@ function TrainingInner() {
           });
           currentProgram = res.program;
           currentDays = res.days;
-          toast.success("Программа обновлена под изменения анкеты");
+          toast.success(
+            jointCareRefresh && !changed
+              ? "Программа обновлена: убраны ударные и прыжковые нагрузки"
+              : "Программа обновлена под изменения анкеты",
+          );
         } catch (e) {
           console.error(e);
         }

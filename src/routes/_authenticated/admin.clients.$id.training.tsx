@@ -43,6 +43,7 @@ function AdminTrainingPage() {
     injuries_details: string | null;
     equipment: string[];
     location: string | null;
+    weight_kg: number | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -65,6 +66,7 @@ function AdminTrainingPage() {
       injuries_details: prof.injuries_details,
       equipment: prof.equipment,
       location: prof.location,
+      weight_kg: prof.weight_kg,
     });
     setProfileName(profRow.data?.full_name ?? "Клиент");
     setLoading(false);
@@ -85,6 +87,7 @@ function AdminTrainingPage() {
       injuries_details: profile.injuries_details,
       equipment: profile.equipment,
       location: profile.location,
+      weight_kg: profile.weight_kg,
       ...overrides,
     };
     try {
@@ -202,6 +205,7 @@ function ParamsEditor({
     sessions_per_week: 3 | 4;
     goal: ProgramGoal;
     level: ProgramLevel;
+    weight_kg?: number | null;
   };
   onSaveTargets: (sessions: 3 | 4, goal: ProgramGoal, level: ProgramLevel) => Promise<void>;
   onSaveNotes: (notes: string | null) => Promise<void>;
@@ -221,6 +225,10 @@ function ParamsEditor({
           <p className="mt-1 text-sm text-warm-gray">
             Из анкеты: {profile.sessions_per_week} тренировки в неделю · {GOAL_LABEL[profile.goal]}{" "}
             · {profile.level}
+            {profile.weight_kg != null ? ` · вес ${profile.weight_kg} кг` : ""}
+            {profile.weight_kg != null && profile.weight_kg > 85
+              ? " (без ударных/прыжков)"
+              : ""}
           </p>
         </div>
         {program.targets_manual && (
