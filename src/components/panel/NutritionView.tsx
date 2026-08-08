@@ -406,9 +406,13 @@ function MealDialog({
                 : "Варианты замены с сопоставимым КБЖУ:"}
             </p>
             {replacements.slice(0, 8).map((d) => {
-              const rep_portion = Math.round(
-                (dish.portion_weight_g * dish.calories_per_100g) / Math.max(d.calories_per_100g, 1) / 5,
-              ) * 5;
+              const rep_portion = Math.max(
+                60,
+                Math.round(
+                  (dish.portion_weight_g * dish.calories_per_100g) /
+                    Math.max(d.calories_per_100g, 1),
+                ),
+              );
               return (
                 <div
                   key={d.id}

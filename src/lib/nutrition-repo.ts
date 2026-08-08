@@ -264,8 +264,16 @@ export function replaceMeal(
 export function scalePortionForSwap(oldDish: Dish, oldPortion: number, newDish: Dish): number {
   const oldKcal = (oldDish.calories_per_100g * oldPortion) / 100;
   const per100 = Math.max(newDish.calories_per_100g, 1);
-  const g = (oldKcal / per100) * 100;
-  return Math.max(60, Math.round(g / 5) * 5);
+  // 1 г точность — та же ккал-логика, что у генерации дня (без шага 5 г).
+  const exact = (oldKcal / per100) * 100;
+  const rounded = Math.max(60, Math.round(exact));
+  const floor = Math.max(60, Math.floor(exact));
+  const ceil = Math.max(60, Math.ceil(exact));
+  const err = (g: number) => Math.abs((per100 * g) / 100 - oldKcal);
+  let best = rounded;
+  if (err(floor) < err(best)) best = floor;
+  if (err(ceil) < err(best)) best = ceil;
+  return best;
 }
 
 export { calcTargets, filterDishesForMedicalTable };

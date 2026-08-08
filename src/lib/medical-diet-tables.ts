@@ -2,6 +2,12 @@
  * Лечебные столы по системе М. И. Певзнера (классическая нумерация).
  * Краткие показания для анкеты — не замена назначения врача.
  */
+import {
+  getSpecialDietMenu,
+  isSpecialDietMenuId,
+  type SpecialDietMenu,
+} from "@/lib/special-diet-menus";
+
 export type MedicalDietTable = {
   id: string;
   number: number;
@@ -124,8 +130,17 @@ export function getMedicalDietTable(id: string | null | undefined) {
   return MEDICAL_DIET_TABLES.find((t) => t.id === id) ?? null;
 }
 
-export function formatMedicalDietTable(id: string | null | undefined): string | null {
-  const table = getMedicalDietTable(id);
-  if (!table) return id === MEDICAL_DIET_NONE ? "Не назначен" : null;
-  return `${table.title}: ${table.indication}`;
+/** Стол Певзнера или специальное меню из анкеты. */
+export function getDietPoolInfo(
+  id: string | null | undefined,
+): MedicalDietTable | SpecialDietMenu | null {
+  return getMedicalDietTable(id) ?? getSpecialDietMenu(id);
 }
+
+export function formatMedicalDietTable(id: string | null | undefined): string | null {
+  const pool = getDietPoolInfo(id);
+  if (!pool) return id === MEDICAL_DIET_NONE ? "Не назначен" : null;
+  return `${pool.title}: ${pool.indication}`;
+}
+
+export { isSpecialDietMenuId, getSpecialDietMenu };

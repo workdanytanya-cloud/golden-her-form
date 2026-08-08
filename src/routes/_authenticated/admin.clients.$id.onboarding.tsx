@@ -150,7 +150,7 @@ function AdminClientOnboarding() {
           <Group title="Питание">
             <Row label="Тип питания" value={s("diet_type")} />
             <Row
-              label="Лечебный стол"
+              label="Меню / стол"
               value={formatMedicalDietTable(
                 (() => {
                   const extra = get("extra");

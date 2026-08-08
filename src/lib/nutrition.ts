@@ -78,15 +78,19 @@ export function calcTargets(p: ProfileInput): NutritionTargets {
   if (/(похуд|снижен|жир|weight_loss|lose)/.test(goal)) kcal = tdee * 0.85;
   else if (/(набор|мышц|gain|muscle)/.test(goal)) kcal = tdee * 1.1;
 
+  // Округляем целевые ккал до 10, затем подгоняем углеводы и
+  // фиксируем kcal = P×4 + C×4 + F×9 — без расхождения «цель vs сумма макросов».
+  const kcalRounded = Math.round(kcal / 10) * 10;
   const protein_g = Math.round(weight * 1.8);
   const fat_g = Math.round(weight * 1.0);
   const carbs_g = Math.max(
     80,
-    Math.round((kcal - protein_g * 4 - fat_g * 9) / 4),
+    Math.round((kcalRounded - protein_g * 4 - fat_g * 9) / 4),
   );
+  const kcalSynced = protein_g * 4 + carbs_g * 4 + fat_g * 9;
 
   return {
-    kcal: Math.round(kcal / 10) * 10,
+    kcal: kcalSynced,
     protein_g,
     fat_g,
     carbs_g,
@@ -178,9 +182,9 @@ export type GenerateOptions = {
 const TABLE_TAG_RE = /^table_\d+$/;
 
 /**
- * Без лечебного стола — только общая библиотека (тег general).
- * Со столом table_N — только блюда этого стола.
- * Блюда других столов никогда не подмешиваются.
+ * Без спец. меню / лечебного стола — только общая библиотека (тег general).
+ * С id пула (table_N или special_*) — только блюда с этим тегом.
+ * Пулы между собой не смешиваются.
  */
 export function filterDishesForMedicalTable(
   dishes: Dish[],
@@ -193,8 +197,71 @@ export function filterDishesForMedicalTable(
     return dishes.filter((d) => d.tags.includes(tableId));
   }
 
-  // Только general — без рационов столов Певзнера
+  // Только general — без рационов столов и спец. меню
   return dishes.filter((d) => d.tags.includes("general"));
+}
+
+/** Ккал порции (г) по calories_per_100g. */
+export function portionKcal(calPer100g: number, portion_g: number): number {
+  return (calPer100g * portion_g) / 100;
+}
+
+/**
+ * Подгоняет порции (целые граммы), чтобы сумма ккал дня совпала с целью
+ * с минимальной возможной погрешностью (± доля ккал в 1 г самого «плотного» блюда).
+ */
+export function fitPortionsToTargetKcal(
+  meals: MealEntry[],
+  dishesById: Record<string, Dish>,
+  targetKcal: number,
+  minPortion = 30,
+): void {
+  if (meals.length === 0 || targetKcal <= 0) return;
+
+  const kcalOf = (m: MealEntry) => {
+    const d = dishesById[m.dish_id];
+    return d ? portionKcal(d.calories_per_100g, m.portion_g) : 0;
+  };
+
+  let sum = meals.reduce((s, m) => s + kcalOf(m), 0);
+  if (sum <= 0) return;
+
+  const scale = targetKcal / sum;
+  for (const m of meals) {
+    m.portion_g = Math.max(minPortion, Math.round(m.portion_g * scale));
+  }
+
+  const daySum = () => meals.reduce((s, m) => s + kcalOf(m), 0);
+
+  // Итеративно ±1 г по блюду с наибольшей калорийностью на грамм —
+  // пока можно приблизиться к цели (обычно остаётся < 1–2 ккал).
+  for (let step = 0; step < 500; step++) {
+    sum = daySum();
+    const diff = targetKcal - sum;
+    if (Math.abs(diff) < 1e-9) break;
+
+    const ranked = [...meals].sort((a, b) => {
+      const da = dishesById[a.dish_id]?.calories_per_100g ?? 0;
+      const db = dishesById[b.dish_id]?.calories_per_100g ?? 0;
+      return db - da;
+    });
+
+    let moved = false;
+    const wantUp = diff > 0;
+    for (const m of ranked) {
+      const d = dishesById[m.dish_id];
+      if (!d || d.calories_per_100g <= 0) continue;
+      const next = m.portion_g + (wantUp ? 1 : -1);
+      if (next < minPortion) continue;
+      const newSum = sum - kcalOf(m) + portionKcal(d.calories_per_100g, next);
+      if (Math.abs(targetKcal - newSum) < Math.abs(targetKcal - sum) - 1e-9) {
+        m.portion_g = next;
+        moved = true;
+        break;
+      }
+    }
+    if (!moved) break;
+  }
 }
 
 /** Есть ли у блюда привязка к лечебному столу. */
@@ -208,22 +275,30 @@ function pickWithScore(
   excluded: Set<string>,
   recentUseByDish: Map<string, number>,
   dayIndex: number,
+  usedToday: Set<string> = new Set(),
 ): Dish | null {
   const pool = candidates.filter((d) => {
-    // exclude if any tag is in excluded
+    if (usedToday.has(d.id)) return false;
     if (d.tags.some((t) => excluded.has(t.toLowerCase()))) return false;
     return true;
   });
   if (pool.length === 0) return null;
 
-  const scored = pool.map((d) => {
+  // Сначала блюда, которых ещё не было на этой неделе (7 дней).
+  const fresh = pool.filter((d) => {
+    const lastUsed = recentUseByDish.get(d.id);
+    return lastUsed === undefined || dayIndex - lastUsed >= 7;
+  });
+  const working = fresh.length > 0 ? fresh : pool;
+
+  const scored = working.map((d) => {
     const preferredHits = d.tags.reduce(
       (s, t) => (preferred.has(t.toLowerCase()) ? s + 1 : s),
       0,
     );
     const lastUsed = recentUseByDish.get(d.id);
     const recencyPenalty =
-      lastUsed !== undefined && dayIndex - lastUsed < 3 ? 5 : 0;
+      lastUsed !== undefined ? Math.max(0, 7 - (dayIndex - lastUsed)) * 3 : 0;
     return {
       dish: d,
       score: preferredHits * 2 - recencyPenalty + Math.random(),
@@ -251,11 +326,20 @@ export function generatePlan(dishes: Dish[], opts: GenerateOptions): DayEntry[] 
   const days: DayEntry[] = [];
   for (let i = 0; i < 7; i++) {
     const meals: MealEntry[] = [];
+    const usedToday = new Set<string>();
     for (const slot of slots) {
       const mt = slotMealType(slot);
-      const dish = pickWithScore(dishesBySlot[mt], preferred, excluded, recentUse, i);
+      const dish = pickWithScore(
+        dishesBySlot[mt],
+        preferred,
+        excluded,
+        recentUse,
+        i,
+        usedToday,
+      );
       if (!dish) continue;
       recentUse.set(dish.id, i);
+      usedToday.add(dish.id);
       // Initial portion aimed at slot's share of daily kcal.
       const targetKcal = opts.targets.kcal * distribution[slot];
       const per100 = Math.max(dish.calories_per_100g, 1);
@@ -263,38 +347,12 @@ export function generatePlan(dishes: Dish[], opts: GenerateOptions): DayEntry[] 
       meals.push({ slot, dish_id: dish.id, portion_g });
     }
 
-    // Rescale the whole day so total kcal hits the target exactly (±1 kcal).
-    // Portions are stored to 1 g precision — no coarse rounding — so displayed
-    // totals stay in lock-step with target kcal for any manual setting.
     const dishesById: Record<string, Dish> = {};
     for (const m of meals) {
       const d = dishes.find((x) => x.id === m.dish_id);
       if (d) dishesById[m.dish_id] = d;
     }
-    const totalKcal = meals.reduce((s, m) => {
-      const d = dishesById[m.dish_id];
-      return d ? s + (d.calories_per_100g * m.portion_g) / 100 : s;
-    }, 0);
-    if (totalKcal > 0) {
-      const scale = opts.targets.kcal / totalKcal;
-      for (const m of meals) m.portion_g = Math.max(30, Math.round(m.portion_g * scale));
-    }
-    // Final micro-adjust: nudge the largest meal by 1 g steps until kcal matches.
-    const kcalOf = (m: MealEntry) => {
-      const d = dishesById[m.dish_id];
-      return d ? (d.calories_per_100g * m.portion_g) / 100 : 0;
-    };
-    let sum = meals.reduce((s, m) => s + kcalOf(m), 0);
-    if (meals.length > 0) {
-      const largest = meals.reduce((a, b) => (kcalOf(a) >= kcalOf(b) ? a : b));
-      const d = dishesById[largest.dish_id];
-      if (d && d.calories_per_100g > 0) {
-        const diffKcal = opts.targets.kcal - sum;
-        const deltaG = Math.round((diffKcal / d.calories_per_100g) * 100);
-        largest.portion_g = Math.max(30, largest.portion_g + deltaG);
-        sum = meals.reduce((s, m) => s + kcalOf(m), 0);
-      }
-    }
+    fitPortionsToTargetKcal(meals, dishesById, opts.targets.kcal, 30);
 
     days.push({ day_index: i, day_note: null, meals });
   }

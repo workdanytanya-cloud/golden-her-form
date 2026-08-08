@@ -6,6 +6,7 @@ import { MediaUpload } from "@/components/panel/MediaUpload";
 import { Search, Save, Trash2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { MEDICAL_DIET_TABLES } from "@/lib/medical-diet-tables";
+import { SPECIAL_DIET_MENUS } from "@/lib/special-diet-menus";
 import { MEAL_TYPE_LABEL, mealTypeLabel } from "@/lib/nutrition";
 
 export const Route = createFileRoute("/_authenticated/admin/dishes")({
@@ -181,6 +182,11 @@ function AdminDishes() {
         >
           <option value="all">Все столы</option>
           <option value="general">Общая библиотека</option>
+          {SPECIAL_DIET_MENUS.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.shortTitle}
+            </option>
+          ))}
           {MEDICAL_DIET_TABLES.map((t) => (
             <option key={t.id} value={t.id}>
               {t.title}
