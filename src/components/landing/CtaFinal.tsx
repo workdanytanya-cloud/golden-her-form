@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import consultationPhoto from "@/assets/trainer-consultation.jpg";
 import { Reveal } from "@/components/ui/Reveal";
 import { useLeadForm } from "@/components/ui/LeadFormModal";
@@ -55,6 +56,15 @@ export function CtaFinal() {
               Задать вопрос
             </button>
           </div>
+          <p className="mt-5 text-sm text-white/75">
+            Уже есть промокод или кабинет?{" "}
+            <Link
+              to="/auth"
+              className="font-medium text-coral-soft underline-offset-4 transition-colors hover:text-white hover:underline"
+            >
+              Войти
+            </Link>
+          </p>
         </Reveal>
       </div>
     </section>

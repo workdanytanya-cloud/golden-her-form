@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { X } from "lucide-react";
 import { toast } from "sonner";
@@ -316,6 +317,17 @@ function LeadFormDialog({
             {sending ? "Отправляем…" : "Отправить заявку"}
           </button>
         </form>
+
+        <p className="mt-4 text-center text-sm text-[#5c524a]">
+          Уже есть промокод или кабинет?{" "}
+          <Link
+            to="/auth"
+            onClick={onClose}
+            className="font-medium text-coral underline-offset-4 hover:underline"
+          >
+            Войти
+          </Link>
+        </p>
       </div>
     </div>
   );

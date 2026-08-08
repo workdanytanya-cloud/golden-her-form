@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Link } from "@tanstack/react-router";
 import heroPhoto from "@/assets/trainer-highfive.png";
 import { CountUp } from "@/components/ui/CountUp";
 import { useLeadForm } from "@/components/ui/LeadFormModal";
@@ -79,6 +80,15 @@ export function Hero() {
               Смотреть результаты
             </a>
           </div>
+          <p className="mt-4 text-sm text-white/75">
+            Уже есть промокод или кабинет?{" "}
+            <Link
+              to="/auth"
+              className="font-medium text-coral-soft underline-offset-4 transition-colors hover:text-white hover:underline"
+            >
+              Войти
+            </Link>
+          </p>
         </div>
 
         <div className="mt-10 grid grid-cols-3 gap-3 border-t border-white/25 pt-6 sm:mt-12 sm:gap-8 sm:pt-8">

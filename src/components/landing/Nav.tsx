@@ -139,16 +139,25 @@ export function Nav() {
                 Личный кабинет
               </Link>
             ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  openLeadForm({ source: "general" });
-                }}
-                className="mt-2 inline-flex w-fit items-center gap-2 rounded-lg bg-coral px-5 py-3 text-sm font-semibold text-white"
-              >
-                Оставить заявку
-              </button>
+              <div className="mt-2 flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    openLeadForm({ source: "general" });
+                  }}
+                  className="inline-flex w-fit items-center gap-2 rounded-lg bg-coral px-5 py-3 text-sm font-semibold text-white"
+                >
+                  Оставить заявку
+                </button>
+                <Link
+                  to="/auth"
+                  onClick={() => setOpen(false)}
+                  className="text-sm font-medium text-[#3d342e] underline-offset-4 hover:text-coral hover:underline"
+                >
+                  Уже есть промокод или кабинет? Войти
+                </Link>
+              </div>
             )}
           </nav>
         </div>
