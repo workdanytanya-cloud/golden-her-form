@@ -206,7 +206,7 @@ function AdminNutritionPage() {
                   excluded: [...(plan.excluded_products ?? []), ...autoExcluded],
                   targets,
                   targetsManual: manual,
-                  dishes,
+                  dishes: await loadDishes(),
                 });
                 toast.success("Параметры сохранены — меню пересчитано");
               } catch (e) {
