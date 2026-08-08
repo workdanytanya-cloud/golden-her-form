@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { parseRuNumber } from "@/lib/ru-number";
 import { BodyDiagram } from "./BodyDiagram";
 
 type Zone = "weight" | "waist" | "hips" | "chest";
@@ -125,9 +126,16 @@ const numberSchema = (min: number, max: number) =>
   z
     .string()
     .trim()
-    .refine((v) => v === "" || (!Number.isNaN(Number(v)) && Number(v) >= min && Number(v) <= max), {
-      message: `Введите число от ${min} до ${max}`,
-    });
+    .refine(
+      (v) => {
+        if (v === "") return true;
+        const n = parseRuNumber(v);
+        return n != null && n >= min && n <= max;
+      },
+      {
+        message: `Введите число от ${min} до ${max}`,
+      },
+    );
 
 export function MeasurementWizard({ userId, onSaved }: { userId: string; onSaved: () => void }) {
   const { impersonation } = useAuth();
@@ -186,10 +194,10 @@ export function MeasurementWizard({ userId, onSaved }: { userId: string; onSaved
 
       user_id: userId,
       measured_on: form.measured_on,
-      weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
-      waist_cm: form.waist_cm ? Number(form.waist_cm) : null,
-      hips_cm: form.hips_cm ? Number(form.hips_cm) : null,
-      chest_cm: form.chest_cm ? Number(form.chest_cm) : null,
+      weight_kg: parseRuNumber(form.weight_kg),
+      waist_cm: parseRuNumber(form.waist_cm),
+      hips_cm: parseRuNumber(form.hips_cm),
+      chest_cm: parseRuNumber(form.chest_cm),
       note: form.note.trim().slice(0, 500) || null,
     });
     setSaving(false);

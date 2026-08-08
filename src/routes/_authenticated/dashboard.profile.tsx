@@ -6,6 +6,7 @@ import { PanelHeader } from "@/components/panel/PanelShell";
 import { SectionHint, FieldHint } from "@/components/panel/Hints";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
+import { parseRuNumber } from "@/lib/ru-number";
 
 export const Route = createFileRoute("/_authenticated/dashboard/profile")({
   component: ProfilePage,
@@ -70,7 +71,7 @@ function ProfilePage() {
         full_name: form.full_name || null,
         phone: form.phone || null,
         goal: form.goal || null,
-        height_cm: form.height_cm ? Number(form.height_cm) : null,
+        height_cm: form.height_cm ? parseRuNumber(form.height_cm) : null,
         birth_date: form.birth_date || null,
       })
       .eq("id", effectiveUserId);

@@ -13,6 +13,7 @@ import {
   getDietPoolInfo,
 } from "@/lib/medical-diet-tables";
 import { SPECIAL_DIET_MENUS } from "@/lib/special-diet-menus";
+import { isRuNumberInRange, parseRuNumber } from "@/lib/ru-number";
 
 export const Route = createFileRoute("/_authenticated/dashboard/onboarding")({
   component: OnboardingPage,
@@ -27,6 +28,8 @@ const OnboardingFieldContext = createContext<FieldCtx | null>(null);
 
 // Fields required before the questionnaire can be submitted to the trainer.
 const REQUIRED_FIELDS: Array<{ key: string; label: string }> = [
+  { key: "height_cm", label: "Рост" },
+  { key: "weight_kg", label: "Вес" },
   { key: "goal_primary", label: "Основная цель" },
   { key: "timeframe", label: "Желаемый срок" },
   { key: "focus_areas", label: "Проблемные зоны (минимум одна)" },
@@ -89,6 +92,8 @@ function Field({
 }
 
 type FormState = {
+  height_cm: string;
+  weight_kg: string;
   goal_primary: string;
   goal_details: string;
   experience: string;
@@ -123,6 +128,8 @@ type FormState = {
 };
 
 const empty: FormState = {
+  height_cm: "",
+  weight_kg: "",
   goal_primary: "",
   goal_details: "",
   experience: "",
@@ -269,58 +276,73 @@ function OnboardingPage() {
 
   useEffect(() => {
     if (!effectiveUserId) return;
-    void supabase
-      .from("onboarding_responses")
-      .select("*")
-      .eq("user_id", effectiveUserId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          const d = data as Record<string, unknown>;
-          const extra =
-            d.extra && typeof d.extra === "object" && !Array.isArray(d.extra)
-              ? (d.extra as Record<string, unknown>)
-              : {};
-          const savedTable =
-            typeof extra.medical_diet_table === "string" ? extra.medical_diet_table : MEDICAL_DIET_NONE;
-          setForm({
-            goal_primary: (d.goal_primary as string) ?? "",
-            goal_details: (d.goal_details as string) ?? "",
-            experience: (d.experience as string) ?? "",
-            training_days_per_week: d.training_days_per_week != null ? String(d.training_days_per_week) : "",
-            session_duration_min: d.session_duration_min != null ? String(d.session_duration_min) : "",
-            training_location: (d.training_location as string) ?? "",
-            equipment: (d.equipment as string[]) ?? [],
-            focus_areas: (d.focus_areas as string[]) ?? [],
-            has_injuries: Boolean(d.has_injuries),
-            injuries_details: (d.injuries_details as string) ?? "",
-            health_conditions: (d.health_conditions as string) ?? "",
-            medications: (d.medications as string) ?? "",
-            pregnancy_status: (d.pregnancy_status as string) ?? "",
-            sleep_hours: d.sleep_hours != null ? String(d.sleep_hours) : "",
-            stress_level: d.stress_level != null ? String(d.stress_level) : "",
-            energy_level: d.energy_level != null ? String(d.energy_level) : "",
-            water_liters: d.water_liters != null ? String(d.water_liters) : "",
-            diet_type: (d.diet_type as string) ?? "",
-            medical_diet_table: savedTable,
-            allergies: (d.allergies as string) ?? "",
-            meals_per_day: d.meals_per_day != null ? String(d.meals_per_day) : "",
-            favorite_foods: (d.favorite_foods as string) ?? "",
-            disliked_foods: (d.disliked_foods as string) ?? "",
-            alcohol_frequency: (d.alcohol_frequency as string) ?? "",
-            smoking: Boolean(d.smoking),
-            activity_level: (d.activity_level as string) ?? "",
-            job_type: (d.job_type as string) ?? "",
-            motivation: (d.motivation as string) ?? "",
-            previous_experience: (d.previous_experience as string) ?? "",
-            timeframe: (d.timeframe as string) ?? "",
-            expectations: (d.expectations as string) ?? "",
-          });
-          setExtraBase(extra);
-          setCompleted((d.completed_at as string) ?? null);
-        }
-        setLoading(false);
-      });
+    void (async () => {
+      const [onbRes, profileRes, measRes] = await Promise.all([
+        supabase.from("onboarding_responses").select("*").eq("user_id", effectiveUserId).maybeSingle(),
+        supabase.from("profiles").select("height_cm").eq("id", effectiveUserId).maybeSingle(),
+        supabase
+          .from("measurements")
+          .select("weight_kg")
+          .eq("user_id", effectiveUserId)
+          .not("weight_kg", "is", null)
+          .order("measured_on", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      const height = profileRes.data?.height_cm != null ? String(profileRes.data.height_cm) : "";
+      const weight = measRes.data?.weight_kg != null ? String(measRes.data.weight_kg) : "";
+
+      if (onbRes.data) {
+        const d = onbRes.data as Record<string, unknown>;
+        const extra =
+          d.extra && typeof d.extra === "object" && !Array.isArray(d.extra)
+            ? (d.extra as Record<string, unknown>)
+            : {};
+        const savedTable =
+          typeof extra.medical_diet_table === "string" ? extra.medical_diet_table : MEDICAL_DIET_NONE;
+        setForm({
+          height_cm: height,
+          weight_kg: weight,
+          goal_primary: (d.goal_primary as string) ?? "",
+          goal_details: (d.goal_details as string) ?? "",
+          experience: (d.experience as string) ?? "",
+          training_days_per_week: d.training_days_per_week != null ? String(d.training_days_per_week) : "",
+          session_duration_min: d.session_duration_min != null ? String(d.session_duration_min) : "",
+          training_location: (d.training_location as string) ?? "",
+          equipment: (d.equipment as string[]) ?? [],
+          focus_areas: (d.focus_areas as string[]) ?? [],
+          has_injuries: Boolean(d.has_injuries),
+          injuries_details: (d.injuries_details as string) ?? "",
+          health_conditions: (d.health_conditions as string) ?? "",
+          medications: (d.medications as string) ?? "",
+          pregnancy_status: (d.pregnancy_status as string) ?? "",
+          sleep_hours: d.sleep_hours != null ? String(d.sleep_hours) : "",
+          stress_level: d.stress_level != null ? String(d.stress_level) : "",
+          energy_level: d.energy_level != null ? String(d.energy_level) : "",
+          water_liters: d.water_liters != null ? String(d.water_liters) : "",
+          diet_type: (d.diet_type as string) ?? "",
+          medical_diet_table: savedTable,
+          allergies: (d.allergies as string) ?? "",
+          meals_per_day: d.meals_per_day != null ? String(d.meals_per_day) : "",
+          favorite_foods: (d.favorite_foods as string) ?? "",
+          disliked_foods: (d.disliked_foods as string) ?? "",
+          alcohol_frequency: (d.alcohol_frequency as string) ?? "",
+          smoking: Boolean(d.smoking),
+          activity_level: (d.activity_level as string) ?? "",
+          job_type: (d.job_type as string) ?? "",
+          motivation: (d.motivation as string) ?? "",
+          previous_experience: (d.previous_experience as string) ?? "",
+          timeframe: (d.timeframe as string) ?? "",
+          expectations: (d.expectations as string) ?? "",
+        });
+        setExtraBase(extra);
+        setCompleted((d.completed_at as string) ?? null);
+      } else {
+        setForm((f) => ({ ...f, height_cm: height, weight_kg: weight }));
+      }
+      setLoading(false);
+    })();
   }, [effectiveUserId]);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -333,7 +355,7 @@ function OnboardingPage() {
 
   const buildPayload = (asCompleted: boolean) => {
     if (!effectiveUserId) return null;
-    const num = (s: string) => (s.trim() === "" ? null : Number(s));
+    const num = (s: string) => parseRuNumber(s);
     return {
       user_id: effectiveUserId,
       goal_primary: form.goal_primary || null,
@@ -389,7 +411,53 @@ function OnboardingPage() {
     if (form.has_injuries && !form.injuries_details.trim()) {
       missing.push("injuries_details");
     }
+    if (form.height_cm.trim() && !isRuNumberInRange(form.height_cm, 120, 230)) {
+      missing.push("height_cm");
+    }
+    if (form.weight_kg.trim() && !isRuNumberInRange(form.weight_kg, 30, 250)) {
+      missing.push("weight_kg");
+    }
     return missing;
+  };
+
+  const persistBodyMetrics = async () => {
+    if (!effectiveUserId) return;
+    const height = parseRuNumber(form.height_cm);
+    const weight = parseRuNumber(form.weight_kg);
+    if (height != null) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ height_cm: height })
+        .eq("id", effectiveUserId);
+      if (error) throw error;
+    }
+    if (weight != null) {
+      const measuredOn = new Date().toISOString().slice(0, 10);
+      // Обновляем сегодняшний замер или создаём новый — чтобы вес из анкеты сразу попал в КБЖУ.
+      const { data: existingRows } = await supabase
+        .from("measurements")
+        .select("id")
+        .eq("user_id", effectiveUserId)
+        .eq("measured_on", measuredOn)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const existing = existingRows?.[0];
+      if (existing?.id) {
+        const { error } = await supabase
+          .from("measurements")
+          .update({ weight_kg: weight })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("measurements").insert({
+          user_id: effectiveUserId,
+          measured_on: measuredOn,
+          weight_kg: weight,
+          note: "Из анкеты",
+        });
+        if (error) throw error;
+      }
+    }
   };
 
   const save = async (asCompleted: boolean) => {
@@ -403,7 +471,6 @@ function OnboardingPage() {
       if (missing.length > 0) {
         setMissingKeys(new Set(missing));
         toast.error(`Заполните обязательные поля: ${missing.length}`);
-        // scroll to first missing
         const first = missing[0];
         const el = fieldRefs.current[first];
         if (el && typeof el.scrollIntoView === "function") {
@@ -412,8 +479,21 @@ function OnboardingPage() {
         return;
       }
       setMissingKeys(new Set());
+    } else if (
+      (form.height_cm.trim() && !isRuNumberInRange(form.height_cm, 120, 230)) ||
+      (form.weight_kg.trim() && !isRuNumberInRange(form.weight_kg, 30, 250))
+    ) {
+      toast.error("Проверьте рост (120–230 см) и вес (30–250 кг). Можно с запятой: 68,5");
+      return;
     }
     setSaving(true);
+    try {
+      await persistBodyMetrics();
+    } catch (e) {
+      setSaving(false);
+      const msg = e instanceof Error ? e.message : "Не удалось сохранить рост/вес";
+      return toast.error(msg);
+    }
     const payload = buildPayload(asCompleted);
     if (!payload) return;
     const { error } = await supabase
@@ -425,7 +505,6 @@ function OnboardingPage() {
     }
     if (asCompleted) {
       setCompleted(payload.completed_at as string);
-      // Ensure row exists, then escalate pending → awaiting (DB trigger does the same)
       await supabase.from("client_access").insert({
         user_id: effectiveUserId,
         status: "pending_onboarding",
@@ -435,7 +514,6 @@ function OnboardingPage() {
         .update({ status: "awaiting_approval" })
         .eq("user_id", effectiveUserId)
         .eq("status", "pending_onboarding");
-      // Drafts for trainer review — client UI stays locked until grant
       await autoGenerateDraftsForClient(effectiveUserId);
       await refreshAccess();
       setSaving(false);
@@ -510,6 +588,37 @@ function OnboardingPage() {
 
 
 
+
+      <Section title="Параметры тела" step="0">
+        <p className="mb-3 text-sm text-warm-gray">
+          Рост и вес нужны для расчёта калорий. Замеры в разделе «Прогресс» откроются после допуска
+          тренера — поэтому укажите вес здесь.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Рост, см" fieldKey="height_cm">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={form.height_cm}
+              onChange={(e) => set("height_cm", e.target.value)}
+              className={inputCls}
+              placeholder="например, 165"
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="Вес, кг" fieldKey="weight_kg">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={form.weight_kg}
+              onChange={(e) => set("weight_kg", e.target.value)}
+              className={inputCls}
+              placeholder="например, 68,5"
+              autoComplete="off"
+            />
+          </Field>
+        </div>
+      </Section>
 
       <Section title="Цель" step="1">
         <Field label="Основная цель" fieldKey="goal_primary">

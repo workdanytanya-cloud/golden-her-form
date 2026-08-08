@@ -44,25 +44,30 @@ function AdminClientOnboarding() {
   const { id } = Route.useParams();
   const [data, setData] = useState<Onboarding | null>(null);
   const [profileName, setProfileName] = useState<string>("");
+  const [heightCm, setHeightCm] = useState<number | null>(null);
+  const [weightKg, setWeightKg] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", id)
-      .maybeSingle()
-      .then(({ data }) => setProfileName((data?.full_name as string) || "Без имени"));
-
-    void supabase
-      .from("onboarding_responses")
-      .select("*")
-      .eq("user_id", id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setData((data as Onboarding | null) ?? null);
-        setLoading(false);
-      });
+    void (async () => {
+      const [profileRes, onbRes, measRes] = await Promise.all([
+        supabase.from("profiles").select("full_name, height_cm").eq("id", id).maybeSingle(),
+        supabase.from("onboarding_responses").select("*").eq("user_id", id).maybeSingle(),
+        supabase
+          .from("measurements")
+          .select("weight_kg")
+          .eq("user_id", id)
+          .not("weight_kg", "is", null)
+          .order("measured_on", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      setProfileName((profileRes.data?.full_name as string) || "Без имени");
+      setHeightCm(profileRes.data?.height_cm ?? null);
+      setWeightKg(measRes.data?.weight_kg ?? null);
+      setData((onbRes.data as Onboarding | null) ?? null);
+      setLoading(false);
+    })();
   }, [id]);
 
   const get = (k: string) => data?.[k];
@@ -107,6 +112,11 @@ function AdminClientOnboarding() {
         </div>
       ) : (
         <>
+          <Group title="Параметры тела">
+            <Row label="Рост" value={heightCm != null ? `${heightCm} см` : null} />
+            <Row label="Вес (последний замер)" value={weightKg != null ? `${weightKg} кг` : null} />
+          </Group>
+
           <Group title="Цель">
             <Row label="Основная цель" value={s("goal_primary")} />
             <Row label="Своими словами" value={s("goal_details")} multiline />
