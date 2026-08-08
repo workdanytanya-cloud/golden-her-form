@@ -1,0 +1,53 @@
+-- Restore exercise gif_url paths from Lovable asset manifests.
+-- Live DB already updated via scripts/restore-exercise-gifs.mjs.
+
+UPDATE public.exercises AS e
+SET gif_url = v.url,
+    updated_at = now()
+FROM (VALUES
+  ('band-monster-walk', '/__l5e/assets-v1/b6a47f6f-7222-4a24-a92d-2af645c29cd8/band-monster-walk.mp4'),
+  ('band-pull-apart', '/__l5e/assets-v1/ef10e80b-1347-4af8-8632-0d18020efd0b/band-pull-apart.mp4'),
+  ('band-row', '/__l5e/assets-v1/cf6d78e0-e9ac-4c0e-879e-34417b0d8bac/band-row.mp4'),
+  ('band-shoulder-dislocates', '/__l5e/assets-v1/cd1cedab-8ff2-422c-bc9f-7d86b52a27d1/band-shoulder-dislocates.mp4'),
+  ('bird-dog', '/__l5e/assets-v1/6458f741-3301-40ba-888e-a68ef01f33b6/bird-dog.mp4'),
+  ('bodyweight-squat', '/__l5e/assets-v1/9ccb61a3-f3bb-4e3a-9d42-9043f5fd9a15/bodyweight-squat.mp4'),
+  ('calf-raise', '/__l5e/assets-v1/e56004a6-1a16-47a4-930b-59a05f1bc8a5/calf-raise.mp4'),
+  ('cat-cow', '/__l5e/assets-v1/8d20555f-6f0c-4add-82e9-a56927ee6d05/cat-cow.mp4'),
+  ('cat-thoracic', '/__l5e/assets-v1/05aa6db6-7567-4c48-aa7e-e0762bca5560/cat-thoracic.mp4'),
+  ('childs-pose', '/__l5e/assets-v1/b7da720d-689b-4b9b-82c0-821a6255869d/childs-pose.mp4'),
+  ('clamshell', '/__l5e/assets-v1/b81b090b-e43b-4239-a07e-6dfa67cdf22c/clamshell.mp4'),
+  ('couch-stretch', '/__l5e/assets-v1/b9acfd7b-ed9e-4970-8dcf-3482fda4d62a/couch-stretch.mp4'),
+  ('db-bench-press', '/__l5e/assets-v1/5345c889-3835-4cec-af66-ecdb4efe71e2/db-bench-press.mp4'),
+  ('db-biceps-curl', '/__l5e/assets-v1/8ff07dbf-8942-4777-bd7d-ff600ffe9fe8/db-biceps-curl.mp4'),
+  ('db-row', '/__l5e/assets-v1/731bc39f-6d8f-4e63-821c-58ab856d9e78/db-row.mp4'),
+  ('db-shoulder-press', '/__l5e/assets-v1/77fc6534-0847-43e0-bd28-c4297cb86066/db-shoulder-press.mp4'),
+  ('dead-bug', '/__l5e/assets-v1/4440cefb-d27b-47f4-a30d-494bbe90fbee/dead-bug.mp4'),
+  ('face-pull', '/__l5e/assets-v1/b7f16a24-529a-413b-b285-f106a6a21b06/face-pull.mp4'),
+  ('glute-bridge', '/__l5e/assets-v1/569dee1d-c649-46c3-863b-d02b0cbe9d85/glute-bridge.mp4'),
+  ('goblet-squat', '/__l5e/assets-v1/509523d1-ba1f-4b3f-837f-9d6baef2c587/goblet-squat.mp4'),
+  ('hamstring-stretch', '/__l5e/assets-v1/fbfd9747-1664-4e4b-b497-14fb6af30273/hamstring-stretch.mp4'),
+  ('hip-circles', '/__l5e/assets-v1/58786fc9-c3b4-4c1a-9fbe-6ab3587cf1fa/hip-circles.mp4'),
+  ('hip-thrust', '/__l5e/assets-v1/b00176b1-1d66-4054-ba7d-fb510bf2d1cd/hip-thrust.mp4'),
+  ('hollow-hold', '/__l5e/assets-v1/f277f7bb-e2fa-4c58-afc7-9f6f60d99ac7/hollow-hold.mp4'),
+  ('jumping-jack', '/__l5e/assets-v1/587ec50b-a104-49ca-aa63-db9ece9b0217/jumping-jack.mp4'),
+  ('kb-swing', '/__l5e/assets-v1/8880844d-7ebc-4d6b-8137-05dcbf1d62b1/kb-swing.mp4'),
+  ('knee-pushup', '/__l5e/assets-v1/ad9004d1-a317-482f-9198-f8f0189d4244/knee-pushup.mp4'),
+  ('lat-pulldown-band', '/__l5e/assets-v1/6fc3f327-f2bb-4faa-9c88-62f1b9710848/lat-pulldown-band.mp4'),
+  ('leg-swings', '/__l5e/assets-v1/b8c96c7b-9639-465b-a5b1-d26223e144bb/leg-swings.mp4'),
+  ('low-jack', '/__l5e/assets-v1/694ccd96-87d4-4da2-8cda-59c11d100ec6/low-jack.mp4'),
+  ('mountain-climber', '/__l5e/assets-v1/5ad7fda5-06bf-4e7b-a8dd-ce40252e2414/mountain-climber.mp4'),
+  ('pigeon', '/__l5e/assets-v1/fe8892dd-1b47-45c5-96ff-410def243f1d/pigeon.mp4'),
+  ('plank', '/__l5e/assets-v1/7df977c3-9d91-4669-95be-013295a4ddae/plank.mp4'),
+  ('pushup', '/__l5e/assets-v1/2a00bdc7-9820-4825-ba3d-4b64a078c49d/pushup.mp4'),
+  ('quad-stretch', '/__l5e/assets-v1/97c21bd2-6ce7-45f0-baed-2181971e1736/quad-stretch.mp4'),
+  ('reverse-lunge', '/__l5e/assets-v1/fc26d56b-dbb4-4b01-be4c-85392ba31adf/reverse-lunge.mp4'),
+  ('romanian-deadlift-db', '/__l5e/assets-v1/f6ff0912-e701-4220-b73c-1913abcab786/romanian-deadlift-db.mp4'),
+  ('russian-twist', '/__l5e/assets-v1/ccd8221d-c605-4672-be05-6b2b16ae7fc5/russian-twist.mp4'),
+  ('side-plank', '/__l5e/assets-v1/a964afcd-96d2-4dcb-baf5-0e0bd9bf7e2f/side-plank.mp4'),
+  ('split-squat', '/__l5e/assets-v1/4c43a89b-3748-4a92-aed0-faf52b0710c7/split-squat.mp4'),
+  ('step-up', '/__l5e/assets-v1/c4cbf625-9206-4315-875e-5224d8735c20/step-up.mp4'),
+  ('triceps-pushdown-band', '/__l5e/assets-v1/0087f350-e9c0-44e8-b4b8-61e6b9e94382/triceps-pushdown-band.mp4'),
+  ('walking-lunge', '/__l5e/assets-v1/b5c6f28a-a74e-4302-860a-5c9b1540aa37/walking-lunge.mp4'),
+  ('worlds-greatest-stretch', '/__l5e/assets-v1/3e87ae50-9f71-40ec-ba43-d12589eab8d0/worlds-greatest-stretch.mp4')
+) AS v(slug, url)
+WHERE e.slug = v.slug;

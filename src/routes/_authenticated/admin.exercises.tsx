@@ -206,9 +206,9 @@ function AdminExercises() {
               className="group flex flex-col overflow-hidden rounded-2xl border border-gold/15 bg-surface/40"
             >
               <div className="aspect-video w-full overflow-hidden bg-background/40">
-                {e.gif_url ? (
+                {e.gif_url || e.video_url ? (
                   <ExerciseMedia
-                    url={e.gif_url}
+                    url={(e.gif_url || e.video_url)!}
                     alt={e.name}
                     className="h-full w-full object-contain"
                   />
