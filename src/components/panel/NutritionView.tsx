@@ -1,5 +1,14 @@
 import { useMemo, useState } from "react";
-import { RefreshCcw, Replace, StickyNote, ChefHat, Info, Utensils } from "lucide-react";
+import {
+  RefreshCcw,
+  Replace,
+  StickyNote,
+  ChefHat,
+  Info,
+  Utensils,
+  ChevronRight,
+  ArrowLeft,
+} from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
@@ -287,6 +296,8 @@ function MealDialog({
   const [tab, setTab] = useState<"recipe" | "swap" | "adjust">("recipe");
   const [portion, setPortion] = useState(meal.portion_g);
   const [note, setNote] = useState(meal.note ?? "");
+  /** Просмотр варианта замены (рецепт + КБЖУ) без смены блюда в плане */
+  const [preview, setPreview] = useState<{ dish: Dish; portion_g: number } | null>(null);
 
   const replacements = useMemo(() => {
     const bySlug: Record<string, Dish> = {};
@@ -299,16 +310,43 @@ function MealDialog({
     return explicit;
   }, [dish, allDishes]);
 
-  const n = computeMealNutrition(dish, portion);
-  const ratio = portion / dish.portion_weight_g;
+  const activeDish = preview?.dish ?? dish;
+  const activePortion = preview?.portion_g ?? portion;
+  const n = computeMealNutrition(activeDish, activePortion);
+  const ratio = activePortion / Math.max(activeDish.portion_weight_g, 1);
+
+  const openReplacement = (d: Dish) => {
+    const rep_portion = Math.max(
+      60,
+      Math.round(
+        (dish.portion_weight_g * dish.calories_per_100g) / Math.max(d.calories_per_100g, 1),
+      ),
+    );
+    setPreview({ dish: d, portion_g: rep_portion });
+    setTab("recipe");
+  };
 
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto bg-background text-ivory">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">{dish.name}</DialogTitle>
+          <DialogTitle className="font-display text-2xl">{activeDish.name}</DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-warm-gray">{dish.description}</p>
+
+        {preview && (
+          <button
+            type="button"
+            onClick={() => {
+              setPreview(null);
+              setTab("swap");
+            }}
+            className="inline-flex items-center gap-1.5 text-xs text-gold hover:underline"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> К списку замен · исходное: {dish.name}
+          </button>
+        )}
+
+        <p className="text-sm text-warm-gray">{activeDish.description}</p>
 
         <div className="grid grid-cols-4 gap-2 rounded-xl bg-surface/50 p-2 text-xs">
           <span className="text-center text-warm-gray">
@@ -331,16 +369,32 @@ function MealDialog({
           </TabBtn>
           {editable && (
             <>
-              <TabBtn active={tab === "swap"} onClick={() => setTab("swap")} icon={<Replace className="h-3.5 w-3.5" />}>
+              <TabBtn
+                active={tab === "swap"}
+                onClick={() => {
+                  setPreview(null);
+                  setTab("swap");
+                }}
+                icon={<Replace className="h-3.5 w-3.5" />}
+              >
                 Замена
               </TabBtn>
-              <TabBtn active={tab === "adjust"} onClick={() => setTab("adjust")} icon={<Info className="h-3.5 w-3.5" />}>
-                Порция и заметка
-              </TabBtn>
+              {!preview && (
+                <TabBtn active={tab === "adjust"} onClick={() => setTab("adjust")} icon={<Info className="h-3.5 w-3.5" />}>
+                  Порция и заметка
+                </TabBtn>
+              )}
             </>
           )}
           {!editable && (
-            <TabBtn active={tab === "swap"} onClick={() => setTab("swap")} icon={<Replace className="h-3.5 w-3.5" />}>
+            <TabBtn
+              active={tab === "swap"}
+              onClick={() => {
+                setPreview(null);
+                setTab("swap");
+              }}
+              icon={<Replace className="h-3.5 w-3.5" />}
+            >
               Замены
             </TabBtn>
           )}
@@ -348,12 +402,17 @@ function MealDialog({
 
         {tab === "recipe" && (
           <div className="space-y-4">
+            {preview && (
+              <p className="rounded-xl border border-gold/20 bg-gold/10 px-3 py-2 text-xs text-gold">
+                Вариант замены · порция ~{activePortion} г (сопоставимо по ккал с исходным блюдом)
+              </p>
+            )}
             <section>
               <h4 className="text-[11px] uppercase tracking-widest text-warm-gray">
-                Ингредиенты на порцию {portion} г
+                Ингредиенты на порцию {activePortion} г
               </h4>
               <ul className="mt-2 space-y-1 text-sm">
-                {dish.ingredients.map((ing, i) => {
+                {(activeDish.ingredients ?? []).map((ing, i) => {
                   const raw = Math.round(ing.raw_g * ratio);
                   const cooked = Math.round(ing.cooked_g * ratio);
                   const lower = ing.raw.toLowerCase();
@@ -380,12 +439,15 @@ function MealDialog({
                     </li>
                   );
                 })}
+                {(activeDish.ingredients ?? []).length === 0 && (
+                  <li className="py-2 text-sm text-warm-gray">Состав для этого блюда пока не заполнен.</li>
+                )}
               </ul>
             </section>
             <section>
               <h4 className="text-[11px] uppercase tracking-widest text-warm-gray">Приготовление</h4>
               <ol className="mt-2 space-y-2 text-sm text-ivory">
-                {dish.steps.map((step, i) => (
+                {(activeDish.steps ?? []).map((step, i) => (
                   <li key={i} className="flex gap-3">
                     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gold/25 text-[10px] font-bold text-ivory">
                       {i + 1}
@@ -393,6 +455,9 @@ function MealDialog({
                     <span>{step}</span>
                   </li>
                 ))}
+                {(activeDish.steps ?? []).length === 0 && (
+                  <li className="text-warm-gray">Шаги приготовления пока не заполнены.</li>
+                )}
               </ol>
             </section>
           </div>
@@ -402,8 +467,8 @@ function MealDialog({
           <div className="space-y-2">
             <p className="text-xs text-warm-gray">
               {editable
-                ? "Выберите блюдо для замены — КБЖУ дня пересчитается автоматически."
-                : "Варианты замены с сопоставимым КБЖУ:"}
+                ? "Нажмите на блюдо, чтобы открыть рецепт. Кнопка «Заменить» подставит его в меню."
+                : "Нажмите на вариант — откроются рецепт и полные данные по КБЖУ."}
             </p>
             {replacements.slice(0, 8).map((d) => {
               const rep_portion = Math.max(
@@ -416,19 +481,27 @@ function MealDialog({
               return (
                 <div
                   key={d.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-gold/15 bg-surface/40 p-3"
+                  className="flex items-center gap-2 rounded-xl border border-gold/15 bg-surface/40 transition-colors hover:border-gold/40 hover:bg-gold/5"
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-ivory">{d.name}</p>
-                    <p className="text-[11px] text-warm-gray">
-                      Порция ~{rep_portion} г · {Math.round((d.calories_per_100g * rep_portion) / 100)} ккал
-                    </p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openReplacement(d)}
+                    className="flex min-w-0 flex-1 items-center gap-3 p-3 text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-ivory">{d.name}</p>
+                      <p className="text-[11px] text-warm-gray">
+                        Порция ~{rep_portion} г ·{" "}
+                        {Math.round((d.calories_per_100g * rep_portion) / 100)} ккал
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-warm-gray" />
+                  </button>
                   {editable && (
                     <button
                       type="button"
                       onClick={() => void onSwap(d.id)}
-                      className="shrink-0 rounded-full bg-gradient-to-r from-coral to-gold px-3 py-1.5 text-[11px] uppercase tracking-widest text-background"
+                      className="mr-3 shrink-0 rounded-full bg-gradient-to-r from-coral to-gold px-3 py-1.5 text-[11px] uppercase tracking-widest text-background"
                     >
                       Заменить
                     </button>

@@ -57,6 +57,36 @@ function formatTagLabel(tag: string): string {
   return tag;
 }
 
+/** Сжимает table_N / стол_N в одну подпись «Столы №…», без дублей. */
+function displayTagChips(tags: string[]): { key: string; label: string }[] {
+  const tables = new Set<number>();
+  const other: string[] = [];
+  for (const tag of tags) {
+    const m = /^table_(\d+)$/.exec(tag) || /^стол_(\d+)$/.exec(tag);
+    if (m) {
+      tables.add(Number(m[1]));
+      continue;
+    }
+    if (!other.includes(tag)) other.push(tag);
+  }
+  const nums = [...tables].sort((a, b) => a - b);
+  const chips: { key: string; label: string }[] = [];
+  if (nums.length === 1) {
+    chips.push({ key: `table_${nums[0]}`, label: `Стол №${nums[0]}` });
+  } else if (nums.length > 1) {
+    const contiguous = nums.every((n, i) => i === 0 || n === nums[i - 1]! + 1);
+    const label =
+      contiguous && nums.length > 2
+        ? `Столы №${nums[0]}–${nums[nums.length - 1]}`
+        : `Столы №${nums.join(", ")}`;
+    chips.push({ key: "tables", label });
+  }
+  for (const tag of other) {
+    chips.push({ key: tag, label: formatTagLabel(tag) });
+  }
+  return chips;
+}
+
 function AdminDishes() {
   const [items, setItems] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
@@ -237,12 +267,12 @@ function AdminDishes() {
                 </div>
                 {e.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
-                    {e.tags.slice(0, 4).map((m) => (
+                    {displayTagChips(e.tags).map((chip) => (
                       <span
-                        key={m}
+                        key={chip.key}
                         className="rounded-full bg-gold/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-gold"
                       >
-                        {formatTagLabel(m)}
+                        {chip.label}
                       </span>
                     ))}
                   </div>
