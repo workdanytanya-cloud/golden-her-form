@@ -1,0 +1,1075 @@
+{
+  "style": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals",
+  "count": 72,
+  "items": [
+    {
+      "id": "b58eefce-743d-4944-9f74-74d7e3401ebc",
+      "slug": "t2-breakfast-buckwheat-milk",
+      "name": "Гречневая каша разваренная на молоке",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_2",
+        "стол_2",
+        "молочка",
+        "гречка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Soft well-cooked buckwheat porridge simmered in milk, creamy beige-brown grains in a shallow bowl, smooth milky sheen, steam hint, homemade breakfast portion.",
+      "filename": "t2-breakfast-buckwheat-milk.png"
+    },
+    {
+      "id": "d2ddb747-342a-4b3c-b365-89275cfc121a",
+      "slug": "t13-breakfast-semolina-water",
+      "name": "Манная каша жидкая на воде",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_13",
+        "стол_13",
+        "щадящее"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Thin liquid semolina porridge cooked in water, pale ivory silky porridge in a bowl, smooth pourable consistency, gentle steam, simple breakfast serving.",
+      "filename": "t13-breakfast-semolina-water.png"
+    },
+    {
+      "id": "09ec98b9-8101-4506-895c-954fd3c28b00",
+      "slug": "t1-breakfast-semolina-milk",
+      "name": "Манная каша на молоке (жидкая)",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_1",
+        "стол_1",
+        "молочка",
+        "щадящее"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Thin liquid semolina porridge cooked in milk, creamy off-white porridge in a bowl with soft milky surface, gentle steam, cozy breakfast portion.",
+      "filename": "t1-breakfast-semolina-milk.png"
+    },
+    {
+      "id": "fee92b99-cb18-41cd-b51b-2e92782ec464",
+      "slug": "gen-breakfast-oatmeal-berries",
+      "name": "Овсяная каша на воде с ягодами",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "general",
+        "овсянка",
+        "завтрак",
+        "клетчатка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Oatmeal porridge cooked in water in a ceramic bowl, topped with fresh mixed berries (blueberries, raspberries, strawberries), appetizing breakfast portion.",
+      "filename": "gen-breakfast-oatmeal-berries.png"
+    },
+    {
+      "id": "d29bd49f-c7a4-4e86-846f-56a6e83efba0",
+      "slug": "t12-breakfast-milk-oatmeal-calm",
+      "name": "Овсянка молочная (без кофе)",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_12",
+        "стол_12",
+        "молочка",
+        "овсянка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Creamy milk oatmeal porridge in a bowl, soft beige oats with milky gloss, plain and simple, no coffee cup nearby, warm breakfast serving.",
+      "filename": "t12-breakfast-milk-oatmeal-calm.png"
+    },
+    {
+      "id": "48854c91-60d2-4706-a065-aa352f106231",
+      "slug": "t10-breakfast-oatmeal-unsalted",
+      "name": "Овсянка на воде без соли",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_10",
+        "стол_10",
+        "бессолевое",
+        "овсянка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Plain oatmeal porridge cooked in water, soft beige oats in a clean bowl, unseasoned look, simple and appetizing breakfast portion.",
+      "filename": "t10-breakfast-oatmeal-unsalted.png"
+    },
+    {
+      "id": "0065fbaa-2e1b-4d41-9896-395509c28570",
+      "slug": "t5-breakfast-oatmeal-water",
+      "name": "Овсянка на воде с печёным яблоком",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_5",
+        "стол_5",
+        "овсянка",
+        "печень"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Oatmeal porridge cooked in water served with a soft baked apple half on the side, warm oats and caramelized apple flesh, cozy breakfast plate.",
+      "filename": "t5-breakfast-oatmeal-water.png"
+    },
+    {
+      "id": "301b9285-a450-4fe8-a11d-130ad40773ef",
+      "slug": "t11-breakfast-oatmeal-butter-egg",
+      "name": "Овсянка на молоке с маслом и яйцом",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_11",
+        "стол_11",
+        "молочка",
+        "яйца",
+        "высококалорийное"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Creamy milk oatmeal with a melting pat of butter on top and a soft boiled egg beside it on the plate, rich golden accents, hearty breakfast.",
+      "filename": "t11-breakfast-oatmeal-butter-egg.png"
+    },
+    {
+      "id": "10dbd953-a72c-4572-8124-25d0fd56c3f7",
+      "slug": "t3-breakfast-oatmeal-prunes",
+      "name": "Овсянка с черносливом",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_3",
+        "стол_3",
+        "клетчатка",
+        "овсянка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Oatmeal porridge topped with plump dark prunes, soft beige oats and glossy dried plums in a bowl, appetizing breakfast serving.",
+      "filename": "t3-breakfast-oatmeal-prunes.png"
+    },
+    {
+      "id": "a26d5bb4-7973-47f7-8c6a-7a804595ae4e",
+      "slug": "t15-breakfast-oatmeal-standard",
+      "name": "Овсянка с ягодами и орехами",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_15",
+        "стол_15",
+        "овсянка",
+        "орехи"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Oatmeal porridge topped with fresh berries and chopped nuts, colorful fruit and crunchy nuts over creamy oats in a bowl, inviting breakfast.",
+      "filename": "t15-breakfast-oatmeal-standard.png"
+    },
+    {
+      "id": "92bd2cbe-e3a6-4ad5-9d1d-1a398c82ea23",
+      "slug": "t8-breakfast-egg-white-omelette",
+      "name": "Омлет белковый с овощами",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_8",
+        "стол_8",
+        "яйца",
+        "низкокалорийное"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Light egg-white omelette folded on a plate with sauteed vegetables (zucchini, tomato, spinach), fluffy pale omelette, fresh and appetizing.",
+      "filename": "t8-breakfast-egg-white-omelette.png"
+    },
+    {
+      "id": "43ad7bf9-e808-4e31-a203-4cec4feb203f",
+      "slug": "gen-breakfast-omelette-veg",
+      "name": "Омлет из 2 яиц с овощами",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "general",
+        "яйца",
+        "белок",
+        "завтрак"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Fluffy two-egg omelette with spinach and tomato, soft yellow folded eggs and bright vegetables on a ceramic plate, breakfast portion.",
+      "filename": "gen-breakfast-omelette-veg.png"
+    },
+    {
+      "id": "817583de-8a8a-4b81-9be7-dd64abb12908",
+      "slug": "t9-breakfast-omelette-cucumber",
+      "name": "Омлет с огурцом (без хлеба)",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_9",
+        "стол_9",
+        "яйца",
+        "диабет"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Soft omelette on a plate served with fresh cucumber slices, golden eggs and crisp green cucumber, no bread, clean breakfast plating.",
+      "filename": "t9-breakfast-omelette-cucumber.png"
+    },
+    {
+      "id": "d7c0ba71-2c78-40d8-8ff4-e8fdd3445b4b",
+      "slug": "t4-breakfast-rice-water-porridge",
+      "name": "Рисовая каша вязкая на воде",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_4",
+        "стол_4",
+        "щадящее",
+        "рис"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Thick sticky rice porridge cooked in water, creamy white soft grains with viscous texture in a bowl, gentle steam, comforting breakfast.",
+      "filename": "t4-breakfast-rice-water-porridge.png"
+    },
+    {
+      "id": "902bef96-6ccc-4748-a6b6-5a88764b532a",
+      "slug": "t7-breakfast-rice-water-unsalted",
+      "name": "Рисовая каша на воде без соли",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_7",
+        "стол_7",
+        "бессолевое",
+        "рис"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Plain white rice porridge cooked in water, soft sticky grains in a clean bowl, simple unsalted look, warm breakfast serving.",
+      "filename": "t7-breakfast-rice-water-unsalted.png"
+    },
+    {
+      "id": "d17ca71b-1360-4666-97cc-03c6e905de0d",
+      "slug": "t6-breakfast-milk-rice",
+      "name": "Рисовая каша на молоке",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_6",
+        "стол_6",
+        "молочка",
+        "низкопуриновый"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Creamy rice porridge cooked in milk, soft white grains with milky sheen in a bowl, gentle steam, classic breakfast portion.",
+      "filename": "t6-breakfast-milk-rice.png"
+    },
+    {
+      "id": "fa678f7f-4a8b-4f99-9eb2-455685dc461f",
+      "slug": "gen-breakfast-cottage-cucumber",
+      "name": "Творог 5% с огурцом и зеленью",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "general",
+        "молочка",
+        "белок",
+        "завтрак"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Fresh cottage cheese in a bowl with sliced cucumber and chopped dill or parsley, white curds and green herbs, light breakfast plate.",
+      "filename": "gen-breakfast-cottage-cucumber.png"
+    },
+    {
+      "id": "24fa9fdf-151a-45ed-b96e-bf50fe1a0298",
+      "slug": "t14-breakfast-egg-buckwheat",
+      "name": "Яичница с гречкой",
+      "meal_type": "breakfast",
+      "has_image": false,
+      "tags": [
+        "table_14",
+        "стол_14",
+        "яйца",
+        "гречка",
+        "кислотный"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Sunny-side-up fried eggs beside a portion of cooked buckwheat groats, golden yolks and brown buckwheat on one plate, hearty breakfast.",
+      "filename": "t14-breakfast-egg-buckwheat.png"
+    },
+    {
+      "id": "eacb236a-f6a1-4047-9785-3e865d20bf47",
+      "slug": "t6-dinner-cottage-veg-bake",
+      "name": "Запеканка творожная с овощами",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_6",
+        "стол_6",
+        "молочка",
+        "яйца",
+        "низкопуриновый"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Baked cottage cheese casserole with mixed vegetables, golden browned top, soft creamy interior with carrot and zucchini pieces, dinner slice on a plate.",
+      "filename": "t6-dinner-cottage-veg-bake.png"
+    },
+    {
+      "id": "e3abd2c9-9239-416d-9e1f-f6f9cff47e0f",
+      "slug": "t4-dinner-steam-chicken-semolina",
+      "name": "Куриное суфле с манной кашей",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_4",
+        "стол_4",
+        "птица",
+        "щадящее"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Delicate steamed chicken souffle beside a scoop of soft semolina porridge, pale tender chicken mound and creamy porridge, gentle dinner plating.",
+      "filename": "t4-dinner-steam-chicken-semolina.png"
+    },
+    {
+      "id": "22013510-590e-452a-a7f4-48e362cbeaba",
+      "slug": "t14-dinner-chicken-pasta",
+      "name": "Курица с макаронами",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_14",
+        "стол_14",
+        "птица",
+        "кислотный"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Sliced cooked chicken breast with plain boiled pasta, tender poultry and soft noodles on a ceramic plate, simple homemade dinner.",
+      "filename": "t14-dinner-chicken-pasta.png"
+    },
+    {
+      "id": "bac9b375-b078-418b-bb09-bc6aa9abc93e",
+      "slug": "t11-dinner-chicken-rice-cheese",
+      "name": "Курица с рисом и сыром",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_11",
+        "стол_11",
+        "птица",
+        "молочка",
+        "высококалорийное"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Cooked chicken with fluffy white rice topped with melted cheese, golden cheese stretch over rice and poultry, comforting dinner plate.",
+      "filename": "t11-dinner-chicken-rice-cheese.png"
+    },
+    {
+      "id": "96aed539-6170-4e37-ad34-de2bbeab2b64",
+      "slug": "t10-dinner-chicken-stew-veg",
+      "name": "Курица тушёная с овощами",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_10",
+        "стол_10",
+        "птица",
+        "бессолевое"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Stewed chicken pieces with soft vegetables (carrot, zucchini, onion) in light broth, tender meat and colorful veg on a plate, homemade dinner.",
+      "filename": "t10-dinner-chicken-stew-veg.png"
+    },
+    {
+      "id": "b8052229-7459-4e14-8495-b8ba6ccd5d41",
+      "slug": "gen-dinner-salmon-broccoli",
+      "name": "Лосось на пару с брокколи",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "general",
+        "рыба",
+        "ужин",
+        "омега-3"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Steamed salmon fillet with bright green broccoli florets, flaky pink fish and crisp-tender broccoli on a clean ceramic plate.",
+      "filename": "gen-dinner-salmon-broccoli.png"
+    },
+    {
+      "id": "a16dce9b-ca20-406a-a293-9d1dbbadef5d",
+      "slug": "t3-dinner-veg-stew-fish",
+      "name": "Овощное рагу с рыбой",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_3",
+        "стол_3",
+        "рыба",
+        "клетчатка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Vegetable stew with a piece of cooked white fish, soft carrots zucchini onion and tender fish fillet in one dish, colorful dinner plate.",
+      "filename": "t3-dinner-veg-stew-fish.png"
+    },
+    {
+      "id": "d2eab641-69b0-4b0f-abe5-0928ba4a0ce0",
+      "slug": "t2-dinner-meat-cutlet-mash",
+      "name": "Паровая котлета говяжья с пюре",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_2",
+        "стол_2",
+        "говядина"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Steamed beef cutlet with creamy mashed potatoes, soft pale meat patty and smooth potato puree, classic homemade dinner plating.",
+      "filename": "t2-dinner-meat-cutlet-mash.png"
+    },
+    {
+      "id": "071b247e-a7be-4c79-bc4a-d9d2f213bfd9",
+      "slug": "t7-dinner-steam-fish-potato",
+      "name": "Паровая рыба с картофелем (без соли)",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_7",
+        "стол_7",
+        "рыба",
+        "бессолевое"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Steamed white fish fillet with boiled potatoes, flaky pale fish and soft potato halves, simple unsalted-looking dinner plate.",
+      "filename": "t7-dinner-steam-fish-potato.png"
+    },
+    {
+      "id": "007da271-9b67-4181-9bd6-2859a32c1e71",
+      "slug": "t1-dinner-steam-fish-rice",
+      "name": "Паровая рыба с рисом вязким",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_1",
+        "стол_1",
+        "рыба",
+        "щадящее"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Steamed white fish fillet beside sticky soft rice porridge, tender flaky fish and creamy rice mound, gentle dinner serving.",
+      "filename": "t1-dinner-steam-fish-rice.png"
+    },
+    {
+      "id": "f503cde6-d3fe-4fcc-9a2b-1c8e0c0c469f",
+      "slug": "t15-dinner-fish-veg-standard",
+      "name": "Рыба запечённая с овощами",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_15",
+        "стол_15",
+        "рыба"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Baked fish fillet with roasted mixed vegetables, golden fish skin and caramelized carrot zucchini onion, appetizing dinner plate.",
+      "filename": "t15-dinner-fish-veg-standard.png"
+    },
+    {
+      "id": "d5fdd48f-7892-4ac9-9a45-a25709221ba7",
+      "slug": "t9-dinner-fish-veg-no-starch",
+      "name": "Рыба с овощами без крахмала",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_9",
+        "стол_9",
+        "рыба",
+        "диабет"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Cooked white fish with non-starchy vegetables (broccoli, zucchini, cucumber, leafy greens), no potatoes or rice, light dinner plating.",
+      "filename": "t9-dinner-fish-veg-no-starch.png"
+    },
+    {
+      "id": "7aa4db7d-9a3b-448e-9145-bdb41cdda6a1",
+      "slug": "gen-dinner-chicken-salad",
+      "name": "Салат с курицей и листьями",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "general",
+        "птица",
+        "ужин",
+        "лёгкое"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Sliced cooked chicken over mixed salad greens with cucumber and a light olive oil sheen, fresh and colorful dinner salad plate.",
+      "filename": "gen-dinner-chicken-salad.png"
+    },
+    {
+      "id": "ea130545-6a9e-41d5-9c7e-3dd239dc76d1",
+      "slug": "t13-dinner-steam-souffle-light",
+      "name": "Суфле куриное паровое",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_13",
+        "стол_13",
+        "птица",
+        "щадящее"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Delicate steamed chicken souffle, pale fluffy oval of tender pureed chicken on a clean plate, soft texture, light dinner portion.",
+      "filename": "t13-dinner-steam-souffle-light.png"
+    },
+    {
+      "id": "2a79a86a-6955-406f-ac3f-40d1e13e7758",
+      "slug": "t8-dinner-cottage-veg-bowl",
+      "name": "Творог 2% с овощной нарезкой",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_8",
+        "стол_8",
+        "молочка",
+        "низкокалорийное"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Low-fat cottage cheese with fresh vegetable sticks and slices (cucumber, tomato, bell pepper), white curds and crisp veg, light dinner bowl.",
+      "filename": "t8-dinner-cottage-veg-bowl.png"
+    },
+    {
+      "id": "235c0c82-e9d0-47cf-bf24-a29cfb9cdd80",
+      "slug": "t12-dinner-cottage-bake-calm",
+      "name": "Творожная запеканка",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_12",
+        "стол_12",
+        "молочка",
+        "яйца"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Classic cottage cheese casserole slice with golden browned top and creamy white interior, soft baked dessert-like dinner portion on a plate.",
+      "filename": "t12-dinner-cottage-bake-calm.png"
+    },
+    {
+      "id": "87fb0915-79ec-4e62-b5a0-5ee48254c80b",
+      "slug": "t5-dinner-steam-cod-buckwheat",
+      "name": "Треска на пару с гречкой",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "table_5",
+        "стол_5",
+        "рыба",
+        "печень"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Steamed cod fillet beside cooked buckwheat groats, flaky white fish and brown buckwheat mound, clean homemade dinner plate.",
+      "filename": "t5-dinner-steam-cod-buckwheat.png"
+    },
+    {
+      "id": "20320623-5bb4-4d4d-9e0d-d07254a55151",
+      "slug": "gen-dinner-beef-stew-veg",
+      "name": "Тушёная говядина с овощами",
+      "meal_type": "dinner",
+      "has_image": false,
+      "tags": [
+        "general",
+        "говядина",
+        "ужин"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Stewed lean beef with zucchini, carrot and onion, tender meat pieces and soft vegetables in light sauce, hearty dinner plate.",
+      "filename": "gen-dinner-beef-stew-veg.png"
+    },
+    {
+      "id": "4aeb0e7f-bb0a-473d-b719-c269aedd8a98",
+      "slug": "t14-lunch-beef-rice",
+      "name": "Говядина с рисом",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_14",
+        "стол_14",
+        "говядина",
+        "кислотный"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Sliced cooked beef with fluffy white rice, tender meat and soft rice grains on a ceramic plate, simple homemade lunch.",
+      "filename": "t14-lunch-beef-rice.png"
+    },
+    {
+      "id": "0f1c7780-d39c-4297-89cf-593b6ec2e3c9",
+      "slug": "t11-lunch-beef-potato-butter",
+      "name": "Говядина тушёная с картофелем",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_11",
+        "стол_11",
+        "говядина",
+        "высококалорийное"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Stewed beef with boiled potatoes and a soft butter gloss, rich brown meat pieces and pale potatoes, hearty lunch plate.",
+      "filename": "t11-lunch-beef-potato-butter.png"
+    },
+    {
+      "id": "c688b957-93f1-47df-b260-f51b3f770c3e",
+      "slug": "t2-lunch-baked-fish-veg",
+      "name": "Запечённая рыба с тушёными овощами",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_2",
+        "стол_2",
+        "рыба"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Baked fish fillet with stewed vegetables, golden fish and soft carrot zucchini onion mix, appetizing lunch plating.",
+      "filename": "t2-lunch-baked-fish-veg.png"
+    },
+    {
+      "id": "d058badc-cbf9-4339-908e-8237bc502dc3",
+      "slug": "gen-lunch-fish-potato",
+      "name": "Запечённая треска с картофелем",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "general",
+        "рыба",
+        "обед"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Baked cod fillet with boiled potatoes and fresh herbs, flaky white fish and soft potato halves, classic lunch plate.",
+      "filename": "gen-lunch-fish-potato.png"
+    },
+    {
+      "id": "2719b9f0-989d-4911-8150-a0ec1ad091ba",
+      "slug": "t9-lunch-turkey-buckwheat-salad",
+      "name": "Индейка с гречкой и салатом",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_9",
+        "стол_9",
+        "птица",
+        "диабет",
+        "гречка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Sliced turkey breast with cooked buckwheat and a small fresh green salad, lean poultry brown groats and crisp leaves, balanced lunch.",
+      "filename": "t9-lunch-turkey-buckwheat-salad.png"
+    },
+    {
+      "id": "1b0a5cb6-f433-4432-ac73-68fef70e769b",
+      "slug": "gen-lunch-turkey-rice-salad",
+      "name": "Индейка с рисом басмати и салатом",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "general",
+        "птица",
+        "рис",
+        "обед"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Sliced turkey breast with basmati rice and a fresh green salad, lean poultry fluffy rice and crisp greens, clean lunch plate.",
+      "filename": "gen-lunch-turkey-rice-salad.png"
+    },
+    {
+      "id": "d218cd81-e547-4fb1-bdd5-c4557c949ae0",
+      "slug": "gen-lunch-chicken-buckwheat",
+      "name": "Куриная грудка с гречкой и овощами",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "general",
+        "птица",
+        "гречка",
+        "обед"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Grilled chicken breast with cooked buckwheat and fresh vegetables, golden chicken brown groats and cucumber tomato, hearty lunch.",
+      "filename": "gen-lunch-chicken-buckwheat.png"
+    },
+    {
+      "id": "3cb14182-41d5-478c-bc7b-f518e8e4de42",
+      "slug": "t13-lunch-chicken-broth-rice",
+      "name": "Куриный бульон слабый с рисом",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_13",
+        "стол_13",
+        "птица",
+        "щадящее"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Light clear chicken broth in a bowl with soft white rice grains, pale golden liquid and tender rice, comforting soup lunch.",
+      "filename": "t13-lunch-chicken-broth-rice.png"
+    },
+    {
+      "id": "755eec6b-7f03-49dd-8e10-c77667bafe12",
+      "slug": "t7-lunch-boiled-chicken-veg-unsalted",
+      "name": "Курица отварная с овощами (без соли)",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_7",
+        "стол_7",
+        "птица",
+        "бессолевое"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Boiled chicken breast with soft boiled vegetables (carrot, cauliflower, zucchini), pale tender poultry and colorful veg, simple lunch plate.",
+      "filename": "t7-lunch-boiled-chicken-veg-unsalted.png"
+    },
+    {
+      "id": "3cb2379c-588e-45d1-a15d-3dc3bdd5fa61",
+      "slug": "t15-lunch-chicken-buckwheat-veg",
+      "name": "Курица с гречкой и овощами",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_15",
+        "стол_15",
+        "птица",
+        "гречка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Cooked chicken with buckwheat and steamed vegetables, tender poultry brown groats and bright veg, balanced homemade lunch.",
+      "filename": "t15-lunch-chicken-buckwheat-veg.png"
+    },
+    {
+      "id": "7cd57db8-f53c-410d-af59-8a0a9529a4aa",
+      "slug": "t8-lunch-chicken-salad-bulk",
+      "name": "Курица с объёмным салатом",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_8",
+        "стол_8",
+        "птица",
+        "низкокалорийное"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Sliced chicken with a generous volume of mixed salad greens cucumber and tomato, lean poultry buried in fresh leaves, light lunch plate.",
+      "filename": "t8-lunch-chicken-salad-bulk.png"
+    },
+    {
+      "id": "e66ce459-f385-45b9-b99e-1051aff46080",
+      "slug": "t4-lunch-steam-meat-souffle",
+      "name": "Мясное суфле на пару с рисом",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_4",
+        "стол_4",
+        "говядина",
+        "щадящее"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Steamed meat souffle beside soft sticky rice, pale tender pureed beef mound and creamy white rice, gentle lunch plating.",
+      "filename": "t4-lunch-steam-meat-souffle.png"
+    },
+    {
+      "id": "309c6975-bd8c-41e6-ae26-79dce1055aae",
+      "slug": "t6-lunch-veg-stew-egg",
+      "name": "Овощное рагу с яйцом",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_6",
+        "стол_6",
+        "яйца",
+        "низкопуриновый"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Vegetable stew with a soft boiled egg on top, colorful carrot zucchini onion stew and glossy egg, appetizing lunch bowl.",
+      "filename": "t6-lunch-veg-stew-egg.png"
+    },
+    {
+      "id": "f97c107f-0439-4694-b426-fe3b1386809a",
+      "slug": "t5-lunch-boiled-chicken-veg",
+      "name": "Отварная курица с овощным пюре",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_5",
+        "стол_5",
+        "птица",
+        "печень"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Boiled chicken with smooth vegetable puree, tender pale poultry and soft carrot or mixed veg mash, comforting lunch plate.",
+      "filename": "t5-lunch-boiled-chicken-veg.png"
+    },
+    {
+      "id": "4c168956-7761-453d-bdd9-d7ce77f51d30",
+      "slug": "t10-lunch-boiled-fish-veg",
+      "name": "Отварная рыба с овощами (мало соли)",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_10",
+        "стол_10",
+        "рыба",
+        "бессолевое"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Boiled white fish with steamed vegetables, flaky pale fish and soft carrot zucchini cauliflower, simple lunch plating.",
+      "filename": "t10-lunch-boiled-fish-veg.png"
+    },
+    {
+      "id": "8d4beacb-2b2e-407e-9a58-69c168012dc0",
+      "slug": "t12-lunch-boiled-meat-veg",
+      "name": "Отварная телятина с овощами",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_12",
+        "стол_12",
+        "говядина"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Boiled veal slices with soft boiled vegetables, pale tender meat and carrot cauliflower zucchini, clean homemade lunch.",
+      "filename": "t12-lunch-boiled-meat-veg.png"
+    },
+    {
+      "id": "a9b11772-2dcb-4e34-83f5-a0d9cf2bf42e",
+      "slug": "t3-lunch-beet-chicken-buckwheat",
+      "name": "Свёкла тушёная с курицей и гречкой",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_3",
+        "стол_3",
+        "птица",
+        "клетчатка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Stewed beets with chicken pieces and cooked buckwheat, deep red beet chunks tender poultry and brown groats, colorful lunch plate.",
+      "filename": "t3-lunch-beet-chicken-buckwheat.png"
+    },
+    {
+      "id": "f4fcd7e2-4078-46ee-a95e-b9fda6f90984",
+      "slug": "t1-lunch-chicken-souffle-mash",
+      "name": "Суфле из курицы на пару с пюре",
+      "meal_type": "lunch",
+      "has_image": false,
+      "tags": [
+        "table_1",
+        "стол_1",
+        "птица",
+        "щадящее"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Steamed chicken souffle with creamy mashed potatoes, pale fluffy chicken mound and smooth potato puree, gentle lunch serving.",
+      "filename": "t1-lunch-chicken-souffle-mash.png"
+    },
+    {
+      "id": "7edd8cc4-fc8a-4a17-9102-1b043109d0a8",
+      "slug": "gen-snack-yogurt-apple",
+      "name": "Йогурт натуральный с яблоком",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "general",
+        "молочка",
+        "перекус"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Bowl of plain natural yogurt topped with fresh apple slices, creamy white yogurt and crisp fruit, light snack serving.",
+      "filename": "gen-snack-yogurt-apple.png"
+    },
+    {
+      "id": "9f1ecfd2-f06c-4c82-9a10-ed54909a6e8a",
+      "slug": "t11-snack-yogurt-banana-nuts",
+      "name": "Йогурт с бананом и орехами",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_11",
+        "стол_11",
+        "молочка",
+        "орехи",
+        "высококалорийное"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Bowl of yogurt topped with sliced banana and chopped nuts, creamy yogurt yellow banana and crunchy nuts, appetizing snack.",
+      "filename": "t11-snack-yogurt-banana-nuts.png"
+    },
+    {
+      "id": "b874726e-ee79-4f10-8e56-4db3b24fc86d",
+      "slug": "t6-snack-yogurt-cucumber",
+      "name": "Йогурт с огурцом",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_6",
+        "стол_6",
+        "молочка",
+        "низкопуриновый"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Bowl of plain yogurt with fresh cucumber slices and a pinch of herbs, creamy white yogurt and crisp green cucumber, light snack.",
+      "filename": "t6-snack-yogurt-cucumber.png"
+    },
+    {
+      "id": "cb903a99-aeb5-4c79-a192-892705ac6cce",
+      "slug": "t15-snack-yogurt-fruit",
+      "name": "Йогурт с фруктом",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_15",
+        "стол_15",
+        "молочка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Bowl of yogurt topped with fresh fruit pieces (berries or sliced peach), creamy white yogurt and colorful fruit, inviting snack.",
+      "filename": "t15-snack-yogurt-fruit.png"
+    },
+    {
+      "id": "6424dba6-4772-4c2e-8d75-6d9a968f70a7",
+      "slug": "t12-snack-kefir-plain",
+      "name": "Кефир комнатной температуры",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_12",
+        "стол_12",
+        "молочка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Clear glass filled with plain kefir, opaque creamy white fermented milk drink, appetizing cold beverage on linen, no plate food.",
+      "filename": "t12-snack-kefir-plain.png"
+    },
+    {
+      "id": "2ca4f7f5-4fce-45ec-bf1c-4d360c0f1d3c",
+      "slug": "t3-snack-kefir-bran",
+      "name": "Кефир с пшеничными отрубями",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_3",
+        "стол_3",
+        "молочка",
+        "клетчатка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Clear glass of kefir with a spoonful of wheat bran sprinkled on top or beside, creamy white drink and golden bran flakes, snack beverage.",
+      "filename": "t3-snack-kefir-bran.png"
+    },
+    {
+      "id": "0dad0e62-3ed9-4779-bd1a-9402e95e4cb9",
+      "slug": "t2-snack-kefir-biscuit",
+      "name": "Кефир с сухим печеньем",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_2",
+        "стол_2",
+        "молочка"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Glass of kefir beside a few plain dry biscuits on a small plate, creamy white drink and crisp crackers, simple snack set.",
+      "filename": "t2-snack-kefir-biscuit.png"
+    },
+    {
+      "id": "29748d95-1770-404c-aca1-0bbd8cbd2802",
+      "slug": "t4-snack-blueberry-kissel",
+      "name": "Кисель черничный",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_4",
+        "стол_4",
+        "щадящее"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Glass cup of thick blueberry kissel, deep purple translucent jelly-like berry drink with soft sheen, appetizing sweet snack beverage.",
+      "filename": "t4-snack-blueberry-kissel.png"
+    },
+    {
+      "id": "dd0ea839-ccce-4837-828e-65b29ea09867",
+      "slug": "t7-snack-compote-unsweetened",
+      "name": "Компот из сухофруктов без сахара",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_7",
+        "стол_7",
+        "бессолевое"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Glass of unsweetened dried-fruit compote, amber-brown fruit drink with visible soft dried apple pear prune pieces, clear glass cup.",
+      "filename": "t7-snack-compote-unsweetened.png"
+    },
+    {
+      "id": "cec19a4c-c20b-4b76-815c-fe0ee0712736",
+      "slug": "t13-snack-compote-dilute",
+      "name": "Компот разбавленный / морс без сахара",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_13",
+        "стол_13",
+        "щадящее"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Glass of diluted light fruit compote or berry mors, pale pink-amber translucent drink in a clear cup, refreshing snack beverage.",
+      "filename": "t13-snack-compote-dilute.png"
+    },
+    {
+      "id": "f30260c8-cddd-434e-b788-694d40c1b6da",
+      "slug": "t8-snack-veg-sticks-yogurt",
+      "name": "Овощные палочки с йогуртом",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_8",
+        "стол_8",
+        "низкокалорийное"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Fresh vegetable sticks (carrot, cucumber, celery) with a small bowl of yogurt dip, colorful crisp sticks and creamy white dip, snack plate.",
+      "filename": "t8-snack-veg-sticks-yogurt.png"
+    },
+    {
+      "id": "36a81185-b90c-4e45-8a34-83fd8e2857d6",
+      "slug": "t10-snack-baked-apple",
+      "name": "Печёное яблоко",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_10",
+        "стол_10",
+        "бессолевое"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Whole baked apple on a plate, soft wrinkled skin and caramelized flesh, warm homemade dessert-like snack portion.",
+      "filename": "t10-snack-baked-apple.png"
+    },
+    {
+      "id": "1431046a-af5d-4ec6-8c47-1277d4fe63c8",
+      "slug": "t1-snack-baked-apple-cottage",
+      "name": "Печёное яблоко с творогом",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_1",
+        "стол_1",
+        "молочка",
+        "щадящее"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Baked apple served with a scoop of cottage cheese, soft roasted apple and white creamy curds on one plate, cozy snack.",
+      "filename": "t1-snack-baked-apple-cottage.png"
+    },
+    {
+      "id": "960e1557-9266-4e80-b393-2a24b4f95980",
+      "slug": "t9-snack-cottage-cinnamon",
+      "name": "Творог 5% с корицей",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_9",
+        "стол_9",
+        "молочка",
+        "диабет"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Bowl of cottage cheese dusted with cinnamon powder, white curds with warm brown spice, simple appetizing snack.",
+      "filename": "t9-snack-cottage-cinnamon.png"
+    },
+    {
+      "id": "fe76d3df-69ef-4315-a66f-b1d3ade76206",
+      "slug": "t5-snack-cottage-lowfat",
+      "name": "Творог нежирный с бананом",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_5",
+        "стол_5",
+        "молочка",
+        "печень"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Bowl of low-fat cottage cheese with sliced banana, white soft curds and yellow banana slices, light snack serving.",
+      "filename": "t5-snack-cottage-lowfat.png"
+    },
+    {
+      "id": "2fc23da2-a58f-44bf-872b-f1dab491426b",
+      "slug": "gen-snack-cottage-berries",
+      "name": "Творог с ягодами",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "general",
+        "молочка",
+        "белок",
+        "перекус"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Cottage cheese topped with mixed fresh berries, white creamy curds and colorful blueberries raspberries strawberries, snack bowl.",
+      "filename": "gen-snack-cottage-berries.png"
+    },
+    {
+      "id": "9854e3b1-2f00-4035-810d-bc2867b38f92",
+      "slug": "gen-snack-egg-veg",
+      "name": "Яйцо варёное с овощами",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "general",
+        "яйца",
+        "перекус"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Hard-boiled eggs halved with fresh cucumber and tomato slices, pale yolks and crisp vegetables on a plate, simple snack.",
+      "filename": "gen-snack-egg-veg.png"
+    },
+    {
+      "id": "7c4b9cfd-1a82-4dd5-9cea-f9d11e44b4c8",
+      "slug": "t14-snack-bread-egg",
+      "name": "Яйцо с хлебцем",
+      "meal_type": "snack",
+      "has_image": false,
+      "tags": [
+        "table_14",
+        "стол_14",
+        "яйца",
+        "кислотный"
+      ],
+      "prompt": "Realistic food photography, appetizing plated dish, soft natural daylight, light beige linen or light wooden table, clean ceramic plate, minimal props, shallow depth of field, no text, no watermark, no logo, no hands, professional cookbook style, warm neutrals. Hard-boiled egg halves with a crisp rye crispbread or thin bread cracker, protein and crunchy bread on a small plate, snack serving.",
+      "filename": "t14-snack-bread-egg.png"
+    }
+  ]
+}

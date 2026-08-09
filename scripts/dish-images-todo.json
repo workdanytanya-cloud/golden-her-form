@@ -1,0 +1,6057 @@
+[
+  {
+    "id": "8e2fedea-bb4f-4fae-9ce6-573073be24c4",
+    "slug": "gen-breakfast-amaranth-berry",
+    "name": "Амарантовая каша с ягодами",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "general",
+      "овсянка",
+      "ягоды"
+    ],
+    "filename": "gen-breakfast-amaranth-berry.png",
+    "has_local": false
+  },
+  {
+    "id": "42822ad4-472b-4eb1-81f8-83807c23a165",
+    "slug": "t8-breakfast-whites-omelette-herbs",
+    "name": "Белковый омлет с зеленью",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "яйца",
+      "низкокал"
+    ],
+    "filename": "t8-breakfast-whites-omelette-herbs.png",
+    "has_local": false
+  },
+  {
+    "id": "a4dc5b0d-83c7-41cc-b87a-d01b9d54709c",
+    "slug": "t1-breakfast-oat-milk-viscous",
+    "name": "Вязкая овсянка на молоке",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "молочка",
+      "щадящее",
+      "овсянка"
+    ],
+    "filename": "t1-breakfast-oat-milk-viscous.png",
+    "has_local": false
+  },
+  {
+    "id": "9e5c8d5e-a0ce-4a9e-8561-76b17352ba66",
+    "slug": "gen-breakfast-buckwheat-kefir",
+    "name": "Гречка с кефиром",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "general",
+      "гречка",
+      "молочка",
+      "завтрак"
+    ],
+    "filename": "gen-breakfast-buckwheat-kefir.png",
+    "has_local": false
+  },
+  {
+    "id": "e0570062-ea55-428f-a030-e5e47a3221ad",
+    "slug": "t10-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №10)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "яйца",
+      "завтрак",
+      "без_соли"
+    ],
+    "filename": "t10-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "f3e11827-13a5-472d-ad1c-cac16c08348a",
+    "slug": "t11-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №11)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t11-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "6cb4ed25-fc28-4557-b87f-b1e408922a10",
+    "slug": "t12-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №12)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t12-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "269c18e1-1376-4aa3-a4e1-28863b26e69a",
+    "slug": "t14-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №14)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t14-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "8bb9b067-e12a-48b2-9e4c-6707c1c5f633",
+    "slug": "t15-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №15)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t15-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "7e7a73ba-250e-46ec-a343-c58f848940c7",
+    "slug": "t2-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №2)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t2-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "bc5a5bfd-a972-4b1c-b46e-83f1e5552bf8",
+    "slug": "t3-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №3)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t3-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "e0bea3ff-e433-4043-855a-305f33a7bf4f",
+    "slug": "t5-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №5)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t5-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "7a0eaa93-8074-408d-a294-1dec7b889cdc",
+    "slug": "t6-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №6)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t6-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "d82d837b-0d70-419a-b170-18687b7fbf80",
+    "slug": "t7-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №7)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "яйца",
+      "завтрак",
+      "без_соли"
+    ],
+    "filename": "t7-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "d46eef37-94f5-4f86-b3d8-0d1d4ae3dd6a",
+    "slug": "t8-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №8)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t8-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "36e477b3-99cf-432c-9d2e-cb6d2ba84d46",
+    "slug": "t9-breakfast-fill1-porridge-egg",
+    "name": "Гречка с яйцом (стол №9)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t9-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "f816df37-8db4-4ca9-b90c-8ca281f7f36b",
+    "slug": "sgl-breakfast-buckwheat-egg-cucumber",
+    "name": "Гречка с яйцом и огурцом",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "гречка",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "sgl-breakfast-buckwheat-egg-cucumber.png",
+    "has_local": false
+  },
+  {
+    "id": "98a1fb48-1897-43fa-a51b-d5c1f36a5335",
+    "slug": "t1-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №1)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "белок"
+    ],
+    "filename": "t1-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "6c5246e7-827e-4c71-b644-6fe795fdb37c",
+    "slug": "t10-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №10)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "белок",
+      "без_соли"
+    ],
+    "filename": "t10-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "476fe203-ce33-496c-b153-42a6569c2975",
+    "slug": "t11-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №11)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "белок"
+    ],
+    "filename": "t11-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "1b82f57e-360d-4913-b73e-bce55470b955",
+    "slug": "t12-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №12)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "белок"
+    ],
+    "filename": "t12-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "bc033d61-ec02-4a6c-ad8e-1af09f916b1c",
+    "slug": "t13-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №13)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "белок"
+    ],
+    "filename": "t13-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "7d447a84-7b55-4e26-8422-bebc969305e4",
+    "slug": "t14-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №14)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "белок"
+    ],
+    "filename": "t14-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "f09aa343-7cb7-451e-a241-5911254c744d",
+    "slug": "t15-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №15)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "белок"
+    ],
+    "filename": "t15-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "5ffa50f7-07ac-4355-a685-61868072fa74",
+    "slug": "t2-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №2)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "белок"
+    ],
+    "filename": "t2-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "4470cc9e-8b37-4dbf-9db2-5d635c6bcf2f",
+    "slug": "t3-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №3)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "белок"
+    ],
+    "filename": "t3-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "d77d045e-da16-4286-8cc3-bdaff06a9cbb",
+    "slug": "t4-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №4)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "белок"
+    ],
+    "filename": "t4-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "8ea6d7dd-a872-427d-840e-df0d5cbe6575",
+    "slug": "t5-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №5)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "белок"
+    ],
+    "filename": "t5-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "932a4add-5e92-417b-ba07-585e51e835b8",
+    "slug": "t6-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №6)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "белок"
+    ],
+    "filename": "t6-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "941cf449-a54d-42c2-8457-03b245af5a29",
+    "slug": "t7-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №7)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "белок",
+      "без_соли"
+    ],
+    "filename": "t7-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "dd73487e-08a1-4b65-b32b-61d08340f22c",
+    "slug": "t8-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №8)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "белок"
+    ],
+    "filename": "t8-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "82c3f2f4-a6f1-4ee7-a0f6-8cc8a42a0de7",
+    "slug": "t9-breakfast-fill4-light-bake",
+    "name": "Запеканка лёгкая (стол №9)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "белок"
+    ],
+    "filename": "t9-breakfast-fill4-light-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "c548e2c9-0418-4f76-b2d7-e261aa9d8c2a",
+    "slug": "sgl-breakfast-turkey-zucchini-scramble",
+    "name": "Индейка с кабачком (завтрак)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "птица",
+      "овощи",
+      "завтрак"
+    ],
+    "filename": "sgl-breakfast-turkey-zucchini-scramble.png",
+    "has_local": false
+  },
+  {
+    "id": "fff2cd47-4bd1-4827-9d97-6edf6d18388f",
+    "slug": "t6-breakfast-fill5-protein-bowl",
+    "name": "Индейка с овощами утром (стол №6)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "птица",
+      "овощи"
+    ],
+    "filename": "t6-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "4607c97d-6460-4de4-8ce9-edcb2d25023a",
+    "slug": "sgl-breakfast-quinoa-herbs-egg",
+    "name": "Киноа с яйцом и зеленью",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "киноа",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "sgl-breakfast-quinoa-herbs-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "f49f2a4e-2c43-4366-b24b-2c205ef2e1f5",
+    "slug": "sgl-breakfast-chicken-pepper-morning",
+    "name": "Курица с перцем (утро)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "птица",
+      "овощи"
+    ],
+    "filename": "sgl-breakfast-chicken-pepper-morning.png",
+    "has_local": false
+  },
+  {
+    "id": "db059764-c4a6-4955-89fb-c18e93555d1e",
+    "slug": "t13-breakfast-semolina-water-light",
+    "name": "Манная каша на воде",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "щадящее",
+      "инфекция"
+    ],
+    "filename": "t13-breakfast-semolina-water-light.png",
+    "has_local": false
+  },
+  {
+    "id": "121511b8-47db-4bf6-954c-b8630b2d8fa8",
+    "slug": "t12-breakfast-oat-milk-gentle",
+    "name": "Молочная овсянка",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "овсянка",
+      "спокойное"
+    ],
+    "filename": "t12-breakfast-oat-milk-gentle.png",
+    "has_local": false
+  },
+  {
+    "id": "74d46d39-2891-479a-b945-2c1acb204590",
+    "slug": "t5-breakfast-oatmeal-water-oil",
+    "name": "Овсянка на воде с растительным маслом",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "овсянка",
+      "печень"
+    ],
+    "filename": "t5-breakfast-oatmeal-water-oil.png",
+    "has_local": false
+  },
+  {
+    "id": "a5cf1dca-118d-40e6-94b9-2ab96bf5a695",
+    "slug": "t10-breakfast-oat-porridge-lowsalt",
+    "name": "Овсянка почти без соли",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "овсянка",
+      "сердце"
+    ],
+    "filename": "t10-breakfast-oat-porridge-lowsalt.png",
+    "has_local": false
+  },
+  {
+    "id": "4fe16a85-c5a7-44ab-910b-8c22f337a444",
+    "slug": "t11-breakfast-oat-egg-butter-boost",
+    "name": "Овсянка с маслом и яйцом",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "овсянка",
+      "усиленное"
+    ],
+    "filename": "t11-breakfast-oat-egg-butter-boost.png",
+    "has_local": false
+  },
+  {
+    "id": "49e56c01-445e-4972-87f1-113647150e4d",
+    "slug": "t3-breakfast-oatmeal-apple-fresh",
+    "name": "Овсянка с свежим яблоком",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "клетчатка",
+      "овсянка"
+    ],
+    "filename": "t3-breakfast-oatmeal-apple-fresh.png",
+    "has_local": false
+  },
+  {
+    "id": "dba99234-248c-42be-ad77-e1258ea4d488",
+    "slug": "t15-breakfast-omelette-veg-std",
+    "name": "Омлет с овощами",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "яйца"
+    ],
+    "filename": "t15-breakfast-omelette-veg-std.png",
+    "has_local": false
+  },
+  {
+    "id": "0c9d1663-7ce2-468b-9b84-a1e6e30d3507",
+    "slug": "t1-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №1)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t1-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "50653e49-80a7-40fb-a743-96f12806c1cd",
+    "slug": "t10-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №10)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "яйца",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t10-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "45b6bfd1-bc2a-44b0-bb95-937fd95d7b39",
+    "slug": "t11-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №11)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t11-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "7a88e3e6-00e1-4306-af0b-393ae4c5cc1d",
+    "slug": "t12-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №12)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t12-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "aed10e7f-e90c-4280-8b3c-cb99c25cea2f",
+    "slug": "t13-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №13)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t13-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "d9d48c64-49f6-4bc5-8674-1803e04c4031",
+    "slug": "t14-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №14)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t14-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "60b81c62-89ee-42a0-8d8a-6ba6d271085a",
+    "slug": "t15-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №15)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t15-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "49829b4e-15b8-4a48-aaa7-22d3b3294f92",
+    "slug": "t2-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №2)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t2-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "edc7fe81-d0e6-4b00-868a-add7883f8712",
+    "slug": "t3-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №3)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t3-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "9efc9492-7b22-483f-9531-853f2945a896",
+    "slug": "t4-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №4)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t4-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "41713676-21bd-4d2c-ab1c-2acee62384e0",
+    "slug": "t5-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №5)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t5-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "31adba96-b219-4b98-9a25-e77bdcf281cd",
+    "slug": "t6-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №6)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t6-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "56beb34e-6151-4ef4-9e0c-2c80d53e6d49",
+    "slug": "t7-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №7)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "яйца",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t7-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "86001414-39ea-4e83-b085-cf5c9d1bc661",
+    "slug": "t8-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №8)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t8-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "934ca0b7-8ed3-4e72-bd2d-21f889bf417e",
+    "slug": "t9-breakfast-fill2-omelette-veg",
+    "name": "Омлет с овощами (стол №9)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t9-breakfast-fill2-omelette-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "dc3cacee-a1db-4ded-a89b-84c544745774",
+    "slug": "t9-breakfast-egg-omelette-cuke",
+    "name": "Омлет с огурцом",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "яйца",
+      "диабет"
+    ],
+    "filename": "t9-breakfast-egg-omelette-cuke.png",
+    "has_local": false
+  },
+  {
+    "id": "3f83ad61-2e83-4830-bd06-15f973088c20",
+    "slug": "sgl-breakfast-millet-water-herbs",
+    "name": "Пшённая каша на воде с зеленью",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "крупа"
+    ],
+    "filename": "sgl-breakfast-millet-water-herbs.png",
+    "has_local": false
+  },
+  {
+    "id": "90977d7a-1483-4260-b673-955a39e87634",
+    "slug": "t6-breakfast-millet-milk",
+    "name": "Пшённая каша на молоке",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "крупа",
+      "пурины"
+    ],
+    "filename": "t6-breakfast-millet-milk.png",
+    "has_local": false
+  },
+  {
+    "id": "e297d88b-549a-43bd-9d2d-c7a4fec18948",
+    "slug": "t1-breakfast-fill1-porridge-egg",
+    "name": "Рис с яйцом (стол №1)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t1-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "3ab63aad-bf69-41c0-b842-5f005f6e4a7c",
+    "slug": "t13-breakfast-fill1-porridge-egg",
+    "name": "Рис с яйцом (стол №13)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t13-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "190d195e-f7f7-4162-bab1-6224b41f8597",
+    "slug": "t4-breakfast-fill1-porridge-egg",
+    "name": "Рис с яйцом (стол №4)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "яйца",
+      "завтрак"
+    ],
+    "filename": "t4-breakfast-fill1-porridge-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "7054cdcf-8b9b-41c0-aa33-d7baa7b847af",
+    "slug": "t7-breakfast-rice-unsalted",
+    "name": "Рисовая каша без соли",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "рис",
+      "без_соли"
+    ],
+    "filename": "t7-breakfast-rice-unsalted.png",
+    "has_local": false
+  },
+  {
+    "id": "e2895d62-0821-4a0c-94f9-1880e3a4ed00",
+    "slug": "t2-breakfast-rice-milk-soft",
+    "name": "Рисовая каша разваренная",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "рис",
+      "молочка"
+    ],
+    "filename": "t2-breakfast-rice-milk-soft.png",
+    "has_local": false
+  },
+  {
+    "id": "5df0400d-0a4b-4dae-95bb-9e80b3e1ab5b",
+    "slug": "gen-breakfast-rice-porridge-pumpkin",
+    "name": "Рисовая каша с тыквой",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "general",
+      "рис",
+      "тыква",
+      "завтрак"
+    ],
+    "filename": "gen-breakfast-rice-porridge-pumpkin.png",
+    "has_local": false
+  },
+  {
+    "id": "387a13df-0977-4b27-8434-97daf5c2268e",
+    "slug": "t4-breakfast-rice-mash-water",
+    "name": "Рисовая каша-протёртая на воде",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "рис",
+      "щадящее"
+    ],
+    "filename": "t4-breakfast-rice-mash-water.png",
+    "has_local": false
+  },
+  {
+    "id": "e2f52900-f344-459f-b152-5cade395eb01",
+    "slug": "gen-breakfast-syrniki-steam",
+    "name": "Сырники на пару без сахара",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "general",
+      "молочка",
+      "белок"
+    ],
+    "filename": "gen-breakfast-syrniki-steam.png",
+    "has_local": false
+  },
+  {
+    "id": "bde561cb-348a-423b-9ea9-8629ac382e7b",
+    "slug": "t1-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №1)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t1-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "1e48167c-ffda-47cf-9082-13524f9c6e80",
+    "slug": "t10-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №10)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "молочка",
+      "белок",
+      "без_соли"
+    ],
+    "filename": "t10-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "3eac35b5-75f8-4cdf-9e0b-6457eecea632",
+    "slug": "t11-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №11)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t11-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "1f2284b4-9759-494d-8f9c-4b4c8a6c93bc",
+    "slug": "t12-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №12)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t12-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "e8e9d78e-cc5a-4f1f-9f78-85b7ee609cbc",
+    "slug": "t13-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №13)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t13-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "96a59fc9-75de-45dc-9bda-06a4272d7cad",
+    "slug": "t15-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №15)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t15-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "f80fae8c-872d-47c0-b5ad-43521af088a9",
+    "slug": "t2-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №2)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t2-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "933ab8b5-104f-41a4-b85d-b33425351873",
+    "slug": "t3-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №3)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t3-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "0e9b291a-e942-4c63-8895-9bad51468f1b",
+    "slug": "t4-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №4)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t4-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "22fc27a0-7d79-4552-b6c4-bc55db3bb767",
+    "slug": "t5-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №5)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t5-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "b011d005-15af-42b9-bf61-606638cc0103",
+    "slug": "t6-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №6)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t6-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "030cf46e-b062-444c-aa14-75657da5fce9",
+    "slug": "t7-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №7)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "молочка",
+      "белок",
+      "без_соли"
+    ],
+    "filename": "t7-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "c43b31d1-4ff5-4974-80d6-bea06a2a7462",
+    "slug": "t8-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №8)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t8-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "9359a9b7-6761-4550-b40d-040b8be747d6",
+    "slug": "t9-breakfast-fill3-curd-bowl",
+    "name": "Творог с добавкой (стол №9)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "молочка",
+      "белок"
+    ],
+    "filename": "t9-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "6ad52ca9-62eb-4979-aab0-9bd0a43f6a1e",
+    "slug": "gen-breakfast-cottage-bake-light",
+    "name": "Творожная запеканка без сахара",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "general",
+      "молочка",
+      "белок",
+      "завтрак"
+    ],
+    "filename": "gen-breakfast-cottage-bake-light.png",
+    "has_local": false
+  },
+  {
+    "id": "4f1fb6eb-7b80-4671-afb9-8fde19471e40",
+    "slug": "t1-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №1)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t1-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "7cb2ef80-26f6-4f2d-9dff-30388f840a96",
+    "slug": "t10-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №10)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "рыба",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t10-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "470ceb7c-53cb-4dce-a148-3adbe5267bdb",
+    "slug": "t11-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №11)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t11-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "f0c3a94f-282d-4fa2-8da3-02f8217f2448",
+    "slug": "t12-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №12)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t12-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "148c670a-896a-4332-b6dd-fc25f9024a3b",
+    "slug": "t13-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №13)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t13-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "34a6c5e8-491d-4aef-952a-3b7c8af24f0c",
+    "slug": "t14-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №14)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t14-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "6b5a9229-0eae-4dbf-bf1e-bda385c3f4a3",
+    "slug": "t15-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №15)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t15-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "2a78f6e4-46dd-438d-95c9-c93fa485255e",
+    "slug": "t2-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №2)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t2-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "c39a2f11-4d6d-49ef-aa91-703e4e20b28e",
+    "slug": "t3-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №3)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t3-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "411bd967-dcc6-4b17-85c7-fe577c1337f5",
+    "slug": "t4-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №4)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t4-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "cb6f23c8-9732-403a-ba48-06ce6560b61b",
+    "slug": "t5-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №5)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t5-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "fda02969-196b-4411-a1ca-b642ac4981e9",
+    "slug": "t7-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №7)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "рыба",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t7-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "80a0a054-a3a7-45e1-b4c0-fbceb3aa3a3b",
+    "slug": "t8-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №8)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t8-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "6d8f7556-5214-44fa-8c62-780bf233e50f",
+    "slug": "t9-breakfast-fill5-protein-bowl",
+    "name": "Хек с овощами утром (стол №9)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t9-breakfast-fill5-protein-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "0c555156-6535-414c-bab3-73c37d476be8",
+    "slug": "sgl-breakfast-eggs-spinach-avocado",
+    "name": "Яичница со шпинатом и авокадо",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "яйца",
+      "овощи",
+      "завтрак"
+    ],
+    "filename": "sgl-breakfast-eggs-spinach-avocado.png",
+    "has_local": false
+  },
+  {
+    "id": "af819359-cacf-47c9-9007-23b419beaf9e",
+    "slug": "sgl-breakfast-egg-broccoli-bake",
+    "name": "Яйца с брокколи в духовке",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "sgl-breakfast-egg-broccoli-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "dd218eb0-3e9a-42ba-8164-c0012442cfb1",
+    "slug": "t14-breakfast-buckwheat-egg-acid",
+    "name": "Яйцо с гречкой",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "гречка",
+      "яйца",
+      "кислотный"
+    ],
+    "filename": "t14-breakfast-buckwheat-egg-acid.png",
+    "has_local": false
+  },
+  {
+    "id": "fc9fd0e9-f5b5-4d35-b36a-bcce067fde9e",
+    "slug": "t14-breakfast-fill3-curd-bowl",
+    "name": "Яйцо с гречкой (добор стол №14)",
+    "meal_type": "breakfast",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "яйца",
+      "гречка"
+    ],
+    "filename": "t14-breakfast-fill3-curd-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "2e50c00c-eece-4e87-9155-db9f5b7a52cd",
+    "slug": "sgl-dinner-beef-pepper-stir",
+    "name": "Говядина с перцем и кабачком",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "говядина",
+      "овощи",
+      "ужин"
+    ],
+    "filename": "sgl-dinner-beef-pepper-stir.png",
+    "has_local": false
+  },
+  {
+    "id": "af3d9f31-d5f5-4bc9-bb0d-cb37c02d50e7",
+    "slug": "t15-dinner-baked-chicken-veg",
+    "name": "Запечённая курица с овощами",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "птица"
+    ],
+    "filename": "t15-dinner-baked-chicken-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "21828376-5ffe-48c6-962b-23f8470b0672",
+    "slug": "t3-dinner-baked-pumpkin-turkey",
+    "name": "Запечённая тыква с индейкой",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "птица",
+      "клетчатка"
+    ],
+    "filename": "t3-dinner-baked-pumpkin-turkey.png",
+    "has_local": false
+  },
+  {
+    "id": "aa6e7cca-86bc-4e6c-9435-50734c4eabf9",
+    "slug": "sgl-dinner-cod-zucchini-bake",
+    "name": "Запечённый хек с кабачками",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "рыба",
+      "овощи",
+      "ужин"
+    ],
+    "filename": "sgl-dinner-cod-zucchini-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "9769b6a8-9d2f-41df-a10d-014f1d1d582a",
+    "slug": "sgl-dinner-turkey-eggplant",
+    "name": "Индейка с баклажаном",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "птица",
+      "овощи"
+    ],
+    "filename": "sgl-dinner-turkey-eggplant.png",
+    "has_local": false
+  },
+  {
+    "id": "dd48abf6-1a65-4aa5-9048-5b85769599aa",
+    "slug": "gen-dinner-turkey-zucchini-stew",
+    "name": "Индейка с кабачками",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "general",
+      "птица",
+      "ужин"
+    ],
+    "filename": "gen-dinner-turkey-zucchini-stew.png",
+    "has_local": false
+  },
+  {
+    "id": "40c4c9af-83f2-4c92-86a2-34025b5714ee",
+    "slug": "gen-dinner-shrimp-quinoa",
+    "name": "Креветки с киноа",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "general",
+      "морепродукты",
+      "киноа"
+    ],
+    "filename": "gen-dinner-shrimp-quinoa.png",
+    "has_local": false
+  },
+  {
+    "id": "d6b174c6-06a7-4601-842d-aa517cc2f50a",
+    "slug": "t13-dinner-chicken-souffle-acute",
+    "name": "Куриное суфле лёгкое",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "птица",
+      "щадящее",
+      "инфекция"
+    ],
+    "filename": "t13-dinner-chicken-souffle-acute.png",
+    "has_local": false
+  },
+  {
+    "id": "8ee2bb9e-265a-4f1f-a104-78582c650ca8",
+    "slug": "t14-dinner-chicken-pasta-acid",
+    "name": "Курица с макаронами",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "птица",
+      "кислотный"
+    ],
+    "filename": "t14-dinner-chicken-pasta-acid.png",
+    "has_local": false
+  },
+  {
+    "id": "a8769ece-4466-4ec0-a955-478717df4ce7",
+    "slug": "t11-dinner-chicken-rice-mild-cheese",
+    "name": "Курица с рисом и сыром",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "птица",
+      "усиленное"
+    ],
+    "filename": "t11-dinner-chicken-rice-mild-cheese.png",
+    "has_local": false
+  },
+  {
+    "id": "a886d0c8-fe0d-4e4b-b5b0-f00c78105bd3",
+    "slug": "t10-dinner-chicken-braise-veg-heart",
+    "name": "Курица тушёная с овощами",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "птица",
+      "сердце"
+    ],
+    "filename": "t10-dinner-chicken-braise-veg-heart.png",
+    "has_local": false
+  },
+  {
+    "id": "6b276a46-5b82-4efd-9c3d-71e13770c73a",
+    "slug": "t1-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №1)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t1-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "27e6f1ee-baa7-446e-937a-0199989341c5",
+    "slug": "t10-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №10)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "говядина",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t10-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "063a8e5e-e3e4-4a21-a249-9cb614683b97",
+    "slug": "t11-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №11)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t11-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "f280bb70-9a80-43c1-b7ef-d88f9ac124d6",
+    "slug": "t12-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №12)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t12-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "ed70a323-fb09-4adb-a576-eebf5099dff0",
+    "slug": "t13-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №13)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t13-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "25af726b-71f7-41b6-a30c-2ced1065cd1a",
+    "slug": "t14-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №14)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t14-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "d0365e43-c14d-478a-b3b6-1d63343f3ac5",
+    "slug": "t15-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №15)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t15-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "33e10184-fed6-4bf3-acb5-ac539f2d99eb",
+    "slug": "t2-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №2)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t2-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "7cbe1e4f-8127-4de2-95c3-1ba9eb4aa0d9",
+    "slug": "t3-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №3)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t3-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "15b38fef-ce4a-4a09-bf7c-9da27d4d14bd",
+    "slug": "t4-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №4)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t4-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "e383dfb5-94ac-445d-8700-2934fd223149",
+    "slug": "t5-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №5)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t5-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "90d6ec5d-4c70-4ee0-86c3-77c349336aa5",
+    "slug": "t6-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №6)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "птица",
+      "овощи"
+    ],
+    "filename": "t6-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "0a2206d5-1a65-45ff-8874-67d1f3f8f3ee",
+    "slug": "t7-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №7)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "говядина",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t7-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "2f6633d2-565c-48bb-91bd-3dbbf7b1179c",
+    "slug": "t8-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №8)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t8-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "a0129d15-1ec2-4d93-a1e6-b0b6fbfd001e",
+    "slug": "t9-dinner-fill2-dinner-salad",
+    "name": "Лёгкий салат на ужин (стол №9)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "t9-dinner-fill2-dinner-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "10f89b43-2f8f-4501-b369-593874c5552f",
+    "slug": "sgl-dinner-salmon-asparagus",
+    "name": "Лосось со спаржей",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "рыба",
+      "овощи",
+      "ужин"
+    ],
+    "filename": "sgl-dinner-salmon-asparagus.png",
+    "has_local": false
+  },
+  {
+    "id": "30a40f94-f190-4381-b4ec-04a2d5f3a333",
+    "slug": "sgl-dinner-pollock-spinach",
+    "name": "Минтай со шпинатом",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "sgl-dinner-pollock-spinach.png",
+    "has_local": false
+  },
+  {
+    "id": "d3b35540-ae0c-4ea9-88f8-1eff425f89f4",
+    "slug": "t1-dinner-carrot-souffle-steam",
+    "name": "Морковное суфле на пару",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "овощи",
+      "щадящее"
+    ],
+    "filename": "t1-dinner-carrot-souffle-steam.png",
+    "has_local": false
+  },
+  {
+    "id": "222a4ca8-4b50-4166-9854-ffa44c1dcce4",
+    "slug": "t1-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №1)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t1-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "6cef4a96-da15-4dc5-b3e8-63ac7774d607",
+    "slug": "t10-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №10)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "яйца",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t10-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "e01f8dd2-3cf0-496a-950f-2b94c012da26",
+    "slug": "t11-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №11)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t11-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "6e81a95d-52e9-4a6f-a772-cfc5319f65dd",
+    "slug": "t12-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №12)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t12-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "566da89f-7ab8-49a1-b788-62e1c5951852",
+    "slug": "t13-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №13)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t13-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "23b64cc0-5cf8-4c41-975e-dac51b8b7a13",
+    "slug": "t14-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №14)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t14-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "5f1128b5-282a-4764-84dd-69198a0a7f86",
+    "slug": "t15-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №15)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t15-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "6cf00f1e-27cf-4544-aa77-e4af3899f817",
+    "slug": "t2-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №2)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t2-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "8453cf5f-42ff-4b8f-b14f-64bcd2c7a2ef",
+    "slug": "t3-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №3)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t3-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "f0a7334f-e7bc-40c6-a4a0-c10ca5977755",
+    "slug": "t4-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №4)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t4-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "7dbec2f0-44f8-467a-b30a-a33b665ef1a6",
+    "slug": "t5-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №5)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t5-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "bb979f27-777b-4209-9fad-ffd2a13ebbe8",
+    "slug": "t6-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №6)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t6-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "e910002b-eb3b-46ac-8565-b89feb75f493",
+    "slug": "t7-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №7)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "яйца",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t7-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "1071f805-d986-4feb-9bae-1484609b1dcb",
+    "slug": "t8-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №8)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t8-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "11b2e870-a12c-4ef4-a279-78806c011ad2",
+    "slug": "t9-dinner-fill5-veg-egg",
+    "name": "Овощи с яйцом на ужин (стол №9)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "яйца",
+      "овощи"
+    ],
+    "filename": "t9-dinner-fill5-veg-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "db58a07b-4476-4a68-8cb8-b8c9d748e60b",
+    "slug": "t5-dinner-boiled-beef-veg",
+    "name": "Отварная говядина с тушёными овощами",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "говядина",
+      "печень"
+    ],
+    "filename": "t5-dinner-boiled-beef-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "3e0851d1-c3ce-421f-ba17-76c99547bbef",
+    "slug": "t1-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №1)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "говядина"
+    ],
+    "filename": "t1-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "a7bbfcd2-26f5-4a1f-96c4-5df1da6c9933",
+    "slug": "t10-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №10)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "говядина",
+      "без_соли"
+    ],
+    "filename": "t10-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "339bee66-a72c-4a7b-8ce7-fb6b9de569b5",
+    "slug": "t11-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №11)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "говядина"
+    ],
+    "filename": "t11-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "7b26ded0-9155-4c5c-a17b-0fa6f0c853c5",
+    "slug": "t12-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №12)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "говядина"
+    ],
+    "filename": "t12-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "6d6a6acf-cc10-4060-8934-2f1da230b246",
+    "slug": "t13-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №13)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "говядина"
+    ],
+    "filename": "t13-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "92399459-0025-45b9-8a50-d0818cb4d052",
+    "slug": "t14-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №14)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "говядина"
+    ],
+    "filename": "t14-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "c4e77e40-ee73-410c-b8d7-acad7a142a10",
+    "slug": "t15-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №15)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "говядина"
+    ],
+    "filename": "t15-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "46250197-70ce-42a5-87b1-6e0ce9a8df46",
+    "slug": "t2-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №2)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "говядина"
+    ],
+    "filename": "t2-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "1b12edbb-5a77-4c79-95af-1ae219b2f675",
+    "slug": "t3-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №3)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "говядина"
+    ],
+    "filename": "t3-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "474b624b-3347-4687-b036-b9109c588a0a",
+    "slug": "t4-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №4)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "говядина"
+    ],
+    "filename": "t4-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "001cf9c1-4e1c-40da-840e-1cbd86f0b47a",
+    "slug": "t5-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №5)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "говядина"
+    ],
+    "filename": "t5-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "9754ccc4-121b-4895-82c1-5b77db8585a6",
+    "slug": "t6-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №6)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "говядина"
+    ],
+    "filename": "t6-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "51b768a5-ace1-4823-b417-e211483f774d",
+    "slug": "t7-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №7)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "говядина",
+      "без_соли"
+    ],
+    "filename": "t7-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "3d116445-d11f-4590-9bc3-5ab62c8928ec",
+    "slug": "t8-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №8)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "говядина"
+    ],
+    "filename": "t8-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "aaa1c9a4-bcbd-4797-98e4-d0dacf47e4d6",
+    "slug": "t9-dinner-fill4-steam-cutlet",
+    "name": "Паровая котлета с гарниром (стол №9)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "говядина"
+    ],
+    "filename": "t9-dinner-fill4-steam-cutlet.png",
+    "has_local": false
+  },
+  {
+    "id": "0de63819-2c05-4218-ab91-453b7804fcfc",
+    "slug": "t7-dinner-steamed-fish-potato-nosalt",
+    "name": "Паровая рыба с картофелем",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "рыба",
+      "без_соли"
+    ],
+    "filename": "t7-dinner-steamed-fish-potato-nosalt.png",
+    "has_local": false
+  },
+  {
+    "id": "2e3d8def-a389-4e16-8840-6896617472fe",
+    "slug": "t9-dinner-fish-lowcarb-veg",
+    "name": "Рыба с овощами без крахмалистого гарнира",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "рыба",
+      "диабет"
+    ],
+    "filename": "t9-dinner-fish-lowcarb-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "c761849f-0132-4377-84bc-07980c53610f",
+    "slug": "t4-dinner-steam-fish-souffle",
+    "name": "Рыбное суфле на пару",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "рыба",
+      "щадящее"
+    ],
+    "filename": "t4-dinner-steam-fish-souffle.png",
+    "has_local": false
+  },
+  {
+    "id": "33e8ee8c-2932-4ef0-b7d7-f4eafde574bc",
+    "slug": "sgl-dinner-chicken-avocado-salad",
+    "name": "Салат с курицей и авокадо",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "птица",
+      "овощи",
+      "ужин"
+    ],
+    "filename": "sgl-dinner-chicken-avocado-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "fa2e1386-303f-48c2-8e90-890ff5668bcf",
+    "slug": "gen-dinner-tuna-veg-salad",
+    "name": "Салат с тунцом и овощами",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "general",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "gen-dinner-tuna-veg-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "42046d34-aef5-47fb-89fa-48a253b5530e",
+    "slug": "t8-dinner-curd-veg-plate",
+    "name": "Творог с овощной нарезкой",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "молочка",
+      "низкокал"
+    ],
+    "filename": "t8-dinner-curd-veg-plate.png",
+    "has_local": false
+  },
+  {
+    "id": "2d73547c-20b7-42ce-b08c-f65e6a77d471",
+    "slug": "t12-dinner-curd-bake-gentle",
+    "name": "Творожная запеканка",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "молочка",
+      "спокойное"
+    ],
+    "filename": "t12-dinner-curd-bake-gentle.png",
+    "has_local": false
+  },
+  {
+    "id": "9e5060e5-e501-4b20-8e01-ab48ec0a3b5d",
+    "slug": "t6-dinner-curd-veg-casserole",
+    "name": "Творожно-овощная запеканка",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "молочка",
+      "пурины"
+    ],
+    "filename": "t6-dinner-curd-veg-casserole.png",
+    "has_local": false
+  },
+  {
+    "id": "12351377-e449-41d4-950c-5566711e17e6",
+    "slug": "sgl-dinner-veal-cucumber-salad",
+    "name": "Телятина с огуречным салатом",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "sgl-dinner-veal-cucumber-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "a4e21dc9-70d5-426d-86da-a1c946a49631",
+    "slug": "t2-dinner-stewed-veal-veg",
+    "name": "Телятина тушёная с овощами",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "говядина"
+    ],
+    "filename": "t2-dinner-stewed-veal-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "b717b5c7-dbc7-40fc-8b13-687b95dd1c05",
+    "slug": "t1-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №1)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t1-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "cab0a3d5-848c-4ddb-ab6b-5e3d08777d9d",
+    "slug": "t10-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №10)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "рыба",
+      "ужин",
+      "без_соли"
+    ],
+    "filename": "t10-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "008e2b6e-2def-46fb-9d09-30af60b26460",
+    "slug": "t11-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №11)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t11-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "02c66faf-0a9a-4387-8311-7d303dcdecce",
+    "slug": "t12-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №12)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t12-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "a98ab590-adbe-470e-9b36-cb6de00c39c0",
+    "slug": "t13-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №13)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t13-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "6bdeadcd-bea6-4a2d-b8aa-80000db6cd10",
+    "slug": "t14-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №14)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t14-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "824dd9e9-c24d-46e0-be7e-365406e1fbbf",
+    "slug": "t15-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №15)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t15-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "093cbf4d-0cea-463e-a4c0-528cfff831c7",
+    "slug": "t2-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №2)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t2-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "f0737b0c-32e6-4da3-9d28-988b1b528f87",
+    "slug": "t3-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №3)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t3-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "a29648d5-54c8-4cd0-b738-a7b95e26beba",
+    "slug": "t4-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №4)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t4-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "84f49187-caf8-4435-9b2e-87eace8d1029",
+    "slug": "t5-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №5)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t5-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "59b4d454-0d35-4b7b-b122-f85e2d459b58",
+    "slug": "t6-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №6)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t6-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "3f568096-36c4-4ba6-bb3c-49c9cdb88ab0",
+    "slug": "t7-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №7)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "рыба",
+      "ужин",
+      "без_соли"
+    ],
+    "filename": "t7-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "b2fdc70c-5dcc-4a55-8a70-1ea89ebc91bf",
+    "slug": "t8-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №8)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t8-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "460415c7-e4a7-4483-9710-8ce764e4cd00",
+    "slug": "t9-dinner-fill1-fish-or-poultry",
+    "name": "Треска с овощами на ужин (стол №9)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "рыба",
+      "ужин"
+    ],
+    "filename": "t9-dinner-fill1-fish-or-poultry.png",
+    "has_local": false
+  },
+  {
+    "id": "b4bb4263-f284-4aec-ad80-ad734f55948c",
+    "slug": "gen-dinner-cod-cauliflower",
+    "name": "Треска с цветной капустой",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "general",
+      "рыба",
+      "ужин",
+      "лёгкое"
+    ],
+    "filename": "gen-dinner-cod-cauliflower.png",
+    "has_local": false
+  },
+  {
+    "id": "e10fc6ba-bc80-4359-b811-452075c9f581",
+    "slug": "t1-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №1)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "рыба"
+    ],
+    "filename": "t1-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "7c42aa26-cb6d-4754-9269-a28df9ceb1c1",
+    "slug": "t10-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №10)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "рыба",
+      "без_соли"
+    ],
+    "filename": "t10-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "7caaf8fb-0e99-4561-8bfb-f5878c40eafd",
+    "slug": "t11-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №11)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "рыба"
+    ],
+    "filename": "t11-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "240a8306-4bd4-448f-a76b-af892fe98756",
+    "slug": "t12-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №12)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "рыба"
+    ],
+    "filename": "t12-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "56976b43-0707-4b77-9c80-1ea0b8aafb7a",
+    "slug": "t13-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №13)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "рыба"
+    ],
+    "filename": "t13-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "4567050a-a16d-4dd4-a9aa-e4ae5187210a",
+    "slug": "t14-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №14)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "рыба"
+    ],
+    "filename": "t14-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "2fd8abd1-7dbf-4e0a-898b-44cef38fe132",
+    "slug": "t15-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №15)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "рыба"
+    ],
+    "filename": "t15-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "e9652627-e64d-4720-822c-fcd1ca17f3fb",
+    "slug": "t2-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №2)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "рыба"
+    ],
+    "filename": "t2-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "c53ae6f3-333a-4080-8a89-499ce10c7394",
+    "slug": "t3-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №3)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "рыба"
+    ],
+    "filename": "t3-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "09271585-d990-49f1-84f2-86b574c2a7ef",
+    "slug": "t4-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №4)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "рыба"
+    ],
+    "filename": "t4-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "c3a9244d-195b-4708-a1b7-b93082dd410d",
+    "slug": "t5-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №5)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "рыба"
+    ],
+    "filename": "t5-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "44bd8b8b-1934-4d1f-815b-2bcbf88a44c7",
+    "slug": "t6-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №6)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "птица"
+    ],
+    "filename": "t6-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "aeb80ea5-3918-4e46-bc0e-2ce2fd2679df",
+    "slug": "t7-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №7)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "рыба",
+      "без_соли"
+    ],
+    "filename": "t7-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "9062904a-99b4-4b01-9e99-dfcf31fc2da8",
+    "slug": "t8-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №8)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "рыба"
+    ],
+    "filename": "t8-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "f6824edb-abdc-4acf-ab3a-8bacc0dc1fbd",
+    "slug": "t9-dinner-fill3-stew-veg",
+    "name": "Тушёное с овощами (стол №9)",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "рыба"
+    ],
+    "filename": "t9-dinner-fill3-stew-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "459c876c-8466-4d88-bddd-2ff761b4947d",
+    "slug": "gen-dinner-egg-veg-scramble",
+    "name": "Яичница-болтунья с овощами",
+    "meal_type": "dinner",
+    "has_image": false,
+    "tags": [
+      "general",
+      "яйца",
+      "ужин"
+    ],
+    "filename": "gen-dinner-egg-veg-scramble.png",
+    "has_local": false
+  },
+  {
+    "id": "d8405869-ec20-4999-ae44-31c17856ed09",
+    "slug": "t5-lunch-veg-borscht-no-fat",
+    "name": "Вегетарианский борщ",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "суп",
+      "печень"
+    ],
+    "filename": "t5-lunch-veg-borscht-no-fat.png",
+    "has_local": false
+  },
+  {
+    "id": "c92e87c6-e1c9-45e9-a9e6-bb18c66c3bbe",
+    "slug": "t11-lunch-beef-potato-enriched",
+    "name": "Говядина с картофелем и маслом",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "говядина",
+      "усиленное"
+    ],
+    "filename": "t11-lunch-beef-potato-enriched.png",
+    "has_local": false
+  },
+  {
+    "id": "ef49a355-cd42-4554-8d95-c5ef8cc04689",
+    "slug": "sgl-lunch-beef-quinoa-salad",
+    "name": "Говядина с киноа и листовым салатом",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "говядина",
+      "киноа",
+      "овощи",
+      "обед"
+    ],
+    "filename": "sgl-lunch-beef-quinoa-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "e27903a7-ccd3-421c-8bfa-e595aff56e43",
+    "slug": "t14-lunch-beef-rice-acid",
+    "name": "Говядина с рисом",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "говядина",
+      "кислотный"
+    ],
+    "filename": "t14-lunch-beef-rice-acid.png",
+    "has_local": false
+  },
+  {
+    "id": "d695dfeb-f038-411a-a460-364931059ae6",
+    "slug": "sgl-lunch-beef-green-beans",
+    "name": "Говядина со стручковой фасолью",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "говядина",
+      "овощи"
+    ],
+    "filename": "sgl-lunch-beef-green-beans.png",
+    "has_local": false
+  },
+  {
+    "id": "2d0caf73-e62d-4439-a10a-b0b0729fb113",
+    "slug": "t10-lunch-fill3-grain-protein",
+    "name": "Гречка с говядина (стол №10)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "говядина",
+      "без_соли"
+    ],
+    "filename": "t10-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "8090d40b-3203-4ec2-993c-0e5499467d10",
+    "slug": "t11-lunch-fill3-grain-protein",
+    "name": "Гречка с говядина (стол №11)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "говядина"
+    ],
+    "filename": "t11-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "53ffa136-459a-48ab-aa0f-23f800deb783",
+    "slug": "t12-lunch-fill3-grain-protein",
+    "name": "Гречка с говядина (стол №12)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "говядина"
+    ],
+    "filename": "t12-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "078b40d0-df4e-448c-b813-823bf0581485",
+    "slug": "t14-lunch-fill3-grain-protein",
+    "name": "Гречка с говядина (стол №14)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "говядина"
+    ],
+    "filename": "t14-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "8d181157-f75a-4a50-8d8d-387b67420722",
+    "slug": "t15-lunch-fill3-grain-protein",
+    "name": "Гречка с говядина (стол №15)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "говядина"
+    ],
+    "filename": "t15-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "3f7e9e0c-010e-49ce-8dea-28429a90c6f2",
+    "slug": "t2-lunch-fill3-grain-protein",
+    "name": "Гречка с говядина (стол №2)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "говядина"
+    ],
+    "filename": "t2-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "1e302496-b734-4b44-ba5d-b84da417b005",
+    "slug": "t3-lunch-fill3-grain-protein",
+    "name": "Гречка с говядина (стол №3)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "говядина"
+    ],
+    "filename": "t3-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "bf179713-49d3-4676-956c-8a9094e74adf",
+    "slug": "t5-lunch-fill3-grain-protein",
+    "name": "Гречка с говядина (стол №5)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "говядина"
+    ],
+    "filename": "t5-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "68bc61e1-de03-4d2c-b0b2-a26e5f255c3f",
+    "slug": "t7-lunch-fill3-grain-protein",
+    "name": "Гречка с говядина (стол №7)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "говядина",
+      "без_соли"
+    ],
+    "filename": "t7-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "470f82e3-6b7a-4623-be9e-4a8d6e2e607f",
+    "slug": "t8-lunch-fill3-grain-protein",
+    "name": "Гречка с говядина (стол №8)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "говядина"
+    ],
+    "filename": "t8-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "13f857f7-3d63-4960-8d0f-1bebc28bb574",
+    "slug": "t9-lunch-fill3-grain-protein",
+    "name": "Гречка с говядина (стол №9)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "говядина"
+    ],
+    "filename": "t9-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "a2239613-b497-4fea-b0de-9bca7333b2cf",
+    "slug": "t6-lunch-fill3-grain-protein",
+    "name": "Гречка с куриная (стол №6)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "птица"
+    ],
+    "filename": "t6-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "624403f3-5d32-412d-8660-490608307641",
+    "slug": "t1-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №1)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "птица"
+    ],
+    "filename": "t1-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "324fa9b5-6afd-4034-9abb-34c1f0e6c78a",
+    "slug": "t10-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №10)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "птица",
+      "без_соли"
+    ],
+    "filename": "t10-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "7aaf11fa-cd2a-476a-886c-12d55b2296b0",
+    "slug": "t11-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №11)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "птица"
+    ],
+    "filename": "t11-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "e955d3a1-cd69-4a8f-9d8d-99017b68ca62",
+    "slug": "t12-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №12)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "птица"
+    ],
+    "filename": "t12-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "1f6b770f-54cb-43d1-b7f9-144f4bd8438e",
+    "slug": "t13-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №13)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "птица"
+    ],
+    "filename": "t13-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "dc9e0b38-6bb7-49e4-928b-4fd74f7b5e65",
+    "slug": "t14-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №14)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "птица"
+    ],
+    "filename": "t14-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "b3b1bd8b-f118-4d78-9496-fa5e5d932979",
+    "slug": "t15-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №15)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "птица"
+    ],
+    "filename": "t15-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "5945c3e8-8785-424c-ae67-a12b9de4ea30",
+    "slug": "t2-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №2)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "птица"
+    ],
+    "filename": "t2-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "2f818eda-3aaf-46d2-9d79-33f2336a028a",
+    "slug": "t3-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №3)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "птица"
+    ],
+    "filename": "t3-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "cc0c36d0-ca9d-45e2-99c5-ea6da2c7c53a",
+    "slug": "t4-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №4)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "птица"
+    ],
+    "filename": "t4-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "d373b729-437a-45e8-827e-6b2995d1ef11",
+    "slug": "t5-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №5)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "птица"
+    ],
+    "filename": "t5-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "ddb2ad8f-4c13-4f05-aff6-8b2606c0a664",
+    "slug": "t6-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №6)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "рыба"
+    ],
+    "filename": "t6-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "fa48de79-a039-45f5-b77a-3fe7e16a1804",
+    "slug": "t7-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №7)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "птица",
+      "без_соли"
+    ],
+    "filename": "t7-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "d1547d3a-24ad-4165-be44-82e274d512af",
+    "slug": "t8-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №8)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "птица"
+    ],
+    "filename": "t8-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "ea78c942-e947-4b17-8cba-9d76d20e663c",
+    "slug": "t9-lunch-fill5-baked-protein",
+    "name": "Запечённый белок с гарниром (стол №9)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "птица"
+    ],
+    "filename": "t9-lunch-fill5-baked-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "eadbbb35-aaf9-4217-b2f2-ceea2073e082",
+    "slug": "t9-lunch-turkey-buckwheat-greens",
+    "name": "Индейка с гречкой и салатом",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "птица",
+      "гречка",
+      "диабет"
+    ],
+    "filename": "t9-lunch-turkey-buckwheat-greens.png",
+    "has_local": false
+  },
+  {
+    "id": "6c495683-8156-4c3e-be78-eca29fc0ec6e",
+    "slug": "sgl-lunch-turkey-cabbage-stew",
+    "name": "Индейка с тушёной капустой",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "птица",
+      "овощи",
+      "обед"
+    ],
+    "filename": "sgl-lunch-turkey-cabbage-stew.png",
+    "has_local": false
+  },
+  {
+    "id": "70b64240-aa98-42d5-aba8-719742da4848",
+    "slug": "sgl-lunch-rabbit-buckwheat",
+    "name": "Кролик с гречкой",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "птица",
+      "гречка"
+    ],
+    "filename": "sgl-lunch-rabbit-buckwheat.png",
+    "has_local": false
+  },
+  {
+    "id": "2c87fd7e-6dc8-4fe0-a17d-5b81885256a7",
+    "slug": "t7-lunch-poached-chicken-veg-nosalt",
+    "name": "Курица отварная с овощами без соли",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "птица",
+      "без_соли"
+    ],
+    "filename": "t7-lunch-poached-chicken-veg-nosalt.png",
+    "has_local": false
+  },
+  {
+    "id": "347dd06d-42ee-4f47-832d-f697900c9027",
+    "slug": "sgl-lunch-chicken-buckwheat-broccoli",
+    "name": "Курица с гречкой и брокколи",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "птица",
+      "гречка",
+      "овощи",
+      "обед"
+    ],
+    "filename": "sgl-lunch-chicken-buckwheat-broccoli.png",
+    "has_local": false
+  },
+  {
+    "id": "ebf22c0b-5e2d-41ed-92a7-7bc3c5325552",
+    "slug": "t1-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №1)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t1-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "82112c72-3277-4ae6-b471-c06cb331682c",
+    "slug": "t10-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №10)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "рыба",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t10-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "bddf2b47-c4b2-4cba-a6cb-2a5e1b9892c3",
+    "slug": "t11-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №11)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t11-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "cd304156-4c8f-4c1b-af9b-7cfb03d81d50",
+    "slug": "t12-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №12)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t12-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "47ae4727-3bda-4222-8564-597a3fcc6623",
+    "slug": "t13-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №13)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t13-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "07cd1dd5-d1ee-4c45-a54f-73087bdf8d4e",
+    "slug": "t14-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №14)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t14-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "9e0c31aa-3738-4b4c-b80d-4ac7a079a7f2",
+    "slug": "t15-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №15)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t15-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "0dbce6e5-dcbc-4927-8612-f246ee01448e",
+    "slug": "t2-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №2)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t2-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "18d55724-2c40-42d8-ab67-f87efc8e0900",
+    "slug": "t3-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №3)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t3-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "5436cbfb-8598-4fc2-ae58-2a68b6482241",
+    "slug": "t4-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №4)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t4-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "349a17b6-832c-4c3a-8aee-8043b3a365f5",
+    "slug": "t5-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №5)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t5-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "4007d21d-b239-4963-b82d-ab354ceb9b69",
+    "slug": "t6-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №6)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "птица",
+      "овощи"
+    ],
+    "filename": "t6-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "d8fa4916-a8ea-42c1-9a2d-23a0411d24d7",
+    "slug": "t7-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №7)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "рыба",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t7-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "fb613e17-89fe-463b-b97a-4f4f58b5da1e",
+    "slug": "t8-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №8)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t8-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "e8287c4d-3bb4-4440-a9d0-ed0b5d0b2677",
+    "slug": "t9-lunch-fill4-veg-ragout",
+    "name": "Овощное рагу с белком (стол №9)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t9-lunch-fill4-veg-ragout.png",
+    "has_local": false
+  },
+  {
+    "id": "c153a395-c28f-4fa6-adb4-075c1c5250c0",
+    "slug": "t6-lunch-ratatouille-egg",
+    "name": "Овощное рагу с яйцом",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "овощи",
+      "пурины"
+    ],
+    "filename": "t6-lunch-ratatouille-egg.png",
+    "has_local": false
+  },
+  {
+    "id": "009c552b-cebf-41de-807b-10f10581c8c4",
+    "slug": "gen-lunch-ratatouille-chicken",
+    "name": "Овощной рататуй с курицей",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "general",
+      "птица",
+      "овощи"
+    ],
+    "filename": "gen-lunch-ratatouille-chicken.png",
+    "has_local": false
+  },
+  {
+    "id": "f71bbee7-a3c0-4e60-8d06-bf747bbdc72d",
+    "slug": "gen-lunch-veg-soup-barley",
+    "name": "Овощной суп с перловкой",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "general",
+      "суп",
+      "клетчатка",
+      "обед"
+    ],
+    "filename": "gen-lunch-veg-soup-barley.png",
+    "has_local": false
+  },
+  {
+    "id": "3988749d-9be7-4e27-a6cd-03b923660977",
+    "slug": "t10-lunch-poached-fish-veg-heart",
+    "name": "Отварная рыба с овощным гарниром",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "рыба",
+      "сердце"
+    ],
+    "filename": "t10-lunch-poached-fish-veg-heart.png",
+    "has_local": false
+  },
+  {
+    "id": "e3c58e2a-a179-4b47-b54e-ae80f641bcf0",
+    "slug": "t12-lunch-boiled-veal-veg-calm",
+    "name": "Отварное мясо с овощами",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "говядина",
+      "спокойное"
+    ],
+    "filename": "t12-lunch-boiled-veal-veg-calm.png",
+    "has_local": false
+  },
+  {
+    "id": "aca3b4a4-c79d-45ab-a70e-6ee2461c49a8",
+    "slug": "t1-lunch-steam-turkey-puree",
+    "name": "Паровые тефтели из индейки с пюре",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "птица",
+      "щадящее"
+    ],
+    "filename": "t1-lunch-steam-turkey-puree.png",
+    "has_local": false
+  },
+  {
+    "id": "1fafd706-c0fb-41eb-9ae7-7d546a657baa",
+    "slug": "t4-lunch-steam-meatballs-rice",
+    "name": "Паровые фрикадельки с рисом",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "говядина",
+      "щадящее"
+    ],
+    "filename": "t4-lunch-steam-meatballs-rice.png",
+    "has_local": false
+  },
+  {
+    "id": "bdfd9d5f-19da-44e7-8d04-601db45d7d89",
+    "slug": "t3-lunch-borscht-lean-chicken",
+    "name": "Постный борщ с курицей",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "суп",
+      "клетчатка",
+      "птица"
+    ],
+    "filename": "t3-lunch-borscht-lean-chicken.png",
+    "has_local": false
+  },
+  {
+    "id": "0ae42496-8081-49cd-a352-ffa7bef44011",
+    "slug": "t1-lunch-fill3-grain-protein",
+    "name": "Рис с говядина (стол №1)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "говядина"
+    ],
+    "filename": "t1-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "6c7e32e3-48a0-4aa6-b8b7-9da98e42c016",
+    "slug": "t13-lunch-fill3-grain-protein",
+    "name": "Рис с говядина (стол №13)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "говядина"
+    ],
+    "filename": "t13-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "ec2b2c4e-bb03-4cc7-b788-e0fae4cbf1a3",
+    "slug": "t4-lunch-fill3-grain-protein",
+    "name": "Рис с говядина (стол №4)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "говядина"
+    ],
+    "filename": "t4-lunch-fill3-grain-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "0bf0d2c9-7486-4956-b4eb-1f5fa57d4dc5",
+    "slug": "t8-lunch-chicken-cabbage-volume",
+    "name": "Салат с курицей и объёмными овощами",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "птица",
+      "низкокал",
+      "клетчатка"
+    ],
+    "filename": "t8-lunch-chicken-cabbage-volume.png",
+    "has_local": false
+  },
+  {
+    "id": "4a9ecfd4-0053-47d2-afc2-e03cc84c0d4b",
+    "slug": "t1-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №1)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t1-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "c525859b-4ffa-4f63-9e2c-5b4053679d64",
+    "slug": "t10-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №10)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "рыба",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t10-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "7c91d618-478f-43e5-beda-8b33d9f8d345",
+    "slug": "t11-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №11)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t11-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "285489e8-1553-4789-9901-ce717cb08e2c",
+    "slug": "t12-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №12)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t12-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "e10ee347-4280-4b49-990d-61bb989f4986",
+    "slug": "t13-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №13)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t13-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "5e789c69-726e-4e5a-aaa5-de399d498878",
+    "slug": "t14-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №14)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t14-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "2e3c6aea-353b-4c14-87b9-7c7a485ca5dd",
+    "slug": "t15-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №15)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t15-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "38a227c6-3b75-4a18-a807-b304f13d1dcd",
+    "slug": "t2-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №2)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t2-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "28c8adba-9bb9-44c5-9ef2-12abe1fb2f5a",
+    "slug": "t3-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №3)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t3-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "0fca4513-9232-435b-a483-b5202aefad1f",
+    "slug": "t4-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №4)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t4-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "d135d794-2cc4-4d51-95c2-696859c916f2",
+    "slug": "t5-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №5)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t5-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "a58734ab-52ac-48ea-bd5d-86422a05af3b",
+    "slug": "t6-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №6)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t6-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "696815c0-bc05-4a2c-be2b-eb9cd3c17a47",
+    "slug": "t7-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №7)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "рыба",
+      "овощи",
+      "без_соли"
+    ],
+    "filename": "t7-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "ea09c20b-f603-427f-9531-83505dafbe6b",
+    "slug": "t8-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №8)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t8-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "b54a187f-9048-4101-aba8-70fa3f2775af",
+    "slug": "t9-lunch-fill2-protein-salad",
+    "name": "Салат с рыба (стол №9)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "t9-lunch-fill2-protein-salad.png",
+    "has_local": false
+  },
+  {
+    "id": "4610ca4c-dd54-4156-82f9-521f03ce0a2d",
+    "slug": "sgl-lunch-mackerel-cabbage",
+    "name": "Скумбрия запечённая с капустой",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "рыба",
+      "овощи"
+    ],
+    "filename": "sgl-lunch-mackerel-cabbage.png",
+    "has_local": false
+  },
+  {
+    "id": "af6f692e-900e-47e2-90fd-83c5335ba5b1",
+    "slug": "t13-lunch-thin-chicken-rice-soup",
+    "name": "Слабый куриный бульон с рисом",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "суп",
+      "щадящее",
+      "инфекция"
+    ],
+    "filename": "t13-lunch-thin-chicken-rice-soup.png",
+    "has_local": false
+  },
+  {
+    "id": "a65a968c-d217-47e0-959b-47f1c2afb8e0",
+    "slug": "gen-lunch-lentil-soup",
+    "name": "Суп из чечевицы с зеленью",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "general",
+      "бобовые",
+      "суп"
+    ],
+    "filename": "gen-lunch-lentil-soup.png",
+    "has_local": false
+  },
+  {
+    "id": "323c866a-0340-4004-94fc-24d09cb4844f",
+    "slug": "t2-lunch-chicken-noodle-soup",
+    "name": "Суп с лапшой на слабом курином бульоне",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "суп",
+      "птица"
+    ],
+    "filename": "t2-lunch-chicken-noodle-soup.png",
+    "has_local": false
+  },
+  {
+    "id": "4735c393-f43c-4424-9bb5-ac16bf52392f",
+    "slug": "t15-lunch-soup-meatballs",
+    "name": "Суп с фрикадельками",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "суп",
+      "говядина"
+    ],
+    "filename": "t15-lunch-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "8a923c06-f1a2-485f-ba91-500107391df7",
+    "slug": "t1-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №1)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "суп",
+      "птица"
+    ],
+    "filename": "t1-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "c29fc163-a0f3-4f97-a805-931bb62fa36a",
+    "slug": "t10-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №10)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "суп",
+      "птица",
+      "без_соли"
+    ],
+    "filename": "t10-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "cc33bd83-97d3-4196-b0cf-a23d4d4e0371",
+    "slug": "t11-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №11)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "суп",
+      "птица"
+    ],
+    "filename": "t11-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "9d1edf21-260a-4b49-9797-7ac9c168f47e",
+    "slug": "t12-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №12)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "суп",
+      "птица"
+    ],
+    "filename": "t12-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "763d7426-eaa1-4185-8c45-f1bd2e953c09",
+    "slug": "t13-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №13)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "суп",
+      "птица"
+    ],
+    "filename": "t13-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "7f610e9c-d26f-49f2-8b3a-23612b0ecbc8",
+    "slug": "t14-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №14)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "суп",
+      "птица"
+    ],
+    "filename": "t14-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "d686b2c6-555c-465b-a943-fdae7d4fc77b",
+    "slug": "t15-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №15)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "суп",
+      "птица"
+    ],
+    "filename": "t15-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "4861c161-8ecb-4922-aa03-2c65a6454336",
+    "slug": "t2-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №2)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "суп",
+      "птица"
+    ],
+    "filename": "t2-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "353a72bd-f025-497d-85e8-3c76f4202923",
+    "slug": "t3-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №3)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "суп",
+      "птица"
+    ],
+    "filename": "t3-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "7f0689e0-3f34-4549-b37f-defae690f24b",
+    "slug": "t4-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №4)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "суп",
+      "птица"
+    ],
+    "filename": "t4-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "c9e4f21d-8f04-472c-9c8d-01a580aabe8a",
+    "slug": "t5-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №5)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "суп",
+      "птица"
+    ],
+    "filename": "t5-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "3fab4e91-7708-41b1-8abb-e70c1f5ac388",
+    "slug": "t6-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №6)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "суп",
+      "птица"
+    ],
+    "filename": "t6-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "e5854db6-a929-4f5b-915e-7c93ee51edb8",
+    "slug": "t7-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №7)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "суп",
+      "птица",
+      "без_соли"
+    ],
+    "filename": "t7-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "e9d00ef3-a61e-4485-abdc-f214512b7739",
+    "slug": "t8-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №8)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "суп",
+      "птица"
+    ],
+    "filename": "t8-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "a6277bfb-e2b1-4bce-89f2-e82d85607117",
+    "slug": "t9-lunch-fill1-soup-meatballs",
+    "name": "Суп с фрикадельками (стол №9)",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "суп",
+      "птица"
+    ],
+    "filename": "t9-lunch-fill1-soup-meatballs.png",
+    "has_local": false
+  },
+  {
+    "id": "0f6227d2-eb2e-4e3a-a8af-67b45a325193",
+    "slug": "sgl-lunch-cod-cauli-stew",
+    "name": "Треска с цветной капустой",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "рыба",
+      "овощи",
+      "обед"
+    ],
+    "filename": "sgl-lunch-cod-cauli-stew.png",
+    "has_local": false
+  },
+  {
+    "id": "680b662c-669e-4457-ae4f-0d053c6c7b3d",
+    "slug": "gen-lunch-beef-stew-carrot",
+    "name": "Тушёная говядина с морковью",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "general",
+      "говядина",
+      "обед"
+    ],
+    "filename": "gen-lunch-beef-stew-carrot.png",
+    "has_local": false
+  },
+  {
+    "id": "227c877a-b334-42d9-b59d-4bc276a364ab",
+    "slug": "gen-lunch-lentil-veg-bowl",
+    "name": "Чечевица с овощами и зеленью",
+    "meal_type": "lunch",
+    "has_image": false,
+    "tags": [
+      "general",
+      "бобовые",
+      "клетчатка",
+      "обед"
+    ],
+    "filename": "gen-lunch-lentil-veg-bowl.png",
+    "has_local": false
+  },
+  {
+    "id": "9ce9b78b-39e5-42e4-ac38-aff45085587e",
+    "slug": "sgl-snack-avocado-lemon",
+    "name": "Авокадо с лимоном",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "овощи",
+      "перекус"
+    ],
+    "filename": "sgl-snack-avocado-lemon.png",
+    "has_local": false
+  },
+  {
+    "id": "646aeb4f-32e6-43e0-8e0e-bad70e70a7e7",
+    "slug": "sgl-snack-walnut-cucumber",
+    "name": "Грецкий орех с огурцом",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "орехи",
+      "овощи"
+    ],
+    "filename": "sgl-snack-walnut-cucumber.png",
+    "has_local": false
+  },
+  {
+    "id": "a3ef4a74-5442-4cea-8ca2-d2ee7c2bb1de",
+    "slug": "t5-snack-cottage-lowfat-bake",
+    "name": "Запеканка из нежирного творога",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "молочка",
+      "печень"
+    ],
+    "filename": "t5-snack-cottage-lowfat-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "8574f3b3-bef1-4260-97af-16e28a6a5984",
+    "slug": "gen-snack-apple-cinnamon-bake",
+    "name": "Запечённое яблоко с корицей",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "general",
+      "фрукты",
+      "перекус"
+    ],
+    "filename": "gen-snack-apple-cinnamon-bake.png",
+    "has_local": false
+  },
+  {
+    "id": "98af260e-e26b-4e4a-a584-5082eb00dbf1",
+    "slug": "sgl-snack-turkey-cucumber-roll",
+    "name": "Индейка с огурцом",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "птица",
+      "овощи",
+      "перекус"
+    ],
+    "filename": "sgl-snack-turkey-cucumber-roll.png",
+    "has_local": false
+  },
+  {
+    "id": "f1a5b8c3-cd1d-4803-adb9-597841b6f3de",
+    "slug": "t11-snack-yogurt-banana-walnut",
+    "name": "Йогурт с бананом и орехами",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "молочка",
+      "усиленное"
+    ],
+    "filename": "t11-snack-yogurt-banana-walnut.png",
+    "has_local": false
+  },
+  {
+    "id": "d98f4806-bca2-4692-b8da-9d69f23c74c5",
+    "slug": "t6-snack-plain-yogurt-cuke",
+    "name": "Йогурт с огурцом",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "молочка",
+      "пурины"
+    ],
+    "filename": "t6-snack-plain-yogurt-cuke.png",
+    "has_local": false
+  },
+  {
+    "id": "babbbfd7-2ab5-4790-ac91-821c900e42df",
+    "slug": "t12-snack-kefir-room-temp",
+    "name": "Кефир комнатной температуры",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "молочка",
+      "спокойное"
+    ],
+    "filename": "t12-snack-kefir-room-temp.png",
+    "has_local": false
+  },
+  {
+    "id": "aa38dcf5-ec7e-4877-a395-504214f6d05c",
+    "slug": "t15-snack-kefir-fruit",
+    "name": "Кефир с фруктом",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "молочка"
+    ],
+    "filename": "t15-snack-kefir-fruit.png",
+    "has_local": false
+  },
+  {
+    "id": "3c6f4a97-648e-4fd0-a043-2cbf4e68ef9c",
+    "slug": "t1-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №1)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "молочка"
+    ],
+    "filename": "t1-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "6d3f961f-0692-481c-928e-38172c8d0085",
+    "slug": "t10-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №10)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "молочка"
+    ],
+    "filename": "t10-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "8a509d34-f0b3-4b4f-b70b-9c792c6e97fa",
+    "slug": "t11-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №11)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "молочка"
+    ],
+    "filename": "t11-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "82d4e0c3-5d67-41fa-8169-865630cb42c0",
+    "slug": "t12-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №12)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "молочка"
+    ],
+    "filename": "t12-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "b08e60c5-80d6-427f-aa5c-b61caa0a181a",
+    "slug": "t13-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №13)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "молочка"
+    ],
+    "filename": "t13-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "89b9d33c-3093-4ae4-8804-3aabf65820f1",
+    "slug": "t15-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №15)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "молочка"
+    ],
+    "filename": "t15-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "f94c7211-00e9-4ee5-a033-cd75b2b4b395",
+    "slug": "t2-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №2)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "молочка"
+    ],
+    "filename": "t2-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "2a12f5f3-154a-483f-81ed-c6f4e7703d81",
+    "slug": "t3-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №3)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "молочка"
+    ],
+    "filename": "t3-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "2bd19b4b-1800-40a1-a315-2208742a33c8",
+    "slug": "t4-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №4)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "молочка"
+    ],
+    "filename": "t4-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "2bf74712-3c70-4985-a8d1-ac51e7955047",
+    "slug": "t5-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №5)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "молочка"
+    ],
+    "filename": "t5-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "829d9c3a-5649-4dde-ba3a-f2d45136036a",
+    "slug": "t6-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №6)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "молочка"
+    ],
+    "filename": "t6-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "9c3fe360-182b-4c9c-8bf9-665199805ecb",
+    "slug": "t7-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №7)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "молочка"
+    ],
+    "filename": "t7-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "ffad55a8-172d-4e6f-8ec5-faac0912d3c9",
+    "slug": "t8-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №8)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "молочка"
+    ],
+    "filename": "t8-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "db5d3094-e63b-4109-aee0-bc5b49e61cac",
+    "slug": "t9-snack-fill1-fermented",
+    "name": "Кефир/йогурт (стол №9)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "молочка"
+    ],
+    "filename": "t9-snack-fill1-fermented.png",
+    "has_local": false
+  },
+  {
+    "id": "8688e925-3fb4-4548-9c07-83f0db712025",
+    "slug": "t4-snack-bilberry-starch-drink",
+    "name": "Кисель из черники",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "щадящее"
+    ],
+    "filename": "t4-snack-bilberry-starch-drink.png",
+    "has_local": false
+  },
+  {
+    "id": "71ddc9f0-bc94-46ae-8209-8b5883847534",
+    "slug": "t1-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №1)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "перекус"
+    ],
+    "filename": "t1-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "03d4019d-aacb-4058-9134-0c43a99795fa",
+    "slug": "t10-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №10)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "перекус"
+    ],
+    "filename": "t10-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "4205f440-e9f0-4b64-ac15-d6909f5682eb",
+    "slug": "t11-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №11)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "перекус"
+    ],
+    "filename": "t11-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "880dfb07-6ac1-4061-8804-58611dae94a9",
+    "slug": "t12-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №12)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "перекус"
+    ],
+    "filename": "t12-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "c14f950c-960a-4f53-b856-caaccd47319b",
+    "slug": "t13-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №13)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "перекус"
+    ],
+    "filename": "t13-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "fdc0eaac-57db-4716-bb2c-1196ff092445",
+    "slug": "t14-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №14)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "перекус"
+    ],
+    "filename": "t14-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "b52fe489-8676-4d2b-bf91-ab7a23e2a9bb",
+    "slug": "t15-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №15)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "перекус"
+    ],
+    "filename": "t15-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "8e407bf2-cd35-4536-b573-5c6ece738c0f",
+    "slug": "t2-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №2)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "перекус"
+    ],
+    "filename": "t2-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "320b7e7a-a582-4ace-8103-38e0e4682a64",
+    "slug": "t3-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №3)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "перекус"
+    ],
+    "filename": "t3-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "ed41c3c8-93b7-4ece-92c3-2d1bda80783a",
+    "slug": "t4-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №4)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "перекус"
+    ],
+    "filename": "t4-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "5c753da0-c86e-436a-b80e-6b449586b7a8",
+    "slug": "t5-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №5)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "перекус"
+    ],
+    "filename": "t5-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "2e23a6df-b83d-4840-b206-055177b4441a",
+    "slug": "t6-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №6)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "перекус"
+    ],
+    "filename": "t6-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "05dc8b53-9409-4dca-9725-eeb0ad8e0c98",
+    "slug": "t7-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №7)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "перекус"
+    ],
+    "filename": "t7-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "8638d75e-facb-4402-8aab-9944122e15d6",
+    "slug": "t8-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №8)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "перекус"
+    ],
+    "filename": "t8-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "0f28d6b5-93bf-4f3f-82eb-e41d0ae8bfae",
+    "slug": "t9-snack-fill5-drink-bite",
+    "name": "Компот и галета (стол №9)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "перекус"
+    ],
+    "filename": "t9-snack-fill5-drink-bite.png",
+    "has_local": false
+  },
+  {
+    "id": "94abc868-534f-400b-bef0-a99979b49621",
+    "slug": "t3-snack-prune-compote-unsweet",
+    "name": "Компот из чернослива",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "клетчатка"
+    ],
+    "filename": "t3-snack-prune-compote-unsweet.png",
+    "has_local": false
+  },
+  {
+    "id": "e3353e19-a15c-4786-bac6-0024134695ca",
+    "slug": "t7-snack-apple-drink-nosugar",
+    "name": "Компот несладкий из яблок",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "без_соли"
+    ],
+    "filename": "t7-snack-apple-drink-nosugar.png",
+    "has_local": false
+  },
+  {
+    "id": "3ab069c2-96e9-462c-bf64-f0f00ba4bc25",
+    "slug": "t13-snack-diluted-fruit-drink",
+    "name": "Компот разбавленный",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "инфекция"
+    ],
+    "filename": "t13-snack-diluted-fruit-drink.png",
+    "has_local": false
+  },
+  {
+    "id": "7c88e413-f080-4d25-88e7-d36074791e5b",
+    "slug": "sgl-snack-chicken-celery",
+    "name": "Курица с сельдереем",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "птица",
+      "овощи"
+    ],
+    "filename": "sgl-snack-chicken-celery.png",
+    "has_local": false
+  },
+  {
+    "id": "ac1c3d3a-0bb3-4127-945e-eeecc9e1ce91",
+    "slug": "sgl-snack-almonds-celery",
+    "name": "Миндаль с сельдереем",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "орехи",
+      "овощи",
+      "перекус"
+    ],
+    "filename": "sgl-snack-almonds-celery.png",
+    "has_local": false
+  },
+  {
+    "id": "0151862c-4035-4508-badc-b448bbe5af85",
+    "slug": "t1-snack-milk-kissel",
+    "name": "Молочный кисель",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "молочка",
+      "щадящее"
+    ],
+    "filename": "t1-snack-milk-kissel.png",
+    "has_local": false
+  },
+  {
+    "id": "95bdda78-36cd-4b16-a442-96b6755c2ba6",
+    "slug": "gen-snack-carrot-yogurt",
+    "name": "Морковные палочки с йогуртом",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "general",
+      "овощи",
+      "перекус"
+    ],
+    "filename": "gen-snack-carrot-yogurt.png",
+    "has_local": false
+  },
+  {
+    "id": "3bd80d3d-683d-4e84-a6a5-9a59dad056ee",
+    "slug": "t1-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №1)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "овощи"
+    ],
+    "filename": "t1-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "952c0014-b39f-4a30-9b01-bbcfdc4c0913",
+    "slug": "t10-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №10)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "овощи"
+    ],
+    "filename": "t10-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "e7630d17-4176-4cf8-a6cc-432e7676ff65",
+    "slug": "t11-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №11)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "овощи"
+    ],
+    "filename": "t11-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "b02bf99e-227b-4400-9d50-48004439d51e",
+    "slug": "t12-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №12)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "овощи"
+    ],
+    "filename": "t12-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "14406791-c20b-45f0-9f3b-26bcbf4970e8",
+    "slug": "t13-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №13)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "овощи"
+    ],
+    "filename": "t13-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "6016c527-d32f-467f-b47c-e1f3693d2b5f",
+    "slug": "t14-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №14)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "овощи"
+    ],
+    "filename": "t14-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "de0bdc47-8b36-4348-bd4c-3819105d15b2",
+    "slug": "t15-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №15)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "овощи"
+    ],
+    "filename": "t15-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "96d3b090-47d2-4777-bfc2-f82aa9d7599d",
+    "slug": "t2-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №2)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "овощи"
+    ],
+    "filename": "t2-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "1bcd77c1-31b2-4d5c-abab-be4d6550b648",
+    "slug": "t3-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №3)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "овощи"
+    ],
+    "filename": "t3-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "76b4e37c-0c60-44d0-bb49-c445cce1d520",
+    "slug": "t4-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №4)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "овощи"
+    ],
+    "filename": "t4-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "b1f3976b-339e-4fbe-8465-1edf466685a6",
+    "slug": "t5-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №5)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "овощи"
+    ],
+    "filename": "t5-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "572f6372-39d2-4a23-9a92-7c67cbe1b610",
+    "slug": "t6-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №6)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "овощи"
+    ],
+    "filename": "t6-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "fc260a43-b0fd-4df4-a6e5-2f04b7fe0d4f",
+    "slug": "t7-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №7)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "овощи"
+    ],
+    "filename": "t7-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "948cf218-6009-45e0-bd34-9bfeeedeb9cf",
+    "slug": "t8-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №8)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "овощи"
+    ],
+    "filename": "t8-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "d58f5106-444e-4f09-9444-4389e91d8aee",
+    "slug": "t9-snack-fill3-veg-snack",
+    "name": "Овощной перекус (стол №9)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "овощи"
+    ],
+    "filename": "t9-snack-fill3-veg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "2b60a584-8ddc-42d9-93f4-f7b9c4383ed1",
+    "slug": "t8-snack-crudites-yogurt-dip",
+    "name": "Овощные палочки с йогуртом",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "овощи",
+      "низкокал"
+    ],
+    "filename": "t8-snack-crudites-yogurt-dip.png",
+    "has_local": false
+  },
+  {
+    "id": "95458b6a-e312-4cf7-9f29-69d80c826090",
+    "slug": "sgl-snack-olives-pepper",
+    "name": "Оливки с перцем",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "овощи"
+    ],
+    "filename": "sgl-snack-olives-pepper.png",
+    "has_local": false
+  },
+  {
+    "id": "be74548e-0124-4828-b8be-e7d5dc988ab7",
+    "slug": "t10-snack-oven-apple-plain",
+    "name": "Печёное яблоко",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "фрукты",
+      "сердце"
+    ],
+    "filename": "t10-snack-oven-apple-plain.png",
+    "has_local": false
+  },
+  {
+    "id": "3697ff08-d723-4ae8-b38d-4499f5994013",
+    "slug": "t1-snack-fill2-fruit-protein",
+    "name": "Печёное яблоко (стол №1)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "перекус"
+    ],
+    "filename": "t1-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "4b4316ee-48ca-4f04-bc05-10b96684458b",
+    "slug": "t4-snack-fill2-fruit-protein",
+    "name": "Печёное яблоко (стол №4)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "перекус"
+    ],
+    "filename": "t4-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "db9478a1-34b3-4238-aa1c-9e95ca0d2a23",
+    "slug": "gen-snack-ryazhenka-berries",
+    "name": "Ряженка с ягодами",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "general",
+      "молочка",
+      "ягоды"
+    ],
+    "filename": "gen-snack-ryazhenka-berries.png",
+    "has_local": false
+  },
+  {
+    "id": "654a04c7-d0ff-4c2f-8dc4-1c5b98627433",
+    "slug": "t2-snack-cottage-sourcream-soft",
+    "name": "Творог некислый со сметаной",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "молочка"
+    ],
+    "filename": "t2-snack-cottage-sourcream-soft.png",
+    "has_local": false
+  },
+  {
+    "id": "21122567-2873-4803-a9f8-f52bfee7a15d",
+    "slug": "gen-snack-banana-cottage",
+    "name": "Творог с бананом",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "general",
+      "молочка",
+      "перекус"
+    ],
+    "filename": "gen-snack-banana-cottage.png",
+    "has_local": false
+  },
+  {
+    "id": "45dcebdb-db9e-411e-b9b3-24c95a003a33",
+    "slug": "t9-snack-curd-cinnamon-nosugar",
+    "name": "Творог с корицей",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "молочка",
+      "диабет"
+    ],
+    "filename": "t9-snack-curd-cinnamon-nosugar.png",
+    "has_local": false
+  },
+  {
+    "id": "84587a6e-87ba-4b3d-b1c4-276884725279",
+    "slug": "gen-snack-hummus-veg",
+    "name": "Хумус с овощными палочками",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "general",
+      "бобовые",
+      "овощи"
+    ],
+    "filename": "gen-snack-hummus-veg.png",
+    "has_local": false
+  },
+  {
+    "id": "45bd4ffd-ecf3-47b0-96cb-4b972801ff3b",
+    "slug": "t10-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №10)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "перекус"
+    ],
+    "filename": "t10-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "48a75875-b1fe-469b-b6e0-35e547ceabc0",
+    "slug": "t11-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №11)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "перекус"
+    ],
+    "filename": "t11-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "809adf56-248b-4d1c-bda6-6be08459849f",
+    "slug": "t12-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №12)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "перекус"
+    ],
+    "filename": "t12-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "b3fec221-0242-442e-b644-98dee782abb9",
+    "slug": "t13-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №13)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "перекус"
+    ],
+    "filename": "t13-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "a83917b2-cf1d-4f61-b8af-648c5ce87cfa",
+    "slug": "t14-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №14)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "яйца"
+    ],
+    "filename": "t14-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "eb16ba55-fd10-4df8-9f00-ba7c75e70d67",
+    "slug": "t15-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №15)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "перекус"
+    ],
+    "filename": "t15-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "6e5a07f5-6b84-432d-a6ea-505e34a2b120",
+    "slug": "t2-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №2)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "перекус"
+    ],
+    "filename": "t2-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "678a1a3b-9b16-4c55-8440-0897425dfd4e",
+    "slug": "t3-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №3)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "перекус"
+    ],
+    "filename": "t3-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "6b24cd7f-aadd-4214-bea3-f1dd9cf5e8ee",
+    "slug": "t5-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №5)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "перекус"
+    ],
+    "filename": "t5-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "cdd6b97e-a697-48a3-a40b-7c2989306257",
+    "slug": "t6-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №6)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "перекус"
+    ],
+    "filename": "t6-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "9e4f30ae-f9f8-4d1e-8f8e-2e153ab789ef",
+    "slug": "t7-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №7)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "перекус"
+    ],
+    "filename": "t7-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "d056dded-c0db-46f9-92f7-43b41f326ab0",
+    "slug": "t8-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №8)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "перекус"
+    ],
+    "filename": "t8-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "4ec5633d-6770-46e4-9811-b9b3f61add06",
+    "slug": "t9-snack-fill2-fruit-protein",
+    "name": "Ягоды или яблоко с творогом (стол №9)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "перекус"
+    ],
+    "filename": "t9-snack-fill2-fruit-protein.png",
+    "has_local": false
+  },
+  {
+    "id": "a980230f-3a6f-4f3f-b922-9a6f0e941e20",
+    "slug": "t1-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №1)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_1",
+      "стол_1",
+      "яйца"
+    ],
+    "filename": "t1-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "453f1cbd-4836-4aa3-a01b-0bd675b30e65",
+    "slug": "t10-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №10)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_10",
+      "стол_10",
+      "яйца"
+    ],
+    "filename": "t10-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "657c9fd9-6e19-4927-b6e3-cabff77f824b",
+    "slug": "t11-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №11)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_11",
+      "стол_11",
+      "яйца"
+    ],
+    "filename": "t11-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "7fd539c4-8dd4-4224-b183-69416934383f",
+    "slug": "t12-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №12)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_12",
+      "стол_12",
+      "яйца"
+    ],
+    "filename": "t12-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "6566776c-eadc-4359-814b-835c91380d21",
+    "slug": "t13-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №13)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_13",
+      "стол_13",
+      "яйца"
+    ],
+    "filename": "t13-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "6055b5b7-4825-4ae1-bee6-262bf7f2c054",
+    "slug": "t14-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №14)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "яйца"
+    ],
+    "filename": "t14-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "61498cc8-3ed5-43c2-9f0d-1ba95966e487",
+    "slug": "t15-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №15)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_15",
+      "стол_15",
+      "яйца"
+    ],
+    "filename": "t15-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "a75cd3ed-d4bb-4d98-905c-b4a0a42cdc7c",
+    "slug": "t2-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №2)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_2",
+      "стол_2",
+      "яйца"
+    ],
+    "filename": "t2-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "692701be-8510-4b33-ad8e-a9923883a85f",
+    "slug": "t3-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №3)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_3",
+      "стол_3",
+      "яйца"
+    ],
+    "filename": "t3-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "0f357334-03fe-4040-aff5-34eec52dca42",
+    "slug": "t4-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №4)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_4",
+      "стол_4",
+      "яйца"
+    ],
+    "filename": "t4-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "ca918d0d-2c03-46c1-9197-8ea3270e9bd4",
+    "slug": "t5-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №5)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_5",
+      "стол_5",
+      "яйца"
+    ],
+    "filename": "t5-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "a517f449-1995-40ae-a564-ba57696e03b3",
+    "slug": "t6-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №6)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_6",
+      "стол_6",
+      "яйца"
+    ],
+    "filename": "t6-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "9ed9210a-bb05-43c8-9250-a2790d27dff5",
+    "slug": "t7-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №7)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_7",
+      "стол_7",
+      "яйца"
+    ],
+    "filename": "t7-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "e07242df-d823-4208-8fb6-769fbfb2c3d7",
+    "slug": "t8-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №8)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_8",
+      "стол_8",
+      "яйца"
+    ],
+    "filename": "t8-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "f5cee85b-12a9-438a-8e27-29ae80e7047d",
+    "slug": "t9-snack-fill4-egg-snack",
+    "name": "Яйцо с овощем (стол №9)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_9",
+      "стол_9",
+      "яйца"
+    ],
+    "filename": "t9-snack-fill4-egg-snack.png",
+    "has_local": false
+  },
+  {
+    "id": "ad63a1a6-fc8e-4d79-9b1c-3d34be4d1ef2",
+    "slug": "sgl-snack-egg-cucumber",
+    "name": "Яйцо с огурцом",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "special_no_sugar_gluten_lactose",
+      "без_сахара",
+      "без_глютена",
+      "без_лактозы",
+      "яйца",
+      "овощи",
+      "перекус"
+    ],
+    "filename": "sgl-snack-egg-cucumber.png",
+    "has_local": false
+  },
+  {
+    "id": "6d0ce8b8-f846-4d83-86a7-58223efe713a",
+    "slug": "t14-snack-egg-toast-acid",
+    "name": "Яйцо с хлебцем",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "яйца",
+      "кислотный"
+    ],
+    "filename": "t14-snack-egg-toast-acid.png",
+    "has_local": false
+  },
+  {
+    "id": "261c7bc9-2de9-4fd6-a323-e7730541c358",
+    "slug": "t14-snack-fill1-fermented",
+    "name": "Яйцо с хлебцем (добор стол №14)",
+    "meal_type": "snack",
+    "has_image": false,
+    "tags": [
+      "table_14",
+      "стол_14",
+      "яйца"
+    ],
+    "filename": "t14-snack-fill1-fermented.png",
+    "has_local": false
+  }
+]

@@ -1,0 +1,897 @@
+{
+  "dryRun": false,
+  "before": 480,
+  "after": 189,
+  "removed": 291,
+  "merges": [
+    {
+      "keepId": "dba99234-248c-42be-ad77-e1258ea4d488",
+      "name": "Омлет с овощами",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t10-breakfast-fill2-omelette-veg",
+        "t7-breakfast-fill2-omelette-veg",
+        "t1-breakfast-fill2-omelette-veg",
+        "t11-breakfast-fill2-omelette-veg",
+        "t12-breakfast-fill2-omelette-veg",
+        "t13-breakfast-fill2-omelette-veg",
+        "t14-breakfast-fill2-omelette-veg",
+        "t15-breakfast-fill2-omelette-veg",
+        "t2-breakfast-fill2-omelette-veg",
+        "t3-breakfast-fill2-omelette-veg",
+        "t4-breakfast-fill2-omelette-veg",
+        "t5-breakfast-fill2-omelette-veg",
+        "t6-breakfast-fill2-omelette-veg",
+        "t8-breakfast-fill2-omelette-veg",
+        "t9-breakfast-fill2-omelette-veg"
+      ]
+    },
+    {
+      "keepId": "4735c393-f43c-4424-9bb5-ac16bf52392f",
+      "name": "Суп с фрикадельками",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t10-lunch-fill1-soup-meatballs",
+        "t7-lunch-fill1-soup-meatballs",
+        "t1-lunch-fill1-soup-meatballs",
+        "t11-lunch-fill1-soup-meatballs",
+        "t12-lunch-fill1-soup-meatballs",
+        "t13-lunch-fill1-soup-meatballs",
+        "t14-lunch-fill1-soup-meatballs",
+        "t15-lunch-fill1-soup-meatballs",
+        "t2-lunch-fill1-soup-meatballs",
+        "t3-lunch-fill1-soup-meatballs",
+        "t4-lunch-fill1-soup-meatballs",
+        "t5-lunch-fill1-soup-meatballs",
+        "t6-lunch-fill1-soup-meatballs",
+        "t8-lunch-fill1-soup-meatballs",
+        "t9-lunch-fill1-soup-meatballs"
+      ]
+    },
+    {
+      "keepId": "6c5246e7-827e-4c71-b644-6fe795fdb37c",
+      "name": "Запеканка лёгкая",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-breakfast-fill4-light-bake",
+        "t1-breakfast-fill4-light-bake",
+        "t11-breakfast-fill4-light-bake",
+        "t12-breakfast-fill4-light-bake",
+        "t13-breakfast-fill4-light-bake",
+        "t14-breakfast-fill4-light-bake",
+        "t15-breakfast-fill4-light-bake",
+        "t2-breakfast-fill4-light-bake",
+        "t3-breakfast-fill4-light-bake",
+        "t4-breakfast-fill4-light-bake",
+        "t5-breakfast-fill4-light-bake",
+        "t6-breakfast-fill4-light-bake",
+        "t8-breakfast-fill4-light-bake",
+        "t9-breakfast-fill4-light-bake"
+      ]
+    },
+    {
+      "keepId": "324fa9b5-6afd-4034-9abb-34c1f0e6c78a",
+      "name": "Запечённый белок с гарниром",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-lunch-fill5-baked-protein",
+        "t1-lunch-fill5-baked-protein",
+        "t11-lunch-fill5-baked-protein",
+        "t12-lunch-fill5-baked-protein",
+        "t13-lunch-fill5-baked-protein",
+        "t14-lunch-fill5-baked-protein",
+        "t15-lunch-fill5-baked-protein",
+        "t2-lunch-fill5-baked-protein",
+        "t3-lunch-fill5-baked-protein",
+        "t4-lunch-fill5-baked-protein",
+        "t5-lunch-fill5-baked-protein",
+        "t6-lunch-fill5-baked-protein",
+        "t8-lunch-fill5-baked-protein",
+        "t9-lunch-fill5-baked-protein"
+      ]
+    },
+    {
+      "keepId": "71ddc9f0-bc94-46ae-8209-8b5883847534",
+      "name": "Компот и галета",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t10-snack-fill5-drink-bite",
+        "t11-snack-fill5-drink-bite",
+        "t12-snack-fill5-drink-bite",
+        "t13-snack-fill5-drink-bite",
+        "t14-snack-fill5-drink-bite",
+        "t15-snack-fill5-drink-bite",
+        "t2-snack-fill5-drink-bite",
+        "t3-snack-fill5-drink-bite",
+        "t4-snack-fill5-drink-bite",
+        "t5-snack-fill5-drink-bite",
+        "t6-snack-fill5-drink-bite",
+        "t7-snack-fill5-drink-bite",
+        "t8-snack-fill5-drink-bite",
+        "t9-snack-fill5-drink-bite"
+      ]
+    },
+    {
+      "keepId": "27e6f1ee-baa7-446e-937a-0199989341c5",
+      "name": "Лёгкий салат на ужин",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-dinner-fill2-dinner-salad",
+        "t1-dinner-fill2-dinner-salad",
+        "t11-dinner-fill2-dinner-salad",
+        "t12-dinner-fill2-dinner-salad",
+        "t13-dinner-fill2-dinner-salad",
+        "t14-dinner-fill2-dinner-salad",
+        "t15-dinner-fill2-dinner-salad",
+        "t2-dinner-fill2-dinner-salad",
+        "t3-dinner-fill2-dinner-salad",
+        "t4-dinner-fill2-dinner-salad",
+        "t5-dinner-fill2-dinner-salad",
+        "t6-dinner-fill2-dinner-salad",
+        "t8-dinner-fill2-dinner-salad",
+        "t9-dinner-fill2-dinner-salad"
+      ]
+    },
+    {
+      "keepId": "6cef4a96-da15-4dc5-b3e8-63ac7774d607",
+      "name": "Овощи с яйцом на ужин",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-dinner-fill5-veg-egg",
+        "t1-dinner-fill5-veg-egg",
+        "t11-dinner-fill5-veg-egg",
+        "t12-dinner-fill5-veg-egg",
+        "t13-dinner-fill5-veg-egg",
+        "t14-dinner-fill5-veg-egg",
+        "t15-dinner-fill5-veg-egg",
+        "t2-dinner-fill5-veg-egg",
+        "t3-dinner-fill5-veg-egg",
+        "t4-dinner-fill5-veg-egg",
+        "t5-dinner-fill5-veg-egg",
+        "t6-dinner-fill5-veg-egg",
+        "t8-dinner-fill5-veg-egg",
+        "t9-dinner-fill5-veg-egg"
+      ]
+    },
+    {
+      "keepId": "82112c72-3277-4ae6-b471-c06cb331682c",
+      "name": "Овощное рагу с белком",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-lunch-fill4-veg-ragout",
+        "t1-lunch-fill4-veg-ragout",
+        "t11-lunch-fill4-veg-ragout",
+        "t12-lunch-fill4-veg-ragout",
+        "t13-lunch-fill4-veg-ragout",
+        "t14-lunch-fill4-veg-ragout",
+        "t15-lunch-fill4-veg-ragout",
+        "t2-lunch-fill4-veg-ragout",
+        "t3-lunch-fill4-veg-ragout",
+        "t4-lunch-fill4-veg-ragout",
+        "t5-lunch-fill4-veg-ragout",
+        "t6-lunch-fill4-veg-ragout",
+        "t8-lunch-fill4-veg-ragout",
+        "t9-lunch-fill4-veg-ragout"
+      ]
+    },
+    {
+      "keepId": "3bd80d3d-683d-4e84-a6a5-9a59dad056ee",
+      "name": "Овощной перекус",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t10-snack-fill3-veg-snack",
+        "t11-snack-fill3-veg-snack",
+        "t12-snack-fill3-veg-snack",
+        "t13-snack-fill3-veg-snack",
+        "t14-snack-fill3-veg-snack",
+        "t15-snack-fill3-veg-snack",
+        "t2-snack-fill3-veg-snack",
+        "t3-snack-fill3-veg-snack",
+        "t4-snack-fill3-veg-snack",
+        "t5-snack-fill3-veg-snack",
+        "t6-snack-fill3-veg-snack",
+        "t7-snack-fill3-veg-snack",
+        "t8-snack-fill3-veg-snack",
+        "t9-snack-fill3-veg-snack"
+      ]
+    },
+    {
+      "keepId": "a7bbfcd2-26f5-4a1f-96c4-5df1da6c9933",
+      "name": "Паровая котлета с гарниром",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-dinner-fill4-steam-cutlet",
+        "t1-dinner-fill4-steam-cutlet",
+        "t11-dinner-fill4-steam-cutlet",
+        "t12-dinner-fill4-steam-cutlet",
+        "t13-dinner-fill4-steam-cutlet",
+        "t14-dinner-fill4-steam-cutlet",
+        "t15-dinner-fill4-steam-cutlet",
+        "t2-dinner-fill4-steam-cutlet",
+        "t3-dinner-fill4-steam-cutlet",
+        "t4-dinner-fill4-steam-cutlet",
+        "t5-dinner-fill4-steam-cutlet",
+        "t6-dinner-fill4-steam-cutlet",
+        "t8-dinner-fill4-steam-cutlet",
+        "t9-dinner-fill4-steam-cutlet"
+      ]
+    },
+    {
+      "keepId": "c525859b-4ffa-4f63-9e2c-5b4053679d64",
+      "name": "Салат с рыба",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-lunch-fill2-protein-salad",
+        "t1-lunch-fill2-protein-salad",
+        "t11-lunch-fill2-protein-salad",
+        "t12-lunch-fill2-protein-salad",
+        "t13-lunch-fill2-protein-salad",
+        "t14-lunch-fill2-protein-salad",
+        "t15-lunch-fill2-protein-salad",
+        "t2-lunch-fill2-protein-salad",
+        "t3-lunch-fill2-protein-salad",
+        "t4-lunch-fill2-protein-salad",
+        "t5-lunch-fill2-protein-salad",
+        "t6-lunch-fill2-protein-salad",
+        "t8-lunch-fill2-protein-salad",
+        "t9-lunch-fill2-protein-salad"
+      ]
+    },
+    {
+      "keepId": "cab0a3d5-848c-4ddb-ab6b-5e3d08777d9d",
+      "name": "Треска с овощами на ужин",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-dinner-fill1-fish-or-poultry",
+        "t1-dinner-fill1-fish-or-poultry",
+        "t11-dinner-fill1-fish-or-poultry",
+        "t12-dinner-fill1-fish-or-poultry",
+        "t13-dinner-fill1-fish-or-poultry",
+        "t14-dinner-fill1-fish-or-poultry",
+        "t15-dinner-fill1-fish-or-poultry",
+        "t2-dinner-fill1-fish-or-poultry",
+        "t3-dinner-fill1-fish-or-poultry",
+        "t4-dinner-fill1-fish-or-poultry",
+        "t5-dinner-fill1-fish-or-poultry",
+        "t6-dinner-fill1-fish-or-poultry",
+        "t8-dinner-fill1-fish-or-poultry",
+        "t9-dinner-fill1-fish-or-poultry"
+      ]
+    },
+    {
+      "keepId": "7c42aa26-cb6d-4754-9269-a28df9ceb1c1",
+      "name": "Тушёное с овощами",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-dinner-fill3-stew-veg",
+        "t1-dinner-fill3-stew-veg",
+        "t11-dinner-fill3-stew-veg",
+        "t12-dinner-fill3-stew-veg",
+        "t13-dinner-fill3-stew-veg",
+        "t14-dinner-fill3-stew-veg",
+        "t15-dinner-fill3-stew-veg",
+        "t2-dinner-fill3-stew-veg",
+        "t3-dinner-fill3-stew-veg",
+        "t4-dinner-fill3-stew-veg",
+        "t5-dinner-fill3-stew-veg",
+        "t6-dinner-fill3-stew-veg",
+        "t8-dinner-fill3-stew-veg",
+        "t9-dinner-fill3-stew-veg"
+      ]
+    },
+    {
+      "keepId": "a980230f-3a6f-4f3f-b922-9a6f0e941e20",
+      "name": "Яйцо с овощем",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t10-snack-fill4-egg-snack",
+        "t11-snack-fill4-egg-snack",
+        "t12-snack-fill4-egg-snack",
+        "t13-snack-fill4-egg-snack",
+        "t14-snack-fill4-egg-snack",
+        "t15-snack-fill4-egg-snack",
+        "t2-snack-fill4-egg-snack",
+        "t3-snack-fill4-egg-snack",
+        "t4-snack-fill4-egg-snack",
+        "t5-snack-fill4-egg-snack",
+        "t6-snack-fill4-egg-snack",
+        "t7-snack-fill4-egg-snack",
+        "t8-snack-fill4-egg-snack",
+        "t9-snack-fill4-egg-snack"
+      ]
+    },
+    {
+      "keepId": "3c6f4a97-648e-4fd0-a043-2cbf4e68ef9c",
+      "name": "Кефир/йогурт",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t10-snack-fill1-fermented",
+        "t11-snack-fill1-fermented",
+        "t12-snack-fill1-fermented",
+        "t13-snack-fill1-fermented",
+        "t15-snack-fill1-fermented",
+        "t2-snack-fill1-fermented",
+        "t3-snack-fill1-fermented",
+        "t4-snack-fill1-fermented",
+        "t5-snack-fill1-fermented",
+        "t6-snack-fill1-fermented",
+        "t7-snack-fill1-fermented",
+        "t8-snack-fill1-fermented",
+        "t9-snack-fill1-fermented"
+      ]
+    },
+    {
+      "keepId": "1e48167c-ffda-47cf-9082-13524f9c6e80",
+      "name": "Творог с добавкой",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-breakfast-fill3-curd-bowl",
+        "t1-breakfast-fill3-curd-bowl",
+        "t11-breakfast-fill3-curd-bowl",
+        "t12-breakfast-fill3-curd-bowl",
+        "t13-breakfast-fill3-curd-bowl",
+        "t15-breakfast-fill3-curd-bowl",
+        "t2-breakfast-fill3-curd-bowl",
+        "t3-breakfast-fill3-curd-bowl",
+        "t4-breakfast-fill3-curd-bowl",
+        "t5-breakfast-fill3-curd-bowl",
+        "t6-breakfast-fill3-curd-bowl",
+        "t8-breakfast-fill3-curd-bowl",
+        "t9-breakfast-fill3-curd-bowl"
+      ]
+    },
+    {
+      "keepId": "7cb2ef80-26f6-4f2d-9dff-30388f840a96",
+      "name": "Хек с овощами утром",
+      "tables": [
+        "table_1",
+        "table_2",
+        "table_3",
+        "table_4",
+        "table_5",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-breakfast-fill5-protein-bowl",
+        "t1-breakfast-fill5-protein-bowl",
+        "t11-breakfast-fill5-protein-bowl",
+        "t12-breakfast-fill5-protein-bowl",
+        "t13-breakfast-fill5-protein-bowl",
+        "t14-breakfast-fill5-protein-bowl",
+        "t15-breakfast-fill5-protein-bowl",
+        "t2-breakfast-fill5-protein-bowl",
+        "t3-breakfast-fill5-protein-bowl",
+        "t4-breakfast-fill5-protein-bowl",
+        "t5-breakfast-fill5-protein-bowl",
+        "t8-breakfast-fill5-protein-bowl",
+        "t9-breakfast-fill5-protein-bowl"
+      ]
+    },
+    {
+      "keepId": "45bd4ffd-ecf3-47b0-96cb-4b972801ff3b",
+      "name": "Ягоды или яблоко с творогом",
+      "tables": [
+        "table_2",
+        "table_3",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_13",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t11-snack-fill2-fruit-protein",
+        "t12-snack-fill2-fruit-protein",
+        "t13-snack-fill2-fruit-protein",
+        "t14-snack-fill2-fruit-protein",
+        "t15-snack-fill2-fruit-protein",
+        "t2-snack-fill2-fruit-protein",
+        "t3-snack-fill2-fruit-protein",
+        "t5-snack-fill2-fruit-protein",
+        "t6-snack-fill2-fruit-protein",
+        "t7-snack-fill2-fruit-protein",
+        "t8-snack-fill2-fruit-protein",
+        "t9-snack-fill2-fruit-protein"
+      ]
+    },
+    {
+      "keepId": "e0570062-ea55-428f-a030-e5e47a3221ad",
+      "name": "Гречка с яйцом",
+      "tables": [
+        "table_2",
+        "table_3",
+        "table_5",
+        "table_6",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-breakfast-fill1-porridge-egg",
+        "t11-breakfast-fill1-porridge-egg",
+        "t12-breakfast-fill1-porridge-egg",
+        "t14-breakfast-fill1-porridge-egg",
+        "t15-breakfast-fill1-porridge-egg",
+        "t2-breakfast-fill1-porridge-egg",
+        "t3-breakfast-fill1-porridge-egg",
+        "t5-breakfast-fill1-porridge-egg",
+        "t6-breakfast-fill1-porridge-egg",
+        "t8-breakfast-fill1-porridge-egg",
+        "t9-breakfast-fill1-porridge-egg"
+      ]
+    },
+    {
+      "keepId": "2d0caf73-e62d-4439-a10a-b0b0729fb113",
+      "name": "Гречка с говядина",
+      "tables": [
+        "table_2",
+        "table_3",
+        "table_5",
+        "table_7",
+        "table_8",
+        "table_9",
+        "table_10",
+        "table_11",
+        "table_12",
+        "table_14",
+        "table_15"
+      ],
+      "dropSlugs": [
+        "t7-lunch-fill3-grain-protein",
+        "t11-lunch-fill3-grain-protein",
+        "t12-lunch-fill3-grain-protein",
+        "t14-lunch-fill3-grain-protein",
+        "t15-lunch-fill3-grain-protein",
+        "t2-lunch-fill3-grain-protein",
+        "t3-lunch-fill3-grain-protein",
+        "t5-lunch-fill3-grain-protein",
+        "t8-lunch-fill3-grain-protein",
+        "t9-lunch-fill3-grain-protein"
+      ]
+    },
+    {
+      "keepId": "be74548e-0124-4828-b8be-e7d5dc988ab7",
+      "name": "Печёное яблоко",
+      "tables": [
+        "table_1",
+        "table_4",
+        "table_10"
+      ],
+      "dropSlugs": [
+        "t10-snack-baked-apple",
+        "t1-snack-fill2-fruit-protein",
+        "t4-snack-fill2-fruit-protein"
+      ]
+    },
+    {
+      "keepId": "0ae42496-8081-49cd-a352-ffa7bef44011",
+      "name": "Рис с говядина",
+      "tables": [
+        "table_1",
+        "table_4",
+        "table_13"
+      ],
+      "dropSlugs": [
+        "t13-lunch-fill3-grain-protein",
+        "t4-lunch-fill3-grain-protein"
+      ]
+    },
+    {
+      "keepId": "e297d88b-549a-43bd-9d2d-c7a4fec18948",
+      "name": "Рис с яйцом",
+      "tables": [
+        "table_1",
+        "table_4",
+        "table_13"
+      ],
+      "dropSlugs": [
+        "t13-breakfast-fill1-porridge-egg",
+        "t4-breakfast-fill1-porridge-egg"
+      ]
+    },
+    {
+      "keepId": "6d0ce8b8-f846-4d83-86a7-58223efe713a",
+      "name": "Яйцо с хлебцем",
+      "tables": [
+        "table_14"
+      ],
+      "dropSlugs": [
+        "t14-snack-bread-egg",
+        "t14-snack-fill1-fermented"
+      ]
+    },
+    {
+      "keepId": "e27903a7-ccd3-421c-8bfa-e595aff56e43",
+      "name": "Говядина с рисом",
+      "tables": [
+        "table_14"
+      ],
+      "dropSlugs": [
+        "t14-lunch-beef-rice"
+      ]
+    },
+    {
+      "keepId": "eadbbb35-aaf9-4217-b2f2-ceea2073e082",
+      "name": "Индейка с гречкой и салатом",
+      "tables": [
+        "table_9"
+      ],
+      "dropSlugs": [
+        "t9-lunch-turkey-buckwheat-salad"
+      ]
+    },
+    {
+      "keepId": "f1a5b8c3-cd1d-4803-adb9-597841b6f3de",
+      "name": "Йогурт с бананом и орехами",
+      "tables": [
+        "table_11"
+      ],
+      "dropSlugs": [
+        "t11-snack-yogurt-banana-nuts"
+      ]
+    },
+    {
+      "keepId": "d98f4806-bca2-4692-b8da-9d69f23c74c5",
+      "name": "Йогурт с огурцом",
+      "tables": [
+        "table_6"
+      ],
+      "dropSlugs": [
+        "t6-snack-yogurt-cucumber"
+      ]
+    },
+    {
+      "keepId": "babbbfd7-2ab5-4790-ac91-821c900e42df",
+      "name": "Кефир комнатной температуры",
+      "tables": [
+        "table_12"
+      ],
+      "dropSlugs": [
+        "t12-snack-kefir-plain"
+      ]
+    },
+    {
+      "keepId": "8ee2bb9e-265a-4f1f-a104-78582c650ca8",
+      "name": "Курица с макаронами",
+      "tables": [
+        "table_14"
+      ],
+      "dropSlugs": [
+        "t14-dinner-chicken-pasta"
+      ]
+    },
+    {
+      "keepId": "bac9b375-b078-418b-bb09-bc6aa9abc93e",
+      "name": "Курица с рисом и сыром",
+      "tables": [
+        "table_11"
+      ],
+      "dropSlugs": [
+        "t11-dinner-chicken-rice-mild-cheese"
+      ]
+    },
+    {
+      "keepId": "a886d0c8-fe0d-4e4b-b5b0-f00c78105bd3",
+      "name": "Курица тушёная с овощами",
+      "tables": [
+        "table_10"
+      ],
+      "dropSlugs": [
+        "t10-dinner-chicken-stew-veg"
+      ]
+    },
+    {
+      "keepId": "c153a395-c28f-4fa6-adb4-075c1c5250c0",
+      "name": "Овощное рагу с яйцом",
+      "tables": [
+        "table_6"
+      ],
+      "dropSlugs": [
+        "t6-lunch-veg-stew-egg"
+      ]
+    },
+    {
+      "keepId": "2b60a584-8ddc-42d9-93f4-f7b9c4383ed1",
+      "name": "Овощные палочки с йогуртом",
+      "tables": [
+        "table_8"
+      ],
+      "dropSlugs": [
+        "t8-snack-veg-sticks-yogurt"
+      ]
+    },
+    {
+      "keepId": "235c0c82-e9d0-47cf-bf24-a29cfb9cdd80",
+      "name": "Творожная запеканка",
+      "tables": [
+        "table_12"
+      ],
+      "dropSlugs": [
+        "t12-dinner-curd-bake-gentle"
+      ]
+    },
+    {
+      "keepId": "dd218eb0-3e9a-42ba-8164-c0012442cfb1",
+      "name": "Яйцо с гречкой",
+      "tables": [
+        "table_14"
+      ],
+      "dropSlugs": [
+        "t14-breakfast-fill3-curd-bowl"
+      ]
+    }
+  ]
+}

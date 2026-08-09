@@ -1,0 +1,328 @@
+[
+  {
+    "key": "овсянка почти без соли",
+    "name": "Овсянка почти без соли",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "t10-breakfast-oat-porridge-lowsalt",
+    "filename": "t10-breakfast-oat-porridge-lowsalt.png",
+    "ids": [
+      "a5cf1dca-118d-40e6-94b9-2ab96bf5a695"
+    ],
+    "slugs": [
+      "t10-breakfast-oat-porridge-lowsalt"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Овсянка почти без соли, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "овсянка с маслом и яйцом",
+    "name": "Овсянка с маслом и яйцом",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "t11-breakfast-oat-egg-butter-boost",
+    "filename": "t11-breakfast-oat-egg-butter-boost.png",
+    "ids": [
+      "4fe16a85-c5a7-44ab-910b-8c22f337a444"
+    ],
+    "slugs": [
+      "t11-breakfast-oat-egg-butter-boost"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Овсянка с маслом и яйцом, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "овсянка с свежим яблоком",
+    "name": "Овсянка с свежим яблоком",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "t3-breakfast-oatmeal-apple-fresh",
+    "filename": "t3-breakfast-oatmeal-apple-fresh.png",
+    "ids": [
+      "49e56c01-445e-4972-87f1-113647150e4d"
+    ],
+    "slugs": [
+      "t3-breakfast-oatmeal-apple-fresh"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Овсянка с свежим яблоком, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "омлет с овощами",
+    "name": "Омлет с овощами",
+    "meal_type": "breakfast",
+    "count": 16,
+    "primarySlug": "t15-breakfast-omelette-veg-std",
+    "filename": "t15-breakfast-omelette-veg-std.png",
+    "ids": [
+      "dba99234-248c-42be-ad77-e1258ea4d488",
+      "0c9d1663-7ce2-468b-9b84-a1e6e30d3507",
+      "50653e49-80a7-40fb-a743-96f12806c1cd",
+      "45b6bfd1-bc2a-44b0-bb95-937fd95d7b39",
+      "7a88e3e6-00e1-4306-af0b-393ae4c5cc1d",
+      "aed10e7f-e90c-4280-8b3c-cb99c25cea2f",
+      "d9d48c64-49f6-4bc5-8674-1803e04c4031",
+      "60b81c62-89ee-42a0-8d8a-6ba6d271085a",
+      "49829b4e-15b8-4a48-aaa7-22d3b3294f92",
+      "edc7fe81-d0e6-4b00-868a-add7883f8712",
+      "9efc9492-7b22-483f-9531-853f2945a896",
+      "41713676-21bd-4d2c-ab1c-2acee62384e0",
+      "31adba96-b219-4b98-9a25-e77bdcf281cd",
+      "56beb34e-6151-4ef4-9e0c-2c80d53e6d49",
+      "86001414-39ea-4e83-b085-cf5c9d1bc661",
+      "934ca0b7-8ed3-4e72-bd2d-21f889bf417e"
+    ],
+    "slugs": [
+      "t15-breakfast-omelette-veg-std",
+      "t1-breakfast-fill2-omelette-veg",
+      "t10-breakfast-fill2-omelette-veg",
+      "t11-breakfast-fill2-omelette-veg",
+      "t12-breakfast-fill2-omelette-veg",
+      "t13-breakfast-fill2-omelette-veg",
+      "t14-breakfast-fill2-omelette-veg",
+      "t15-breakfast-fill2-omelette-veg",
+      "t2-breakfast-fill2-omelette-veg",
+      "t3-breakfast-fill2-omelette-veg",
+      "t4-breakfast-fill2-omelette-veg",
+      "t5-breakfast-fill2-omelette-veg",
+      "t6-breakfast-fill2-omelette-veg",
+      "t7-breakfast-fill2-omelette-veg",
+      "t8-breakfast-fill2-omelette-veg",
+      "t9-breakfast-fill2-omelette-veg"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade vegetable omelette with tomato and greens. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "омлет с огурцом",
+    "name": "Омлет с огурцом",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "t9-breakfast-egg-omelette-cuke",
+    "filename": "t9-breakfast-egg-omelette-cuke.png",
+    "ids": [
+      "dc3cacee-a1db-4ded-a89b-84c544745774"
+    ],
+    "slugs": [
+      "t9-breakfast-egg-omelette-cuke"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of plain omelette served with fresh cucumber slices. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "пшённая каша на воде с зеленью",
+    "name": "Пшённая каша на воде с зеленью",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "sgl-breakfast-millet-water-herbs",
+    "filename": "sgl-breakfast-millet-water-herbs.png",
+    "ids": [
+      "3f83ad61-2e83-4830-bd06-15f973088c20"
+    ],
+    "slugs": [
+      "sgl-breakfast-millet-water-herbs"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Пшённая каша на воде с зеленью, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "пшённая каша на молоке",
+    "name": "Пшённая каша на молоке",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "t6-breakfast-millet-milk",
+    "filename": "t6-breakfast-millet-milk.png",
+    "ids": [
+      "90977d7a-1483-4260-b673-955a39e87634"
+    ],
+    "slugs": [
+      "t6-breakfast-millet-milk"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Пшённая каша на молоке, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "рис с яйцом",
+    "name": "Рис с яйцом",
+    "meal_type": "breakfast",
+    "count": 3,
+    "primarySlug": "t1-breakfast-fill1-porridge-egg",
+    "filename": "t1-breakfast-fill1-porridge-egg.png",
+    "ids": [
+      "e297d88b-549a-43bd-9d2d-c7a4fec18948",
+      "3ab63aad-bf69-41c0-b842-5f005f6e4a7c",
+      "190d195e-f7f7-4162-bab1-6224b41f8597"
+    ],
+    "slugs": [
+      "t1-breakfast-fill1-porridge-egg",
+      "t13-breakfast-fill1-porridge-egg",
+      "t4-breakfast-fill1-porridge-egg"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Рис с яйцом, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "рисовая каша без соли",
+    "name": "Рисовая каша без соли",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "t7-breakfast-rice-unsalted",
+    "filename": "t7-breakfast-rice-unsalted.png",
+    "ids": [
+      "7054cdcf-8b9b-41c0-aa33-d7baa7b847af"
+    ],
+    "slugs": [
+      "t7-breakfast-rice-unsalted"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Рисовая каша без соли, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "рисовая каша разваренная",
+    "name": "Рисовая каша разваренная",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "t2-breakfast-rice-milk-soft",
+    "filename": "t2-breakfast-rice-milk-soft.png",
+    "ids": [
+      "e2895d62-0821-4a0c-94f9-1880e3a4ed00"
+    ],
+    "slugs": [
+      "t2-breakfast-rice-milk-soft"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Рисовая каша разваренная, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "рисовая каша с тыквой",
+    "name": "Рисовая каша с тыквой",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "gen-breakfast-rice-porridge-pumpkin",
+    "filename": "gen-breakfast-rice-porridge-pumpkin.png",
+    "ids": [
+      "5df0400d-0a4b-4dae-95bb-9e80b3e1ab5b"
+    ],
+    "slugs": [
+      "gen-breakfast-rice-porridge-pumpkin"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Рисовая каша с тыквой, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "рисовая каша-протёртая на воде",
+    "name": "Рисовая каша-протёртая на воде",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "t4-breakfast-rice-mash-water",
+    "filename": "t4-breakfast-rice-mash-water.png",
+    "ids": [
+      "387a13df-0977-4b27-8434-97daf5c2268e"
+    ],
+    "slugs": [
+      "t4-breakfast-rice-mash-water"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Рисовая каша-протёртая на воде, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "сырники на пару без сахара",
+    "name": "Сырники на пару без сахара",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "gen-breakfast-syrniki-steam",
+    "filename": "gen-breakfast-syrniki-steam.png",
+    "ids": [
+      "e2f52900-f344-459f-b152-5cade395eb01"
+    ],
+    "slugs": [
+      "gen-breakfast-syrniki-steam"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Сырники на пару без сахара, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "творог с добавкой",
+    "name": "Творог с добавкой",
+    "meal_type": "breakfast",
+    "count": 14,
+    "primarySlug": "t1-breakfast-fill3-curd-bowl",
+    "filename": "t1-breakfast-fill3-curd-bowl.png",
+    "ids": [
+      "bde561cb-348a-423b-9ea9-8629ac382e7b",
+      "1e48167c-ffda-47cf-9082-13524f9c6e80",
+      "3eac35b5-75f8-4cdf-9e0b-6457eecea632",
+      "1f2284b4-9759-494d-8f9c-4b4c8a6c93bc",
+      "e8e9d78e-cc5a-4f1f-9f78-85b7ee609cbc",
+      "96a59fc9-75de-45dc-9bda-06a4272d7cad",
+      "f80fae8c-872d-47c0-b5ad-43521af088a9",
+      "933ab8b5-104f-41a4-b85d-b33425351873",
+      "0e9b291a-e942-4c63-8895-9bad51468f1b",
+      "22fc27a0-7d79-4552-b6c4-bc55db3bb767",
+      "b011d005-15af-42b9-bf61-606638cc0103",
+      "030cf46e-b062-444c-aa14-75657da5fce9",
+      "c43b31d1-4ff5-4974-80d6-bea06a2a7462",
+      "9359a9b7-6761-4550-b40d-040b8be747d6"
+    ],
+    "slugs": [
+      "t1-breakfast-fill3-curd-bowl",
+      "t10-breakfast-fill3-curd-bowl",
+      "t11-breakfast-fill3-curd-bowl",
+      "t12-breakfast-fill3-curd-bowl",
+      "t13-breakfast-fill3-curd-bowl",
+      "t15-breakfast-fill3-curd-bowl",
+      "t2-breakfast-fill3-curd-bowl",
+      "t3-breakfast-fill3-curd-bowl",
+      "t4-breakfast-fill3-curd-bowl",
+      "t5-breakfast-fill3-curd-bowl",
+      "t6-breakfast-fill3-curd-bowl",
+      "t7-breakfast-fill3-curd-bowl",
+      "t8-breakfast-fill3-curd-bowl",
+      "t9-breakfast-fill3-curd-bowl"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of bowl of cottage cheese with a simple topping. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "творожная запеканка без сахара",
+    "name": "Творожная запеканка без сахара",
+    "meal_type": "breakfast",
+    "count": 1,
+    "primarySlug": "gen-breakfast-cottage-bake-light",
+    "filename": "gen-breakfast-cottage-bake-light.png",
+    "ids": [
+      "6ad52ca9-62eb-4979-aab0-9bd0a43f6a1e"
+    ],
+    "slugs": [
+      "gen-breakfast-cottage-bake-light"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of sugar-free cottage cheese bake portion. Casual home cooking portion, modest and believable."
+  },
+  {
+    "key": "хек с овощами утром",
+    "name": "Хек с овощами утром",
+    "meal_type": "breakfast",
+    "count": 14,
+    "primarySlug": "t1-breakfast-fill5-protein-bowl",
+    "filename": "t1-breakfast-fill5-protein-bowl.png",
+    "ids": [
+      "4f1fb6eb-7b80-4671-afb9-8fde19471e40",
+      "7cb2ef80-26f6-4f2d-9dff-30388f840a96",
+      "470ceb7c-53cb-4dce-a148-3adbe5267bdb",
+      "f0c3a94f-282d-4fa2-8da3-02f8217f2448",
+      "148c670a-896a-4332-b6dd-fc25f9024a3b",
+      "34a6c5e8-491d-4aef-952a-3b7c8af24f0c",
+      "6b5a9229-0eae-4dbf-bf1e-bda385c3f4a3",
+      "2a78f6e4-46dd-438d-95c9-c93fa485255e",
+      "c39a2f11-4d6d-49ef-aa91-703e4e20b28e",
+      "411bd967-dcc6-4b17-85c7-fe577c1337f5",
+      "cb6f23c8-9732-403a-ba48-06ce6560b61b",
+      "fda02969-196b-4411-a1ca-b642ac4981e9",
+      "80a0a054-a3a7-45e1-b4c0-fbceb3aa3a3b",
+      "6d8f7556-5214-44fa-8c62-780bf233e50f"
+    ],
+    "slugs": [
+      "t1-breakfast-fill5-protein-bowl",
+      "t10-breakfast-fill5-protein-bowl",
+      "t11-breakfast-fill5-protein-bowl",
+      "t12-breakfast-fill5-protein-bowl",
+      "t13-breakfast-fill5-protein-bowl",
+      "t14-breakfast-fill5-protein-bowl",
+      "t15-breakfast-fill5-protein-bowl",
+      "t2-breakfast-fill5-protein-bowl",
+      "t3-breakfast-fill5-protein-bowl",
+      "t4-breakfast-fill5-protein-bowl",
+      "t5-breakfast-fill5-protein-bowl",
+      "t7-breakfast-fill5-protein-bowl",
+      "t8-breakfast-fill5-protein-bowl",
+      "t9-breakfast-fill5-protein-bowl"
+    ],
+    "prompt": "Authentic handheld smartphone photo of homemade food, looks like a real iPhone kitchen snapshot not AI art, slightly imperfect framing, soft uneven window daylight from one side, natural shadows, true-to-life colors not oversaturated, matte surfaces no plastic shine, visible real food texture crumbs sauce spots irregular plating, plain white or beige home plate on ordinary wooden table or linen, tiny kitchen clutter softly blurred in background optional, shot from 45 degree angle, no text no watermark no logo no hands no utensils floating, no studio softboxes, no CGI, no uncanny perfection. breakfast serving of homemade Russian diet meal: Хек с овощами утром, simple home plating, medical diet friendly, modest portion. Casual home cooking portion, modest and believable."
+  }
+]
