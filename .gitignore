@@ -27,6 +27,8 @@ scripts/data/
 # Raw Google Sheet tab dumps (regenerate: npm run exercises:fetch-sheet)
 scripts/_sheet_tabs/
 scripts/_tmp-*
+scripts/_video_downloads/
+scripts/_video_mirror_map.json
 
 # Lovable CDN media (download with: npm run assets:fetch) — ~400MB
 public/__l5e/
