@@ -13,6 +13,7 @@
     "exercises:import-edb": "node scripts/import-exercisedb.mjs",
     "exercises:replace-mit": "node scripts/replace-exercises-mit.mjs",
     "exercises:import-logpress": "node scripts/import-logpress-text.mjs",
+    "coach:apply": "node --env-file=.env scripts/apply-coach-sheet-program.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

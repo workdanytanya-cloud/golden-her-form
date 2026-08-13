@@ -159,6 +159,7 @@ function TrainingInner() {
     );
 
   const programDays: ProgramDay[] = days.map((d) => ({
+    week_index: d.week_index,
     day_index: d.day_index,
     is_rest: d.is_rest,
     title: d.title,
@@ -177,6 +178,7 @@ function TrainingInner() {
       goal={(program.goal ?? "maintain") as ProgramGoal}
       level={program.level as ProgramLevel}
       sessionsPerWeek={program.sessions_per_week}
+      programWeeks={program.program_weeks}
       notes={program.notes}
       faq={program.faq}
       editable={false}

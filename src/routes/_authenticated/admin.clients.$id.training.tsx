@@ -10,6 +10,7 @@ import {
   loadProgramFor,
   loadProgramProfile,
   createOrReplaceProgram,
+  createOrReplaceCustomProgram,
   updateDayPatch,
   updateProgramPatch,
   lockProgramManual,
@@ -25,6 +26,11 @@ import {
   type FaqItem,
   GOAL_LABEL,
 } from "@/lib/training";
+import {
+  buildCoachSheetProgramDays,
+  coachProgramNotes,
+  COACH_PROGRAM_WEEKS,
+} from "@/lib/coach-sheet-program";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/training")({
   component: AdminTrainingPage,
@@ -109,13 +115,51 @@ function AdminTrainingPage() {
     }
   };
 
-  const handleDayPatch = async (dayIndex: number, patch: Partial<ProgramDay>) => {
+  const handleApplyCoachSheet = async () => {
+    if (!profile) return;
+    const input: ProgramInput = {
+      sessions_per_week: 3,
+      goal: profile.goal,
+      level: profile.level,
+      has_injuries: profile.has_injuries,
+      injuries_details: profile.injuries_details,
+      equipment: profile.equipment,
+      location: profile.location,
+      weight_kg: profile.weight_kg,
+    };
+    try {
+      const customDays = buildCoachSheetProgramDays(exercises, input);
+      await createOrReplaceCustomProgram({
+        userId: id,
+        input: { ...input, sessions_per_week: 3 },
+        days: customDays,
+        programWeeks: COACH_PROGRAM_WEEKS,
+        notes: coachProgramNotes(input),
+        preserveFaq: program?.faq ?? null,
+        targetsManual: true,
+      });
+      await reload();
+      toast.success(`Программа из таблицы на ${COACH_PROGRAM_WEEKS} нед. сохранена`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const handleDayPatch = async (
+    weekIndex: number,
+    dayIndex: number,
+    patch: Partial<ProgramDay>,
+  ) => {
     if (!program) return;
     try {
-      await updateDayPatch(program.id, dayIndex, patch);
+      await updateDayPatch(program.id, weekIndex, dayIndex, patch);
       await lockProgramManual(program.id);
       setDays((cur) =>
-        cur.map((d) => (d.day_index === dayIndex ? { ...d, ...(patch as Partial<DayRow>) } : d)),
+        cur.map((d) =>
+          d.week_index === weekIndex && d.day_index === dayIndex
+            ? { ...d, ...(patch as Partial<DayRow>) }
+            : d,
+        ),
       );
       setProgram((p) => (p ? { ...p, targets_manual: true } : p));
     } catch (e) {
@@ -140,6 +184,7 @@ function AdminTrainingPage() {
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем…</div>;
 
   const programDays: ProgramDay[] = days.map((d) => ({
+    week_index: d.week_index,
     day_index: d.day_index,
     is_rest: d.is_rest,
     title: d.title,
@@ -189,28 +234,49 @@ function AdminTrainingPage() {
       {!program ? (
         <div className="rounded-3xl border border-gold/15 bg-surface/40 p-8 text-center">
           <p className="text-warm-gray">У клиента ещё нет программы.</p>
-          <button
-            type="button"
-            onClick={() => void handleRegenerate()}
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-xs uppercase tracking-widest text-background"
-          >
-            <Sparkles className="h-4 w-4" /> Сгенерировать программу
-          </button>
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => void handleApplyCoachSheet()}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-xs uppercase tracking-widest text-background"
+            >
+              <Sparkles className="h-4 w-4" /> Программа из таблицы (4 нед.)
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleRegenerate()}
+              className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-5 py-2.5 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
+            >
+              Автогенерация по анкете
+            </button>
+          </div>
         </div>
       ) : (
-        <TrainingView
-          exercises={exercises}
-          days={programDays}
-          goal={(program.goal ?? "maintain") as ProgramGoal}
-          level={program.level as ProgramLevel}
-          sessionsPerWeek={program.sessions_per_week}
-          notes={program.notes}
-          faq={program.faq}
-          editable={true}
-          onDayPatch={handleDayPatch}
-          onProgramPatch={handleProgramPatch}
-          onRegenerate={() => handleRegenerate()}
-        />
+        <>
+          <div className="flex flex-wrap justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => void handleApplyCoachSheet()}
+              className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Таблица тренера · 4 нед.
+            </button>
+          </div>
+          <TrainingView
+            exercises={exercises}
+            days={programDays}
+            goal={(program.goal ?? "maintain") as ProgramGoal}
+            level={program.level as ProgramLevel}
+            sessionsPerWeek={program.sessions_per_week}
+            programWeeks={program.program_weeks}
+            notes={program.notes}
+            faq={program.faq}
+            editable={true}
+            onDayPatch={handleDayPatch}
+            onProgramPatch={handleProgramPatch}
+            onRegenerate={() => handleRegenerate()}
+          />
+        </>
       )}
     </div>
   );

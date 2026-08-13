@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -36,10 +36,11 @@ type Props = {
   goal: ProgramGoal;
   level: string;
   sessionsPerWeek: number;
+  programWeeks?: number;
   notes: string | null;
   faq: FaqItem[];
   editable: boolean;
-  onDayPatch?: (dayIndex: number, patch: Partial<ProgramDay>) => Promise<void>;
+  onDayPatch?: (weekIndex: number, dayIndex: number, patch: Partial<ProgramDay>) => Promise<void>;
   onProgramPatch?: (patch: { notes?: string | null; faq?: FaqItem[] }) => Promise<void>;
   onRegenerate?: () => Promise<void>;
 };
@@ -50,6 +51,7 @@ export function TrainingView({
   goal,
   level,
   sessionsPerWeek,
+  programWeeks = 1,
   notes,
   faq,
   editable,
@@ -63,11 +65,29 @@ export function TrainingView({
     return m;
   }, [exercises]);
 
+  const maxWeek =
+    programWeeks > 1
+      ? programWeeks - 1
+      : Math.max(0, ...days.map((d) => d.week_index ?? 0));
+
+  const [weekIndex, setWeekIndex] = useState(0);
+  const weekDays = useMemo(
+    () => days.filter((d) => (d.week_index ?? 0) === weekIndex),
+    [days, weekIndex],
+  );
+
   const [dayIndex, setDayIndex] = useState(() => {
-    const first = days.find((d) => !d.is_rest);
+    const first = weekDays.find((d) => !d.is_rest);
     return first?.day_index ?? 0;
   });
-  const day = days.find((d) => d.day_index === dayIndex) ?? days[0];
+
+  // При смене недели — первый тренировочный день
+  useEffect(() => {
+    const first = weekDays.find((d) => !d.is_rest);
+    setDayIndex(first?.day_index ?? 0);
+  }, [weekIndex, weekDays]);
+
+  const day = weekDays.find((d) => d.day_index === dayIndex) ?? weekDays[0];
 
   const [openExercise, setOpenExercise] = useState<{
     section: SectionKey;
@@ -82,6 +102,9 @@ export function TrainingView({
         <p className="text-[11px] uppercase tracking-widest text-gold">Программа тренировок</p>
         <h2 className="mt-1 font-display text-2xl text-ivory md:text-3xl">
           {GOAL_LABEL[goal]} · {sessionsPerWeek} тренировки в неделю
+          {maxWeek > 0 && (
+            <span className="text-warm-gray"> · цикл {maxWeek + 1} нед.</span>
+          )}
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-warm-gray">
           Программа собрана под твою цель и уровень подготовки ({levelLabel(level)}) на основе
@@ -108,10 +131,31 @@ export function TrainingView({
       {/* FAQ */}
       <FaqSection faq={faq} editable={editable} onSave={onProgramPatch} />
 
+      {/* Week cycle tabs */}
+      {maxWeek > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: maxWeek + 1 }, (_, w) => (
+            <button
+              key={w}
+              type="button"
+              onClick={() => setWeekIndex(w)}
+              className={[
+                "rounded-full border px-4 py-2 text-xs uppercase tracking-widest transition-colors",
+                weekIndex === w
+                  ? "border-gold/60 bg-gold/15 text-ivory"
+                  : "border-gold/20 text-warm-gray hover:border-gold/40 hover:text-ivory",
+              ].join(" ")}
+            >
+              Неделя {w + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Week tabs */}
       <div className="flex flex-wrap gap-2">
         {WEEKDAY_LABELS.map((label, i) => {
-          const d = days.find((x) => x.day_index === i);
+          const d = weekDays.find((x) => x.day_index === i);
           const rest = d?.is_rest;
           const active = i === dayIndex;
           return (
@@ -142,7 +186,9 @@ export function TrainingView({
           exById={exById}
           allExercises={exercises}
           editable={editable}
-          onPatch={(patch) => onDayPatch?.(day.day_index, patch) ?? Promise.resolve()}
+          onPatch={(patch) =>
+            onDayPatch?.(weekIndex, day.day_index, patch) ?? Promise.resolve()
+          }
           onOpen={(section, index, set) => setOpenExercise({ section, index, set })}
         />
       )}
@@ -165,7 +211,7 @@ export function TrainingView({
                 exercise_id: newId,
                 tempo: newEx?.tempo ?? target.tempo,
               };
-              await onDayPatch?.(day.day_index, {
+              await onDayPatch?.(weekIndex, day.day_index, {
                 [openExercise.section]: arr,
               } as Partial<ProgramDay>);
             }
@@ -176,7 +222,7 @@ export function TrainingView({
             if (!day) return;
             const arr = [...day[openExercise.section]];
             arr[openExercise.index] = { ...arr[openExercise.index], ...patch };
-            await onDayPatch?.(day.day_index, {
+            await onDayPatch?.(weekIndex, day.day_index, {
               [openExercise.section]: arr,
             } as Partial<ProgramDay>);
             setOpenExercise((s) => (s ? { ...s, set: { ...s.set, ...patch } } : null));

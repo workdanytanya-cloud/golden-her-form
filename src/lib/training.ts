@@ -41,6 +41,7 @@ export type ExerciseSet = {
 };
 
 export type ProgramDay = {
+  week_index?: number;
   day_index: number; // 0..6 (Пн..Вс)
   is_rest: boolean;
   title: string;

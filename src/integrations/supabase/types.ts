@@ -631,6 +631,7 @@ export type Database = {
           title: string
           updated_at: string
           warmup: Json
+          week_index: number
         }
         Insert: {
           cooldown?: Json
@@ -646,6 +647,7 @@ export type Database = {
           title?: string
           updated_at?: string
           warmup?: Json
+          week_index?: number
         }
         Update: {
           cooldown?: Json
@@ -661,6 +663,7 @@ export type Database = {
           title?: string
           updated_at?: string
           warmup?: Json
+          week_index?: number
         }
         Relationships: [
           {
@@ -685,6 +688,7 @@ export type Database = {
           level: string
           location: string | null
           notes: string | null
+          program_weeks: number
           sessions_per_week: number
           targets_manual: boolean
           updated_at: string
@@ -702,6 +706,7 @@ export type Database = {
           level?: string
           location?: string | null
           notes?: string | null
+          program_weeks?: number
           sessions_per_week?: number
           targets_manual?: boolean
           updated_at?: string
@@ -719,6 +724,7 @@ export type Database = {
           level?: string
           location?: string | null
           notes?: string | null
+          program_weeks?: number
           sessions_per_week?: number
           targets_manual?: boolean
           updated_at?: string

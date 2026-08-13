@@ -42,11 +42,13 @@ export type ProgramRow = {
   notes: string | null;
   faq: FaqItem[];
   targets_manual: boolean;
+  program_weeks: number;
 };
 
 export type DayRow = {
   id: string;
   program_id: string;
+  week_index: number;
   day_index: number;
   is_rest: boolean;
   title: string;
@@ -96,16 +98,19 @@ export async function loadProgramFor(
     .from("training_program_days")
     .select("*")
     .eq("program_id", program.id)
+    .order("week_index")
     .order("day_index");
   return {
     program: {
       ...program,
       faq: (program.faq ?? []) as FaqItem[],
       equipment: program.equipment ?? [],
+      program_weeks: (program as { program_weeks?: number }).program_weeks ?? 1,
     } as ProgramRow,
     days: (days ?? []).map((d) => ({
       id: d.id,
       program_id: d.program_id,
+      week_index: (d as { week_index?: number }).week_index ?? 0,
       day_index: d.day_index,
       is_rest: d.is_rest,
       title: d.title,
@@ -177,6 +182,7 @@ export async function createOrReplaceProgram(params: {
     notes: preserveNotes ?? null,
     faq: faq as unknown as never,
     targets_manual: targetsManual ?? false,
+    program_weeks: 1,
     generated_at: new Date().toISOString(),
   };
 
@@ -205,8 +211,90 @@ export async function createOrReplaceProgram(params: {
     .delete()
     .eq("program_id", programId);
   if (delErr) throw delErr;
+
   const rows = generatedDays.map((d) => ({
     program_id: programId,
+    week_index: 0,
+    day_index: d.day_index,
+    is_rest: d.is_rest,
+    title: d.title,
+    focus: d.focus,
+    description: d.description,
+    warmup: d.warmup as unknown as never,
+    exercises: d.exercises as unknown as never,
+    cooldown: d.cooldown as unknown as never,
+    day_note: d.day_note,
+  }));
+  const { error: daysErr } = await supabase.from("training_program_days").insert(rows);
+  if (daysErr) throw daysErr;
+
+  return loadProgramFor(userId).then((r) => ({ program: r.program!, days: r.days }));
+}
+
+/** Заменить программу на кастомный мультинедельный план (напр. из таблицы тренера). */
+export async function createOrReplaceCustomProgram(params: {
+  userId: string;
+  input: ProgramInput;
+  days: ProgramDay[];
+  programWeeks: number;
+  preserveFaq?: FaqItem[] | null;
+  notes?: string | null;
+  targetsManual?: boolean;
+}): Promise<{ program: ProgramRow; days: DayRow[] }> {
+  const { userId, input, days, programWeeks, preserveFaq, notes, targetsManual } = params;
+  const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
+
+  const { data: existing } = await supabase
+    .from("training_programs")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const payload = {
+    user_id: userId,
+    sessions_per_week: input.sessions_per_week,
+    goal: input.goal,
+    level: input.level,
+    has_injuries: input.has_injuries,
+    injuries_details: input.injuries_details ?? null,
+    equipment: input.equipment ?? [],
+    location: input.location ?? null,
+    notes: notes ?? null,
+    faq: faq as unknown as never,
+    targets_manual: targetsManual ?? true,
+    program_weeks: programWeeks,
+    generated_at: new Date().toISOString(),
+  };
+
+  let programId: string;
+  if (existing) {
+    const { data, error } = await supabase
+      .from("training_programs")
+      .update(payload)
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+    if (error) throw error;
+    programId = data.id;
+  } else {
+    const { data, error } = await supabase
+      .from("training_programs")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw error;
+    programId = data.id;
+  }
+
+  const { error: delErr } = await supabase
+    .from("training_program_days")
+    .delete()
+    .eq("program_id", programId);
+  if (delErr) throw delErr;
+
+  const rows = days.map((d) => ({
+    program_id: programId,
+    week_index: d.week_index ?? 0,
     day_index: d.day_index,
     is_rest: d.is_rest,
     title: d.title,
@@ -225,6 +313,7 @@ export async function createOrReplaceProgram(params: {
 
 export async function updateDayPatch(
   programId: string,
+  weekIndex: number,
   dayIndex: number,
   patch: Partial<
     Pick<
@@ -247,6 +336,7 @@ export async function updateDayPatch(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .update(dbPatch as any)
     .eq("program_id", programId)
+    .eq("week_index", weekIndex)
     .eq("day_index", dayIndex)
     .select("id");
   if (error) throw error;
