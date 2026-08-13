@@ -1,6 +1,8 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Dumbbell,
   HelpCircle,
@@ -31,6 +33,27 @@ import {
 import { getVideoEmbedUrl, isDirectVideoFile } from "@/lib/video-embed";
 
 type SectionKey = "warmup" | "exercises" | "cooldown";
+
+type OpenExerciseRef = {
+  section: SectionKey;
+  index: number;
+  set: ExerciseSet;
+};
+
+function buildDayExerciseSequence(
+  day: ProgramDay,
+  exById: Record<string, Exercise>,
+): OpenExerciseRef[] {
+  const sections: SectionKey[] = ["warmup", "exercises", "cooldown"];
+  const result: OpenExerciseRef[] = [];
+  for (const section of sections) {
+    for (let index = 0; index < day[section].length; index++) {
+      const set = day[section][index];
+      if (exById[set.exercise_id]) result.push({ section, index, set });
+    }
+  }
+  return result;
+}
 
 type Props = {
   exercises: Exercise[];
@@ -129,11 +152,24 @@ export function TrainingView({
     else toast.success(msg);
   };
 
-  const [openExercise, setOpenExercise] = useState<{
-    section: SectionKey;
-    index: number;
-    set: ExerciseSet;
-  } | null>(null);
+  const [openExercise, setOpenExercise] = useState<OpenExerciseRef | null>(null);
+
+  const exerciseSequence = useMemo(
+    () => (day ? buildDayExerciseSequence(day, exById) : []),
+    [day, exById],
+  );
+
+  const openExerciseIndex = openExercise
+    ? exerciseSequence.findIndex(
+        (item) => item.section === openExercise.section && item.index === openExercise.index,
+      )
+    : -1;
+  const prevExercise =
+    openExerciseIndex > 0 ? exerciseSequence[openExerciseIndex - 1] : null;
+  const nextExercise =
+    openExerciseIndex >= 0 && openExerciseIndex < exerciseSequence.length - 1
+      ? exerciseSequence[openExerciseIndex + 1]
+      : null;
 
   return (
     <div className="space-y-6">
@@ -278,6 +314,16 @@ export function TrainingView({
           set={openExercise.set}
           allExercises={exercises}
           editable={editable}
+          sequenceLabel={
+            exerciseSequence.length > 1
+              ? `${openExerciseIndex + 1} из ${exerciseSequence.length}`
+              : undefined
+          }
+          nextExerciseName={
+            nextExercise ? exById[nextExercise.set.exercise_id]?.name : undefined
+          }
+          onPrev={prevExercise ? () => setOpenExercise(prevExercise) : undefined}
+          onNext={nextExercise ? () => setOpenExercise(nextExercise) : undefined}
           onClose={() => setOpenExercise(null)}
           onSwap={async (newId) => {
             if (!day) return;
@@ -887,6 +933,10 @@ function ExerciseDialog({
   set,
   allExercises,
   editable,
+  sequenceLabel,
+  nextExerciseName,
+  onPrev,
+  onNext,
   onClose,
   onSwap,
   onSetPatch,
@@ -895,6 +945,10 @@ function ExerciseDialog({
   set: ExerciseSet;
   allExercises: Exercise[];
   editable: boolean;
+  sequenceLabel?: string;
+  nextExerciseName?: string;
+  onPrev?: () => void;
+  onNext?: () => void;
   onClose: () => void;
   onSwap: (id: string) => Promise<void>;
   onSetPatch: (patch: Partial<ExerciseSet>) => Promise<void>;
@@ -904,15 +958,31 @@ function ExerciseDialog({
   const [reps, setReps] = useState(set.reps);
   const [rest, setRest] = useState(set.rest_seconds);
   const [note, setNote] = useState(set.note ?? "");
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const replacements = useMemo(
     () => allExercises.filter((e) => e.category === exercise.category && e.id !== exercise.id),
     [exercise, allExercises],
   );
 
+  useEffect(() => {
+    setTab("technique");
+    setSets(set.sets);
+    setReps(set.reps);
+    setRest(set.rest_seconds);
+    setNote(set.note ?? "");
+    contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [exercise.id, set]);
+
+  const showNav = Boolean(sequenceLabel || onPrev || onNext);
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto bg-background text-ivory">
+      <DialogContent
+        ref={contentRef}
+        className="flex max-h-[90vh] max-w-2xl flex-col overflow-y-auto bg-background p-0 text-ivory"
+      >
+        <div className="space-y-4 p-6 pb-0">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">{exercise.name}</DialogTitle>
         </DialogHeader>
@@ -1068,6 +1138,58 @@ function ExerciseDialog({
                 </span>
               </button>
             ))}
+          </div>
+        )}
+        </div>
+
+        {showNav && (
+          <div className="sticky bottom-0 mt-4 border-t border-gold/15 bg-background/95 p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              {onPrev ? (
+                <button
+                  type="button"
+                  onClick={onPrev}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-gold/25 px-3 py-2 text-[11px] uppercase tracking-widest text-warm-gray transition-colors hover:border-gold/40 hover:text-ivory"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Назад
+                </button>
+              ) : (
+                <div className="w-[88px] shrink-0" />
+              )}
+
+              {sequenceLabel && (
+                <p className="flex-1 text-center text-[11px] uppercase tracking-widest text-warm-gray">
+                  {sequenceLabel}
+                </p>
+              )}
+
+              {onNext ? (
+                <button
+                  type="button"
+                  onClick={onNext}
+                  className="inline-flex min-w-0 max-w-[52%] shrink-0 flex-col items-end rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-right transition-opacity hover:opacity-90"
+                >
+                  <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-widest text-background">
+                    Дальше
+                    <ChevronRight className="h-4 w-4" />
+                  </span>
+                  {nextExerciseName && (
+                    <span className="mt-0.5 max-w-full truncate text-[10px] normal-case tracking-normal text-background/85">
+                      {nextExerciseName}
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-[11px] uppercase tracking-widest text-background transition-opacity hover:opacity-90"
+                >
+                  Готово
+                </button>
+              )}
+            </div>
           </div>
         )}
       </DialogContent>
