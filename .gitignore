@@ -21,6 +21,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# ExerciseDB import caches (large)
+scripts/data/
+
 # Lovable CDN media (download with: npm run assets:fetch) — ~400MB
 public/__l5e/
 

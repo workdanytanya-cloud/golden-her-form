@@ -91,17 +91,28 @@ function AdminExercises() {
 
   const load = () => {
     setLoading(true);
-    void supabase
-      .from("exercises")
-      .select(
-        "id, slug, name, category, difficulty, muscle_groups, equipment, default_sets, default_reps, rest_seconds, tempo, description, gif_url, video_url",
-      )
-      .order("category")
-      .order("name")
-      .then(({ data }) => {
-        setItems((data ?? []) as Exercise[]);
-        setLoading(false);
-      });
+    void (async () => {
+      const pageSize = 1000;
+      const all: Exercise[] = [];
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .from("exercises")
+          .select(
+            "id, slug, name, category, difficulty, muscle_groups, equipment, default_sets, default_reps, rest_seconds, tempo, description, gif_url, video_url",
+          )
+          .order("category")
+          .order("name")
+          .range(from, from + pageSize - 1);
+        if (error) {
+          toast.error(error.message);
+          break;
+        }
+        all.push(...((data ?? []) as Exercise[]));
+        if (!data || data.length < pageSize) break;
+      }
+      setItems(all);
+      setLoading(false);
+    })();
   };
   useEffect(load, []);
 
@@ -159,7 +170,7 @@ function AdminExercises() {
       <PanelHeader
         eyebrow="Библиотека"
         title="Упражнения"
-        description="Все упражнения в базе. Загружайте GIF/видео с лицом тренера, редактируйте технику и настройки по умолчанию."
+        description={`В базе ${items.length || "…"} упражнений. Текст из exercises-dataset (MIT), без чужих GIF. Видео/GIF тренера можно загрузить вручную.`}
         action={
           <button
             onClick={() => setEditing({ ...emptyExercise })}

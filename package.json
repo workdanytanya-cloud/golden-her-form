@@ -10,6 +10,9 @@
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",
     "assets:fetch": "node scripts/fetch-lovable-assets.mjs",
+    "exercises:import-edb": "node scripts/import-exercisedb.mjs",
+    "exercises:replace-mit": "node scripts/replace-exercises-mit.mjs",
+    "exercises:import-logpress": "node scripts/import-logpress-text.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

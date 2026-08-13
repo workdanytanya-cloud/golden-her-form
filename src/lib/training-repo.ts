@@ -59,15 +59,25 @@ export type DayRow = {
 };
 
 export async function loadExercises(): Promise<Exercise[]> {
-  const { data, error } = await supabase.from("exercises").select("*");
-  if (error) throw error;
-  return (data ?? []).map((e) => ({
+  const pageSize = 1000;
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("exercises")
+      .select("*")
+      .order("name")
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if (!data || data.length < pageSize) break;
+  }
+  return rows.map((e) => ({
     ...e,
     cues: (e.cues ?? []) as string[],
     common_mistakes: (e.common_mistakes ?? []) as string[],
-    muscle_groups: e.muscle_groups ?? [],
-    equipment: e.equipment ?? [],
-    tags: e.tags ?? [],
+    muscle_groups: (e.muscle_groups as string[]) ?? [],
+    equipment: (e.equipment as string[]) ?? [],
+    tags: (e.tags as string[]) ?? [],
     category: e.category as ExerciseCategory,
     difficulty: e.difficulty as Exercise["difficulty"],
   })) as Exercise[];
