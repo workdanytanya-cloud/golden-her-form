@@ -170,7 +170,7 @@ function AdminExercises() {
       <PanelHeader
         eyebrow="Библиотека"
         title="Упражнения"
-        description={`В базе ${items.length || "…"} упражнений. Текст из exercises-dataset (MIT), без чужих GIF. Видео/GIF тренера можно загрузить вручную.`}
+        description={`В базе ${items.length || "…"} упражнений из вашей таблицы (с видео). Можно добавить или отредактировать вручную.`}
         action={
           <button
             onClick={() => setEditing({ ...emptyExercise })}

@@ -20,10 +20,11 @@
     "exercises:dedupe-db": "node --env-file=.env scripts/dedupe-exercises-db.mjs",
     "exercises:remap-legacy": "node --env-file=.env scripts/remap-legacy-sheet-programs.mjs",
     "exercises:verify-embed-http": "node --env-file=.env scripts/verify-embed-http.mjs --sample=25",
+    "exercises:purge-bad-ru": "node --env-file=.env scripts/purge-bad-ru-exercises.mjs",
     "exercises:import-sheet": "node scripts/fetch-exercises-sheet.mjs && node scripts/collect-panova-exercises.mjs && node scripts/parse-panova-4week.mjs && node scripts/generate-exercises-from-sheet.mjs && node scripts/verify-sheet-videos.mjs",
     "exercises:replace-mit": "node scripts/replace-exercises-mit.mjs",
-    "exercises:import-edb": "node scripts/import-exercisedb.mjs",
-    "exercises:import-logpress": "node scripts/import-logpress-text.mjs",
+    "exercises:import-edb": "echo Skip: MIT/ExerciseDB dumps disabled — use exercises:import-sheet && exit 1",
+    "exercises:import-logpress": "echo Skip: machine-translated LogPress dump disabled — use exercises:import-sheet && exit 1",
     "coach:apply": "node --env-file=.env scripts/apply-coach-sheet-program.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."

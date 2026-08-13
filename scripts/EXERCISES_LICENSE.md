@@ -1,21 +1,22 @@
 # Источники упражнений
 
-## Текущая библиотека (можно продавать)
+## Текущая библиотека (основная)
 
-- **exercises-dataset** — https://github.com/hasaneyldrm/exercises-dataset  
-- Импортируем **только текст**: названия, мышцы, инвентарь, пошаговые инструкции на русском.  
-- Лицензия текста: **MIT** — коммерческое использование разрешено.  
-- **GIF / картинки Gym visual НЕ импортируем** — для медиа нужна отдельная лицензия на https://gymvisual.com/  
-- Импорт: `npm run exercises:import-logpress`
+- **Таблица тренера (Panova)** — названия и видео YouTube/Rutube из вашей Google Sheet.
+- Импорт: `npm run exercises:import-sheet` → `npm run exercises:apply-seed`
+- На сайте показывается только содержимое (упражнения + видео), не сама таблица.
 
 ## Что удалено / не используем
 
 | Источник | Почему |
 |---|---|
+| exercises-dataset / LogPress (MIT text) | Машинный перевод («тросовый ряд» и т.п.) — новичок не поймёт |
 | ExerciseDB / AscendAPI free | Non-commercial без платного RapidAPI |
-| Open ExerciseDB (MIT) | Заменён наборам с готовым RU |
+| Open ExerciseDB (MIT) | То же: чужие названия + чужие медиа |
 | GIF из exercises-dataset | © Gym visual, не покрыто MIT |
+
+Очистка кривых переводов: `npm run exercises:purge-bad-ru`
 
 ## Медиа на сайте
 
-Видео/GIF с лицом тренера загружайте вручную в админке — это ваши материалы.
+Видео берутся из таблицы тренера. Дополнительно можно загрузить вручную в админке.

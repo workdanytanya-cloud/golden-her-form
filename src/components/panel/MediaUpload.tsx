@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { Upload, X, Loader2, Download } from "lucide-react";
+import { Upload, X, Loader2, Download, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getVideoEmbedUrl, isDirectVideoFile } from "@/lib/video-embed";
 
 const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
 
@@ -43,13 +44,38 @@ export function MediaUpload({
     toast.success("Файл загружен");
   };
 
+  const embedUrl = value && preview === "video" ? getVideoEmbedUrl(value) : null;
+  const isFile = value && preview === "video" ? isDirectVideoFile(value) : false;
+
   return (
     <div className="space-y-2">
       <div className="text-[11px] uppercase tracking-widest text-warm-gray">{label}</div>
       {value ? (
         <div className="relative overflow-hidden rounded-xl border border-gold/20 bg-background/40">
           {preview === "video" ? (
-            <video src={value} controls className="max-h-56 w-full" />
+            embedUrl ? (
+              <iframe
+                src={embedUrl}
+                title={label}
+                className="aspect-video max-h-56 w-full border-0"
+                allow="clipboard-write; autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
+                allowFullScreen
+              />
+            ) : isFile ? (
+              <video src={value} controls className="max-h-56 w-full" />
+            ) : (
+              <div className="flex max-h-56 min-h-[140px] flex-col items-center justify-center gap-2 p-4 text-center">
+                <p className="text-xs text-warm-gray">Превью недоступно для этой ссылки</p>
+                <a
+                  href={value}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-gold hover:underline"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" /> Открыть видео
+                </a>
+              </div>
+            )
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={value} alt="" className="max-h-56 w-full object-cover" />
@@ -62,17 +88,19 @@ export function MediaUpload({
           >
             <X className="h-4 w-4" />
           </button>
-          <a
-            href={value}
-            download
-            target="_blank"
-            rel="noreferrer"
-            className="absolute right-10 top-2 rounded-full bg-background/80 p-1 text-ivory hover:bg-gold/70"
-            aria-label="Скачать"
-            title="Скачать"
-          >
-            <Download className="h-4 w-4" />
-          </a>
+          {!embedUrl && (
+            <a
+              href={value}
+              download
+              target="_blank"
+              rel="noreferrer"
+              className="absolute right-10 top-2 rounded-full bg-background/80 p-1 text-ivory hover:bg-gold/70"
+              aria-label="Скачать"
+              title="Скачать"
+            >
+              <Download className="h-4 w-4" />
+            </a>
+          )}
         </div>
       ) : (
         <button
@@ -100,7 +128,11 @@ export function MediaUpload({
         type="text"
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value || null)}
-        placeholder="или вставьте ссылку"
+        placeholder={
+          preview === "video"
+            ? "или вставьте ссылку YouTube / Rutube / mp4"
+            : "или вставьте ссылку"
+        }
         className="w-full rounded-xl border border-gold/20 bg-background/40 px-3 py-2 text-xs text-ivory placeholder:text-warm-gray/60 outline-none focus:border-gold/60"
       />
     </div>
