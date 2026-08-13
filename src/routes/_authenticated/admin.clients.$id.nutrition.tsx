@@ -23,6 +23,12 @@ import {
 } from "@/lib/nutrition-repo";
 import { calcTargets, type Slot, type NutritionTargets } from "@/lib/nutrition";
 import { mergeUnique, normalizeFoodTerms } from "@/lib/food-products";
+import {
+  decodePlanMeta,
+  mealsChoiceFromPlan,
+  type MealPattern,
+  type RecipeComplexity,
+} from "@/lib/plan-options";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/nutrition")({
   component: AdminNutritionPage,
@@ -73,6 +79,8 @@ function AdminNutritionPage() {
     mealsPerDay: 3 | 5;
     preferred: string[];
     excluded: string[];
+    recipeComplexity: RecipeComplexity;
+    mealPattern: MealPattern;
   }) => {
     try {
       const targets = plan?.targets_manual
@@ -91,6 +99,8 @@ function AdminNutritionPage() {
         targets,
         targetsManual: true,
         dishes: await loadDishes(),
+        recipeComplexity: opts.recipeComplexity,
+        mealPattern: opts.mealPattern,
       });
       await reload();
       setShowSetup(false);
@@ -240,7 +250,7 @@ function AdminNutritionPage() {
 
       {!plan || showSetup ? (
         <NutritionSetup
-          initialMeals={(plan?.meals_per_day as 3 | 5) ?? 5}
+          initialMeals={mealsChoiceFromPlan(plan?.meals_per_day, plan?.preferred_products)}
           initialPreferred={plan?.preferred_products}
           initialExcluded={(plan?.excluded_products ?? []).filter(
             (p) => !autoExcluded.includes(p),
@@ -263,6 +273,7 @@ function AdminNutritionPage() {
             carbs_g: plan.target_carbs_g,
           }}
           mealsPerDay={plan.meals_per_day as 3 | 5}
+          mealPattern={decodePlanMeta(plan.preferred_products).pattern}
           editable={true}
           onSwap={handleSwap}
           onPortionChange={handlePortion}

@@ -1,6 +1,7 @@
 // Nutrition module — pure logic: BMR/TDEE/macro targets and menu generation.
 
 import { dishMatchesProduct, normalizeFoodTerms } from "@/lib/food-products";
+import type { MealPattern, RecipeComplexity } from "@/lib/plan-options";
 
 export type Dish = {
   id: string;
@@ -100,9 +101,22 @@ export function calcTargets(p: ProfileInput): NutritionTargets {
 }
 
 // Slot distribution of daily kcal
-export function slotDistribution(mealsPerDay: 3 | 5): Record<Slot, number> {
+export function slotDistribution(
+  mealsPerDay: 3 | 5,
+  pattern: MealPattern = "standard",
+): Record<Slot, number> {
   if (mealsPerDay === 3) {
     return { breakfast: 0.28, snack1: 0, lunch: 0.4, snack2: 0, dinner: 0.32 };
+  }
+  if (pattern === "busy") {
+    // 2 полноценных приёма + 3 лёгких перекуса без готовки
+    return {
+      breakfast: 0.12,
+      snack1: 0.12,
+      lunch: 0.32,
+      snack2: 0.12,
+      dinner: 0.32,
+    };
   }
   return {
     breakfast: 0.25,
@@ -127,6 +141,18 @@ export const SLOT_LABEL: Record<Slot, string> = {
   dinner: "Ужин",
 };
 
+/** Подписи слотов с учётом режима «для занятых». */
+export function slotLabel(slot: Slot, pattern: MealPattern = "standard"): string {
+  if (pattern === "busy") {
+    if (slot === "breakfast") return "Перекус 1";
+    if (slot === "snack1") return "Перекус 2";
+    if (slot === "snack2") return "Перекус 3";
+    if (slot === "lunch") return "Обед";
+    if (slot === "dinner") return "Ужин";
+  }
+  return SLOT_LABEL[slot];
+}
+
 export const MEAL_TYPE_LABEL: Record<Dish["meal_type"], string> = {
   breakfast: "Завтрак",
   lunch: "Обед",
@@ -143,6 +169,36 @@ function slotMealType(slot: Slot): Dish["meal_type"] {
   if (slot === "lunch") return "lunch";
   if (slot === "dinner") return "dinner";
   return "snack";
+}
+
+const COOK_RE =
+  /жар|вар|запеч|туш|обжар|духов|сковород|кипят|парить|пассе|отвар|довести до|на пару|протуш|тушить|варить|запечь|обжарить/;
+
+/** Рецепт без тепловой готовки — для перекусов режима «занятые». */
+export function isNoCookDish(dish: Pick<Dish, "name" | "tags" | "ingredients" | "steps" | "description" | "meal_type">): boolean {
+  if (dish.tags.some((t) => /no_cook|без_готов|без готов/i.test(t))) return true;
+  const text = [dish.name, dish.description ?? "", ...(dish.steps ?? [])].join(" ").toLowerCase();
+  if (COOK_RE.test(text)) return false;
+  const n = dish.ingredients?.length ?? 0;
+  if (dish.meal_type === "snack" && n <= 4) return true;
+  return n <= 3 && (dish.steps?.length ?? 0) <= 2;
+}
+
+/** Простой (доступные продукты, мало шагов) vs сложный многосоставный. */
+export function dishComplexity(
+  dish: Pick<Dish, "tags" | "ingredients" | "steps">,
+): "simple" | "complex" {
+  if (dish.tags.some((t) => /сложн|gourmet|multi/i.test(t))) return "complex";
+  if (dish.tags.some((t) => /прост|лёгк|легк|simple/i.test(t))) return "simple";
+  const n = dish.ingredients?.length ?? 0;
+  const s = dish.steps?.length ?? 0;
+  if (n >= 5 || s >= 3) return "complex";
+  return "simple";
+}
+
+function matchesComplexity(dish: Dish, complexity: RecipeComplexity): boolean {
+  if (complexity === "any") return true;
+  return dishComplexity(dish) === complexity;
 }
 
 // Compute nutrition of a portion.
@@ -179,6 +235,10 @@ export type GenerateOptions = {
   preferredProducts: string[];
   excludedProducts: string[];
   targets: NutritionTargets;
+  /** Простые / сложные / любые рецепты. */
+  recipeComplexity?: RecipeComplexity;
+  /** standard | busy (2 полноценных + 3 перекуса без готовки). */
+  mealPattern?: MealPattern;
 };
 
 const TABLE_TAG_RE = /^table_\d+$/;
@@ -313,8 +373,10 @@ function pickWithScore(
 export function generatePlan(dishes: Dish[], opts: GenerateOptions): DayEntry[] {
   const preferred = normalizeFoodTerms(opts.preferredProducts);
   const excluded = normalizeFoodTerms(opts.excludedProducts);
+  const complexity = opts.recipeComplexity ?? "any";
+  const pattern = opts.mealPattern ?? "standard";
   const slots = slotsFor(opts.mealsPerDay);
-  const distribution = slotDistribution(opts.mealsPerDay);
+  const distribution = slotDistribution(opts.mealsPerDay, pattern);
   const recentUse = new Map<string, number>();
 
   const dishesBySlot: Record<Dish["meal_type"], Dish[]> = {
@@ -325,14 +387,29 @@ export function generatePlan(dishes: Dish[], opts: GenerateOptions): DayEntry[] 
   };
   for (const d of dishes) dishesBySlot[d.meal_type].push(d);
 
+  const poolForSlot = (slot: Slot): Dish[] => {
+    if (pattern === "busy") {
+      // Перекусы — только без готовки; обед/ужин — полноценные блюда с учётом сложности.
+      if (slot === "breakfast" || slot === "snack1" || slot === "snack2") {
+        const snacks = dishesBySlot.snack.filter(isNoCookDish);
+        return snacks.length > 0 ? snacks : dishesBySlot.snack;
+      }
+      const mains = dishesBySlot[slotMealType(slot)].filter((d) => matchesComplexity(d, complexity));
+      return mains.length > 0 ? mains : dishesBySlot[slotMealType(slot)];
+    }
+
+    const base = dishesBySlot[slotMealType(slot)];
+    const filtered = base.filter((d) => matchesComplexity(d, complexity));
+    return filtered.length > 0 ? filtered : base;
+  };
+
   const days: DayEntry[] = [];
   for (let i = 0; i < 7; i++) {
     const meals: MealEntry[] = [];
     const usedToday = new Set<string>();
     for (const slot of slots) {
-      const mt = slotMealType(slot);
       const dish = pickWithScore(
-        dishesBySlot[mt],
+        poolForSlot(slot),
         preferred,
         excluded,
         recentUse,

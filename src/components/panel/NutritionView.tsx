@@ -17,12 +17,13 @@ import {
   type MealEntry,
   type Slot,
   type NutritionTargets,
-  SLOT_LABEL,
   WEEKDAY_LABELS,
   computeMealNutrition,
   dayTotals,
   slotsFor,
+  slotLabel,
 } from "@/lib/nutrition";
+import type { MealPattern } from "@/lib/plan-options";
 
 type Props = {
   dishes: Dish[];
@@ -31,6 +32,7 @@ type Props = {
   days: DayEntry[];
   targets: NutritionTargets;
   mealsPerDay: 3 | 5;
+  mealPattern?: MealPattern;
   editable: boolean; // trainer/admin
   onSwap?: (dayIndex: number, slot: Slot, newDishId: string) => Promise<void>;
   onPortionChange?: (dayIndex: number, slot: Slot, portion_g: number) => Promise<void>;
@@ -45,6 +47,7 @@ export function NutritionView({
   days,
   targets,
   mealsPerDay,
+  mealPattern = "standard",
   editable,
   onSwap,
   onPortionChange,
@@ -117,7 +120,7 @@ export function NutritionView({
                 key={slot}
                 className="rounded-2xl border border-dashed border-gold/20 bg-surface/30 p-5 text-warm-gray"
               >
-                {SLOT_LABEL[slot]} — не задано
+                {slotLabel(slot, mealPattern)} — не задано
               </div>
             );
           }
@@ -132,7 +135,7 @@ export function NutritionView({
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] uppercase tracking-widest text-warm-gray">
-                    {SLOT_LABEL[slot]}
+                    {slotLabel(slot, mealPattern)}
                   </p>
                   <p className="mt-1 font-display text-lg text-ivory">{dish.name}</p>
                   <p className="mt-1 text-xs text-warm-gray">

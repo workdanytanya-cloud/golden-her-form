@@ -15,6 +15,13 @@ import {
   normalizeFoodTerms,
   mergeUnique,
 } from "@/lib/food-products";
+import {
+  decodePlanMeta,
+  encodePlanMeta,
+  stripPlanMeta,
+  type MealPattern,
+  type RecipeComplexity,
+} from "@/lib/plan-options";
 
 export type PlanRow = {
   id: string;
@@ -174,8 +181,26 @@ export async function createOrReplacePlan(params: {
   targets: NutritionTargets;
   targetsManual?: boolean;
   dishes: Dish[];
+  recipeComplexity?: RecipeComplexity;
+  mealPattern?: MealPattern;
 }): Promise<{ plan: PlanRow; days: DayRow[] }> {
-  const { userId, mealsPerDay, preferred, excluded, targets, targetsManual, dishes } = params;
+  const {
+    userId,
+    mealsPerDay,
+    preferred,
+    excluded,
+    targets,
+    targetsManual,
+    dishes,
+    recipeComplexity,
+    mealPattern,
+  } = params;
+
+  const meta = decodePlanMeta(preferred);
+  const complexity = recipeComplexity ?? meta.complexity;
+  const pattern = mealPattern ?? meta.pattern;
+  const foods = stripPlanMeta(preferred);
+  const preferredStored = encodePlanMeta(foods, { complexity, pattern });
 
   const medicalTable = await loadMedicalDietTable(userId);
   const pool = filterDishesForMedicalTable(dishes, medicalTable);
@@ -189,9 +214,11 @@ export async function createOrReplacePlan(params: {
 
   const days = generatePlan(pool, {
     mealsPerDay,
-    preferredProducts: preferred,
+    preferredProducts: foods,
     excludedProducts: excluded,
     targets,
+    recipeComplexity: complexity,
+    mealPattern: pattern,
   });
 
   // upsert plan
@@ -204,7 +231,7 @@ export async function createOrReplacePlan(params: {
   const payload = {
     user_id: userId,
     meals_per_day: mealsPerDay,
-    preferred_products: preferred,
+    preferred_products: preferredStored,
     excluded_products: excluded,
     target_kcal: targets.kcal,
     target_protein_g: targets.protein_g,

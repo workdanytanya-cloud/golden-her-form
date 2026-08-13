@@ -7,6 +7,12 @@ import {
   type SpellIssue,
 } from "@/lib/food-products";
 import { type NutritionTargets } from "@/lib/nutrition";
+import {
+  decodePlanMeta,
+  mealsChoiceToStored,
+  type MealsChoice,
+  type RecipeComplexity,
+} from "@/lib/plan-options";
 
 export function NutritionSetup({
   initialMeals,
@@ -18,7 +24,7 @@ export function NutritionSetup({
   onSubmit,
   submitLabel = "Сгенерировать меню",
 }: {
-  initialMeals?: 3 | 5;
+  initialMeals?: MealsChoice;
   initialPreferred?: string[];
   /** Ручные исключения (без авто из анкеты). */
   initialExcluded?: string[];
@@ -29,15 +35,17 @@ export function NutritionSetup({
     mealsPerDay: 3 | 5;
     preferred: string[];
     excluded: string[];
+    recipeComplexity: RecipeComplexity;
+    mealPattern: "standard" | "busy";
   }) => Promise<void>;
   submitLabel?: string;
 }) {
-  const [meals, setMeals] = useState<3 | 5>(initialMeals ?? 5);
+  const initialMeta = decodePlanMeta(initialPreferred);
+  const [meals, setMeals] = useState<MealsChoice>(initialMeals ?? 5);
+  const [complexity, setComplexity] = useState<RecipeComplexity>(initialMeta.complexity);
   const [preferredText, setPreferredText] = useState(
     formatFoodList(
-      initialPreferred?.length
-        ? initialPreferred
-        : ["птица", "рыба", "овощи", "яйца"],
+      initialMeta.foods.length > 0 ? initialMeta.foods : ["птица", "рыба", "овощи", "яйца"],
     ),
   );
   const [excludedText, setExcludedText] = useState(formatFoodList(initialExcluded));
@@ -64,6 +72,38 @@ export function NutritionSetup({
     setSpellIssues([]);
   };
 
+  const mealOptions: Array<{ key: MealsChoice; title: string; subtitle: string }> = [
+    { key: 3, title: "3", subtitle: "3 плотных приёма" },
+    { key: 5, title: "5", subtitle: "3 основных + 2 перекуса" },
+    {
+      key: "busy",
+      title: "2+3",
+      subtitle: "2 полноценных + 3 перекуса без готовки",
+    },
+  ];
+
+  const complexityOptions: Array<{
+    key: RecipeComplexity;
+    title: string;
+    subtitle: string;
+  }> = [
+    {
+      key: "simple",
+      title: "Простые",
+      subtitle: "Мало продуктов, быстрые шаги, доступные ингредиенты",
+    },
+    {
+      key: "complex",
+      title: "Сложные",
+      subtitle: "Многосоставные рецепты для тех, кто любит готовить",
+    },
+    {
+      key: "any",
+      title: "Любые",
+      subtitle: "Смесь простых и более развёрнутых блюд",
+    },
+  ];
+
   return (
     <div className="space-y-6 rounded-3xl border border-gold/15 bg-surface/40 p-6">
       <div>
@@ -71,26 +111,57 @@ export function NutritionSetup({
         <p className="mt-1 text-sm text-warm-gray">
           Программу подстроим под ваш ритм. Позже можно изменить.
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          {([3, 5] as const).map((n) => (
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          {mealOptions.map((opt) => (
             <button
-              key={n}
+              key={String(opt.key)}
               type="button"
-              onClick={() => setMeals(n)}
+              onClick={() => setMeals(opt.key)}
               className={[
                 "rounded-2xl border p-4 text-left transition-colors",
-                meals === n
+                meals === opt.key
                   ? "border-gold/60 bg-gradient-to-br from-coral/15 to-gold/10 text-ivory"
                   : "border-gold/15 bg-background/40 text-warm-gray hover:border-gold/30",
               ].join(" ")}
             >
-              <p className="font-display text-2xl text-ivory">{n}</p>
+              <p className="font-display text-2xl text-ivory">{opt.title}</p>
               <p className="mt-1 text-xs uppercase tracking-widest text-warm-gray">
-                {n === 3 ? "3 плотных приёма" : "3 основных + 2 перекуса"}
+                {opt.subtitle}
               </p>
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <h3 className="font-display text-xl">Какие рецепты ближе?</h3>
+        <p className="mt-1 text-sm text-warm-gray">
+          Выберите сложность — меню соберём из подходящих блюд.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          {complexityOptions.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setComplexity(opt.key)}
+              className={[
+                "rounded-2xl border p-4 text-left transition-colors",
+                complexity === opt.key
+                  ? "border-gold/60 bg-gradient-to-br from-coral/15 to-gold/10 text-ivory"
+                  : "border-gold/15 bg-background/40 text-warm-gray hover:border-gold/30",
+              ].join(" ")}
+            >
+              <p className="font-display text-lg text-ivory">{opt.title}</p>
+              <p className="mt-1 text-xs text-warm-gray">{opt.subtitle}</p>
+            </button>
+          ))}
+        </div>
+        {meals === "busy" && (
+          <p className="mt-3 text-xs text-warm-gray">
+            В режиме «2+3» перекусы всегда без готовки; сложность относится к двум
+            полноценным приёмам (обед и ужин).
+          </p>
+        )}
       </div>
 
       <div>
@@ -198,10 +269,13 @@ export function NutritionSetup({
             }
             setBusy(true);
             try {
+              const stored = mealsChoiceToStored(meals);
               await onSubmit({
-                mealsPerDay: meals,
+                mealsPerDay: stored.mealsPerDay,
                 preferred: preferredTokens,
                 excluded: excludedTokens,
+                recipeComplexity: complexity,
+                mealPattern: stored.pattern,
               });
             } finally {
               setBusy(false);

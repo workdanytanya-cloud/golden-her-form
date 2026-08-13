@@ -21,6 +21,14 @@ import {
 } from "@/lib/nutrition-repo";
 import { calcTargets, type DayEntry } from "@/lib/nutrition";
 import { mergeUnique, normalizeFoodTerms } from "@/lib/food-products";
+import {
+  complexityLabel,
+  decodePlanMeta,
+  mealsChoiceFromPlan,
+  mealsChoiceLabel,
+  type RecipeComplexity,
+  type MealPattern,
+} from "@/lib/plan-options";
 
 export const Route = createFileRoute("/_authenticated/dashboard/nutrition")({
   component: NutritionPage,
@@ -120,6 +128,8 @@ function NutritionInner() {
     mealsPerDay: 3 | 5;
     preferred: string[];
     excluded: string[];
+    recipeComplexity: RecipeComplexity;
+    mealPattern: MealPattern;
   }) => {
     if (!effectiveUserId) return;
     try {
@@ -139,6 +149,8 @@ function NutritionInner() {
         targets,
         targetsManual: plan?.targets_manual,
         dishes: await loadDishes(),
+        recipeComplexity: opts.recipeComplexity,
+        mealPattern: opts.mealPattern,
       });
       await reload();
       setShowSetup(false);
@@ -150,12 +162,15 @@ function NutritionInner() {
 
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем меню…</div>;
 
+  const planMeta = decodePlanMeta(plan?.preferred_products);
+  const mealsChoice = mealsChoiceFromPlan(plan?.meals_per_day, plan?.preferred_products);
+
   if (!plan || showSetup) {
     return (
       <div className="space-y-8">
         <FoodSwapGuide />
         <NutritionSetup
-          initialMeals={(plan?.meals_per_day as 3 | 5) ?? 5}
+          initialMeals={mealsChoice}
           initialPreferred={plan?.preferred_products}
           initialExcluded={(plan?.excluded_products ?? []).filter(
             (p) => !autoExcluded.includes(p),
@@ -182,7 +197,7 @@ function NutritionInner() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
         <p className="text-sm text-warm-gray">
-          {plan.meals_per_day === 3 ? "3 приёма пищи" : "5 приёмов пищи"} · целевые{" "}
+          {mealsChoiceLabel(mealsChoice)} · {complexityLabel(planMeta.complexity)} · целевые{" "}
           <b className="text-ivory">{plan.target_kcal}</b> ккал
         </p>
         <button
@@ -212,6 +227,7 @@ function NutritionInner() {
           carbs_g: plan.target_carbs_g,
         }}
         mealsPerDay={plan.meals_per_day as 3 | 5}
+        mealPattern={planMeta.pattern}
         editable={false}
       />
     </div>
