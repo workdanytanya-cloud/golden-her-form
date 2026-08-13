@@ -28,6 +28,7 @@ import {
   WEEKDAY_LABELS,
   type ProgramGoal,
 } from "@/lib/training";
+import { getVideoEmbedUrl, isDirectVideoFile } from "@/lib/video-embed";
 
 type SectionKey = "warmup" | "exercises" | "cooldown";
 
@@ -646,7 +647,7 @@ function SectionBlock({
                 >
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gold/10 text-gold">
                     {e.gif_url ? (
-                      /\.(mp4|webm|mov|m4v)(\?|$)/i.test(e.gif_url) ? (
+                      isDirectVideoFile(e.gif_url) ? (
                         <video
                           src={e.gif_url}
                           autoPlay
@@ -679,18 +680,18 @@ function SectionBlock({
                     )}
                   </div>
                 </button>
-                <div className="hidden shrink-0 items-center gap-4 pr-1 text-right text-xs sm:flex">
-                  <div>
-                    <p className="font-display text-lg text-ivory">
+                <div className="hidden min-w-0 max-w-[12rem] shrink items-start gap-3 pr-1 text-right text-xs sm:flex">
+                  <div className="min-w-0">
+                    <p className="break-words font-display text-base leading-snug text-ivory">
                       {s.sets}
                       <span className="text-warm-gray">×</span>
                       {s.reps}
                     </p>
-                    <p className="text-[10px] uppercase tracking-widest text-warm-gray">
+                    <p className="mt-0.5 text-[10px] uppercase tracking-widest text-warm-gray">
                       подходы×повт.
                     </p>
                   </div>
-                  <div>
+                  <div className="shrink-0 pt-0.5">
                     <p className="inline-flex items-center gap-1 text-warm-gray">
                       <Timer className="h-3 w-3" /> {s.rest_seconds}с
                     </p>
@@ -701,8 +702,8 @@ function SectionBlock({
                     )}
                   </div>
                 </div>
-                <div className="flex sm:hidden shrink-0 flex-col items-end text-right">
-                  <p className="font-display text-sm text-ivory">
+                <div className="flex max-w-[42%] shrink-0 flex-col items-end text-right sm:hidden">
+                  <p className="break-words font-display text-sm leading-snug text-ivory">
                     {s.sets}×{s.reps}
                   </p>
                   <p className="text-[10px] text-warm-gray">{s.rest_seconds}с</p>
@@ -939,7 +940,7 @@ function ExerciseDialog({
             <span>
               Подходы: <b className="text-ivory">{set.sets}</b>
             </span>
-            <span>
+            <span className="min-w-0 break-words">
               Повторы: <b className="text-ivory">{set.reps}</b>
             </span>
             <span>
@@ -1109,7 +1110,87 @@ function MediaCard({
   placeholder: React.ReactNode;
 }) {
   const [zoom, setZoom] = useState(false);
-  const isVideoFile = url ? isVideo || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url) : false;
+  const embedUrl = url ? getVideoEmbedUrl(url) : null;
+  const isFile = url ? isDirectVideoFile(url) : false;
+
+  const media = (() => {
+    if (!url) return null;
+    if (embedUrl) {
+      return (
+        <iframe
+          src={embedUrl}
+          title={label}
+          className="h-full w-full border-0"
+          allow="clipboard-write; autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; web-share;"
+          allowFullScreen
+        />
+      );
+    }
+    if (isFile) {
+      return (
+        <video
+          src={url}
+          autoPlay={!isVideo}
+          loop={!isVideo}
+          muted={!isVideo}
+          playsInline
+          controls={!!isVideo}
+          className="h-full w-full object-contain"
+        />
+      );
+    }
+    if (isVideo) {
+      return (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-4 text-center">
+          {placeholder}
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1.5 text-[10px] uppercase tracking-widest text-gold hover:bg-gold/20"
+          >
+            Открыть видео
+          </a>
+        </div>
+      );
+    }
+    return <img src={url} alt={label} className="h-full w-full object-contain" />;
+  })();
+
+  const zoomMedia = (() => {
+    if (!url) return null;
+    if (embedUrl) {
+      return (
+        <iframe
+          src={embedUrl}
+          title={label}
+          className="aspect-video w-full max-h-[90vh] rounded-2xl border-0"
+          allow="clipboard-write; autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; web-share;"
+          allowFullScreen
+        />
+      );
+    }
+    if (isFile) {
+      return (
+        <video
+          src={url}
+          autoPlay
+          loop={!isVideo}
+          muted={!isVideo}
+          playsInline
+          controls
+          className="max-h-[90vh] max-w-[95vw] rounded-2xl object-contain"
+        />
+      );
+    }
+    return (
+      <img
+        src={url}
+        alt={label}
+        className="max-h-[90vh] max-w-[95vw] rounded-2xl object-contain"
+      />
+    );
+  })();
 
   return (
     <>
@@ -1117,19 +1198,7 @@ function MediaCard({
         <div className="relative flex aspect-video items-center justify-center bg-background/60 text-warm-gray">
           {url ? (
             <>
-              {isVideoFile ? (
-                <video
-                  src={url}
-                  autoPlay={!isVideo}
-                  loop={!isVideo}
-                  muted={!isVideo}
-                  playsInline
-                  controls={!!isVideo}
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <img src={url} alt={label} className="h-full w-full object-contain" />
-              )}
+              {media}
               <button
                 type="button"
                 onClick={() => setZoom(true)}
@@ -1167,26 +1236,10 @@ function MediaCard({
             <X className="h-5 w-5" />
           </button>
           <div
-            className="flex max-h-full max-w-full items-center justify-center"
+            className="flex max-h-full w-full max-w-5xl items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {isVideoFile ? (
-              <video
-                src={url}
-                autoPlay
-                loop={!isVideo}
-                muted={!isVideo}
-                playsInline
-                controls
-                className="max-h-[90vh] max-w-[95vw] rounded-2xl object-contain"
-              />
-            ) : (
-              <img
-                src={url}
-                alt={label}
-                className="max-h-[90vh] max-w-[95vw] rounded-2xl object-contain"
-              />
-            )}
+            {zoomMedia}
           </div>
         </div>
       )}
