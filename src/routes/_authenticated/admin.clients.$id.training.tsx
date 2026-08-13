@@ -129,7 +129,7 @@ function AdminTrainingPage() {
     };
     try {
       const customDays = buildCoachSheetProgramDays(exercises, input);
-      await createOrReplaceCustomProgram({
+      const result = await createOrReplaceCustomProgram({
         userId: id,
         input: { ...input, sessions_per_week: 3 },
         days: customDays,
@@ -139,7 +139,14 @@ function AdminTrainingPage() {
         targetsManual: true,
       });
       await reload();
-      toast.success(`Программа из таблицы на ${COACH_PROGRAM_WEEKS} нед. сохранена`);
+      if (!result.multiWeek && COACH_PROGRAM_WEEKS > 1) {
+        toast.warning(
+          "Сохранена 1-я неделя. Для полного 4-недельного цикла выполните SQL в Supabase (файл production-fix-training-weeks.sql) и нажмите кнопку снова.",
+          { duration: 12000 },
+        );
+      } else {
+        toast.success(`Программа из таблицы на ${COACH_PROGRAM_WEEKS} нед. сохранена`);
+      }
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -228,6 +235,7 @@ function AdminTrainingPage() {
           <ParamsEditor
           program={program}
           profile={profile}
+          onApplyCoachSheet={() => void handleApplyCoachSheet()}
           onSaveTargets={async (sessions, goal, level) => {
             await handleRegenerate({ sessions_per_week: sessions, goal, level });
           }}
@@ -266,15 +274,6 @@ function AdminTrainingPage() {
         </div>
       ) : (
         <>
-          <div className="flex flex-wrap justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => void handleApplyCoachSheet()}
-              className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
-            >
-              <Sparkles className="h-3.5 w-3.5" /> Таблица тренера · 4 нед.
-            </button>
-          </div>
           <TrainingView
             exercises={exercises}
             days={programDays}
@@ -287,7 +286,6 @@ function AdminTrainingPage() {
             editable={true}
             onDayPatch={handleDayPatch}
             onProgramPatch={handleProgramPatch}
-            onRegenerate={() => handleRegenerate()}
           />
         </>
       )}
@@ -298,6 +296,7 @@ function AdminTrainingPage() {
 function ParamsEditor({
   program,
   profile,
+  onApplyCoachSheet,
   onSaveTargets,
   onLock,
   onSaveNotes,
@@ -309,6 +308,7 @@ function ParamsEditor({
     level: ProgramLevel;
     weight_kg?: number | null;
   };
+  onApplyCoachSheet: () => void;
   onSaveTargets: (sessions: 3 | 4, goal: ProgramGoal, level: ProgramLevel) => Promise<void>;
   onLock: () => Promise<void>;
   onSaveNotes: (notes: string | null) => Promise<void>;
@@ -392,6 +392,13 @@ function ParamsEditor({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onApplyCoachSheet}
+          className="inline-flex items-center gap-2 rounded-full border border-gold/40 px-4 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
+        >
+          <Sparkles className="h-3.5 w-3.5" /> Программа из таблицы (4 нед.)
+        </button>
         <button
           type="button"
           onClick={() => void onSaveTargets(sessions, goal, level)}
