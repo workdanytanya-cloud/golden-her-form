@@ -190,7 +190,11 @@ export async function createOrReplaceProgram(params: {
     programId = data.id;
   }
 
-  await supabase.from("training_program_days").delete().eq("program_id", programId);
+  const { error: delErr } = await supabase
+    .from("training_program_days")
+    .delete()
+    .eq("program_id", programId);
+  if (delErr) throw delErr;
   const rows = generatedDays.map((d) => ({
     program_id: programId,
     day_index: d.day_index,
@@ -215,18 +219,36 @@ export async function updateDayPatch(
   patch: Partial<
     Pick<
       DayRow,
-      "title" | "focus" | "description" | "warmup" | "exercises" | "cooldown" | "day_note"
+      | "title"
+      | "focus"
+      | "description"
+      | "warmup"
+      | "exercises"
+      | "cooldown"
+      | "day_note"
+      | "is_rest"
     >
   >,
 ) {
   const dbPatch: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(patch)) dbPatch[k] = v as unknown;
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("training_program_days")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .update(dbPatch as any)
     .eq("program_id", programId)
-    .eq("day_index", dayIndex);
+    .eq("day_index", dayIndex)
+    .select("id");
+  if (error) throw error;
+  if (!data?.length) throw new Error("День программы не найден — изменения не сохранились");
+}
+
+/** Любая правка тренера фиксирует программу: клиентский кабинет больше не пересобирает её. */
+export async function lockProgramManual(programId: string) {
+  const { error } = await supabase
+    .from("training_programs")
+    .update({ targets_manual: true })
+    .eq("id", programId);
   if (error) throw error;
 }
 

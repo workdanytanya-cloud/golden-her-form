@@ -12,6 +12,7 @@ import {
   createOrReplaceProgram,
   updateDayPatch,
   updateProgramPatch,
+  lockProgramManual,
   type ProgramRow,
   type DayRow,
   type Exercise,
@@ -91,16 +92,18 @@ function AdminTrainingPage() {
       ...overrides,
     };
     try {
+      // Админская сборка всегда фиксирует программу — иначе клиентский кабинет
+      // может пересобрать её и стереть правки тренера.
       await createOrReplaceProgram({
         userId: id,
         input,
         exercises,
         preserveNotes: program?.notes ?? null,
         preserveFaq: program?.faq ?? null,
-        targetsManual: overrides ? true : program?.targets_manual,
+        targetsManual: true,
       });
       await reload();
-      toast.success("Программа собрана заново");
+      toast.success("Программа сохранена. Клиент увидит её после открытия доступа.");
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -108,16 +111,30 @@ function AdminTrainingPage() {
 
   const handleDayPatch = async (dayIndex: number, patch: Partial<ProgramDay>) => {
     if (!program) return;
-    await updateDayPatch(program.id, dayIndex, patch);
-    setDays((cur) =>
-      cur.map((d) => (d.day_index === dayIndex ? { ...d, ...(patch as Partial<DayRow>) } : d)),
-    );
+    try {
+      await updateDayPatch(program.id, dayIndex, patch);
+      await lockProgramManual(program.id);
+      setDays((cur) =>
+        cur.map((d) => (d.day_index === dayIndex ? { ...d, ...(patch as Partial<DayRow>) } : d)),
+      );
+      setProgram((p) => (p ? { ...p, targets_manual: true } : p));
+    } catch (e) {
+      toast.error((e as Error).message || "Не удалось сохранить день");
+      throw e;
+    }
   };
 
   const handleProgramPatch = async (patch: { notes?: string | null; faq?: FaqItem[] }) => {
     if (!program) return;
-    await updateProgramPatch(program.id, patch);
-    setProgram((p) => (p ? { ...p, ...patch, faq: patch.faq ?? p.faq } : p));
+    try {
+      await updateProgramPatch(program.id, { ...patch, targets_manual: true });
+      setProgram((p) =>
+        p ? { ...p, ...patch, faq: patch.faq ?? p.faq, targets_manual: true } : p,
+      );
+    } catch (e) {
+      toast.error((e as Error).message || "Не удалось сохранить");
+      throw e;
+    }
   };
 
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем…</div>;
@@ -147,7 +164,7 @@ function AdminTrainingPage() {
       <PanelHeader
         eyebrow="Программа тренировок"
         title={profileName}
-        description="Меняй упражнения, подходы, повторы и комментарии. Клиент видит изменения сразу."
+        description="Меняйте упражнения, подходы и дни. После сохранения программа фиксируется — клиент увидит её сразу (если доступ уже открыт)."
       />
 
       {program && profile && (
@@ -156,6 +173,11 @@ function AdminTrainingPage() {
           profile={profile}
           onSaveTargets={async (sessions, goal, level) => {
             await handleRegenerate({ sessions_per_week: sessions, goal, level });
+          }}
+          onLock={async () => {
+            await updateProgramPatch(program.id, { targets_manual: true });
+            setProgram((p) => (p ? { ...p, targets_manual: true } : p));
+            toast.success("Программа зафиксирована для клиента");
           }}
           onSaveNotes={async (notes) => {
             await handleProgramPatch({ notes });
@@ -198,6 +220,7 @@ function ParamsEditor({
   program,
   profile,
   onSaveTargets,
+  onLock,
   onSaveNotes,
 }: {
   program: ProgramRow;
@@ -208,6 +231,7 @@ function ParamsEditor({
     weight_kg?: number | null;
   };
   onSaveTargets: (sessions: 3 | 4, goal: ProgramGoal, level: ProgramLevel) => Promise<void>;
+  onLock: () => Promise<void>;
   onSaveNotes: (notes: string | null) => Promise<void>;
 }) {
   const [sessions, setSessions] = useState<3 | 4>(program.sessions_per_week as 3 | 4);
@@ -231,9 +255,13 @@ function ParamsEditor({
               : ""}
           </p>
         </div>
-        {program.targets_manual && (
+        {program.targets_manual ? (
           <span className="rounded-full bg-gold/15 px-3 py-1 text-[10px] uppercase tracking-widest text-gold">
-            Зафиксировано вручную
+            Сохранено для клиента
+          </span>
+        ) : (
+          <span className="rounded-full bg-warm-gray/15 px-3 py-1 text-[10px] uppercase tracking-widest text-warm-gray">
+            Черновик — ещё не зафиксирован
           </span>
         )}
       </div>
@@ -292,6 +320,15 @@ function ParamsEditor({
         >
           <Sparkles className="h-3.5 w-3.5" /> Пересобрать под эти параметры
         </button>
+        {!program.targets_manual && (
+          <button
+            type="button"
+            onClick={() => void onLock()}
+            className="inline-flex items-center gap-2 rounded-full border border-gold/40 px-4 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
+          >
+            <Save className="h-3.5 w-3.5" /> Зафиксировать текущую без пересборки
+          </button>
+        )}
       </div>
 
       <label className="mt-6 block">

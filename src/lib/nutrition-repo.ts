@@ -223,7 +223,11 @@ export async function createOrReplacePlan(params: {
     planId = data.id;
   }
 
-  await supabase.from("nutrition_plan_days").delete().eq("plan_id", planId);
+  const { error: delErr } = await supabase
+    .from("nutrition_plan_days")
+    .delete()
+    .eq("plan_id", planId);
+  if (delErr) throw delErr;
   const dayRows = days.map((d) => ({
     plan_id: planId,
     day_index: d.day_index,
@@ -244,12 +248,23 @@ export async function updateDayMeals(
 ) {
   const patch: Record<string, unknown> = { meals: meals as unknown };
   if (dayNote !== undefined) patch.day_note = dayNote;
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("nutrition_plan_days")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .update(patch as any)
     .eq("plan_id", planId)
-    .eq("day_index", dayIndex);
+    .eq("day_index", dayIndex)
+    .select("id");
+  if (error) throw error;
+  if (!data?.length) throw new Error("День меню не найден — изменения не сохранились");
+}
+
+/** Правка тренера фиксирует план: клиентский кабинет больше не пересобирает меню. */
+export async function lockPlanManual(planId: string) {
+  const { error } = await supabase
+    .from("nutrition_plans")
+    .update({ targets_manual: true })
+    .eq("id", planId);
   if (error) throw error;
 }
 

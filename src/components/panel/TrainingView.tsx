@@ -353,6 +353,25 @@ function DaySection({
         <p className="eyebrow">День отдыха</p>
         <h3 className="mt-2 font-display text-2xl text-ivory">{day.title}</h3>
         <p className="mt-3 mx-auto max-w-xl text-sm text-warm-gray">{day.description}</p>
+        {editable && (
+          <button
+            type="button"
+            onClick={() =>
+              void onPatch({
+                is_rest: false,
+                title: "Тренировка",
+                focus: "Силовая",
+                description: "Добавьте упражнения в разминку, основную часть и заминку.",
+                warmup: [],
+                exercises: [],
+                cooldown: [],
+              }).then(() => toast.success("День стал тренировочным — добавьте упражнения"))
+            }
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-xs uppercase tracking-widest text-background"
+          >
+            <Dumbbell className="h-3.5 w-3.5" /> Сделать тренировочным днём
+          </button>
+        )}
       </div>
     );
   }
@@ -371,6 +390,25 @@ function DaySection({
               </p>
             )}
           </div>
+          {editable && (
+            <button
+              type="button"
+              onClick={() =>
+                void onPatch({
+                  is_rest: true,
+                  title: "Отдых",
+                  focus: "Восстановление",
+                  description: "День восстановления. Лёгкая прогулка и сон.",
+                  warmup: [],
+                  exercises: [],
+                  cooldown: [],
+                }).then(() => toast.success("День отмечен как отдых"))
+              }
+              className="shrink-0 rounded-full border border-gold/30 px-3 py-1.5 text-[10px] uppercase tracking-widest text-warm-gray hover:border-coral/40 hover:text-coral"
+            >
+              Сделать днём отдыха
+            </button>
+          )}
         </div>
       </div>
 

@@ -14,6 +14,7 @@ import {
   extractExcludedFromText,
   createOrReplacePlan,
   updateDayMeals,
+  lockPlanManual,
   replaceMeal,
   scalePortionForSwap,
   type PlanRow,
@@ -83,12 +84,12 @@ function AdminNutritionPage() {
         preferred: opts.preferred,
         excluded: autoExcluded,
         targets,
-        targetsManual: plan?.targets_manual,
+        targetsManual: true,
         dishes: await loadDishes(),
       });
       await reload();
       setShowSetup(false);
-      toast.success("Меню обновлено");
+      toast.success("Меню сохранено. Клиент увидит его после открытия доступа.");
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -96,17 +97,28 @@ function AdminNutritionPage() {
 
   const dishesById = Object.fromEntries(dishes.map((d) => [d.id, d]));
 
-  const patchDay = async (dayIndex: number, mutator: (meals: DayRow["meals"]) => DayRow["meals"], note?: string) => {
+  const patchDay = async (
+    dayIndex: number,
+    mutator: (meals: DayRow["meals"]) => DayRow["meals"],
+    note?: string,
+  ) => {
     if (!plan) return;
     const day = days.find((d) => d.day_index === dayIndex);
     if (!day) return;
     const nextMeals = mutator(day.meals);
-    await updateDayMeals(plan.id, dayIndex, nextMeals, note);
-    setDays((cur) =>
-      cur.map((d) =>
-        d.day_index === dayIndex ? { ...d, meals: nextMeals, day_note: note ?? d.day_note } : d,
-      ),
-    );
+    try {
+      await updateDayMeals(plan.id, dayIndex, nextMeals, note);
+      await lockPlanManual(plan.id);
+      setDays((cur) =>
+        cur.map((d) =>
+          d.day_index === dayIndex ? { ...d, meals: nextMeals, day_note: note ?? d.day_note } : d,
+        ),
+      );
+      setPlan((p) => (p ? { ...p, targets_manual: true } : p));
+    } catch (e) {
+      toast.error((e as Error).message || "Не удалось сохранить день меню");
+      throw e;
+    }
   };
 
   const handleSwap = async (dayIndex: number, slot: Slot, newDishId: string) => {
@@ -153,7 +165,7 @@ function AdminNutritionPage() {
       <PanelHeader
         eyebrow="Меню"
         title={profileName}
-        description="Индивидуальный план питания. Замены и порции пересчитывают КБЖУ дня автоматически."
+        description="Меняйте блюда и порции. После сохранения меню фиксируется — клиент увидит его сразу (если доступ уже открыт)."
         action={
           plan && (
             <button
