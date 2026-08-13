@@ -1,15 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Settings2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
 import { NutritionView } from "@/components/panel/NutritionView";
-import { NutritionSetup } from "@/components/panel/NutritionSetup";
 import { FoodSwapGuide } from "@/components/panel/FoodSwapGuide";
 import { useAuth } from "@/lib/auth";
 import {
-  loadDishes,
   loadDishesForClient,
   loadPlanFor,
   loadTargetProfile,
@@ -18,19 +16,18 @@ import {
   updateDayMeals,
   replaceMeal,
   scalePortionForSwap,
+  dishIdsFromPlanDays,
   type PlanRow,
   type DayRow,
   type Dish,
 } from "@/lib/nutrition-repo";
-import { calcTargets, type DayEntry, type Slot } from "@/lib/nutrition";
-import { mergeUnique, normalizeFoodTerms } from "@/lib/food-products";
+import { type DayEntry, type Slot } from "@/lib/nutrition";
+import { mergeUnique } from "@/lib/food-products";
 import {
   complexityLabel,
   decodePlanMeta,
   mealsChoiceFromPlan,
   mealsChoiceLabel,
-  type RecipeComplexity,
-  type MealPattern,
 } from "@/lib/plan-options";
 
 export const Route = createFileRoute("/_authenticated/dashboard/nutrition")({
@@ -43,7 +40,7 @@ function NutritionPage() {
       <PanelHeader
         eyebrow="Курс"
         title="Питание"
-        description="Персональное недельное меню на основе анкеты, любимых продуктов и целевого КБЖУ."
+        description="Фиксированное меню на 4 недели. Состав меняет тренер; вы можете только перетасовать уже подобранные блюда."
       />
       <AccessGate level="active">
         <NutritionInner />
@@ -55,70 +52,26 @@ function NutritionPage() {
 function NutritionInner() {
   const { effectiveUserId } = useAuth();
   const [dishes, setDishes] = useState<Dish[]>([]);
-  const [swapDishes, setSwapDishes] = useState<Dish[]>([]);
   const [plan, setPlan] = useState<PlanRow | null>(null);
   const [days, setDays] = useState<DayRow[]>([]);
-  const [suggested, setSuggested] = useState({ kcal: 0, protein_g: 0, fat_g: 0, carbs_g: 0 });
   const [autoExcluded, setAutoExcluded] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSetup, setShowSetup] = useState(false);
+  const [reshuffling, setReshuffling] = useState(false);
 
   const reload = async () => {
     if (!effectiveUserId) return;
     setLoading(true);
     const p = await loadPlanFor(effectiveUserId);
     const planIds = p.days.flatMap((d) => d.meals.map((m) => m.dish_id));
-    const [{ all, pool }, prof] = await Promise.all([
+    const [{ all }, prof] = await Promise.all([
       loadDishesForClient(effectiveUserId, planIds),
       loadTargetProfile(effectiveUserId),
     ]);
-    const d = all;
-    const freshTargets = calcTargets(prof);
-    const freshExcluded = extractExcludedFromText(prof.allergies, prof.disliked_foods);
-
-    // Auto-refresh: если анкета/замеры изменились и КБЖУ не зафиксированы тренером —
-    // пересобираем план под новые цифры.
-    let finalPlan = p.plan;
-    let finalDays = p.days;
-    if (p.plan && !p.plan.targets_manual) {
-      const targetsChanged =
-        p.plan.target_kcal !== freshTargets.kcal ||
-        p.plan.target_protein_g !== freshTargets.protein_g ||
-        p.plan.target_fat_g !== freshTargets.fat_g ||
-        p.plan.target_carbs_g !== freshTargets.carbs_g;
-      const excludedChanged =
-        [...(p.plan.excluded_products ?? [])].sort().join("|") !==
-        [...freshExcluded].sort().join("|");
-      if (targetsChanged || excludedChanged) {
-        try {
-          const res = await createOrReplacePlan({
-            userId: effectiveUserId,
-            mealsPerDay: (p.plan.meals_per_day as 3 | 5),
-            preferred: p.plan.preferred_products ?? [],
-            excluded: mergeUnique(freshExcluded, p.plan.excluded_products),
-            targets: freshTargets,
-            targetsManual: false,
-            dishes: await loadDishes(),
-          });
-          finalPlan = res.plan;
-          finalDays = res.days;
-          toast.success(
-            targetsChanged
-              ? `Меню обновлено под новую норму ${freshTargets.kcal} ккал`
-              : "Меню обновлено под новые ограничения по продуктам",
-          );
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    }
-
-    setDishes(d);
-    setSwapDishes(pool);
-    setPlan(finalPlan);
-    setDays(finalDays);
-    setSuggested(freshTargets);
-    setAutoExcluded(freshExcluded);
+    // Клиент только читает план: без авто-пересборки при открытии страницы.
+    setDishes(all);
+    setPlan(p.plan);
+    setDays(p.days);
+    setAutoExcluded(extractExcludedFromText(prof.allergies, prof.disliked_foods));
     setLoading(false);
   };
 
@@ -127,66 +80,56 @@ function NutritionInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId]);
 
-  const handleGenerate = async (opts: {
-    mealsPerDay: 3 | 5;
-    preferred: string[];
-    excluded: string[];
-    recipeComplexity: RecipeComplexity;
-    mealPattern: MealPattern;
-  }) => {
-    if (!effectiveUserId) return;
+  const planDishIds = useMemo(() => dishIdsFromPlanDays(days), [days]);
+  const swapPool = useMemo(() => {
+    if (!planDishIds.length) return dishes;
+    const allow = new Set(planDishIds);
+    return dishes.filter((d) => allow.has(d.id));
+  }, [dishes, planDishIds]);
+
+  const handleReshuffle = async () => {
+    if (!effectiveUserId || !plan) return;
+    setReshuffling(true);
     try {
-      const targets = plan?.targets_manual
-        ? {
-            kcal: plan.target_kcal,
-            protein_g: plan.target_protein_g,
-            fat_g: plan.target_fat_g,
-            carbs_g: plan.target_carbs_g,
-          }
-        : suggested;
+      const meta = decodePlanMeta(plan.preferred_products);
       await createOrReplacePlan({
         userId: effectiveUserId,
-        mealsPerDay: opts.mealsPerDay,
-        preferred: normalizeFoodTerms(opts.preferred),
-        excluded: mergeUnique(autoExcluded, normalizeFoodTerms(opts.excluded)),
-        targets,
-        targetsManual: plan?.targets_manual,
-        dishes: await loadDishes(),
-        recipeComplexity: opts.recipeComplexity,
-        mealPattern: opts.mealPattern,
+        mealsPerDay: plan.meals_per_day as 3 | 5,
+        preferred: plan.preferred_products ?? [],
+        excluded: mergeUnique(autoExcluded, plan.excluded_products ?? []),
+        targets: {
+          kcal: plan.target_kcal,
+          protein_g: plan.target_protein_g,
+          fat_g: plan.target_fat_g,
+          carbs_g: plan.target_carbs_g,
+        },
+        targetsManual: true,
+        dishes,
+        recipeComplexity: meta.complexity,
+        mealPattern: meta.pattern,
+        restrictToDishIds: planDishIds,
       });
       await reload();
-      setShowSetup(false);
-      toast.success("Меню готово!");
+      toast.success("Меню перетасовано из ваших подобранных блюд");
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setReshuffling(false);
     }
   };
 
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем меню…</div>;
 
-  const planMeta = decodePlanMeta(plan?.preferred_products);
-  const mealsChoice = mealsChoiceFromPlan(plan?.meals_per_day, plan?.preferred_products);
-
-  if (!plan || showSetup) {
+  if (!plan || days.length === 0) {
     return (
-      <div className="space-y-8">
-        <FoodSwapGuide />
-        <NutritionSetup
-          initialMeals={mealsChoice}
-          initialPreferred={plan?.preferred_products}
-          initialExcluded={(plan?.excluded_products ?? []).filter(
-            (p) => !autoExcluded.includes(p),
-          )}
-          suggestedTargets={suggested}
-          autoExcluded={autoExcluded}
-          onCancel={plan ? () => setShowSetup(false) : undefined}
-          onSubmit={handleGenerate}
-          submitLabel={plan ? "Пересобрать меню" : "Показать рацион"}
-        />
+      <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center text-warm-gray">
+        Меню пока не назначено. Тренер соберёт фиксированный рацион на 4 недели.
       </div>
     );
   }
+
+  const planMeta = decodePlanMeta(plan.preferred_products);
+  const mealsChoice = mealsChoiceFromPlan(plan.meals_per_day, plan.preferred_products);
 
   const dayEntries: DayEntry[] = days.map((d) => ({
     day_index: d.day_index,
@@ -198,6 +141,10 @@ function NutritionInner() {
 
   const handleSwap = async (dayIndex: number, slot: Slot, newDishId: string) => {
     if (!plan) return;
+    if (planDishIds.length && !planDishIds.includes(newDishId)) {
+      toast.error("Можно выбирать только блюда из вашего назначенного рациона");
+      return;
+    }
     const day = days.find((d) => d.day_index === dayIndex);
     const meal = day?.meals.find((m) => m.slot === slot);
     const oldDish = meal ? dishesById[meal.dish_id] : null;
@@ -232,10 +179,12 @@ function NutritionInner() {
         </p>
         <button
           type="button"
-          onClick={() => setShowSetup(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
+          disabled={reshuffling || planDishIds.length < 3}
+          onClick={() => void handleReshuffle()}
+          className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10 disabled:opacity-50"
         >
-          <Settings2 className="h-3.5 w-3.5" /> Изменить параметры
+          <RefreshCw className={`h-3.5 w-3.5 ${reshuffling ? "animate-spin" : ""}`} />
+          {reshuffling ? "Пересобираем…" : "Пересобрать меню"}
         </button>
       </div>
 
@@ -248,7 +197,7 @@ function NutritionInner() {
 
       <NutritionView
         dishes={dishes}
-        swapDishes={swapDishes}
+        swapDishes={swapPool}
         days={dayEntries}
         targets={{
           kcal: plan.target_kcal,

@@ -183,6 +183,8 @@ export async function createOrReplacePlan(params: {
   dishes: Dish[];
   recipeComplexity?: RecipeComplexity;
   mealPattern?: MealPattern;
+  /** Пересборка только из уже подобранных блюд плана (клиентский «пересобрать»). */
+  restrictToDishIds?: string[];
 }): Promise<{ plan: PlanRow; days: DayRow[] }> {
   const {
     userId,
@@ -194,6 +196,7 @@ export async function createOrReplacePlan(params: {
     dishes,
     recipeComplexity,
     mealPattern,
+    restrictToDishIds,
   } = params;
 
   const meta = decodePlanMeta(preferred);
@@ -203,7 +206,12 @@ export async function createOrReplacePlan(params: {
   const preferredStored = encodePlanMeta(foods, { complexity, pattern });
 
   const medicalTable = await loadMedicalDietTable(userId);
-  const pool = filterDishesForMedicalTable(dishes, medicalTable);
+  let pool = filterDishesForMedicalTable(dishes, medicalTable);
+  if (restrictToDishIds && restrictToDishIds.length > 0) {
+    const allow = new Set(restrictToDishIds);
+    const narrowed = pool.filter((d) => allow.has(d.id));
+    if (narrowed.length >= 3) pool = narrowed;
+  }
   if (pool.length === 0) {
     throw new Error(
       medicalTable
@@ -298,6 +306,16 @@ export async function updateDayMeals(
 }
 
 /** Правка тренера фиксирует план: клиентский кабинет больше не пересобирает меню. */
+export function dishIdsFromPlanDays(days: { meals: MealEntry[] }[]): string[] {
+  const ids = new Set<string>();
+  for (const d of days) {
+    for (const m of d.meals ?? []) {
+      if (m?.dish_id) ids.add(m.dish_id);
+    }
+  }
+  return [...ids];
+}
+
 export async function lockPlanManual(planId: string) {
   const { error } = await supabase
     .from("nutrition_plans")

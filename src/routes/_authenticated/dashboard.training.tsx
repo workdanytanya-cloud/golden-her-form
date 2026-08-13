@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
 import { TrainingView } from "@/components/panel/TrainingView";
@@ -8,10 +7,6 @@ import { useAuth } from "@/lib/auth";
 import {
   loadExercises,
   loadProgramFor,
-  loadProgramProfile,
-  createOrReplaceProgram,
-  isImpactOrJumpExercise,
-  needsJointCare,
   type ProgramRow,
   type DayRow,
   type Exercise,
@@ -20,38 +15,11 @@ import {
   type ProgramDay,
   type ProgramGoal,
   type ProgramLevel,
-  type ProgramInput,
 } from "@/lib/training";
 
 export const Route = createFileRoute("/_authenticated/dashboard/training")({
   component: TrainingPage,
 });
-
-function programInputFromProfile(prof: Awaited<ReturnType<typeof loadProgramProfile>>): ProgramInput {
-  return {
-    sessions_per_week: prof.sessions_per_week,
-    goal: prof.goal,
-    level: prof.level,
-    has_injuries: prof.has_injuries,
-    injuries_details: prof.injuries_details,
-    equipment: prof.equipment,
-    location: prof.location,
-    weight_kg: prof.weight_kg,
-  };
-}
-
-function programHasImpactMoves(days: DayRow[], exercises: Exercise[]): boolean {
-  const byId = new Map(exercises.map((e) => [e.id, e]));
-  for (const day of days) {
-    for (const block of [day.warmup, day.exercises, day.cooldown]) {
-      for (const set of block) {
-        const ex = byId.get(set.exercise_id);
-        if (ex && isImpactOrJumpExercise(ex)) return true;
-      }
-    }
-  }
-  return false;
-}
 
 function TrainingPage() {
   return (
@@ -59,7 +27,7 @@ function TrainingPage() {
       <PanelHeader
         eyebrow="Курс"
         title="Тренировки"
-        description="Персональная программа под твою цель. Разминка, силовой блок и заминка на каждый день — с техникой и рекомендациями."
+        description="Персональная программа на 4 недели. Состав меняет только тренер."
       />
       <AccessGate level="active">
         <TrainingInner />
@@ -74,90 +42,18 @@ function TrainingInner() {
   const [program, setProgram] = useState<ProgramRow | null>(null);
   const [days, setDays] = useState<DayRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
 
   const reload = async () => {
     if (!effectiveUserId) return;
     setLoading(true);
-    const [ex, p, prof] = await Promise.all([
+    const [ex, p] = await Promise.all([
       loadExercises(),
       loadProgramFor(effectiveUserId),
-      loadProgramProfile(effectiveUserId),
     ]);
-
-    let currentProgram = p.program;
-    let currentDays = p.days;
-    const input = programInputFromProfile(prof);
-
-    // Программа есть, но дни пропали — восстановить автогенерацией (кроме ручных правок тренера)
-    if (currentProgram && currentDays.length === 0 && !currentProgram.targets_manual) {
-      try {
-        setBusy(true);
-        const res = await createOrReplaceProgram({
-          userId: effectiveUserId,
-          input,
-          exercises: ex,
-          preserveNotes: currentProgram.notes,
-          preserveFaq: currentProgram.faq,
-        });
-        currentProgram = res.program;
-        currentDays = res.days;
-        toast.success("Программа восстановлена");
-      } catch (e) {
-        toast.error((e as Error).message);
-      } finally {
-        setBusy(false);
-      }
-    } else if (!currentProgram) {
-      try {
-        setBusy(true);
-        const res = await createOrReplaceProgram({
-          userId: effectiveUserId,
-          input,
-          exercises: ex,
-        });
-        currentProgram = res.program;
-        currentDays = res.days;
-        toast.success("Программа собрана под твою анкету");
-      } catch (e) {
-        toast.error((e as Error).message);
-      } finally {
-        setBusy(false);
-      }
-    } else if (!currentProgram.targets_manual) {
-      // Auto-refresh: анкета изменилась ИЛИ вес >85, а в программе ещё есть ударные/прыжки
-      const changed =
-        currentProgram.sessions_per_week !== prof.sessions_per_week ||
-        currentProgram.goal !== prof.goal ||
-        currentProgram.level !== prof.level ||
-        currentProgram.has_injuries !== prof.has_injuries;
-      const jointCareRefresh =
-        needsJointCare(input) && programHasImpactMoves(currentDays, ex);
-      if (changed || jointCareRefresh) {
-        try {
-          const res = await createOrReplaceProgram({
-            userId: effectiveUserId,
-            input,
-            exercises: ex,
-            preserveNotes: currentProgram.notes,
-            preserveFaq: currentProgram.faq,
-          });
-          currentProgram = res.program;
-          currentDays = res.days;
-          toast.success(
-            jointCareRefresh && !changed
-              ? "Программа обновлена: убраны ударные и прыжковые нагрузки"
-              : "Программа обновлена под изменения анкеты",
-          );
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    }
-
+    // Клиент только читает: не создаём и не пересобираем программу при открытии страницы.
     setExercises(ex);
-    setProgram(currentProgram);
-    setDays(currentDays);
+    setProgram(p.program);
+    setDays(p.days);
     setLoading(false);
   };
 
@@ -166,13 +62,12 @@ function TrainingInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId]);
 
-  if (loading || busy)
-    return <div className="py-10 text-center text-warm-gray">Собираем программу…</div>;
-  if (!program)
+  if (loading)
+    return <div className="py-10 text-center text-warm-gray">Загружаем программу…</div>;
+  if (!program || days.length === 0)
     return (
       <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center text-warm-gray">
-        Программа пока не создана. Заполни анкету и открой доступ — программа соберётся
-        автоматически.
+        Программа пока не назначена. Тренер соберёт для вас фиксированный блок на 4 недели.
       </div>
     );
 

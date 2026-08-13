@@ -22,6 +22,7 @@
     "exercises:verify-embed-http": "node --env-file=.env scripts/verify-embed-http.mjs --sample=25",
     "exercises:purge-bad-ru": "node --env-file=.env scripts/purge-bad-ru-exercises.mjs",
     "exercises:mirror-yt": "node --env-file=.env scripts/mirror-youtube-to-storage.mjs",
+    "plans:lock-all": "node --env-file=.env scripts/lock-all-client-plans.mjs",
     "exercises:import-sheet": "node scripts/fetch-exercises-sheet.mjs && node scripts/collect-panova-exercises.mjs && node scripts/parse-panova-4week.mjs && node scripts/generate-exercises-from-sheet.mjs && node scripts/verify-sheet-videos.mjs",
     "exercises:replace-mit": "node scripts/replace-exercises-mit.mjs",
     "exercises:import-edb": "echo Skip: MIT/ExerciseDB dumps disabled — use exercises:import-sheet && exit 1",
