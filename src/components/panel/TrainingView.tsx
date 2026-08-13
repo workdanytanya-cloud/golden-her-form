@@ -1317,22 +1317,40 @@ function MediaCard({
   placeholder: React.ReactNode;
 }) {
   const [zoom, setZoom] = useState(false);
-  const embedUrl = url ? getVideoEmbedUrl(url) : null;
+  const [failed, setFailed] = useState(false);
+  const embedUrl = url && !isDirectVideoFile(url) ? getVideoEmbedUrl(url) : null;
   const isFile = url ? isDirectVideoFile(url) : false;
+
+  useEffect(() => {
+    setFailed(false);
+  }, [url]);
+
+  // Если iframe/файл «висит» — через 20с показываем ссылку открыть снаружи
+  useEffect(() => {
+    if (!url || failed || isFile) return;
+    const t = window.setTimeout(() => setFailed(true), 20000);
+    return () => window.clearTimeout(t);
+  }, [url, failed, isFile]);
+
+  const fallbackLink = url ? (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-4 text-center">
+      {placeholder}
+      <p className="text-xs text-warm-gray">Видео не загрузилось в плеере</p>
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1.5 text-[10px] uppercase tracking-widest text-gold hover:bg-gold/20"
+      >
+        Открыть видео
+      </a>
+    </div>
+  ) : null;
 
   const media = (() => {
     if (!url) return null;
-    if (embedUrl) {
-      return (
-        <iframe
-          src={embedUrl}
-          title={label}
-          className="h-full w-full border-0"
-          allow="clipboard-write; autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; web-share;"
-          allowFullScreen
-        />
-      );
-    }
+    if (failed) return fallbackLink;
+    // Свои mp4 всегда приоритетнее внешних embed (YouTube/Rutube)
     if (isFile) {
       return (
         <video
@@ -1342,41 +1360,32 @@ function MediaCard({
           muted={!isVideo}
           playsInline
           controls={!!isVideo}
+          preload="metadata"
           className="h-full w-full object-contain"
+          onError={() => setFailed(true)}
+          onLoadedData={() => setFailed(false)}
         />
       );
     }
-    if (isVideo) {
-      return (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-4 text-center">
-          {placeholder}
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1.5 text-[10px] uppercase tracking-widest text-gold hover:bg-gold/20"
-          >
-            Открыть видео
-          </a>
-        </div>
-      );
-    }
-    return <img src={url} alt={label} className="h-full w-full object-contain" />;
-  })();
-
-  const zoomMedia = (() => {
-    if (!url) return null;
     if (embedUrl) {
       return (
         <iframe
           src={embedUrl}
           title={label}
-          className="aspect-video w-full max-h-[90vh] rounded-2xl border-0"
+          className="h-full w-full border-0"
           allow="clipboard-write; autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; web-share;"
           allowFullScreen
+          onLoad={() => setFailed(false)}
         />
       );
     }
+    if (isVideo) return fallbackLink;
+    return <img src={url} alt={label} className="h-full w-full object-contain" />;
+  })();
+
+  const zoomMedia = (() => {
+    if (!url) return null;
+    if (failed) return fallbackLink;
     if (isFile) {
       return (
         <video
@@ -1386,7 +1395,20 @@ function MediaCard({
           muted={!isVideo}
           playsInline
           controls
+          preload="metadata"
           className="max-h-[90vh] max-w-[95vw] rounded-2xl object-contain"
+          onError={() => setFailed(true)}
+        />
+      );
+    }
+    if (embedUrl) {
+      return (
+        <iframe
+          src={embedUrl}
+          title={label}
+          className="aspect-video w-full max-h-[90vh] rounded-2xl border-0"
+          allow="clipboard-write; autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; web-share;"
+          allowFullScreen
         />
       );
     }

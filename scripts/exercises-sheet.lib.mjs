@@ -209,6 +209,7 @@ export function getVideoEmbedUrl(url) {
       const p = u.searchParams.get("p");
       const embed = new URL(`https://rutube.ru/play/embed/${m[1]}/`);
       if (p) embed.searchParams.set("p", p);
+      embed.searchParams.set("skinColor", "000000");
       return embed.toString();
     }
     if (host === "youtube.com" || host === "m.youtube.com" || host === "youtube-nocookie.com") {

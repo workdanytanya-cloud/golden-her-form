@@ -11,6 +11,8 @@ export function getVideoEmbedUrl(url: string): string | null {
       const p = u.searchParams.get("p");
       const embed = new URL(`https://rutube.ru/play/embed/${m[1]}/`);
       if (p) embed.searchParams.set("p", p);
+      // Приватные ролики стабильнее с явным skin и без лишних параметров
+      embed.searchParams.set("skinColor", "000000");
       return embed.toString();
     }
 
@@ -38,7 +40,7 @@ export function getVideoEmbedUrl(url: string): string | null {
 export function isDirectVideoFile(url: string): boolean {
   if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)) return true;
   // Signed / public Supabase Storage video objects
-  if (/\/storage\/v1\/object\/(?:sign|public)\/media\/.*\.(mp4|webm|mov|m4v)/i.test(url)) {
+  if (/\/storage\/v1\/object\/(?:sign|public|authenticated)\/media\//i.test(url)) {
     return true;
   }
   return false;
