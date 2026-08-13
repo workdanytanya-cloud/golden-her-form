@@ -102,10 +102,14 @@ export function TrainingView({
     return first?.day_index ?? 0;
   });
 
+  // Только при смене недели — не сбрасывать день после правок упражнений
   useEffect(() => {
-    const first = weekDays.find((d) => !d.is_rest);
-    setDayIndex(first?.day_index ?? 0);
-  }, [weekIndex, weekDays]);
+    setDayIndex((current) => {
+      if (weekDays.some((d) => d.day_index === current)) return current;
+      const first = weekDays.find((d) => !d.is_rest);
+      return first?.day_index ?? 0;
+    });
+  }, [weekIndex]);
 
   const day =
     weekDays.find((d) => d.day_index === dayIndex) ??
