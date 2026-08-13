@@ -13,7 +13,13 @@ import {
   getDietPoolInfo,
 } from "@/lib/medical-diet-tables";
 import { SPECIAL_DIET_MENUS } from "@/lib/special-diet-menus";
-import { isRuNumberInRange, parseRuNumber } from "@/lib/ru-number";
+import {
+  isHeightCmInRange,
+  isRuNumberInRange,
+  parseHeightCm,
+  parseRuInt,
+  parseRuNumber,
+} from "@/lib/ru-number";
 
 export const Route = createFileRoute("/_authenticated/dashboard/onboarding")({
   component: OnboardingPage,
@@ -356,13 +362,15 @@ function OnboardingPage() {
   const buildPayload = (asCompleted: boolean) => {
     if (!effectiveUserId) return null;
     const num = (s: string) => parseRuNumber(s);
+    const int = (s: string) => parseRuInt(s);
     return {
       user_id: effectiveUserId,
       goal_primary: form.goal_primary || null,
       goal_details: form.goal_details.trim() || null,
       experience: form.experience || null,
-      training_days_per_week: num(form.training_days_per_week),
-      session_duration_min: num(form.session_duration_min),
+      // Postgres integer columns — дробные значения (напр. 1.5) ломают upsert.
+      training_days_per_week: int(form.training_days_per_week),
+      session_duration_min: int(form.session_duration_min),
       training_location: form.training_location || null,
       equipment: form.equipment,
       focus_areas: form.focus_areas,
@@ -372,12 +380,12 @@ function OnboardingPage() {
       medications: form.medications.trim() || null,
       pregnancy_status: form.pregnancy_status || null,
       sleep_hours: num(form.sleep_hours),
-      stress_level: num(form.stress_level),
-      energy_level: num(form.energy_level),
+      stress_level: int(form.stress_level),
+      energy_level: int(form.energy_level),
       water_liters: num(form.water_liters),
       diet_type: form.diet_type || null,
       allergies: form.allergies.trim() || null,
-      meals_per_day: num(form.meals_per_day),
+      meals_per_day: int(form.meals_per_day),
       favorite_foods: form.favorite_foods.trim() || null,
       disliked_foods: form.disliked_foods.trim() || null,
       alcohol_frequency: form.alcohol_frequency || null,
@@ -411,7 +419,7 @@ function OnboardingPage() {
     if (form.has_injuries && !form.injuries_details.trim()) {
       missing.push("injuries_details");
     }
-    if (form.height_cm.trim() && !isRuNumberInRange(form.height_cm, 120, 230)) {
+    if (form.height_cm.trim() && !isHeightCmInRange(form.height_cm)) {
       missing.push("height_cm");
     }
     if (form.weight_kg.trim() && !isRuNumberInRange(form.weight_kg, 30, 250)) {
@@ -422,7 +430,7 @@ function OnboardingPage() {
 
   const persistBodyMetrics = async () => {
     if (!effectiveUserId) return;
-    const height = parseRuNumber(form.height_cm);
+    const height = parseHeightCm(form.height_cm);
     const weight = parseRuNumber(form.weight_kg);
     if (height != null) {
       const { error } = await supabase
@@ -480,10 +488,10 @@ function OnboardingPage() {
       }
       setMissingKeys(new Set());
     } else if (
-      (form.height_cm.trim() && !isRuNumberInRange(form.height_cm, 120, 230)) ||
+      (form.height_cm.trim() && !isHeightCmInRange(form.height_cm)) ||
       (form.weight_kg.trim() && !isRuNumberInRange(form.weight_kg, 30, 250))
     ) {
-      toast.error("Проверьте рост (120–230 см) и вес (30–250 кг). Можно с запятой: 68,5");
+      toast.error("Проверьте рост (120–230 см или 1,65 м) и вес (30–250 кг). Можно с запятой: 68,5");
       return;
     }
     setSaving(true);
@@ -501,7 +509,11 @@ function OnboardingPage() {
       .upsert(payload, { onConflict: "user_id" });
     if (error) {
       setSaving(false);
-      return toast.error(error.message);
+      const friendly =
+        /invalid input syntax for type integer/i.test(error.message)
+          ? "В целочисленных полях (дни тренировок, приёмы пищи, рост в см) нельзя указывать дроби вроде 1,5. Исправьте и отправьте снова."
+          : error.message;
+      return toast.error(friendly);
     }
     if (asCompleted) {
       setCompleted(payload.completed_at as string);
@@ -684,6 +696,7 @@ function OnboardingPage() {
               type="number"
               min={0}
               max={7}
+              step={1}
               value={form.training_days_per_week}
               onChange={(e) => set("training_days_per_week", e.target.value)}
               className={inputCls}
@@ -695,6 +708,7 @@ function OnboardingPage() {
               type="number"
               min={10}
               max={180}
+              step={5}
               value={form.session_duration_min}
               onChange={(e) => set("session_duration_min", e.target.value)}
               className={inputCls}
@@ -949,6 +963,7 @@ function OnboardingPage() {
               type="number"
               min={1}
               max={10}
+              step={1}
               value={form.meals_per_day}
               onChange={(e) => set("meals_per_day", e.target.value)}
               className={inputCls}

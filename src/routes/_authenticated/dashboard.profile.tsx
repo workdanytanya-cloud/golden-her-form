@@ -6,7 +6,7 @@ import { PanelHeader } from "@/components/panel/PanelShell";
 import { SectionHint, FieldHint } from "@/components/panel/Hints";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
-import { isRuNumberInRange, parseRuNumber } from "@/lib/ru-number";
+import { isHeightCmInRange, isRuNumberInRange, parseHeightCm, parseRuNumber } from "@/lib/ru-number";
 import { JOINT_CARE_WEIGHT_KG } from "@/lib/training";
 
 export const Route = createFileRoute("/_authenticated/dashboard/profile")({
@@ -113,8 +113,8 @@ function ProfilePage() {
       toast.error("Укажите вес от 30 до 250 кг");
       return;
     }
-    if (form.height_cm.trim() && !isRuNumberInRange(form.height_cm, 120, 230)) {
-      toast.error("Укажите рост от 120 до 230 см");
+    if (form.height_cm.trim() && !isHeightCmInRange(form.height_cm)) {
+      toast.error("Укажите рост от 120 до 230 см (или 1,65 м)");
       return;
     }
     setSaving(true);
@@ -125,7 +125,7 @@ function ProfilePage() {
           full_name: form.full_name || null,
           phone: form.phone || null,
           goal: form.goal || null,
-          height_cm: form.height_cm ? parseRuNumber(form.height_cm) : null,
+          height_cm: form.height_cm ? parseHeightCm(form.height_cm) : null,
           birth_date: form.birth_date || null,
         })
         .eq("id", effectiveUserId);
