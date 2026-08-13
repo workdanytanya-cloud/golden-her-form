@@ -22,6 +22,7 @@ import {
   type Dish,
 } from "@/lib/nutrition-repo";
 import { calcTargets, type Slot, type NutritionTargets } from "@/lib/nutrition";
+import { mergeUnique, normalizeFoodTerms } from "@/lib/food-products";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/nutrition")({
   component: AdminNutritionPage,
@@ -68,7 +69,11 @@ function AdminNutritionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const handleGenerate = async (opts: { mealsPerDay: 3 | 5; preferred: string[] }) => {
+  const handleGenerate = async (opts: {
+    mealsPerDay: 3 | 5;
+    preferred: string[];
+    excluded: string[];
+  }) => {
     try {
       const targets = plan?.targets_manual
         ? {
@@ -81,8 +86,8 @@ function AdminNutritionPage() {
       await createOrReplacePlan({
         userId: id,
         mealsPerDay: opts.mealsPerDay,
-        preferred: opts.preferred,
-        excluded: autoExcluded,
+        preferred: normalizeFoodTerms(opts.preferred),
+        excluded: mergeUnique(autoExcluded, normalizeFoodTerms(opts.excluded)),
         targets,
         targetsManual: true,
         dishes: await loadDishes(),
@@ -237,6 +242,9 @@ function AdminNutritionPage() {
         <NutritionSetup
           initialMeals={(plan?.meals_per_day as 3 | 5) ?? 5}
           initialPreferred={plan?.preferred_products}
+          initialExcluded={(plan?.excluded_products ?? []).filter(
+            (p) => !autoExcluded.includes(p),
+          )}
           suggestedTargets={suggested}
           autoExcluded={autoExcluded}
           onCancel={plan ? () => setShowSetup(false) : undefined}

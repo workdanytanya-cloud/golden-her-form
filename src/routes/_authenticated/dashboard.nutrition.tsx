@@ -20,6 +20,7 @@ import {
   type Dish,
 } from "@/lib/nutrition-repo";
 import { calcTargets, type DayEntry } from "@/lib/nutrition";
+import { mergeUnique, normalizeFoodTerms } from "@/lib/food-products";
 
 export const Route = createFileRoute("/_authenticated/dashboard/nutrition")({
   component: NutritionPage,
@@ -83,7 +84,7 @@ function NutritionInner() {
             userId: effectiveUserId,
             mealsPerDay: (p.plan.meals_per_day as 3 | 5),
             preferred: p.plan.preferred_products ?? [],
-            excluded: freshExcluded,
+            excluded: mergeUnique(freshExcluded, p.plan.excluded_products),
             targets: freshTargets,
             targetsManual: false,
             dishes: await loadDishes(),
@@ -115,7 +116,11 @@ function NutritionInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId]);
 
-  const handleGenerate = async (opts: { mealsPerDay: 3 | 5; preferred: string[] }) => {
+  const handleGenerate = async (opts: {
+    mealsPerDay: 3 | 5;
+    preferred: string[];
+    excluded: string[];
+  }) => {
     if (!effectiveUserId) return;
     try {
       const targets = plan?.targets_manual
@@ -129,8 +134,8 @@ function NutritionInner() {
       await createOrReplacePlan({
         userId: effectiveUserId,
         mealsPerDay: opts.mealsPerDay,
-        preferred: opts.preferred,
-        excluded: autoExcluded,
+        preferred: normalizeFoodTerms(opts.preferred),
+        excluded: mergeUnique(autoExcluded, normalizeFoodTerms(opts.excluded)),
         targets,
         targetsManual: plan?.targets_manual,
         dishes: await loadDishes(),
@@ -152,6 +157,9 @@ function NutritionInner() {
         <NutritionSetup
           initialMeals={(plan?.meals_per_day as 3 | 5) ?? 5}
           initialPreferred={plan?.preferred_products}
+          initialExcluded={(plan?.excluded_products ?? []).filter(
+            (p) => !autoExcluded.includes(p),
+          )}
           suggestedTargets={suggested}
           autoExcluded={autoExcluded}
           onCancel={plan ? () => setShowSetup(false) : undefined}

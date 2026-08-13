@@ -1,5 +1,7 @@
 // Nutrition module — pure logic: BMR/TDEE/macro targets and menu generation.
 
+import { dishMatchesProduct, normalizeFoodTerms } from "@/lib/food-products";
+
 export type Dish = {
   id: string;
   slug: string;
@@ -271,15 +273,15 @@ export function isMedicalTableDish(dish: Pick<Dish, "tags">): boolean {
 
 function pickWithScore(
   candidates: Dish[],
-  preferred: Set<string>,
-  excluded: Set<string>,
+  preferred: string[],
+  excluded: string[],
   recentUseByDish: Map<string, number>,
   dayIndex: number,
   usedToday: Set<string> = new Set(),
 ): Dish | null {
   const pool = candidates.filter((d) => {
     if (usedToday.has(d.id)) return false;
-    if (d.tags.some((t) => excluded.has(t.toLowerCase()))) return false;
+    if (excluded.some((term) => dishMatchesProduct(d, term))) return false;
     return true;
   });
   if (pool.length === 0) return null;
@@ -292,8 +294,8 @@ function pickWithScore(
   const working = fresh.length > 0 ? fresh : pool;
 
   const scored = working.map((d) => {
-    const preferredHits = d.tags.reduce(
-      (s, t) => (preferred.has(t.toLowerCase()) ? s + 1 : s),
+    const preferredHits = preferred.reduce(
+      (s, term) => (dishMatchesProduct(d, term) ? s + 1 : s),
       0,
     );
     const lastUsed = recentUseByDish.get(d.id);
@@ -309,8 +311,8 @@ function pickWithScore(
 }
 
 export function generatePlan(dishes: Dish[], opts: GenerateOptions): DayEntry[] {
-  const preferred = new Set(opts.preferredProducts.map((s) => s.toLowerCase()));
-  const excluded = new Set(opts.excludedProducts.map((s) => s.toLowerCase()));
+  const preferred = normalizeFoodTerms(opts.preferredProducts);
+  const excluded = normalizeFoodTerms(opts.excludedProducts);
   const slots = slotsFor(opts.mealsPerDay);
   const distribution = slotDistribution(opts.mealsPerDay);
   const recentUse = new Map<string, number>();

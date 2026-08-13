@@ -10,6 +10,11 @@ import {
   filterDishesForMedicalTable,
 } from "@/lib/nutrition";
 import { MEDICAL_DIET_NONE } from "@/lib/medical-diet-tables";
+import {
+  parseFoodList,
+  normalizeFoodTerms,
+  mergeUnique,
+} from "@/lib/food-products";
 
 export type PlanRow = {
   id: string;
@@ -137,21 +142,27 @@ export async function loadTargetProfile(userId: string) {
 }
 
 export function extractExcludedFromText(...texts: (string | null | undefined)[]): string[] {
-  const source = texts.filter(Boolean).join(" ").toLowerCase();
+  const source = texts.filter(Boolean).join(", ");
   const map: Array<{ triggers: string[]; tag: string }> = [
-    { triggers: ["лактоз", "молоч"], tag: "молочка" },
-    { triggers: ["орех"], tag: "орехи" },
-    { triggers: ["рыб"], tag: "рыба" },
-    { triggers: ["морепрод", "креветк"], tag: "морепродукты" },
-    { triggers: ["говядин"], tag: "говядина" },
-    { triggers: ["куриц", "куринo", "птиц"], tag: "птица" },
+    { triggers: ["лактоз", "молоч", "творог", "кефир", "йогурт", "сметан"], tag: "молочка" },
+    { triggers: ["орех", "миндал", "арахис", "кэшью", "кешью", "фундук"], tag: "орехи" },
+    { triggers: ["рыб", "лосос", "треск", "сёмг", "семг"], tag: "рыба" },
+    { triggers: ["морепрод", "креветк", "кальмар", "мидии"], tag: "морепродукты" },
+    { triggers: ["говядин", "телятин"], tag: "говядина" },
+    { triggers: ["свин"], tag: "свинина" },
+    { triggers: ["куриц", "курино", "птиц", "индейк"], tag: "птица" },
     { triggers: ["яйц", "яичн"], tag: "яйца" },
-    { triggers: ["глютен", "клейков"], tag: "цельнозерновое" },
-    { triggers: ["бобов"], tag: "бобовые" },
+    { triggers: ["глютен", "клейков", "пшениц", "макарон"], tag: "цельнозерновое" },
+    { triggers: ["бобов", "чечевиц", "нут", "фасол", "горох"], tag: "бобовые" },
+    { triggers: ["гриб"], tag: "грибы" },
   ];
-  const out = new Set<string>();
-  for (const m of map) if (m.triggers.some((t) => source.includes(t))) out.add(m.tag);
-  return Array.from(out);
+  const low = source.toLowerCase();
+  const fromTriggers: string[] = [];
+  for (const m of map) if (m.triggers.some((t) => low.includes(t))) fromTriggers.push(m.tag);
+
+  // Свободный список из анкеты (через запятую) → нормализованные продукты
+  const fromFree = normalizeFoodTerms(parseFoodList(source));
+  return mergeUnique(fromTriggers, fromFree);
 }
 
 // Create or replace plan and days.
