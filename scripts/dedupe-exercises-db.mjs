@@ -110,7 +110,7 @@ function mark(e, reason) {
 // 1) Старые sheet-* без panova (Rutube seed из прошлой таблицы)
 for (const e of exercises) {
   const tags = e.tags || [];
-  if (tags.includes("sheet") && !tags.includes("panova")) {
+  if (tags.includes("sheet") && !tags.includes("panova") && !tags.includes("legacy-coach")) {
     mark(e, "legacy-sheet-without-panova");
   }
 }
