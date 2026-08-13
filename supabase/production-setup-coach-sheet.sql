@@ -1,5 +1,6 @@
 -- ONE TIME in Supabase SQL Editor (production)
 -- Adds week_index + seeds 12 sheet exercises from coach Google Sheet
+-- Sheet: https://docs.google.com/spreadsheets/d/1SU_RzbakfsSb5UAb7u1JO0yvib3GI8rPQa3E4_5Xa3g
 -- After Run: Project Settings -> API -> Reload schema, then use Program from table in admin
 
 

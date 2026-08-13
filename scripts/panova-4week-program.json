@@ -1,0 +1,573 @@
+{
+  "weeks": [
+    {
+      "weekIndex": 0,
+      "workouts": [
+        {
+          "title": "Тренировка №1",
+          "focus": "ТРЕНИРОВКА 1",
+          "items": [
+            {
+              "name": "Разминка",
+              "video_url": "https://youtu.be/7SnqarWw7uo",
+              "sets": 1,
+              "reps": "по видео",
+              "rest_seconds": 0,
+              "note": "1 подход по 15 повторений каждого упражнения",
+              "section": "warmup"
+            },
+            {
+              "name": "Планка на прямых руках+планка на локтях",
+              "video_url": "https://youtu.be/2-QrkMBkAko",
+              "sets": 4,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15 повторений каждого упражнения",
+              "section": "exercises"
+            },
+            {
+              "name": "Трастеры",
+              "video_url": "https://youtu.be/RbOJZZlyJXI",
+              "sets": 4,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Обратные отжимания",
+              "video_url": "https://youtu.be/mltR7ses-yg",
+              "sets": 3,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "3 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Скручивания на стуле",
+              "video_url": "https://youtu.be/SzC_2esO2AE",
+              "sets": 4,
+              "reps": "25",
+              "rest_seconds": 45,
+              "note": "4 подхода по 25 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Заминка",
+              "video_url": "https://youtu.be/GxNpcq7ug7I",
+              "sets": 1,
+              "reps": "по видео",
+              "rest_seconds": 0,
+              "note": "1 подход по 15 повторений каждого упражнения",
+              "section": "cooldown"
+            }
+          ]
+        },
+        {
+          "title": "Тренировка №2",
+          "focus": "ТРЕНИРОВКА 2",
+          "items": [
+            {
+              "name": "Разминка",
+              "video_url": "https://youtu.be/7SnqarWw7uo",
+              "sets": 1,
+              "reps": "по видео",
+              "rest_seconds": 0,
+              "note": "1 подход по 15 повторений каждого упражнения",
+              "section": "warmup"
+            },
+            {
+              "name": "Супермен+Планка+Пресс",
+              "video_url": "https://youtu.be/3uNa-vSYre8",
+              "sets": 4,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15 повторений каждого упражнения(планка 1 мин)",
+              "section": "exercises"
+            },
+            {
+              "name": "Отведение согнутой ноги назад стоя",
+              "video_url": "https://youtu.be/iHUDotVnhUY",
+              "sets": 4,
+              "reps": "15-20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15-20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Мертвая тяга+присед+гантеля над собой",
+              "video_url": "https://youtu.be/9Q8jGHM0pMo",
+              "sets": 4,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15 повторений каждого упражнения",
+              "section": "exercises"
+            },
+            {
+              "name": "Тяга резинки за голову",
+              "video_url": "https://youtu.be/vPeOAcFIMCg",
+              "sets": 4,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Супермен",
+              "video_url": "https://youtu.be/LsB5bvsNY9c",
+              "sets": 3,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "3 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Заминка",
+              "video_url": "https://youtu.be/GxNpcq7ug7I",
+              "sets": 1,
+              "reps": "по видео",
+              "rest_seconds": 0,
+              "note": "1 подход по 15 повторений каждого упражнения",
+              "section": "cooldown"
+            }
+          ]
+        },
+        {
+          "title": "Тренировка №3",
+          "focus": "🟩🟩 ТРЕНИРОВКА 3 🟩🟩",
+          "items": [
+            {
+              "name": "Разминка",
+              "video_url": "https://youtu.be/7SnqarWw7uo",
+              "sets": 1,
+              "reps": "по видео",
+              "rest_seconds": 0,
+              "note": "1 подход по 15 повторений каждого упражнения",
+              "section": "warmup"
+            },
+            {
+              "name": "Лодочка + Пловец",
+              "video_url": "https://youtu.be/qZJc4fXJFj0",
+              "sets": 3,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "3 подхода по 20 повторений каждого упражнения",
+              "section": "exercises"
+            },
+            {
+              "name": "Приседания с акцентом на 1 ногу",
+              "video_url": "https://youtu.be/CV3Pz0AxBag",
+              "sets": 4,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Ягодичный мост с разведением",
+              "video_url": "https://youtu.be/yyOopPWcPsU",
+              "sets": 4,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Разведение ног с пола",
+              "video_url": "https://youtu.be/-vnLGWQ9yds",
+              "sets": 4,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Пресс из положения лодки",
+              "video_url": "https://youtu.be/7I9tTEvvoPQ",
+              "sets": 4,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Скручивания",
+              "video_url": "https://youtu.be/pw9tpaTZbkc",
+              "sets": 4,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Заминка",
+              "video_url": "https://youtu.be/GxNpcq7ug7I",
+              "sets": 1,
+              "reps": "по видео",
+              "rest_seconds": 0,
+              "note": "1 подход по 15 повторений каждого упражнения",
+              "section": "cooldown"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "weekIndex": 1,
+      "workouts": [
+        {
+          "title": "Тренировка №2",
+          "focus": "ТРЕНИРОВКА 2",
+          "items": [
+            {
+              "name": "Лодочка+Гусеница+Сетапы",
+              "video_url": "https://youtu.be/P6_Cxg8yREg",
+              "sets": 4,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Супермен+Планка+Пресс",
+              "video_url": "https://youtu.be/MJgU8H2qz50",
+              "sets": 4,
+              "reps": "15-20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15- 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Русский твист с ногами на весу",
+              "video_url": "https://youtu.be/CQmaOisYZ5g",
+              "sets": 4,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 20 повторений",
+              "section": "exercises"
+            }
+          ]
+        },
+        {
+          "title": "Тренировка №3",
+          "focus": "🟩🟩 ТРЕНИРОВКА 3 🟩🟩",
+          "items": [
+            {
+              "name": "Упражнение 7EKNSsuhvBI",
+              "video_url": "https://youtu.be/7EKNSsuhvBI",
+              "sets": 3,
+              "reps": "20 сек",
+              "rest_seconds": 45,
+              "note": "20 сек работы/20 сек отдыха",
+              "section": "exercises"
+            },
+            {
+              "name": "Упражнение OXlx0wZYqmw",
+              "video_url": "https://youtu.be/OXlx0wZYqmw",
+              "sets": 3,
+              "reps": "20 сек",
+              "rest_seconds": 45,
+              "note": "20 сек работы/20 сек отдыха",
+              "section": "exercises"
+            },
+            {
+              "name": "Махи гантелями попеременно",
+              "video_url": "https://youtu.be/jhh_fbWK3s0",
+              "sets": 3,
+              "reps": "15-20",
+              "rest_seconds": 45,
+              "note": "3 подхода по 15 -20 повторений",
+              "section": "exercises"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "weekIndex": 2,
+      "workouts": [
+        {
+          "title": "Тренировка №1",
+          "focus": "ТРЕНИРОВКА 1",
+          "items": [
+            {
+              "name": "Тяга амортизатора сидя на стуле",
+              "video_url": "https://youtu.be/ToARC67MShM",
+              "sets": 4,
+              "reps": "12",
+              "rest_seconds": 45,
+              "note": "4 подхода по 12 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Разгибания на трицепс в наклоне",
+              "video_url": "https://youtu.be/DzRKrw_W5wU",
+              "sets": 3,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "3 подхода по 15 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Тяга гантели к поясу в упоре на стул",
+              "video_url": "https://youtu.be/0KrlBBinq3A",
+              "sets": 4,
+              "reps": "12",
+              "rest_seconds": 45,
+              "note": "4 подхода по 12 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Разводка гантелей лежа",
+              "video_url": "https://youtu.be/tbIvoKvl5_k",
+              "sets": 3,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "3 подхода по 15 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Сетапы",
+              "video_url": "https://youtu.be/CQmaOisYZ5g",
+              "sets": 4,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 20 повторений",
+              "section": "exercises"
+            }
+          ]
+        },
+        {
+          "title": "Тренировка №2",
+          "focus": "ноги/ягодицы/плечи/пресс",
+          "items": [
+            {
+              "name": "Отведение таза с закручиваниями",
+              "video_url": "https://youtu.be/-WqIZdpGYCw",
+              "sets": 4,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Пресс с гантелей",
+              "video_url": "https://youtu.be/Va5y2p5N1UU",
+              "sets": 4,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Присед+подъем гантели над головой",
+              "video_url": "https://youtu.be/NiGdC-sNKBs",
+              "sets": 4,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Трастеры",
+              "video_url": "https://youtu.be/RbOJZZlyJXI",
+              "sets": 4,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Пронация гантель + подъем над головой",
+              "video_url": "https://youtu.be/LbFko1s3v2E",
+              "sets": 4,
+              "reps": "15-20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15-20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "махи гантель сидя на стуле",
+              "video_url": "https://youtu.be/cu-ptaFHpRQ",
+              "sets": 4,
+              "reps": "15-20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15-20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Упражнение eo_ZdTo3FRo",
+              "video_url": "https://youtu.be/eo_ZdTo3FRo",
+              "sets": 3,
+              "reps": "20 сек",
+              "rest_seconds": 45,
+              "note": "20 сек работы/20 сек отдыха",
+              "section": "exercises"
+            },
+            {
+              "name": "Упражнение pQjvdfkv3Y4",
+              "video_url": "https://youtu.be/pQjvdfkv3Y4",
+              "sets": 3,
+              "reps": "20 сек",
+              "rest_seconds": 45,
+              "note": "20 сек работы/20 сек отдыха",
+              "section": "exercises"
+            },
+            {
+              "name": "французский жим гантель сидя",
+              "video_url": "https://youtu.be/8k6p7QQ968Y",
+              "sets": 3,
+              "reps": "15-20",
+              "rest_seconds": 45,
+              "note": "3 подхода по 15-20 повторений",
+              "section": "exercises"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "weekIndex": 3,
+      "workouts": [
+        {
+          "title": "Тренировка №1",
+          "focus": "спина/ягодицы/пресс",
+          "items": [
+            {
+              "name": "Зашагивание на стул",
+              "video_url": "https://youtu.be/Gn_r6BxobCc",
+              "sets": 4,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15 повторений на ногу",
+              "section": "exercises"
+            },
+            {
+              "name": "Разведение ног с резинкой",
+              "video_url": "https://youtu.be/dmbbgg97rh0",
+              "sets": 4,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Тяга резинки за голову",
+              "video_url": "https://youtu.be/n9gehjlHPSo",
+              "sets": 3,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "3 подхода по 15 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Тяга гантели к поясу в упоре на стул",
+              "video_url": "https://youtu.be/i2cgqkHbZ84",
+              "sets": 3,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "3 подхода по 15 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Сетапы",
+              "video_url": "https://youtu.be/CQmaOisYZ5g",
+              "sets": 3,
+              "reps": "25",
+              "rest_seconds": 45,
+              "note": "3 подхода по 25 повторений",
+              "section": "exercises"
+            }
+          ]
+        },
+        {
+          "title": "Тренировка №2",
+          "focus": "ТРЕНИРОВКА 2",
+          "items": [
+            {
+              "name": "Ягодичный мостик с резинкой",
+              "video_url": "https://youtu.be/NMDFRwwkELs",
+              "sets": 4,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Супермен+Планка+Пресс",
+              "video_url": "https://youtu.be/MJgU8H2qz50",
+              "sets": 3,
+              "reps": "15-20",
+              "rest_seconds": 45,
+              "note": "3 подхода по 15- 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Упражнение MjIwfarW_OQ",
+              "video_url": "https://youtu.be/MjIwfarW_OQ",
+              "sets": 4,
+              "reps": "15",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Упражнение dbPjyr7D8bY",
+              "video_url": "https://youtu.be/dbPjyr7D8bY",
+              "sets": 4,
+              "reps": "15-20",
+              "rest_seconds": 45,
+              "note": "4 подхода по 15- 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Упражнение QrCrB1FzetU",
+              "video_url": "https://youtu.be/QrCrB1FzetU",
+              "sets": 3,
+              "reps": "30 сек",
+              "rest_seconds": 45,
+              "note": "3 подхода по 30 сек",
+              "section": "exercises"
+            },
+            {
+              "name": "подъем гантели+отведение ноги",
+              "video_url": "https://youtu.be/LCJPmATeBY8",
+              "sets": 3,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "3 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Трастеры",
+              "video_url": "https://youtu.be/A8UXw0VHHJg",
+              "sets": 3,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "3 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Выброс гири перед собой",
+              "video_url": "https://youtu.be/p3DBAX8jaNA",
+              "sets": 3,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "3 подхода по 20 повторений",
+              "section": "exercises"
+            },
+            {
+              "name": "Тяга резинки сидя на стуле",
+              "video_url": "https://youtu.be/GL142CtSnUE",
+              "sets": 3,
+              "reps": "20",
+              "rest_seconds": 45,
+              "note": "3 подхода по 20 повторений",
+              "section": "exercises"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6292 @@
+[
+  {
+    "slug": "sheet-beg",
+    "name": "бег",
+    "category": "cardio",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "intermediate",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/mw3KT-CdUiU",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-bitseps-sidya-na-stule",
+    "name": "Бицепс сидя на стуле",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/V745_R9i1Aw",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-bokovye-naklony-prised-naklony-k-polu-dzhamping-dzhek",
+    "name": "Боковые наклоны/присед + Наклоны к полу/ Джампинг Джек",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "intermediate",
+    "tags": [
+      "home",
+      "sheet",
+      "jumping",
+      "high_impact",
+      "panova",
+      "low_impact"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/0lswxJ6v9Po",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-bokovye-skruchivaniya-polulezha",
+    "name": "Боковые скручивания полулежа",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/Errw3QkcWag",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-bokovye-shagi-v-poluprisede-bez-otyagoscheniya",
+    "name": "Боковые шаги в полуприседе( без отягощения)",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/4T2i4NFEPLc",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-vybros-giri-pered-soboy",
+    "name": "Выброс гири перед собой",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 30 повторений. Группа: бег, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/VVwXPo15U7U",
+    "default_sets": 30,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-vybros-giri-pered-soboy-2",
+    "name": "Выброс гири перед собой",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/p3DBAX8jaNA",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-vypady-v-pruzhinke-otvedenie-nogi-nazad",
+    "name": "Выпады в пружинке + отведение ноги назад",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/cV9QrnCh0fs",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-vypady-v-pryzhke-yagodichnyy-mostik-dzhamping-dzhek-otvedeni",
+    "name": "Выпады в прыжке/ягодичный мостик+Джампинг Джек/отведение ноги в сторону на полу",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "intermediate",
+    "tags": [
+      "home",
+      "sheet",
+      "jumping",
+      "high_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/6SkfiRlsVSs",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-vypady-iz-polupriseda",
+    "name": "Выпады из полуприседа",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 25 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/zXIWtgxrx8E",
+    "default_sets": 25,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-vypady-s-podemom-ganteli-nad-golovoy",
+    "name": "Выпады с подъемом гантели над головой",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: бег, Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/HkFU7Rgx1h0",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-vypady-prisedanie-lodochka-vypady-s-podemom-bedra-press",
+    "name": "Выпады+приседание/\"Лодочка\"+ Выпады с подъемом бедра/пресс",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/xQmZJsUmGvQ",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-dzhamping-dzhek-press-beg-s-vysokim-ponimaniem-bedra-hodba-l",
+    "name": "Джампинг Джек /Пресс+ Бег с высоким пониманием бедра /Ходьба ладонями",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/lEC8opp61JE",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-dzhamping-dzhek-giperekstenziya-vypad-naklon-vpered-poochere",
+    "name": "Джампинг Джек/Гиперэкстензия+ Выпад + наклон вперед /Поочередное опускание ног вниз на пресс",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/lKMaegtcUeE",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-zhim-sidya-podemy-sidya-v-naklone",
+    "name": "Жим сидя+подъемы сидя в наклоне",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/3fjQaNqtwyk",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-zhim-espandera-press",
+    "name": "жим эспандера+пресс",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "band",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/Z_K6KJG4PLc",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-zhuravlik",
+    "name": "Журавлик",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/p06EwvqizoA",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-zaminka",
+    "name": "Заминка",
+    "category": "cooldown",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova",
+      "cooldown"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подход по 15 повторений каждого упражнения. Группа: Пресс, Спина/трицепс/грудь/пресс, Пресс с гантелей, Пресс из положения лодки.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/GxNpcq7ug7I",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-zashagivanie-na-stul",
+    "name": "Зашагивание на стул",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений на ногу. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/Gn_r6BxobCc",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-iz-planki-kasanie-delt-v-polozhenie-stoya-press-sklepka-na-c",
+    "name": "Из планки- касание дельт- в положение стоя /Пресс - склёпка+ На четвереньках махи в сторону-вверх /Присед",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/1986kMOGyl4",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-kacheli",
+    "name": "Качели",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/ZvO-XPYTPRo",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-knizhka-na-stule",
+    "name": "Книжка на стуле",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/2mfcuOhlGPo",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-kompleks-1",
+    "name": "Комплекс 1",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "intermediate",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Разминка.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/tCgCwi4yREQ",
+    "default_sets": 1,
+    "default_reps": "разминка",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-kompleks-2",
+    "name": "Комплекс 2",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "intermediate",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Разминка.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/OQJAtRrFzHM",
+    "default_sets": 1,
+    "default_reps": "разминка",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-kompleks-uprazhneniy-sidya-na-stule-verh",
+    "name": "Комплекс упражнений сидя на стуле верх",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/yRIVTtNG8SA",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-kompleks-uprazhneniy-sidya-na-stule-niz",
+    "name": "Комплекс упражнений сидя на стуле низ",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/Gte5mxZ56mI",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-krug-1",
+    "name": "Круг № 1",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Все упражнения выполняем по 45 сек.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/DeA1GiuIcyo",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-krug-1-2",
+    "name": "Круг № 1",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Все упражнения выполняем по 45 сек.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/6emhdB9Wa7Y",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-krug-1-3",
+    "name": "Круг № 1",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Все упражнения выполняем по 45 сек.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/JVKjuU9hdUU",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-lodochka",
+    "name": "Лодочка",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/RWiFuRVKzCU",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-lodochka-plovets",
+    "name": "Лодочка + Пловец",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс с гантелей, Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/qZJc4fXJFj0",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-lodochka-gusenitsa-setapy",
+    "name": "Лодочка+Гусеница+Сетапы",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/gH06qYpEFgM",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-lodochka-gusenitsa-setapy-2",
+    "name": "Лодочка+Гусеница+Сетапы",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/P6_Cxg8yREg",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-mahi-ganteley-v-storony",
+    "name": "Махи гантелей в стороны",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/s8_6rdA3XN0",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-mahi-ganteley-sidya-v-naklone",
+    "name": "Махи гантелей сидя в наклоне",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/Q-snJiLOWUw",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-mahi-gantel-sidya-na-stule",
+    "name": "махи гантель сидя на стуле",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15-20 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/cu-ptaFHpRQ",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-mahi-cherez-storony-poperemenno",
+    "name": "Махи через стороны попеременно",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 -20 повторений. Группа: Пресс, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/jhh_fbWK3s0",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-mertvaya-tyaga-prised-gantelya-nad-soboi",
+    "name": "Мертвая тяга + присед + гантеля над собой",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: бег, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/9Q8jGHM0pMo",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-naklony",
+    "name": "Наклоны",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Заминка.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/fIN1x2JLJTY",
+    "default_sets": 1,
+    "default_reps": "заминка",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-naklony-2",
+    "name": "Наклоны",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/vnjZqfxApkk",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-naklony-na-odnoi-noge",
+    "name": "Наклоны на одной ноге",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15-20 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/ov3Hgh5cVxs",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-nedelya",
+    "name": "неделя",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/03752bb1eb542c10d79f63875186f983/?p=1PVUstp2HdWV_8AGNkBQTA",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-obratnye-otzhimaniya",
+    "name": "Обратные отжимания",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/HagtPfQHV6Y",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-obratnye-otzhimaniya-2",
+    "name": "Обратные отжимания",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/ErJd3RIBnUs",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-obratnye-otzhimaniya-3",
+    "name": "Обратные отжимания",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/mltR7ses-yg",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-obratnye-otzhimaniya-ot-stula",
+    "name": "Обратные отжимания от стула",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "грудные"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: ГРУДЬ.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/RTQEEgkaO94",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-otvedenie-nogi",
+    "name": "Отведение ноги",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/W5C0wSonVy8",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-otvedenie-nogi-v-naklone-stoya",
+    "name": "Отведение ноги в наклоне стоя",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "грудные"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: ГРУДЬ, Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/2cmnubTKclo",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-otvedenie-nogi-nazad-i-v-storonu",
+    "name": "Отведение ноги назад и в сторону",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/vsuXVe3yWek",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-otvedenie-nogi-nazad-podem-ganteli-nad-golovoy",
+    "name": "Отведение ноги назад+подъем гантели над головой",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/6MXAx89Nt9w",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-otvedenie-sognutoi-nogi-nazad-stoya",
+    "name": "Отведение согнутой ноги назад стоя",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/iHUDotVnhUY",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-otvedenie-sognutoi-nogi-nazad-stoya-2",
+    "name": "Отведение согнутой ноги назад стоя",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/e493e34dbd7668ddb555e818b43d056e/?p=Q84ZXNZvT1hJhdOZ39jD1w",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-otvedenie-taza-nazad-s-kolen",
+    "name": "Отведение таза назад с колен",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/jtC1cXv4GjU",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-otvedenie-taza-s-zakruchivaniyami",
+    "name": "Отведение таза с закручиваниями",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/-WqIZdpGYCw",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-otvedenie-taza-s-zakruchivaniyami-2",
+    "name": "Отведение таза с закручиваниями",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/pT4tYOpwdis",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-otzhimanie-podem-ruki",
+    "name": "Отжимание+ подъем руки",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/tpBgSkuLinA",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-otzhimaniya-ot-steny",
+    "name": "Отжимания от стены",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "грудные"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: ГРУДЬ, Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/3IU93aSr1yk",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-otzhimaniya-ot-steny-2",
+    "name": "Отжимания от стены",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/tfjkE8lBCGI",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-otzhimaniya-ot-steny-3",
+    "name": "Отжимания от стены",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/XzBxXDcWKag",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-otzhimaniya-s-kolen-na-tritseps",
+    "name": "Отжимания с колен на трицепс",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/ZTA3oqi10Ec",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-otzhimaniya-s-kolen-kasanie-delt-skruchivaniya-na-press-shag",
+    "name": "Отжимания с колен+ касание дельт/Скручивания на пресс+ Шаг в сторону +присед /Планка + наклон в сторону",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/GJ9BrRjPi-k",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-otzhimaniya-so-sredney-postanovkoy-ruk",
+    "name": "Отжимания со средней постановкой рук",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/3G4TtIZvaEs",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-otzhimaniya-shirokim-hvatom",
+    "name": "Отжимания широким хватом",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/j-JKFqjvHVA",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-planka",
+    "name": "Планка",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/RE2ed7180yE",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-planka-na-pryamyh-rukah",
+    "name": "Планка на прямых руках",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/8iXG38RP6rk",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-planka-na-pryamyh-rukah-planka-na-loktyah",
+    "name": "Планка на прямых руках+планка на локтях",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15-20 повторений. Группа: Пресс с гантелей, Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/2-QrkMBkAko",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-plyus",
+    "name": "Плюс",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Скручивания + Велосипед 3 подхода по 25 повторений каждого упражнения.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/e52df3727a88c739279af1db1c311a39/?p=TY1X3nawyBuzf5pEa-ikiQ",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-podem-bokovoy-nogi",
+    "name": "Подъем боковой ноги",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/l4aQJziSrHs",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-podem-v-diagonal-razvedenie",
+    "name": "Подъем в диагональ + разведение",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15-20 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/hc4cyktZ1ao",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-podem-ganteley-na-bitseps-v-naklone",
+    "name": "Подъем гантелей на бицепс в наклоне",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/xdLQ_WqBCWs",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-podem-gantelei-pered-soboi",
+    "name": "Подъем гантелей перед собой",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/GwRrd-qoJKE",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-podem-ganteli-pered-soboi-sidya-na-stule",
+    "name": "Подъем гантели перед собой сидя на стуле",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "грудные"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15-20 повторений. Группа: ГРУДЬ, Пресс, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/30wj9myMlOk",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-podem-ganteli-otvedenie-nogi",
+    "name": "подъем гантели+отведение ноги",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/LCJPmATeBY8",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-podem-gantel-sidya-v-naklone",
+    "name": "Подъем гантель сидя в наклоне",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/nvYgxFHdaAs",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-podem-na-bitseps-s-rezinoi",
+    "name": "Подъем на бицепс с резиной",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "band",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/AdYw6ClliSU",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-podem-na-bitseps-u-steny",
+    "name": "Подъем на бицепс у стены",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "грудные"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: ГРУДЬ, Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/iwhwSzI864M",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-podem-na-noski-sidya",
+    "name": "Подъем на носки сидя",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: бег, Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/w6PAxMsKo90",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-pode-m-na-noski-stoya",
+    "name": "Подъём на носки стоя",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/HO7Z95YCOrA",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-podem-ruk-iz-planki",
+    "name": "Подъем рук из планки",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/oICfZVWgE1o",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-pode-my-gantelei-na-bitseps-v-naklone",
+    "name": "Подъёмы гантелей на бицепс в наклоне",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/QjW9dJysZwM",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-press",
+    "name": "Пресс",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/UIPkK4Sd_s4",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-press-2",
+    "name": "Пресс",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений на каждую сторону.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/f1b3d96320e8cc61059e982f147bc63b/?p=H6RN1kNPnTMo946uwt8DXg",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-press-iz-polozheniya-lodki",
+    "name": "Пресс из положения лодки",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Пресс из положения лодки, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/7I9tTEvvoPQ",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-press-s-gantelei",
+    "name": "Пресс с гантелей",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 30 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/K4kZVZWhzCw",
+    "default_sets": 30,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-press-s-gantelei-2",
+    "name": "Пресс с гантелей",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/Va5y2p5N1UU",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-prised-vypad",
+    "name": "Присед + выпад",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15-20 повторений. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/L0R1jns60Tc",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-prised-skruchivaniya",
+    "name": "Присед + скручивания",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/sM5l6odKXJ4",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-prised-i-otvedenie-nogi-v-storonu",
+    "name": "Присед и отведение ноги в сторону",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/CwH4SXGvIok",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-prised-i-otvedenie-nogi-nazad",
+    "name": "Присед и отведение ноги назад",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/iA2WYilFaNA",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-prised-s-girei-otvedenie-taza-nazad",
+    "name": "присед с гирей+отведение таза назад",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/M60otwRnbVU",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-prised-s-kasaniem-pola-hodba-na-ladonyah-poocherednye-vypady",
+    "name": "Присед с касанием пола/ходьба на ладонях+Поочередные выпады назад/пресс",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/ZSbkq57P_Wk",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-prised-s-pruzhinkoi",
+    "name": "Присед с пружинкой",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/rrAdwM0doCM",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-prised-s-pruzhinkoy-lodochka-poocheredno-skruchivaniya-na-pr",
+    "name": "Присед с пружинкой/ лодочка поочередно+скручивания на пресс/махи ногой назад",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/ISYPpBxn6qY",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-prised-podem-ganteli-nad-golovoy",
+    "name": "Присед+ подъем гантели над головой",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/NiGdC-sNKBs",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-prised-podem-na-noski-s-podnyatiem-ruk-press-prised-s-rukami",
+    "name": "Присед+подъем на носки с поднятием рук/ пресс+ Присед с руками перед собой/тяга резинки к поясу",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "band",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/b7rZW5HrCBM",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-prised-podem-na-noski-prised-podem-na-noski-s-podnyatiem-ruk",
+    "name": "Присед+подъем на носки/Присед+подъем на носки с поднятием рук+ Отведение ноги назад/ \"Лодочка\"",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/KzzIUkHWO-c",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-prised-skruchivanie",
+    "name": "Присед+скручивание",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 25 повторений на каждую сторону. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/9CyXPEtdBMQ",
+    "default_sets": 25,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-prisedaniya",
+    "name": "Приседания",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/rlVD9fXAnBo",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-prisedaniya-na-stul-na-odnoi-noge",
+    "name": "Приседания на стул на одной ноге",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/4qzrC_cEvOc",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-prisedaniya-s-aktsentom-na-odnu-nogu",
+    "name": "Приседания с акцентом на одну ногу",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 12- 15 повторений. Группа: бег, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/CV3Pz0AxBag",
+    "default_sets": 12,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-prisedaniya-s-kasaniem-ladonei",
+    "name": "Приседания с касанием ладоней",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/Be6i4pQEED0",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-prisedaniya-s-kasaniem-stula",
+    "name": "Приседания с касанием стула",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/KUdYfEJ8qWU",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-pronatsiya-gantel-i-podem-gantel-nad-golovoy",
+    "name": "Пронация гантель и подъем гантель над головой",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15-20 повторений. Группа: Пресс, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/LbFko1s3v2E",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-pryzhki-podem-gantelei-pered-soboi",
+    "name": "Прыжки + подъем гантелей перед собой",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "intermediate",
+    "tags": [
+      "home",
+      "sheet",
+      "jumping",
+      "high_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/qqT1DpP8aVE",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-pryzhki-s-kasaniem-pola",
+    "name": "Прыжки с касанием пола",
+    "category": "cardio",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "intermediate",
+    "tags": [
+      "home",
+      "sheet",
+      "jumping",
+      "high_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/CqU5PRHYdVc",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-razvedenie-nog-na-polu",
+    "name": "Разведение ног на полу",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15- 20 повторений. Группа: Спина/трицепс/грудь/пресс, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/MJgU8H2qz50",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-razvedenie-nog-s-pola",
+    "name": "Разведение ног с пола",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/-vnLGWQ9yds",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-razvedenie-nog-s-rezinkoy",
+    "name": "Разведение ног с резинкой",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "band",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/dmbbgg97rh0",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-razvodka-gantelei-lezha",
+    "name": "Разводка гантелей лежа",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/hMoctAs4JCg",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-razvodka-gantelei-lezha-2",
+    "name": "Разводка гантелей лежа",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/tbIvoKvl5_k",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-razgibaniya-na-tritseps-v-naklone",
+    "name": "Разгибания на трицепс в наклоне",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/GycaGLxWN2U",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-razgibaniya-na-tritseps-v-naklone-2",
+    "name": "Разгибания на трицепс в наклоне",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/DzRKrw_W5wU",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-razminka",
+    "name": "Разминка",
+    "category": "warmup",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova",
+      "warmup"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подход по 15 повторений каждого упражнения. Группа: Пресс, Спина/трицепс/грудь/пресс, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/7SnqarWw7uo",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-razminka-2",
+    "name": "Разминка",
+    "category": "warmup",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "warmup",
+      "sheet",
+      "panova",
+      "low_impact"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Заминка.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/DZDVxuPD4Zw",
+    "default_sets": 1,
+    "default_reps": "заминка",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-razryvy-reziny-pered-soboi",
+    "name": "Разрывы резины перед собой",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "band",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/IECUbDoGPns",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-russkii-tvist-s-nogami-na-vesu",
+    "name": "Русский твист с ногами на весу",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/3dL63BPE_HQ",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-russkii-tvist-s-nogami-na-vesu-2",
+    "name": "Русский твист с ногами на весу",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Спина/трицепс/грудь/пресс, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/CQmaOisYZ5g",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-svedenie-nog-na-stule",
+    "name": "Сведение ног на стуле",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/5c0EXa6wLS4",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-sgibanie-nog-stoya-s-rezinkoi",
+    "name": "Сгибание ног стоя с резинкой",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "band",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/ejQPJneclwo",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-setapy",
+    "name": "Сетапы",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/J6MkLkxIzsQ",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-skalolaz-vypady-nazad-i-vpered-otzhimaniya-ot-pola-vypady-vp",
+    "name": "Скалолаз /Выпады назад и вперед + Отжимания от пола / Выпады вперед назад",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "intermediate",
+    "tags": [
+      "home",
+      "sheet",
+      "jumping",
+      "high_impact",
+      "panova",
+      "low_impact"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/lB0L6Mbazus",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-skruchivaniya",
+    "name": "Скручивания",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/c9Fw1ZPIo8U",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-skruchivaniya-koleni-k-loktyam",
+    "name": "Скручивания колени к локтям",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/GKuFgq3CvDw",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-skruchivaniya-na-spinu-s-pryamoi-rukoi",
+    "name": "Скручивания на спину с прямой рукой",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс из положения лодки.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/3pvcYzVQrWg",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-skruchivaniya-na-stule",
+    "name": "Скручивания на стуле",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений на каждую сторону. Группа: Пресс, Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/SzC_2esO2AE",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-skruchivaniya-stoya-kompleks",
+    "name": "Скручивания стоя. Комплекс",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "intermediate",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: круга по 20 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/wTId00O19dw",
+    "default_sets": 2,
+    "default_reps": "круг",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-skruchivaniya-spina",
+    "name": "Скручивания(спина)",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс из положения лодки, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/pw9tpaTZbkc",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-sobachya-stoyka",
+    "name": "Собачья стойка",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/h16uJ0coYzE",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-spina-grud",
+    "name": "спина/грудь",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Подъёмы гантелей на бицепс в наклоне 3 подхода по 10-12 повторений Для бицепсов..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/ba2e69bff30079f05625a887e0149887/?p=IPT8RKA4pC2eXZFTznlxTg",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-spina-grud-2",
+    "name": "спина/грудь",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Книжка 3 подхода по 30-60 секунд Для кора..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/12dfac8f393606aff90381fdb376473a/?p=sOCPspGCErIVzCQwg-L2zg",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-supermen",
+    "name": "Супермен",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 12- 15 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/ad525be31033077e2e1b1520350b3bbc/?p=I3QH-9Jav8ux5R4fTmBS2g",
+    "default_sets": 12,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-supermen-2",
+    "name": "Супермен",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс с гантелей, Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/LsB5bvsNY9c",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-supermen-planka-press",
+    "name": "Супермен+Планка+Пресс",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений каждого упражнения(планка 1 мин). Группа: Пресс, Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/3uNa-vSYre8",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-supermen-plechi",
+    "name": "Супермен+плечи",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 25 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/YUbDzZqNvbo",
+    "default_sets": 25,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-trastery",
+    "name": "Трастеры",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс, Пресс с гантелей, Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/RbOJZZlyJXI",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-trastery-2",
+    "name": "Трастеры",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/A8UXw0VHHJg",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-tyaga-amortizatora-sidya-na-stule",
+    "name": "Тяга амортизатора сидя на стуле",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "band",
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 12- 15 повторений. Группа: Пресс, Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/CE1RYi-1eHc",
+    "default_sets": 12,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-tyaga-amortizatora-sidya-na-stule-2",
+    "name": "Тяга амортизатора сидя на стуле",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "band",
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 12 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/ToARC67MShM",
+    "default_sets": 12,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-tyaga-ganteli-v-upore",
+    "name": "Тяга гантели в упоре",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/jEiBeFQjYj0",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-tyaga-ganteli-k-poyasu-v-upore-na-stul",
+    "name": "Тяга гантели к поясу в упоре на стул",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: СПИНА:, Пресс, Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/0KrlBBinq3A",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-tyaga-ganteli-k-poyasu-v-upore-na-stul-2",
+    "name": "Тяга гантели к поясу в упоре на стул",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/i2cgqkHbZ84",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-tyaga-rezinki-za-golovu",
+    "name": "Тяга резинки за голову",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "band",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/n9gehjlHPSo",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-tyaga-rezinki-za-golovu-2",
+    "name": "Тяга резинки за голову",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "band",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/vPeOAcFIMCg",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-tyaga-rezinki-sidya-na-stule",
+    "name": "Тяга резинки сидя на стуле",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "band",
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/mBlk98FfcYc",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-tyaga-rezinki-sidya-na-stule-2",
+    "name": "Тяга резинки сидя на стуле",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "band",
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/GL142CtSnUE",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-pjb-jdgjpy0kiplgfkh1w",
+    "name": "Упражнение ?p=_pjB-jDGjPY0KIpLGFkh1w",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Велосипед+Ягодичный мостик 3 подхода по 25 повторений каждого упражнения.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/b48dd3ceca61e42087cada2c12f9a1cf/?p=_pjB-jDGjPY0KIpLGFkh1w",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-038n-orpqmudzom6kbvqjw",
+    "name": "Упражнение ?p=038n_orPqmuDZom6KBVQJw",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подход по 15 повторений каждого упражнения. Группа: Пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/5d436898b2b4100b8f2606f572e42f37/?p=038n_orPqmuDZom6KBVQJw",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-1e2mvrulgfvzwuevu6ll-w",
+    "name": "Упражнение ?p=1E2mVrulGFVZwUevU6LL-w",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подход по 15 повторений каждого упражнения.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/1f8b53551d198eb478db839f60e2b38e/?p=1E2mVrulGFVZwUevU6LL-w",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-1lxkyejyyso7bpcv-0mcbq",
+    "name": "Упражнение ?p=1lXkyEJYYSO7bPcV-0McBQ",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Обратные отжимания 3 подхода по 10-15 повторений Укрепляют трицепсы..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/1ee38f26e529e9c2a0135738357b710b/?p=1lXkyEJYYSO7bPcV-0McBQ",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-buqf1zkarfjukvc4i4wj5w",
+    "name": "Упражнение ?p=BuQF1ZkarfjUKvc4I4wj5w",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Ягодичный мостик 3 подхода по 15-20 повторений Укрепляет ягодицы..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/4a2782ca28c178fe52fbcf0d47c2be56/?p=BuQF1ZkarfjUKvc4I4wj5w",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-fhorwv1-gana4clxrkwlvg",
+    "name": "Упражнение ?p=FhORWV1_gAnA4ClxRKWlVg",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Скручивания 3 подхода по 15-20 повторений Для верхней части пресса..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/82efed4261689b77c0297431ecb88048/?p=FhORWV1_gAnA4ClxRKWlVg",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-i7npjb6wrsetqnbji0t7zw",
+    "name": "Упражнение ?p=i7NPJB6wRsEtqNbJi0T7zw",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Тяга гантели в упоре 3 подхода по 10-12 повторений на каждую сторону Для спины..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/a4894bb2e16b8518a8824a712eb05d20/?p=i7NPJB6wRsEtqNbJi0T7zw",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-l52ern2bfcvfgzzzlwghzq",
+    "name": "Упражнение ?p=l52ERn2bfcVfGZZzLwghZQ",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Велосипед+Ягодичный мостик 3 подхода по 25 повторений каждого упражнения.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/c3eb5414b2571195ae1631f0d9dd7c3a/?p=l52ERn2bfcVfGZZzLwghZQ",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-lkckprqfi40pg4pzmxj6aq",
+    "name": "Упражнение ?p=LKCKPRqfI40Pg4pzMxJ6aQ",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Ягодичный мостик 3 подхода по 15-20 повторений Укрепляет ягодицы..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/ec46cbb7a65367ec71edd054e7f4f42a/?p=LKCKPRqfI40Pg4pzMxJ6aQ",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-lvq7kpd0ogdsuistbu1tfg",
+    "name": "Упражнение ?p=lvQ7Kpd0OgDSuISTbu1tFg",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Подъём на носки стоя 3 подхода по 15-20 повторений Для икр..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/4d2582553d55e761fc578ddc48b95410/?p=lvQ7Kpd0OgDSuISTbu1tFg",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-mcnj4x9dhy-skp565jwhba",
+    "name": "Упражнение ?p=McNj4X9dhY-SKp565JwhbA",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Скручивания 3 подхода по 15-20 повторений Для верхней части пресса..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/4ec3c49c1bbfde191858caba6f9cde1e/?p=McNj4X9dhY-SKp565JwhbA",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-r9tn8f1u4zktdjokbkzciq",
+    "name": "Упражнение ?p=R9Tn8f1U4zKtdJOkBKzciQ",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Подъём на носки стоя 3 подхода по 15-20 повторений Для икр..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/b8863c78b70ae596b8267891bb5dd759/?p=R9Tn8f1U4zKtdJOkBKzciQ",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-rqwo68waj9ik58ubcyvdhg",
+    "name": "Упражнение ?p=rQwo68waj9ik58uBCyvdHg",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Велосипед 3 подхода по 15-20 повторений Укрепляет пресс..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/fb02d9599771ea7855105c275e5f71b1/?p=rQwo68waj9ik58uBCyvdHg",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-trt-puhqr4zqzbeozwrb6w",
+    "name": "Упражнение ?p=tRT-puhqR4zQzBeOZWrb6w",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Велосипед 3 подхода по 15-20 повторений Укрепляет пресс..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/03578f7132ea2e03e04bb2f43c9c231e/?p=tRT-puhqR4zQzBeOZWrb6w",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-ulmbzwcam-ve0svz7q-meq",
+    "name": "Упражнение ?p=ulMbZwCaM_ve0Svz7Q-MEQ",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Выпады 3 подхода по 10-12 повторений на каждую ногу Работают ноги и ягодицы..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/a3573c66a637f8bf9aadce3273fd3362/?p=ulMbZwCaM_ve0Svz7Q-MEQ",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-yuvcws-pxtp1wrbbb1fvtg",
+    "name": "Упражнение ?p=yUvcwS_pXTp1WRBBB1fVTg",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Махи гантелей в стороны 3 подхода по 10-12 повторений Развивают средние дельты (плечи)..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/57e38a4f5c2d6642e2aa7de948a6617e/?p=yUvcwS_pXTp1WRBBB1fVTg",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-p-zo61pfpw6p-midn6vb9qea",
+    "name": "Упражнение ?p=zo61pfPW6P-mIdn6vb9qeA",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: Выпады 3 подхода по 10-12 повторений на каждую ногу Работают ноги и ягодицы..",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/91fb35ef496f72a1f664e5d968b250da/?p=zo61pfPW6P-mIdn6vb9qeA",
+    "default_sets": 3,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-7eknssuhvbi",
+    "name": "Упражнение 7EKNSsuhvBI",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: сек работы/20 сек отдыха. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/7EKNSsuhvBI",
+    "default_sets": 1,
+    "default_reps": "сек работы/20 сек отдыха",
+    "tempo": null,
+    "rest_seconds": 45
+  },
+  {
+    "slug": "sheet-uprazhnenie-dbpjyr7d8by",
+    "name": "Упражнение dbPjyr7D8bY",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15- 20 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/dbPjyr7D8bY",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-eo-zdto3fro",
+    "name": "Упражнение eo_ZdTo3FRo",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: сек работы/20 сек отдыха. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/eo_ZdTo3FRo",
+    "default_sets": 1,
+    "default_reps": "сек работы/20 сек отдыха",
+    "tempo": null,
+    "rest_seconds": 45
+  },
+  {
+    "slug": "sheet-uprazhnenie-gwzxyx0dy3m",
+    "name": "Упражнение gWzXYX0Dy3M",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/gWzXYX0Dy3M",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-uprazhnenie-mchoqncebfg",
+    "name": "Упражнение MchoQNCebfg",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/MchoQNCebfg",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-uprazhnenie-mjiwfarw-oq",
+    "name": "Упражнение MjIwfarW_OQ",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/MjIwfarW_OQ",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-oxlx0wzyqmw",
+    "name": "Упражнение OXlx0wZYqmw",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: сек работы/20 сек отдыха. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/OXlx0wZYqmw",
+    "default_sets": 1,
+    "default_reps": "сек работы/20 сек отдыха",
+    "tempo": null,
+    "rest_seconds": 45
+  },
+  {
+    "slug": "sheet-uprazhnenie-pqjvdfkv3y4",
+    "name": "Упражнение pQjvdfkv3Y4",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: сек работы/20 сек отдыха. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/pQjvdfkv3Y4",
+    "default_sets": 1,
+    "default_reps": "сек работы/20 сек отдыха",
+    "tempo": null,
+    "rest_seconds": 45
+  },
+  {
+    "slug": "sheet-uprazhnenie-qrcrb1fzetu",
+    "name": "Упражнение QrCrB1FzetU",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 30 сек. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/QrCrB1FzetU",
+    "default_sets": 30,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-uprazhnenie-uvbykartlda",
+    "name": "Упражнение uvbYKartldA",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/uvbYKartldA",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-uprazhnenie-w52dv4z6xqm",
+    "name": "Упражнение W52dv4z6XQM",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/W52dv4z6XQM",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-uprazhnenie-x958i6apcmo",
+    "name": "Упражнение x958I6APcmo",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/x958I6APcmo",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-fraztsuzskiy-zhim-ganteli-iz-za-golovy",
+    "name": "Фразцузский жим гантели из-за головы",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/n7sa2yeq7B0",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-frantsuzskaii-zhim-lezha",
+    "name": "Французскаий жим лежа",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/OmK1qHZfkCQ",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-frantsuzskiy-zhim-gantel-sidya",
+    "name": "французский жим гантель сидя",
+    "category": "core",
+    "muscle_groups": [
+      "кор",
+      "пресс"
+    ],
+    "equipment": [
+      "dumbbell",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "dumbbell",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15-20 повторений. Группа: Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/8k6p7QQ968Y",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-frantsuzskiy-zhim-lezha",
+    "name": "Французский жим лежа",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/3sOThpNqh3Q",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-frantsuzskii-zhim-sidya",
+    "name": "Французский жим сидя",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/PzgCjWIVo9A",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-frantsuzskiy-zhim-sidya-na-stule",
+    "name": "Французский жим сидя на стуле",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина",
+      "плечи",
+      "руки"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/fA3CY8BSeAQ",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-yagodichnyi-most-s-razvedeniem",
+    "name": "Ягодичный мост с разведением",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 15 повторений. Группа: Спина/трицепс/грудь/пресс, Пресс с гантелей.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/yyOopPWcPsU",
+    "default_sets": 15,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-yagodichnyi-most-s-razvedeniem-2",
+    "name": "Ягодичный мост с разведением",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 25 повторений.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://rutube.ru/video/private/313e54bb3dae9db1a4b201393f6a6c90/?p=mHPyML53kzQ1rBDpIOTKrg",
+    "default_sets": 25,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  },
+  {
+    "slug": "sheet-yagodichnyy-mostik",
+    "name": "Ягодичный мостик",
+    "category": "strength_full",
+    "muscle_groups": [
+      "всё тело"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/H-IIGnXmeSA",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-yagodichnyy-mostik-2",
+    "name": "Ягодичный мостик",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/ni-QZ2JA9Wk",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-yagodichnyy-mostik-na-odnoy-noge-s-oporoy-na-stul",
+    "name": "Ягодичный мостик на одной ноге с опорой на стул",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat",
+      "chair"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "chair",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: ноги/ягодицы.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/2n5wtmnNNlw",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-yagodichnyi-mostik-na-pryamyh-rukah",
+    "name": "Ягодичный мостик на прямых руках",
+    "category": "strength_lower",
+    "muscle_groups": [
+      "ягодицы",
+      "квадрицепс",
+      "задняя поверхность бедра"
+    ],
+    "equipment": [
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Группа: бег.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/6ANTam45CfM",
+    "default_sets": 1,
+    "default_reps": "по видео",
+    "tempo": null,
+    "rest_seconds": 30
+  },
+  {
+    "slug": "sheet-yagodichnyy-mostik-s-rezinkoy",
+    "name": "Ягодичный мостик с резинкой",
+    "category": "strength_upper",
+    "muscle_groups": [
+      "спина"
+    ],
+    "equipment": [
+      "band",
+      "mat"
+    ],
+    "difficulty": "beginner",
+    "tags": [
+      "home",
+      "sheet",
+      "low_impact",
+      "band",
+      "panova"
+    ],
+    "description": "Упражнение из личной библиотеки тренера. Ориентир: подхода по 20 повторений. Группа: Спина/трицепс/грудь/пресс.",
+    "cues": [
+      "Смотрите технику на видео тренера",
+      "Дышите ровно, без задержек"
+    ],
+    "common_mistakes": [
+      "Спешка и потеря контроля",
+      "Выполнение через боль"
+    ],
+    "video_url": "https://youtu.be/NMDFRwwkELs",
+    "default_sets": 20,
+    "default_reps": "10-12",
+    "tempo": null,
+    "rest_seconds": 60
+  }
+]

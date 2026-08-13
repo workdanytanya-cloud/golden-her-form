@@ -417,6 +417,7 @@ function pickExerciseForSlot(
     if (jointCare && e.tags.includes("rehab")) s += 2;
     if (jointCare && e.tags.includes("low_impact")) s += 2;
     if (jointCare && e.tags.includes("no_jumping")) s += 1;
+    if (e.tags.includes("sheet")) s += 4;
     return { e, s };
   });
   scored.sort((a, b) => b.s - a.s);

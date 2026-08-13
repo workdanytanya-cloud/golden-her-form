@@ -18,10 +18,10 @@ export function clientAvailableEquipmentKeys(
   location: string | null | undefined,
 ): Set<string> {
   const items = equipment ?? [];
-  const available = new Set<string>(["bodyweight", "mat"]);
+  const available = new Set<string>(["bodyweight", "mat", "chair"]);
 
   if (items.length === 1 && items[0] === "Ничего") {
-    return new Set(["bodyweight", "mat"]);
+    return new Set(["bodyweight", "mat", "chair"]);
   }
 
   for (const item of items) {

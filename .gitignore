@@ -24,6 +24,10 @@ dist-ssr
 # ExerciseDB import caches (large)
 scripts/data/
 
+# Raw Google Sheet tab dumps (regenerate: npm run exercises:fetch-sheet)
+scripts/_sheet_tabs/
+scripts/_tmp-*
+
 # Lovable CDN media (download with: npm run assets:fetch) — ~400MB
 public/__l5e/
 

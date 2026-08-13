@@ -129,7 +129,7 @@ function AdminTrainingPage() {
     const missing = missingCoachSheetExercises(exercises);
     if (missing.length > 0) {
       toast.error(
-        `В базе нет ${missing.length} упражнений из таблицы (sheet-*). В Supabase → SQL Editor выполните файл supabase/production-setup-coach-sheet.sql`,
+        `В базе нет ${missing.length} упражнений из 4-недельной таблицы. Выполните seed: npm run exercises:apply-seed или SQL supabase/migrations/20260813220000_coach_exercises_panova_sheet.sql`,
         { duration: 15000 },
       );
       return;
