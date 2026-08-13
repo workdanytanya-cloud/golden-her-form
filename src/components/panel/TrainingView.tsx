@@ -74,25 +74,24 @@ export function TrainingView({
     [days],
   );
 
-  const maxWeek =
-    programWeeks > 1
-      ? programWeeks - 1
-      : Math.max(0, ...normalizedDays.map((d) => d.week_index ?? 0));
+  const multiWeek =
+    programWeeks > 1 && normalizedDays.some((d) => d.week_index > 0);
+
+  const maxWeek = multiWeek
+    ? Math.max(...normalizedDays.map((d) => d.week_index))
+    : 0;
 
   const [weekIndex, setWeekIndex] = useState(0);
   const weekDays = useMemo(() => {
-    const filtered = normalizedDays.filter((d) => d.week_index === weekIndex);
-    if (filtered.length > 0) return filtered;
-    if (weekIndex === 0 && programWeeks <= 1) return normalizedDays;
-    return filtered;
-  }, [normalizedDays, weekIndex, programWeeks]);
+    if (!multiWeek) return normalizedDays;
+    return normalizedDays.filter((d) => d.week_index === weekIndex);
+  }, [normalizedDays, weekIndex, multiWeek]);
 
   const [dayIndex, setDayIndex] = useState(() => {
     const first = weekDays.find((d) => !d.is_rest);
     return first?.day_index ?? 0;
   });
 
-  // При смене недели — первый тренировочный день
   useEffect(() => {
     const first = weekDays.find((d) => !d.is_rest);
     setDayIndex(first?.day_index ?? 0);
@@ -145,8 +144,8 @@ export function TrainingView({
       {/* FAQ */}
       <FaqSection faq={faq} editable={editable} onSave={onProgramPatch} />
 
-      {/* Week cycle tabs */}
-      {maxWeek > 0 && (
+      {/* Week cycle tabs — только если в базе реально несколько недель */}
+      {multiWeek && maxWeek > 0 && (
         <div className="flex flex-wrap gap-2">
           {Array.from({ length: maxWeek + 1 }, (_, w) => (
             <button

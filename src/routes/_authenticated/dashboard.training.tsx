@@ -89,8 +89,26 @@ function TrainingInner() {
     let currentDays = p.days;
     const input = programInputFromProfile(prof);
 
-    // Auto-generate on first visit
-    if (!currentProgram) {
+    // Программа есть, но дни пропали — восстановить автогенерацией (кроме ручных правок тренера)
+    if (currentProgram && currentDays.length === 0 && !currentProgram.targets_manual) {
+      try {
+        setBusy(true);
+        const res = await createOrReplaceProgram({
+          userId: effectiveUserId,
+          input,
+          exercises: ex,
+          preserveNotes: currentProgram.notes,
+          preserveFaq: currentProgram.faq,
+        });
+        currentProgram = res.program;
+        currentDays = res.days;
+        toast.success("Программа восстановлена");
+      } catch (e) {
+        toast.error((e as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    } else if (!currentProgram) {
       try {
         setBusy(true);
         const res = await createOrReplaceProgram({

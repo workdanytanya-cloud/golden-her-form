@@ -90,182 +90,88 @@ function asWeekIndex(value: unknown): number {
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
-function inferProgramWeeks(
-  stored: unknown,
-  days: Array<{ week_index?: number }>,
-): number {
-  const fromColumn = Number(stored);
-  if (Number.isFinite(fromColumn) && fromColumn > 1) return fromColumn;
-  if (days.length === 0) return Number.isFinite(fromColumn) && fromColumn >= 1 ? fromColumn : 1;
-  return Math.max(1, ...days.map((d) => asWeekIndex(d.week_index)) + 1);
+function inferProgramWeeks(days: Array<{ week_index?: number }>): number {
+  if (days.length === 0) return 1;
+  const maxWeek = Math.max(...days.map((d) => asWeekIndex(d.week_index)));
+  return maxWeek > 0 ? maxWeek + 1 : 1;
 }
 
-function isMissingColumnError(error: { message?: string }, column: string): boolean {
-  const msg = error.message ?? "";
-  return new RegExp(`'${column}'|${column}`, "i").test(msg) && /schema cache|column|PGRST204/i.test(msg);
-}
-
-function formatProgramDaysError(error: { message?: string; code?: string; details?: string }) {
-  const msg = error.message ?? "Не удалось сохранить дни программы";
-  if (
-    /week_index|program_weeks|duplicate key|unique constraint|training_program_days_program_id_day_index|schema cache/i.test(
-      msg,
-    )
-  ) {
-    return `${msg} Выполните в Supabase SQL файл supabase/production-fix-training-weeks.sql, затем снова примените программу.`;
-  }
-  return msg;
-}
-
-async function saveProgramRow(
-  userId: string,
-  existingId: string | undefined,
-  payload: Record<string, unknown>,
-): Promise<string> {
-  const attempt = async (body: Record<string, unknown>) => {
-    if (existingId) {
-      return supabase
-        .from("training_programs")
-        .update(body)
-        .eq("id", existingId)
-        .select("id")
-        .single();
-    }
-    return supabase.from("training_programs").insert(body).select("id").single();
+function mapDayRow(d: Record<string, unknown>): DayRow {
+  return {
+    id: d.id as string,
+    program_id: d.program_id as string,
+    week_index: asWeekIndex(d.week_index),
+    day_index: d.day_index as number,
+    is_rest: d.is_rest as boolean,
+    title: d.title as string,
+    focus: (d.focus as string | null) ?? null,
+    description: (d.description as string | null) ?? null,
+    warmup: (d.warmup ?? []) as ExerciseSet[],
+    exercises: (d.exercises ?? []) as ExerciseSet[],
+    cooldown: (d.cooldown ?? []) as ExerciseSet[],
+    day_note: (d.day_note as string | null) ?? null,
   };
-
-  let { data, error } = await attempt(payload);
-  if (error && isMissingColumnError(error, "program_weeks") && "program_weeks" in payload) {
-    const { program_weeks: _pw, ...rest } = payload;
-    ({ data, error } = await attempt(rest));
-  }
-  if (error) throw new Error(formatProgramDaysError(error));
-  return data.id;
 }
 
-async function loadDaysForProgram(programId: string): Promise<Record<string, unknown>[]> {
-  let { data, error } = await supabase
+async function loadDaysForProgram(programId: string): Promise<DayRow[]> {
+  const { data, error } = await supabase
     .from("training_program_days")
     .select("*")
     .eq("program_id", programId)
-    .order("week_index", { ascending: true })
     .order("day_index", { ascending: true });
 
-  if (error && isMissingColumnError(error, "week_index")) {
-    ({ data, error } = await supabase
-      .from("training_program_days")
-      .select("*")
-      .eq("program_id", programId)
-      .order("day_index", { ascending: true }));
-  }
   if (error) throw error;
-  return (data ?? []) as Record<string, unknown>[];
+  return (data ?? []).map((d) => mapDayRow(d as Record<string, unknown>));
 }
 
-type ReplaceDaysResult = { count: number; multiWeek: boolean };
-
-async function replaceProgramDays(
-  programId: string,
-  rows: Record<string, unknown>[],
-): Promise<ReplaceDaysResult> {
-  const payload = rows.map((r) => ({
-    week_index: asWeekIndex(r.week_index),
-    day_index: r.day_index,
-    is_rest: r.is_rest,
-    title: r.title,
-    focus: r.focus,
-    description: r.description,
-    warmup: r.warmup,
-    exercises: r.exercises,
-    cooldown: r.cooldown,
-    day_note: r.day_note,
-  }));
-
-  const { data: count, error } = await supabase.rpc("replace_training_program_days", {
-    p_program_id: programId,
-    p_rows: payload,
-  });
-
-  if (!error) {
-    if (typeof count === "number" && count !== rows.length) {
-      throw new Error(`Сохранено ${count} из ${rows.length} дней. Проверьте миграцию week_index.`);
-    }
-    return {
-      count: typeof count === "number" ? count : rows.length,
-      multiWeek: rows.some((r) => asWeekIndex(r.week_index) > 0),
-    };
-  }
-
-  const week0Rows = rows.filter((r) => asWeekIndex(r.week_index) === 0);
-  const legacyInsertRows = week0Rows.map(({ week_index: _wi, ...r }) => ({
-    program_id: programId,
-    ...r,
-  }));
-
-  if (isMissingColumnError(error, "week_index") || isMissingColumnError(error, "replace_training_program_days")) {
-    const { error: delErr } = await supabase
-      .from("training_program_days")
-      .delete()
-      .eq("program_id", programId);
-    if (delErr) throw new Error(formatProgramDaysError(error));
-
-    const { error: daysErr } = await supabase.from("training_program_days").insert(legacyInsertRows);
-    if (daysErr) throw new Error(formatProgramDaysError(daysErr));
-    return { count: legacyInsertRows.length, multiWeek: false };
-  }
-
-  if (rows.length > 7) {
-    throw new Error(formatProgramDaysError(error));
-  }
-
+async function replaceProgramDays(programId: string, rows: Record<string, unknown>[]) {
   const { error: delErr } = await supabase
     .from("training_program_days")
     .delete()
     .eq("program_id", programId);
-  if (delErr) throw new Error(formatProgramDaysError(error));
+  if (delErr) throw delErr;
 
-  const { error: daysErr } = await supabase.from("training_program_days").insert(
-    rows.map((r) => ({ program_id: programId, ...r })),
-  );
-  if (daysErr) throw new Error(formatProgramDaysError(daysErr));
-  return { count: rows.length, multiWeek: false };
+  const insertRows = rows.map((d) => {
+    const row: Record<string, unknown> = {
+      program_id: programId,
+      day_index: d.day_index,
+      is_rest: d.is_rest,
+      title: d.title,
+      focus: d.focus,
+      description: d.description,
+      warmup: d.warmup,
+      exercises: d.exercises,
+      cooldown: d.cooldown,
+      day_note: d.day_note,
+    };
+    const week = asWeekIndex(d.week_index);
+    if (week > 0) row.week_index = week;
+    return row;
+  });
+
+  const { error: daysErr } = await supabase.from("training_program_days").insert(insertRows);
+  if (daysErr) throw daysErr;
 }
 
 export async function loadProgramFor(
   userId: string,
 ): Promise<{ program: ProgramRow | null; days: DayRow[] }> {
-  const { data: program } = await supabase
+  const { data: program, error: programError } = await supabase
     .from("training_programs")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
+  if (programError) throw programError;
   if (!program) return { program: null, days: [] };
-  const days = await loadDaysForProgram(program.id);
 
-  const mappedDays = days.map((d) => ({
-      id: d.id as string,
-      program_id: d.program_id as string,
-      week_index: asWeekIndex((d as { week_index?: number }).week_index),
-      day_index: d.day_index as number,
-      is_rest: d.is_rest as boolean,
-      title: d.title as string,
-      focus: (d.focus as string | null) ?? null,
-      description: (d.description as string | null) ?? null,
-      warmup: (d.warmup ?? []) as ExerciseSet[],
-      exercises: (d.exercises ?? []) as ExerciseSet[],
-      cooldown: (d.cooldown ?? []) as ExerciseSet[],
-      day_note: (d.day_note as string | null) ?? null,
-    }));
+  const mappedDays = await loadDaysForProgram(program.id);
 
   return {
     program: {
       ...program,
       faq: (program.faq ?? []) as FaqItem[],
       equipment: program.equipment ?? [],
-      program_weeks: inferProgramWeeks(
-        (program as { program_weeks?: number }).program_weeks,
-        mappedDays,
-      ),
+      program_weeks: inferProgramWeeks(mappedDays),
     } as ProgramRow,
     days: mappedDays,
   };
@@ -305,7 +211,7 @@ export async function createOrReplaceProgram(params: {
   preserveNotes?: string | null;
   preserveFaq?: FaqItem[] | null;
   targetsManual?: boolean;
-}): Promise<{ program: ProgramRow; days: DayRow[]; multiWeek: boolean }> {
+}): Promise<{ program: ProgramRow; days: DayRow[] }> {
   const { userId, input, exercises, preserveNotes, preserveFaq, targetsManual } = params;
 
   const generatedDays = generateProgram(exercises, input);
@@ -329,15 +235,30 @@ export async function createOrReplaceProgram(params: {
     notes: preserveNotes ?? null,
     faq: faq as unknown as never,
     targets_manual: targetsManual ?? false,
-    program_weeks: 1,
     generated_at: new Date().toISOString(),
   };
 
-  let programId = await saveProgramRow(userId, existing?.id, payload);
+  let programId: string;
+  if (existing) {
+    const { data, error } = await supabase
+      .from("training_programs")
+      .update(payload)
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+    if (error) throw error;
+    programId = data.id;
+  } else {
+    const { data, error } = await supabase
+      .from("training_programs")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw error;
+    programId = data.id;
+  }
 
   const rows = generatedDays.map((d) => ({
-    program_id: programId,
-    week_index: 0,
     day_index: d.day_index,
     is_rest: d.is_rest,
     title: d.title,
@@ -348,13 +269,9 @@ export async function createOrReplaceProgram(params: {
     cooldown: d.cooldown as unknown as never,
     day_note: d.day_note,
   }));
-  const { multiWeek } = await replaceProgramDays(programId, rows);
+  await replaceProgramDays(programId, rows);
 
-  return loadProgramFor(userId).then((r) => ({
-    program: r.program!,
-    days: r.days,
-    multiWeek,
-  }));
+  return loadProgramFor(userId).then((r) => ({ program: r.program!, days: r.days }));
 }
 
 /** Заменить программу на кастомный мультинедельный план (напр. из таблицы тренера). */
@@ -366,8 +283,8 @@ export async function createOrReplaceCustomProgram(params: {
   preserveFaq?: FaqItem[] | null;
   notes?: string | null;
   targetsManual?: boolean;
-}): Promise<{ program: ProgramRow; days: DayRow[]; multiWeek: boolean }> {
-  const { userId, input, days, programWeeks, preserveFaq, notes, targetsManual } = params;
+}): Promise<{ program: ProgramRow; days: DayRow[] }> {
+  const { userId, input, days, preserveFaq, notes, targetsManual } = params;
   const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
 
   const { data: existing } = await supabase
@@ -388,14 +305,30 @@ export async function createOrReplaceCustomProgram(params: {
     notes: notes ?? null,
     faq: faq as unknown as never,
     targets_manual: targetsManual ?? true,
-    program_weeks: programWeeks,
     generated_at: new Date().toISOString(),
   };
 
-  const programId = await saveProgramRow(userId, existing?.id, payload);
+  let programId: string;
+  if (existing) {
+    const { data, error } = await supabase
+      .from("training_programs")
+      .update(payload)
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+    if (error) throw error;
+    programId = data.id;
+  } else {
+    const { data, error } = await supabase
+      .from("training_programs")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw error;
+    programId = data.id;
+  }
 
   const rows = days.map((d) => ({
-    program_id: programId,
     week_index: d.week_index ?? 0,
     day_index: d.day_index,
     is_rest: d.is_rest,
@@ -407,13 +340,9 @@ export async function createOrReplaceCustomProgram(params: {
     cooldown: d.cooldown as unknown as never,
     day_note: d.day_note,
   }));
-  const { multiWeek } = await replaceProgramDays(programId, rows);
+  await replaceProgramDays(programId, rows);
 
-  return loadProgramFor(userId).then((r) => ({
-    program: r.program!,
-    days: r.days,
-    multiWeek,
-  }));
+  return loadProgramFor(userId).then((r) => ({ program: r.program!, days: r.days }));
 }
 
 export async function updateDayPatch(
@@ -436,27 +365,21 @@ export async function updateDayPatch(
 ) {
   const dbPatch: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(patch)) dbPatch[k] = v as unknown;
-  const { data, error } = await supabase
+
+  let query = supabase
     .from("training_program_days")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .update(dbPatch as any)
     .eq("program_id", programId)
-    .eq("week_index", weekIndex)
-    .eq("day_index", dayIndex)
-    .select("id");
-  if (!error && data?.length) return;
+    .eq("day_index", dayIndex);
 
-  if (error && !isMissingColumnError(error, "week_index")) throw error;
+  if (weekIndex > 0) {
+    query = query.eq("week_index", weekIndex);
+  }
 
-  const { data: legacyData, error: legacyError } = await supabase
-    .from("training_program_days")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .update(dbPatch as any)
-    .eq("program_id", programId)
-    .eq("day_index", dayIndex)
-    .select("id");
-  if (legacyError) throw legacyError;
-  if (!legacyData?.length) throw new Error("День программы не найден — изменения не сохранились");
+  const { data, error } = await query.select("id");
+  if (error) throw error;
+  if (!data?.length) throw new Error("День программы не найден — изменения не сохранились");
 }
 
 /** Любая правка тренера фиксирует программу: клиентский кабинет больше не пересобирает её. */

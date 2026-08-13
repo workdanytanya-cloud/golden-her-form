@@ -139,14 +139,7 @@ function AdminTrainingPage() {
         targetsManual: true,
       });
       await reload();
-      if (!result.multiWeek && COACH_PROGRAM_WEEKS > 1) {
-        toast.warning(
-          "Сохранена 1-я неделя. Для полного 4-недельного цикла выполните SQL в Supabase (файл production-fix-training-weeks.sql) и нажмите кнопку снова.",
-          { duration: 12000 },
-        );
-      } else {
-        toast.success(`Программа из таблицы на ${COACH_PROGRAM_WEEKS} нед. сохранена`);
-      }
+      toast.success(`Программа сохранена (${result.days.length} дн.)`);
     } catch (e) {
       toast.error((e as Error).message);
     }
