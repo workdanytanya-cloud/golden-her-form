@@ -90,6 +90,35 @@ function asWeekIndex(value: unknown): number {
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
+function isMissingSchemaColumn(error: { message?: string }, column: string): boolean {
+  const msg = error.message ?? "";
+  return (
+    new RegExp(column, "i").test(msg) &&
+    /schema cache|could not find|PGRST204|column/i.test(msg)
+  );
+}
+
+function dayInsertRow(
+  programId: string,
+  d: Record<string, unknown>,
+  withWeekIndex: boolean,
+): Record<string, unknown> {
+  const row: Record<string, unknown> = {
+    program_id: programId,
+    day_index: d.day_index,
+    is_rest: d.is_rest,
+    title: d.title,
+    focus: d.focus,
+    description: d.description,
+    warmup: d.warmup,
+    exercises: d.exercises,
+    cooldown: d.cooldown,
+    day_note: d.day_note,
+  };
+  if (withWeekIndex) row.week_index = asWeekIndex(d.week_index);
+  return row;
+}
+
 function inferProgramWeeks(days: Array<{ week_index?: number }>): number {
   if (days.length === 0) return 1;
   const maxWeek = Math.max(...days.map((d) => asWeekIndex(d.week_index)));
@@ -124,33 +153,36 @@ async function loadDaysForProgram(programId: string): Promise<DayRow[]> {
   return (data ?? []).map((d) => mapDayRow(d as Record<string, unknown>));
 }
 
-async function replaceProgramDays(programId: string, rows: Record<string, unknown>[]) {
+async function replaceProgramDays(
+  programId: string,
+  rows: Record<string, unknown>[],
+): Promise<{ multiWeek: boolean }> {
   const { error: delErr } = await supabase
     .from("training_program_days")
     .delete()
     .eq("program_id", programId);
   if (delErr) throw delErr;
 
-  const insertRows = rows.map((d) => {
-    const row: Record<string, unknown> = {
-      program_id: programId,
-      day_index: d.day_index,
-      is_rest: d.is_rest,
-      title: d.title,
-      focus: d.focus,
-      description: d.description,
-      warmup: d.warmup,
-      exercises: d.exercises,
-      cooldown: d.cooldown,
-      day_note: d.day_note,
-    };
-    const week = asWeekIndex(d.week_index);
-    if (week > 0) row.week_index = week;
-    return row;
-  });
+  const needsMultiWeek = rows.some((r) => asWeekIndex(r.week_index) > 0);
 
-  const { error: daysErr } = await supabase.from("training_program_days").insert(insertRows);
+  if (needsMultiWeek) {
+    const fullRows = rows.map((d) => dayInsertRow(programId, d, true));
+    const { error } = await supabase.from("training_program_days").insert(fullRows);
+    if (!error) return { multiWeek: true };
+    if (!isMissingSchemaColumn(error, "week_index")) throw error;
+
+    const week0Rows = rows
+      .filter((r) => asWeekIndex(r.week_index) === 0)
+      .map((d) => dayInsertRow(programId, d, false));
+    const { error: fallbackErr } = await supabase.from("training_program_days").insert(week0Rows);
+    if (fallbackErr) throw fallbackErr;
+    return { multiWeek: false };
+  }
+
+  const legacyRows = rows.map((d) => dayInsertRow(programId, d, false));
+  const { error: daysErr } = await supabase.from("training_program_days").insert(legacyRows);
   if (daysErr) throw daysErr;
+  return { multiWeek: false };
 }
 
 export async function loadProgramFor(
@@ -211,7 +243,7 @@ export async function createOrReplaceProgram(params: {
   preserveNotes?: string | null;
   preserveFaq?: FaqItem[] | null;
   targetsManual?: boolean;
-}): Promise<{ program: ProgramRow; days: DayRow[] }> {
+}): Promise<{ program: ProgramRow; days: DayRow[]; multiWeek: boolean }> {
   const { userId, input, exercises, preserveNotes, preserveFaq, targetsManual } = params;
 
   const generatedDays = generateProgram(exercises, input);
@@ -271,7 +303,11 @@ export async function createOrReplaceProgram(params: {
   }));
   await replaceProgramDays(programId, rows);
 
-  return loadProgramFor(userId).then((r) => ({ program: r.program!, days: r.days }));
+  return loadProgramFor(userId).then((r) => ({
+    program: r.program!,
+    days: r.days,
+    multiWeek: false,
+  }));
 }
 
 /** Заменить программу на кастомный мультинедельный план (напр. из таблицы тренера). */
@@ -283,7 +319,7 @@ export async function createOrReplaceCustomProgram(params: {
   preserveFaq?: FaqItem[] | null;
   notes?: string | null;
   targetsManual?: boolean;
-}): Promise<{ program: ProgramRow; days: DayRow[] }> {
+}): Promise<{ program: ProgramRow; days: DayRow[]; multiWeek: boolean }> {
   const { userId, input, days, preserveFaq, notes, targetsManual } = params;
   const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
 
@@ -340,9 +376,13 @@ export async function createOrReplaceCustomProgram(params: {
     cooldown: d.cooldown as unknown as never,
     day_note: d.day_note,
   }));
-  await replaceProgramDays(programId, rows);
+  const { multiWeek } = await replaceProgramDays(programId, rows);
 
-  return loadProgramFor(userId).then((r) => ({ program: r.program!, days: r.days }));
+  return loadProgramFor(userId).then((r) => ({
+    program: r.program!,
+    days: r.days,
+    multiWeek,
+  }));
 }
 
 export async function updateDayPatch(

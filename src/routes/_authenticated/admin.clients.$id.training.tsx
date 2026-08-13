@@ -30,6 +30,7 @@ import {
   buildCoachSheetProgramDays,
   coachProgramNotes,
   COACH_PROGRAM_WEEKS,
+  missingCoachSheetExercises,
 } from "@/lib/coach-sheet-program";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/training")({
@@ -124,6 +125,16 @@ function AdminTrainingPage() {
 
   const handleApplyCoachSheet = async () => {
     if (!profile) return;
+
+    const missing = missingCoachSheetExercises(exercises);
+    if (missing.length > 0) {
+      toast.error(
+        `В базе нет ${missing.length} упражнений из таблицы (sheet-*). В Supabase → SQL Editor выполните файл supabase/production-setup-coach-sheet.sql`,
+        { duration: 15000 },
+      );
+      return;
+    }
+
     const input: ProgramInput = {
       sessions_per_week: 3,
       goal: profile.goal,
@@ -146,7 +157,14 @@ function AdminTrainingPage() {
         targetsManual: true,
       });
       await reload();
-      toast.success(`Программа сохранена (${result.days.length} дн.)`);
+      if (result.multiWeek) {
+        toast.success(`Программа из таблицы сохранена: ${result.days.length} дней (${COACH_PROGRAM_WEEKS} нед.)`);
+      } else {
+        toast.warning(
+          `Сохранена 1-я неделя (${result.days.length} дн.). Для 4 недель выполните supabase/production-setup-coach-sheet.sql в Supabase и нажмите кнопку снова.`,
+          { duration: 15000 },
+        );
+      }
     } catch (e) {
       toast.error((e as Error).message);
     }

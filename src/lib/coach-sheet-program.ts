@@ -42,6 +42,14 @@ const W = {
   circuit: "sheet-trenirovka",
 } as const;
 
+/** Slug'и упражнений из Google Sheet тренера (должны быть в public.exercises). */
+export const COACH_SHEET_EXERCISE_SLUGS: readonly string[] = Object.values(W);
+
+export function missingCoachSheetExercises(exercises: Pick<Exercise, "slug">[]): string[] {
+  const have = new Set(exercises.map((e) => e.slug));
+  return COACH_SHEET_EXERCISE_SLUGS.filter((slug) => !have.has(slug));
+}
+
 const WEEK_META: Array<{ title: string; focus: string }> = [
   { title: "Неделя 1 — освоение", focus: "Техника и ритм по таблице тренера." },
   { title: "Неделя 2 — объём", focus: "Больше времени и подходов при том же качестве." },
