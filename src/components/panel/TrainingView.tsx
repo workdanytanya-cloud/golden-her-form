@@ -9,6 +9,7 @@ import {
   Play,
   Plus,
   Replace,
+  Save,
   StickyNote,
   Timer,
   Trash2,
@@ -40,6 +41,11 @@ type Props = {
   notes: string | null;
   faq: FaqItem[];
   editable: boolean;
+  /** В админке: правки в черновик, сохранение по кнопке */
+  manualSave?: boolean;
+  dirtyDayKeys?: Set<string>;
+  savingDayKey?: string | null;
+  onSaveDay?: (weekIndex: number, dayIndex: number) => Promise<void>;
   onDayPatch?: (weekIndex: number, dayIndex: number, patch: Partial<ProgramDay>) => Promise<void>;
   onProgramPatch?: (patch: { notes?: string | null; faq?: FaqItem[] }) => Promise<void>;
   onRegenerate?: () => Promise<void>;
@@ -55,6 +61,10 @@ export function TrainingView({
   notes,
   faq,
   editable,
+  manualSave = false,
+  dirtyDayKeys,
+  savingDayKey = null,
+  onSaveDay,
   onDayPatch,
   onProgramPatch,
   onRegenerate,
@@ -101,6 +111,18 @@ export function TrainingView({
     weekDays.find((d) => d.day_index === dayIndex) ??
     weekDays.find((d) => !d.is_rest) ??
     weekDays[0];
+
+  const currentDayKey = day ? `${weekIndex}:${day.day_index}` : "";
+  const isDayDirty = Boolean(manualSave && dirtyDayKeys?.has(currentDayKey));
+  const isSavingDay = savingDayKey === currentDayKey;
+
+  const patchDay = (patch: Partial<ProgramDay>) =>
+    day ? onDayPatch?.(weekIndex, day.day_index, patch) ?? Promise.resolve() : Promise.resolve();
+
+  const editToast = (msg: string) => {
+    if (manualSave) toast.message(msg, { description: "Нажмите «Сохранить» для этого дня" });
+    else toast.success(msg);
+  };
 
   const [openExercise, setOpenExercise] = useState<{
     section: SectionKey;
@@ -165,12 +187,15 @@ export function TrainingView({
         </div>
       )}
 
-      {/* Week tabs */}
-      <div className="flex flex-wrap gap-2">
+      {/* Week tabs + save (admin) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
         {WEEKDAY_LABELS.map((label, i) => {
           const d = weekDays.find((x) => x.day_index === i);
           const rest = d?.is_rest;
           const active = i === dayIndex;
+          const tabKey = d ? `${weekIndex}:${d.day_index}` : "";
+          const tabDirty = manualSave && dirtyDayKeys?.has(tabKey);
           return (
             <button
               key={label}
@@ -182,15 +207,38 @@ export function TrainingView({
                   : rest
                     ? "border-gold/10 text-warm-gray/60 hover:text-ivory"
                     : "border-gold/20 text-warm-gray hover:text-ivory",
+                tabDirty ? "border-coral/50" : "",
               ].join(" ")}
             >
               <span className="hidden sm:inline">{label}</span>
               <span className="sm:hidden">{label.slice(0, 2)}</span>
               {rest && <span className="ml-1 text-[9px] opacity-70">отдых</span>}
+              {tabDirty && <span className="ml-1 text-[9px] text-coral">•</span>}
             </button>
           );
         })}
+        </div>
+        {editable && manualSave && day && onSaveDay && (
+          <button
+            type="button"
+            disabled={!isDayDirty || isSavingDay}
+            onClick={() => void onSaveDay(weekIndex, day.day_index)}
+            className={[
+              "inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs uppercase tracking-widest transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+              isDayDirty
+                ? "bg-gradient-to-r from-coral to-gold text-background"
+                : "border border-gold/25 text-warm-gray",
+            ].join(" ")}
+          >
+            <Save className="h-3.5 w-3.5" />
+            {isSavingDay ? "Сохраняем…" : "Сохранить"}
+          </button>
+        )}
       </div>
+
+      {editable && manualSave && isDayDirty && (
+        <p className="text-xs text-coral">Есть несохранённые изменения на этом дне</p>
+      )}
 
       {/* Day content */}
       {day ? (
@@ -199,9 +247,9 @@ export function TrainingView({
           exById={exById}
           allExercises={exercises}
           editable={editable}
-          onPatch={(patch) =>
-            onDayPatch?.(weekIndex, day.day_index, patch) ?? Promise.resolve()
-          }
+          manualSave={manualSave}
+          onPatch={patchDay}
+          onEditToast={editToast}
           onOpen={(section, index, set) => setOpenExercise({ section, index, set })}
         />
       ) : (
@@ -237,22 +285,22 @@ export function TrainingView({
                 exercise_id: newId,
                 tempo: newEx?.tempo ?? target.tempo,
               };
-              await onDayPatch?.(weekIndex, day.day_index, {
+              await patchDay({
                 [openExercise.section]: arr,
               } as Partial<ProgramDay>);
             }
             setOpenExercise(null);
-            toast.success("Упражнение заменено");
+            editToast("Упражнение заменено");
           }}
           onSetPatch={async (patch) => {
             if (!day) return;
             const arr = [...day[openExercise.section]];
             arr[openExercise.index] = { ...arr[openExercise.index], ...patch };
-            await onDayPatch?.(weekIndex, day.day_index, {
+            await patchDay({
               [openExercise.section]: arr,
             } as Partial<ProgramDay>);
             setOpenExercise((s) => (s ? { ...s, set: { ...s.set, ...patch } } : null));
-            toast.success("Сохранено");
+            editToast("Параметры обновлены");
           }}
         />
       )}
@@ -409,14 +457,18 @@ function DaySection({
   exById,
   allExercises,
   editable,
+  manualSave = false,
   onPatch,
+  onEditToast,
   onOpen,
 }: {
   day: ProgramDay;
   exById: Record<string, Exercise>;
   allExercises: Exercise[];
   editable: boolean;
+  manualSave?: boolean;
   onPatch: (patch: Partial<ProgramDay>) => Promise<void>;
+  onEditToast: (msg: string) => void;
   onOpen: (section: SectionKey, index: number, set: ExerciseSet) => void;
 }) {
   if (day.is_rest) {
@@ -437,7 +489,7 @@ function DaySection({
                 warmup: [],
                 exercises: [],
                 cooldown: [],
-              }).then(() => toast.success("День стал тренировочным — добавьте упражнения"))
+              }).then(() => onEditToast("День стал тренировочным"))
             }
             className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-xs uppercase tracking-widest text-background"
           >
@@ -474,7 +526,7 @@ function DaySection({
                   warmup: [],
                   exercises: [],
                   cooldown: [],
-                }).then(() => toast.success("День отмечен как отдых"))
+                }).then(() => onEditToast("День отмечен как отдых"))
               }
               className="shrink-0 rounded-full border border-gold/30 px-3 py-1.5 text-[10px] uppercase tracking-widest text-warm-gray hover:border-coral/40 hover:text-coral"
             >
@@ -491,6 +543,7 @@ function DaySection({
         exById={exById}
         allExercises={allExercises}
         editable={editable}
+        onEditToast={onEditToast}
         onChange={(next) => onPatch({ warmup: next })}
         onOpen={(i, set) => onOpen("warmup", i, set)}
       />
@@ -502,6 +555,7 @@ function DaySection({
         exById={exById}
         allExercises={allExercises}
         editable={editable}
+        onEditToast={onEditToast}
         onChange={(next) => onPatch({ exercises: next })}
         onOpen={(i, set) => onOpen("exercises", i, set)}
       />
@@ -513,6 +567,7 @@ function DaySection({
         exById={exById}
         allExercises={allExercises}
         editable={editable}
+        onEditToast={onEditToast}
         onChange={(next) => onPatch({ cooldown: next })}
         onOpen={(i, set) => onOpen("cooldown", i, set)}
       />
@@ -521,6 +576,7 @@ function DaySection({
       <DayNote
         note={day.day_note ?? ""}
         editable={editable}
+        manualSave={manualSave}
         onSave={(v) => onPatch({ day_note: v || null })}
       />
     </div>
@@ -534,6 +590,7 @@ function SectionBlock({
   exById,
   allExercises,
   editable,
+  onEditToast,
   onChange,
   onOpen,
 }: {
@@ -543,6 +600,7 @@ function SectionBlock({
   exById: Record<string, Exercise>;
   allExercises: Exercise[];
   editable: boolean;
+  onEditToast: (msg: string) => void;
   onChange: (next: ExerciseSet[]) => Promise<void>;
   onOpen: (index: number, set: ExerciseSet) => void;
 }) {
@@ -651,7 +709,7 @@ function SectionBlock({
                     onClick={async () => {
                       const next = sets.filter((_, j) => j !== i);
                       await onChange(next);
-                      toast.success("Удалено");
+                      onEditToast("Удалено");
                     }}
                     className="shrink-0 rounded-full p-2 text-warm-gray opacity-0 transition-opacity hover:bg-coral/15 hover:text-coral group-hover:opacity-100"
                     aria-label="Удалить"
@@ -682,7 +740,7 @@ function SectionBlock({
               },
             ]);
             setAdding(false);
-            toast.success("Добавлено");
+            onEditToast("Добавлено");
           }}
           onCancel={() => setAdding(false)}
         />
@@ -761,14 +819,21 @@ function AddExercise({
 function DayNote({
   note,
   editable,
+  manualSave = false,
   onSave,
 }: {
   note: string;
   editable: boolean;
+  manualSave?: boolean;
   onSave: (v: string) => Promise<void>;
 }) {
   const [value, setValue] = useState(note);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setValue(note);
+  }, [note]);
+
   if (!editable && !note) return null;
   return (
     <div className="rounded-2xl border border-gold/15 bg-surface/30 p-4">
@@ -779,24 +844,29 @@ function DayNote({
         <>
           <textarea
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => {
+              setValue(e.target.value);
+              if (manualSave) void onSave(e.target.value);
+            }}
             rows={2}
             className="mt-2 w-full rounded-xl border border-gold/20 bg-background/40 px-3 py-2 text-sm text-ivory"
             placeholder="Например: сегодня работаем на технику, вес субмаксимальный"
           />
-          <button
-            type="button"
-            disabled={saving || value === note}
-            onClick={async () => {
-              setSaving(true);
-              await onSave(value);
-              setSaving(false);
-              toast.success("Сохранено");
-            }}
-            className="mt-2 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-1.5 text-xs uppercase tracking-widest text-background disabled:opacity-50"
-          >
-            Сохранить
-          </button>
+          {!manualSave && (
+            <button
+              type="button"
+              disabled={saving || value === note}
+              onClick={async () => {
+                setSaving(true);
+                await onSave(value);
+                setSaving(false);
+                toast.success("Сохранено");
+              }}
+              className="mt-2 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-1.5 text-xs uppercase tracking-widest text-background disabled:opacity-50"
+            >
+              Сохранить
+            </button>
+          )}
         </>
       ) : (
         <p className="mt-2 whitespace-pre-wrap text-sm text-ivory">{note}</p>

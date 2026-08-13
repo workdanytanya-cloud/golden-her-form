@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { PanelHeader } from "@/components/panel/PanelShell";
@@ -36,6 +36,10 @@ export const Route = createFileRoute("/_authenticated/admin/clients/$id/training
   component: AdminTrainingPage,
 });
 
+function dayKey(weekIndex: number, dayIndex: number) {
+  return `${weekIndex}:${dayIndex}`;
+}
+
 function AdminTrainingPage() {
   const { id } = Route.useParams();
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -53,6 +57,8 @@ function AdminTrainingPage() {
     weight_kg: number | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dirtyDays, setDirtyDays] = useState<Set<string>>(() => new Set());
+  const [savingDayKey, setSavingDayKey] = useState<string | null>(null);
 
   const reload = async () => {
     setLoading(true);
@@ -65,6 +71,7 @@ function AdminTrainingPage() {
     setExercises(ex);
     setProgram(p.program);
     setDays(p.days);
+    setDirtyDays(new Set());
     setProfile({
       sessions_per_week: prof.sessions_per_week,
       goal: prof.goal,
@@ -145,15 +152,8 @@ function AdminTrainingPage() {
     }
   };
 
-  const handleDayPatch = async (
-    weekIndex: number,
-    dayIndex: number,
-    patch: Partial<ProgramDay>,
-  ) => {
-    if (!program) return;
-    try {
-      await updateDayPatch(program.id, weekIndex, dayIndex, patch);
-      await lockProgramManual(program.id);
+  const handleDayPatchLocal = useCallback(
+    async (weekIndex: number, dayIndex: number, patch: Partial<ProgramDay>) => {
       setDays((cur) =>
         cur.map((d) =>
           d.week_index === weekIndex && d.day_index === dayIndex
@@ -161,11 +161,54 @@ function AdminTrainingPage() {
             : d,
         ),
       );
-      setProgram((p) => (p ? { ...p, targets_manual: true } : p));
-    } catch (e) {
-      toast.error((e as Error).message || "Не удалось сохранить день");
-      throw e;
-    }
+      setDirtyDays((cur) => new Set(cur).add(dayKey(weekIndex, dayIndex)));
+    },
+    [],
+  );
+
+  const handleSaveDay = useCallback(
+    async (weekIndex: number, dayIndex: number) => {
+      if (!program) return;
+      const day = days.find((d) => d.week_index === weekIndex && d.day_index === dayIndex);
+      if (!day) return;
+
+      const key = dayKey(weekIndex, dayIndex);
+      setSavingDayKey(key);
+      try {
+        await updateDayPatch(program.id, weekIndex, dayIndex, {
+          title: day.title,
+          focus: day.focus,
+          description: day.description,
+          is_rest: day.is_rest,
+          warmup: day.warmup,
+          exercises: day.exercises,
+          cooldown: day.cooldown,
+          day_note: day.day_note,
+        });
+        await lockProgramManual(program.id);
+        setProgram((p) => (p ? { ...p, targets_manual: true } : p));
+        setDirtyDays((cur) => {
+          const next = new Set(cur);
+          next.delete(key);
+          return next;
+        });
+        toast.success("День сохранён — клиент увидит изменения");
+      } catch (e) {
+        toast.error((e as Error).message || "Не удалось сохранить день");
+        throw e;
+      } finally {
+        setSavingDayKey(null);
+      }
+    },
+    [program, days],
+  );
+
+  const handleDayPatch = async (
+    weekIndex: number,
+    dayIndex: number,
+    patch: Partial<ProgramDay>,
+  ) => {
+    await handleDayPatchLocal(weekIndex, dayIndex, patch);
   };
 
   const handleProgramPatch = async (patch: { notes?: string | null; faq?: FaqItem[] }) => {
@@ -277,6 +320,10 @@ function AdminTrainingPage() {
             notes={program.notes}
             faq={program.faq}
             editable={true}
+            manualSave
+            dirtyDayKeys={dirtyDays}
+            savingDayKey={savingDayKey}
+            onSaveDay={handleSaveDay}
             onDayPatch={handleDayPatch}
             onProgramPatch={handleProgramPatch}
           />
