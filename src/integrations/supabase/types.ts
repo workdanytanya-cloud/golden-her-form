@@ -765,6 +765,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      replace_training_program_days: {
+        Args: {
+          p_program_id: string
+          p_rows: Json
+        }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "admin" | "client"

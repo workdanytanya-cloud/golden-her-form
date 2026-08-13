@@ -85,6 +85,75 @@ export async function loadExercises(): Promise<Exercise[]> {
   })) as Exercise[];
 }
 
+function asWeekIndex(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function inferProgramWeeks(
+  stored: unknown,
+  days: Array<{ week_index?: number }>,
+): number {
+  const fromColumn = Number(stored);
+  if (Number.isFinite(fromColumn) && fromColumn > 1) return fromColumn;
+  if (days.length === 0) return Number.isFinite(fromColumn) && fromColumn >= 1 ? fromColumn : 1;
+  return Math.max(1, ...days.map((d) => asWeekIndex(d.week_index)) + 1);
+}
+
+function formatProgramDaysError(error: { message?: string; code?: string; details?: string }) {
+  const msg = error.message ?? "Не удалось сохранить дни программы";
+  if (
+    /week_index|program_weeks|duplicate key|unique constraint|training_program_days_program_id_day_index/i.test(
+      msg,
+    )
+  ) {
+    return `${msg}. Выполните в Supabase SQL миграции 20260813180000 и 20260813190000, затем снова нажмите «Таблица тренера · 4 нед.».`;
+  }
+  return msg;
+}
+
+async function replaceProgramDays(programId: string, rows: Record<string, unknown>[]) {
+  const payload = rows.map((r) => ({
+    week_index: asWeekIndex(r.week_index),
+    day_index: r.day_index,
+    is_rest: r.is_rest,
+    title: r.title,
+    focus: r.focus,
+    description: r.description,
+    warmup: r.warmup,
+    exercises: r.exercises,
+    cooldown: r.cooldown,
+    day_note: r.day_note,
+  }));
+
+  const { data: count, error } = await supabase.rpc("replace_training_program_days", {
+    p_program_id: programId,
+    p_rows: payload,
+  });
+
+  if (error) {
+    if (rows.length > 7) {
+      throw new Error(formatProgramDaysError(error));
+    }
+
+    const { error: delErr } = await supabase
+      .from("training_program_days")
+      .delete()
+      .eq("program_id", programId);
+    if (delErr) throw new Error(formatProgramDaysError(error));
+
+    const { error: daysErr } = await supabase.from("training_program_days").insert(rows);
+    if (daysErr) throw new Error(formatProgramDaysError(daysErr));
+    return rows.length;
+  }
+
+  if (typeof count === "number" && count !== rows.length) {
+    throw new Error(`Сохранено ${count} из ${rows.length} дней. Проверьте миграцию week_index.`);
+  }
+
+  return typeof count === "number" ? count : rows.length;
+}
+
 export async function loadProgramFor(
   userId: string,
 ): Promise<{ program: ProgramRow | null; days: DayRow[] }> {
@@ -94,23 +163,18 @@ export async function loadProgramFor(
     .eq("user_id", userId)
     .maybeSingle();
   if (!program) return { program: null, days: [] };
-  const { data: days } = await supabase
+  const { data: days, error: daysError } = await supabase
     .from("training_program_days")
     .select("*")
     .eq("program_id", program.id)
-    .order("week_index")
-    .order("day_index");
-  return {
-    program: {
-      ...program,
-      faq: (program.faq ?? []) as FaqItem[],
-      equipment: program.equipment ?? [],
-      program_weeks: (program as { program_weeks?: number }).program_weeks ?? 1,
-    } as ProgramRow,
-    days: (days ?? []).map((d) => ({
+    .order("week_index", { ascending: true })
+    .order("day_index", { ascending: true });
+  if (daysError) throw daysError;
+
+  const mappedDays = (days ?? []).map((d) => ({
       id: d.id,
       program_id: d.program_id,
-      week_index: (d as { week_index?: number }).week_index ?? 0,
+      week_index: asWeekIndex((d as { week_index?: number }).week_index),
       day_index: d.day_index,
       is_rest: d.is_rest,
       title: d.title,
@@ -120,7 +184,19 @@ export async function loadProgramFor(
       exercises: (d.exercises ?? []) as ExerciseSet[],
       cooldown: (d.cooldown ?? []) as ExerciseSet[],
       day_note: d.day_note,
-    })),
+    }));
+
+  return {
+    program: {
+      ...program,
+      faq: (program.faq ?? []) as FaqItem[],
+      equipment: program.equipment ?? [],
+      program_weeks: inferProgramWeeks(
+        (program as { program_weeks?: number }).program_weeks,
+        mappedDays,
+      ),
+    } as ProgramRow,
+    days: mappedDays,
   };
 }
 
@@ -206,12 +282,6 @@ export async function createOrReplaceProgram(params: {
     programId = data.id;
   }
 
-  const { error: delErr } = await supabase
-    .from("training_program_days")
-    .delete()
-    .eq("program_id", programId);
-  if (delErr) throw delErr;
-
   const rows = generatedDays.map((d) => ({
     program_id: programId,
     week_index: 0,
@@ -225,8 +295,7 @@ export async function createOrReplaceProgram(params: {
     cooldown: d.cooldown as unknown as never,
     day_note: d.day_note,
   }));
-  const { error: daysErr } = await supabase.from("training_program_days").insert(rows);
-  if (daysErr) throw daysErr;
+  await replaceProgramDays(programId, rows);
 
   return loadProgramFor(userId).then((r) => ({ program: r.program!, days: r.days }));
 }
@@ -286,12 +355,6 @@ export async function createOrReplaceCustomProgram(params: {
     programId = data.id;
   }
 
-  const { error: delErr } = await supabase
-    .from("training_program_days")
-    .delete()
-    .eq("program_id", programId);
-  if (delErr) throw delErr;
-
   const rows = days.map((d) => ({
     program_id: programId,
     week_index: d.week_index ?? 0,
@@ -305,8 +368,7 @@ export async function createOrReplaceCustomProgram(params: {
     cooldown: d.cooldown as unknown as never,
     day_note: d.day_note,
   }));
-  const { error: daysErr } = await supabase.from("training_program_days").insert(rows);
-  if (daysErr) throw daysErr;
+  await replaceProgramDays(programId, rows);
 
   return loadProgramFor(userId).then((r) => ({ program: r.program!, days: r.days }));
 }

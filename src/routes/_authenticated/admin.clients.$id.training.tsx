@@ -213,7 +213,19 @@ function AdminTrainingPage() {
       />
 
       {program && profile && (
-        <ParamsEditor
+        <>
+          {programDays.length === 0 && (
+            <div className="rounded-3xl border border-coral/30 bg-coral/10 p-5 text-sm text-warm-gray">
+              <p className="font-display text-base text-ivory">Дни программы пустые</p>
+              <p className="mt-2">
+                Нажмите «Таблица тренера · 4 нед.» — если появится ошибка про{" "}
+                <code className="text-gold">week_index</code>, выполните в Supabase SQL Editor
+                миграции <code className="text-gold">20260813180000</code> и{" "}
+                <code className="text-gold">20260813190000</code>, затем повторите.
+              </p>
+            </div>
+          )}
+          <ParamsEditor
           program={program}
           profile={profile}
           onSaveTargets={async (sessions, goal, level) => {
@@ -229,6 +241,7 @@ function AdminTrainingPage() {
             toast.success("Комментарий сохранён");
           }}
         />
+        </>
       )}
 
       {!program ? (

@@ -65,16 +65,27 @@ export function TrainingView({
     return m;
   }, [exercises]);
 
+  const normalizedDays = useMemo(
+    () =>
+      days.map((d) => ({
+        ...d,
+        week_index: Number(d.week_index ?? 0),
+      })),
+    [days],
+  );
+
   const maxWeek =
     programWeeks > 1
       ? programWeeks - 1
-      : Math.max(0, ...days.map((d) => d.week_index ?? 0));
+      : Math.max(0, ...normalizedDays.map((d) => d.week_index ?? 0));
 
   const [weekIndex, setWeekIndex] = useState(0);
-  const weekDays = useMemo(
-    () => days.filter((d) => (d.week_index ?? 0) === weekIndex),
-    [days, weekIndex],
-  );
+  const weekDays = useMemo(() => {
+    const filtered = normalizedDays.filter((d) => d.week_index === weekIndex);
+    if (filtered.length > 0) return filtered;
+    if (weekIndex === 0 && programWeeks <= 1) return normalizedDays;
+    return filtered;
+  }, [normalizedDays, weekIndex, programWeeks]);
 
   const [dayIndex, setDayIndex] = useState(() => {
     const first = weekDays.find((d) => !d.is_rest);
@@ -87,7 +98,10 @@ export function TrainingView({
     setDayIndex(first?.day_index ?? 0);
   }, [weekIndex, weekDays]);
 
-  const day = weekDays.find((d) => d.day_index === dayIndex) ?? weekDays[0];
+  const day =
+    weekDays.find((d) => d.day_index === dayIndex) ??
+    weekDays.find((d) => !d.is_rest) ??
+    weekDays[0];
 
   const [openExercise, setOpenExercise] = useState<{
     section: SectionKey;
@@ -180,7 +194,7 @@ export function TrainingView({
       </div>
 
       {/* Day content */}
-      {day && (
+      {day ? (
         <DaySection
           day={day}
           exById={exById}
@@ -191,6 +205,15 @@ export function TrainingView({
           }
           onOpen={(section, index, set) => setOpenExercise({ section, index, set })}
         />
+      ) : (
+        <div className="rounded-3xl border border-coral/30 bg-coral/10 p-8 text-center">
+          <p className="font-display text-lg text-ivory">Тренировки на этот день не загружены</p>
+          <p className="mt-3 text-sm text-warm-gray">
+            {days.length === 0
+              ? "В базе нет дней программы — в админке нажмите «Таблица тренера · 4 нед.» ещё раз (нужна миграция week_index в Supabase)."
+              : "Выберите другую неделю или день. Если проблема повторяется — пересохраните программу в админке."}
+          </p>
+        </div>
       )}
 
       {openExercise && exById[openExercise.set.exercise_id] && (
