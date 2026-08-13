@@ -243,10 +243,13 @@ export async function createOrReplaceProgram(params: {
   preserveNotes?: string | null;
   preserveFaq?: FaqItem[] | null;
   targetsManual?: boolean;
+  /** Если дни уже сгенерированы и провалидированы снаружи. */
+  preGeneratedDays?: ProgramDay[];
 }): Promise<{ program: ProgramRow; days: DayRow[]; multiWeek: boolean }> {
-  const { userId, input, exercises, preserveNotes, preserveFaq, targetsManual } = params;
+  const { userId, input, exercises, preserveNotes, preserveFaq, targetsManual, preGeneratedDays } =
+    params;
 
-  const generatedDays = generateProgram(exercises, input);
+  const generatedDays = preGeneratedDays ?? generateProgram(exercises, input);
   const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
 
   const { data: existing } = await supabase

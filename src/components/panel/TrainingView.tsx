@@ -31,6 +31,8 @@ import {
   type ProgramGoal,
 } from "@/lib/training";
 import { getVideoEmbedUrl, isDirectVideoFile } from "@/lib/video-embed";
+import { WorkoutFeedbackDialog } from "@/components/panel/WorkoutFeedbackDialog";
+import { SubstituteSuggestions } from "@/components/panel/SubstituteSuggestions";
 
 type SectionKey = "warmup" | "exercises" | "cooldown";
 
@@ -73,6 +75,11 @@ type Props = {
   onDayPatch?: (weekIndex: number, dayIndex: number, patch: Partial<ProgramDay>) => Promise<void>;
   onProgramPatch?: (patch: { notes?: string | null; faq?: FaqItem[] }) => Promise<void>;
   onRegenerate?: () => Promise<void>;
+  onProgramReload?: () => void;
+  /** Клиентский режим: feedback после завершения тренировки */
+  userId?: string;
+  programId?: string;
+  enableWorkoutFeedback?: boolean;
 };
 
 export function TrainingView({
@@ -92,6 +99,10 @@ export function TrainingView({
   onDayPatch,
   onProgramPatch,
   onRegenerate,
+  onProgramReload,
+  userId,
+  programId,
+  enableWorkoutFeedback = false,
 }: Props) {
   const exById = useMemo(() => {
     const m: Record<string, Exercise> = {};
@@ -153,6 +164,7 @@ export function TrainingView({
   };
 
   const [openExercise, setOpenExercise] = useState<OpenExerciseRef | null>(null);
+  const [workoutFeedbackOpen, setWorkoutFeedbackOpen] = useState(false);
 
   const exerciseSequence = useMemo(
     () => (day ? buildDayExerciseSequence(day, exById) : []),
@@ -170,6 +182,36 @@ export function TrainingView({
     openExerciseIndex >= 0 && openExerciseIndex < exerciseSequence.length - 1
       ? exerciseSequence[openExerciseIndex + 1]
       : null;
+
+  const workoutExerciseOptions = useMemo(
+    () =>
+      exerciseSequence.map((item) => {
+        const ex = exById[item.set.exercise_id];
+        return {
+          id: item.set.exercise_id,
+          name: ex?.name ?? "Упражнение",
+          section: item.section,
+          setIndex: item.index,
+        };
+      }),
+    [exerciseSequence, exById],
+  );
+
+  const openApplyContext = openExercise
+    ? {
+        weekIndex,
+        dayIndex,
+        section: openExercise.section,
+        setIndex: openExercise.index,
+      }
+    : undefined;
+
+  const handleWorkoutComplete = () => {
+    setOpenExercise(null);
+    if (enableWorkoutFeedback && userId && day && !day.is_rest) {
+      setWorkoutFeedbackOpen(true);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -324,7 +366,13 @@ export function TrainingView({
           }
           onPrev={prevExercise ? () => setOpenExercise(prevExercise) : undefined}
           onNext={nextExercise ? () => setOpenExercise(nextExercise) : undefined}
+          onWorkoutComplete={
+            !nextExercise && enableWorkoutFeedback ? handleWorkoutComplete : undefined
+          }
           onClose={() => setOpenExercise(null)}
+          substituteUserId={userId}
+          substituteApplyContext={openApplyContext}
+          onSubstituteApplied={onProgramReload}
           onSwap={async (newId) => {
             if (!day) return;
             const arr = [...day[openExercise.section]];
@@ -353,6 +401,20 @@ export function TrainingView({
             setOpenExercise((s) => (s ? { ...s, set: { ...s.set, ...patch } } : null));
             editToast("Параметры обновлены");
           }}
+        />
+      )}
+
+      {workoutFeedbackOpen && userId && day && (
+        <WorkoutFeedbackDialog
+          open={workoutFeedbackOpen}
+          onClose={() => setWorkoutFeedbackOpen(false)}
+          userId={userId}
+          programId={programId}
+          weekIndex={weekIndex}
+          dayIndex={day.day_index}
+          dayTitle={day.title}
+          exercises={workoutExerciseOptions}
+          onSubstituteApplied={onProgramReload}
         />
       )}
     </div>
@@ -937,7 +999,11 @@ function ExerciseDialog({
   nextExerciseName,
   onPrev,
   onNext,
+  onWorkoutComplete,
   onClose,
+  substituteUserId,
+  substituteApplyContext,
+  onSubstituteApplied,
   onSwap,
   onSetPatch,
 }: {
@@ -949,7 +1015,16 @@ function ExerciseDialog({
   nextExerciseName?: string;
   onPrev?: () => void;
   onNext?: () => void;
+  onWorkoutComplete?: () => void;
   onClose: () => void;
+  substituteUserId?: string;
+  substituteApplyContext?: {
+    weekIndex: number;
+    dayIndex: number;
+    section: "warmup" | "exercises" | "cooldown";
+    setIndex: number;
+  };
+  onSubstituteApplied?: () => void;
   onSwap: (id: string) => Promise<void>;
   onSetPatch: (patch: Partial<ExerciseSet>) => Promise<void>;
 }) {
@@ -1115,7 +1190,17 @@ function ExerciseDialog({
         )}
 
         {tab === "swap" && editable && (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            {substituteUserId && (
+              <SubstituteSuggestions
+                userId={substituteUserId}
+                exerciseId={exercise.id}
+                exerciseName={exercise.name}
+                reason="preference"
+                applyContext={substituteApplyContext}
+                onApplied={onSubstituteApplied}
+              />
+            )}
             <p className="text-xs text-warm-gray">
               Замены в той же категории. КБЖУ дня не завязано на упражнения — заменяем свободно.
             </p>
@@ -1183,7 +1268,7 @@ function ExerciseDialog({
               ) : (
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={onWorkoutComplete ?? onClose}
                   className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-[11px] uppercase tracking-widest text-background transition-opacity hover:opacity-90"
                 >
                   Готово

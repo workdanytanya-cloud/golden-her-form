@@ -274,6 +274,8 @@ function AdminNutritionPage() {
           }}
           mealsPerDay={plan.meals_per_day as 3 | 5}
           mealPattern={decodePlanMeta(plan.preferred_products).pattern}
+          preferredProducts={plan.preferred_products ?? []}
+          excludedProducts={[...(plan.excluded_products ?? []), ...autoExcluded]}
           editable={true}
           onSwap={handleSwap}
           onPortionChange={handlePortion}

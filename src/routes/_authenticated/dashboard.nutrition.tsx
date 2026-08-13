@@ -15,11 +15,14 @@ import {
   loadTargetProfile,
   extractExcludedFromText,
   createOrReplacePlan,
+  updateDayMeals,
+  replaceMeal,
+  scalePortionForSwap,
   type PlanRow,
   type DayRow,
   type Dish,
 } from "@/lib/nutrition-repo";
-import { calcTargets, type DayEntry } from "@/lib/nutrition";
+import { calcTargets, type DayEntry, type Slot } from "@/lib/nutrition";
 import { mergeUnique, normalizeFoodTerms } from "@/lib/food-products";
 import {
   complexityLabel,
@@ -191,6 +194,33 @@ function NutritionInner() {
     meals: d.meals,
   }));
 
+  const dishesById = Object.fromEntries(dishes.map((d) => [d.id, d]));
+
+  const handleSwap = async (dayIndex: number, slot: Slot, newDishId: string) => {
+    if (!plan) return;
+    const day = days.find((d) => d.day_index === dayIndex);
+    const meal = day?.meals.find((m) => m.slot === slot);
+    const oldDish = meal ? dishesById[meal.dish_id] : null;
+    const newDish = dishesById[newDishId];
+    if (!meal || !oldDish || !newDish) return;
+    const portion = scalePortionForSwap(oldDish, meal.portion_g, newDish);
+    const nextMeals = replaceMeal(day.meals, slot, {
+      dish_id: newDishId,
+      portion_g: portion,
+      note: null,
+    });
+    try {
+      await updateDayMeals(plan.id, dayIndex, nextMeals);
+      setDays((cur) =>
+        cur.map((d) => (d.day_index === dayIndex ? { ...d, meals: nextMeals } : d)),
+      );
+      toast.success("Блюдо заменено");
+    } catch (e) {
+      toast.error((e as Error).message || "Не удалось сохранить замену");
+      throw e;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <FoodSwapGuide />
@@ -228,7 +258,10 @@ function NutritionInner() {
         }}
         mealsPerDay={plan.meals_per_day as 3 | 5}
         mealPattern={planMeta.pattern}
+        preferredProducts={plan.preferred_products ?? []}
+        excludedProducts={mergeUnique(autoExcluded, plan.excluded_products ?? [])}
         editable={false}
+        onSwap={handleSwap}
       />
     </div>
   );

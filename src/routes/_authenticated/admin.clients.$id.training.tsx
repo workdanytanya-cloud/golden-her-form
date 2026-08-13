@@ -344,6 +344,8 @@ function AdminTrainingPage() {
             onSaveDay={handleSaveDay}
             onDayPatch={handleDayPatch}
             onProgramPatch={handleProgramPatch}
+            userId={id}
+            onProgramReload={() => void reload()}
           />
         </>
       )}

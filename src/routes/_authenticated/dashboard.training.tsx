@@ -200,6 +200,10 @@ function TrainingInner() {
       notes={program.notes}
       faq={program.faq}
       editable={false}
+      userId={effectiveUserId ?? undefined}
+      programId={program.id}
+      enableWorkoutFeedback
+      onProgramReload={() => void reload()}
     />
   );
 }

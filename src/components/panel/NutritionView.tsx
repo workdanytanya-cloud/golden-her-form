@@ -24,6 +24,7 @@ import {
   slotLabel,
 } from "@/lib/nutrition";
 import type { MealPattern } from "@/lib/plan-options";
+import { MealConstructorPanel } from "@/components/panel/MealConstructorPanel";
 
 type Props = {
   dishes: Dish[];
@@ -33,6 +34,10 @@ type Props = {
   targets: NutritionTargets;
   mealsPerDay: 3 | 5;
   mealPattern?: MealPattern;
+  preferredProducts?: string[];
+  excludedProducts?: string[];
+  /** Конструктор A/B/C — при наличии onSwap. */
+  showMealConstructor?: boolean;
   editable: boolean; // trainer/admin
   onSwap?: (dayIndex: number, slot: Slot, newDishId: string) => Promise<void>;
   onPortionChange?: (dayIndex: number, slot: Slot, portion_g: number) => Promise<void>;
@@ -48,6 +53,9 @@ export function NutritionView({
   targets,
   mealsPerDay,
   mealPattern = "standard",
+  preferredProducts,
+  excludedProducts,
+  showMealConstructor = true,
   editable,
   onSwap,
   onPortionChange,
@@ -108,6 +116,22 @@ export function NutritionView({
           </button>
         )}
       </div>
+
+      {showMealConstructor && onSwap && day && (
+        <MealConstructorPanel
+          dayIndex={dayIndex}
+          slots={slots}
+          meals={day.meals}
+          dishesById={dishesById}
+          swapPool={swapPool}
+          preferredProducts={preferredProducts}
+          excludedProducts={excludedProducts}
+          mealPattern={mealPattern}
+          onSelect={async (slot, dishId) => {
+            await onSwap(dayIndex, slot, dishId);
+          }}
+        />
+      )}
 
       {/* Meals */}
       <div className="space-y-3">

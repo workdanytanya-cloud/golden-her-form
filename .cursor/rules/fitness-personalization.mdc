@@ -1,0 +1,29 @@
+---
+description: Движок персонализации программ тренировок и питания
+globs: src/lib/personalization/**,src/lib/training.ts,src/lib/nutrition.ts,src/lib/onboarding-autogen.ts
+alwaysApply: false
+---
+
+# Персонализация программ
+
+## Архитектура
+
+- **Код** (`src/lib/personalization/`): профиль клиента, safety gate, фильтр инвентаря, валидация программы, макросы, adaptation engine.
+- **Код** (`calcTargets`, `generatePlan`, `generateProgram`): формулы, калории, БЖУ, порции, выбор из БД.
+- **LLM (будущее)**: только стратегия и формулировки — НЕ расчёт kcal/БЖУ и НЕ выдумывание exercise_id.
+
+## Критические правила
+
+1. Упражнения — **только из таблицы `exercises`**. Никогда не генерировать несуществующие ID.
+2. Калории и БЖУ — **только через `calcTargets()` + `validateMacroConsistency()`**. Формула: 4P + 4C + 9F ≈ kcal.
+3. Перед сохранением — **`validateTrainingProgram()`**: exercise_id, инвентарь, joint care, длительность.
+4. **Safety gate** (`evaluateSafetyGate`): беременность, операции, серьёзные ограничения → `requires_trainer_review`, без «лечебной» автопрограммы.
+5. Решения тренера (`targets_manual`) **всегда приоритетнее** AI.
+6. Прогрессия — по фактическому выполнению (`decideWorkoutProgression`), не по календарю.
+7. Не обещать фиксированную потерю веса; фокус на выполняемости и измеримых маркерах 14–21 день.
+
+## Персонализация
+
+Учитывать одновременно: цель × опыт × вес × активность × расписание × инвентарь × ограничения × сон × реакцию на прошлую программу.
+
+Полная спецификация: `docs/FITNESS_PERSONALIZATION_ENGINE.md`.

@@ -1,5 +1,10 @@
 // Training module — pure logic: exercise types, program generation, day templates.
 
+import {
+  clientAvailableEquipmentKeys,
+  exerciseMatchesEquipment,
+} from "@/lib/personalization/equipment-filter";
+
 export type ExerciseCategory =
   | "warmup"
   | "mobility"
@@ -342,6 +347,7 @@ function pickExerciseForSlot(
   weekUse: Map<string, number>,
 ): Exercise | null {
   const jointCare = needsJointCare(input);
+  const availableEquipment = clientAvailableEquipmentKeys(input.equipment, input.location);
   const excludeTags = new Set<string>();
   if (jointCare) {
     excludeTags.add("high_impact");
@@ -366,6 +372,7 @@ function pickExerciseForSlot(
   const pool = exercises.filter((e) => {
     if (e.category !== slot.category) return false;
     if (usedInDay.has(e.id)) return false;
+    if (!exerciseMatchesEquipment(e, availableEquipment)) return false;
     if (restrictedSlugs.has(e.slug)) return false;
     if (e.tags.some((t) => excludeTags.has(t.toLowerCase()))) return false;
     if (jointCare && isImpactOrJumpExercise(e)) return false;
@@ -385,6 +392,7 @@ function pickExerciseForSlot(
     // relax used-in-day, но сохраняем запрет ударных при jointCare
     const relaxed = exercises.filter((e) => {
       if (e.category !== slot.category) return false;
+      if (!exerciseMatchesEquipment(e, availableEquipment)) return false;
       if (jointCare && (restrictedSlugs.has(e.slug) || isImpactOrJumpExercise(e))) return false;
       if (jointCare && e.tags.some((t) => excludeTags.has(t.toLowerCase()))) return false;
       return true;

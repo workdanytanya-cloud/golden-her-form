@@ -371,6 +371,149 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_check_ins: {
+        Row: {
+          adaptation_decision: string | null
+          avg_steps: number | null
+          avg_weight_kg: number | null
+          created_at: string
+          energy_1_10: number | null
+          hips_cm: number | null
+          hunger_1_10: number | null
+          id: string
+          notes: string | null
+          nutrition_adherence_pct: number | null
+          pain_reported: boolean
+          sleep_hours: number | null
+          training_difficulty_1_10: number | null
+          updated_at: string
+          user_id: string
+          waist_cm: number | null
+          wants_change: string | null
+          week_start: string
+          what_liked: string | null
+          what_was_hard: string | null
+          workouts_completed: number | null
+          workouts_planned: number | null
+        }
+        Insert: {
+          adaptation_decision?: string | null
+          avg_steps?: number | null
+          avg_weight_kg?: number | null
+          created_at?: string
+          energy_1_10?: number | null
+          hips_cm?: number | null
+          hunger_1_10?: number | null
+          id?: string
+          notes?: string | null
+          nutrition_adherence_pct?: number | null
+          pain_reported?: boolean
+          sleep_hours?: number | null
+          training_difficulty_1_10?: number | null
+          updated_at?: string
+          user_id: string
+          waist_cm?: number | null
+          wants_change?: string | null
+          week_start: string
+          what_liked?: string | null
+          what_was_hard?: string | null
+          workouts_completed?: number | null
+          workouts_planned?: number | null
+        }
+        Update: {
+          adaptation_decision?: string | null
+          avg_steps?: number | null
+          avg_weight_kg?: number | null
+          created_at?: string
+          energy_1_10?: number | null
+          hips_cm?: number | null
+          hunger_1_10?: number | null
+          id?: string
+          notes?: string | null
+          nutrition_adherence_pct?: number | null
+          pain_reported?: boolean
+          sleep_hours?: number | null
+          training_difficulty_1_10?: number | null
+          updated_at?: string
+          user_id?: string
+          waist_cm?: number | null
+          wants_change?: string | null
+          week_start?: string
+          what_liked?: string | null
+          what_was_hard?: string | null
+          workouts_completed?: number | null
+          workouts_planned?: number | null
+        }
+        Relationships: []
+      }
+      workout_feedback: {
+        Row: {
+          adaptation_decision: string | null
+          completed_fully: boolean
+          created_at: string
+          day_index: number
+          day_title: string | null
+          difficulty_1_10: number
+          energy_before_1_10: number | null
+          id: string
+          notes: string | null
+          pain_details: string | null
+          pain_reported: boolean
+          program_id: string | null
+          too_easy_exercise_ids: string[]
+          too_hard_exercise_ids: string[]
+          user_id: string
+          week_index: number
+          wellbeing_after_1_10: number | null
+        }
+        Insert: {
+          adaptation_decision?: string | null
+          completed_fully?: boolean
+          created_at?: string
+          day_index: number
+          day_title?: string | null
+          difficulty_1_10: number
+          energy_before_1_10?: number | null
+          id?: string
+          notes?: string | null
+          pain_details?: string | null
+          pain_reported?: boolean
+          program_id?: string | null
+          too_easy_exercise_ids?: string[]
+          too_hard_exercise_ids?: string[]
+          user_id: string
+          week_index?: number
+          wellbeing_after_1_10?: number | null
+        }
+        Update: {
+          adaptation_decision?: string | null
+          completed_fully?: boolean
+          created_at?: string
+          day_index?: number
+          day_title?: string | null
+          difficulty_1_10?: number
+          energy_before_1_10?: number | null
+          id?: string
+          notes?: string | null
+          pain_details?: string | null
+          pain_reported?: boolean
+          program_id?: string | null
+          too_easy_exercise_ids?: string[]
+          too_hard_exercise_ids?: string[]
+          user_id?: string
+          week_index?: number
+          wellbeing_after_1_10?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_feedback_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "training_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nutrition_plan_days: {
         Row: {
           created_at: string

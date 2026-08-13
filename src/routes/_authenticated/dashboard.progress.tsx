@@ -14,8 +14,11 @@ import { format, subDays } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Calendar as CalendarIcon, Download, Trash2, X } from "lucide-react";
 import { MeasurementWizard } from "@/components/panel/MeasurementWizard";
+import { WeeklyCheckInCard } from "@/components/panel/WeeklyCheckInCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { countPlannedWorkouts } from "@/lib/checkin-repo";
+import { loadProgramFor } from "@/lib/training-repo";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { SectionHint } from "@/components/panel/Hints";
 import { AccessGate } from "@/components/panel/AccessGate";
@@ -56,6 +59,7 @@ function ProgressPage() {
   const { effectiveUserId, effectiveRole, effectiveAccessStatus } = useAuth();
   const [items, setItems] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [workoutsPlanned, setWorkoutsPlanned] = useState(3);
 
 
   // Filters
@@ -73,6 +77,16 @@ function ProgressPage() {
 
   const canLoadProgress =
     effectiveRole === "admin" || effectiveAccessStatus === "active";
+
+  useEffect(() => {
+    if (!effectiveUserId || !canLoadProgress) return;
+    void loadProgramFor(effectiveUserId).then(({ program, days }) => {
+      if (program) {
+        const planned = countPlannedWorkouts(days, 0);
+        setWorkoutsPlanned(planned > 0 ? planned : program.sessions_per_week);
+      }
+    });
+  }, [effectiveUserId, canLoadProgress]);
 
   const load = () => {
     if (!effectiveUserId || !canLoadProgress) {
@@ -214,6 +228,10 @@ function ProgressPage() {
 
       <AccessGate level="active">
         <div className="space-y-6">
+          {effectiveUserId && (
+            <WeeklyCheckInCard userId={effectiveUserId} workoutsPlanned={workoutsPlanned} />
+          )}
+
           <SectionHint tone="tip" title="Как вести замеры">
             Делайте замеры <strong className="text-ivory">утром натощак</strong>, в одинаковой
             одежде, раз в неделю в один и тот же день. Так график покажет реальную динамику, а не
