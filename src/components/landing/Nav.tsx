@@ -80,6 +80,17 @@ export function Nav() {
             <>
               <Link
                 to="/auth"
+                search={{ mode: "promo" }}
+                className={`text-sm font-medium tracking-wide transition-colors ${
+                  scrolled || open
+                    ? "text-coral hover:text-[#1c1714]"
+                    : "text-coral-soft hover:text-white"
+                }`}
+              >
+                Промокод
+              </Link>
+              <Link
+                to="/auth"
                 className={`text-sm font-medium tracking-wide transition-colors ${
                   scrolled || open
                     ? "text-[#3d342e] hover:text-coral"
@@ -152,10 +163,18 @@ export function Nav() {
                 </button>
                 <Link
                   to="/auth"
+                  search={{ mode: "promo" }}
+                  onClick={() => setOpen(false)}
+                  className="inline-flex w-fit items-center gap-2 rounded-lg border border-coral/40 bg-coral/10 px-5 py-3 text-sm font-semibold text-coral"
+                >
+                  Ввести промокод
+                </Link>
+                <Link
+                  to="/auth"
                   onClick={() => setOpen(false)}
                   className="text-sm font-medium text-[#3d342e] underline-offset-4 hover:text-coral hover:underline"
                 >
-                  Уже есть промокод или кабинет? Войти
+                  Уже есть кабинет? Войти
                 </Link>
               </div>
             )}

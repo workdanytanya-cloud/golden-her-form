@@ -80,15 +80,24 @@ export function Hero() {
               Смотреть результаты
             </a>
           </div>
-          <p className="mt-4 text-sm text-white/75">
-            Уже есть промокод или кабинет?{" "}
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
             <Link
               to="/auth"
-              className="font-medium text-coral-soft underline-offset-4 transition-colors hover:text-white hover:underline"
+              search={{ mode: "promo" }}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-coral-soft/70 bg-coral/25 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-coral/40 sm:w-auto"
             >
-              Войти
+              Ввести промокод
             </Link>
-          </p>
+            <p className="text-center text-sm text-white/75 sm:text-left">
+              Уже есть кабинет?{" "}
+              <Link
+                to="/auth"
+                className="font-medium text-coral-soft underline-offset-4 transition-colors hover:text-white hover:underline"
+              >
+                Войти
+              </Link>
+            </p>
+          </div>
         </div>
 
         <div className="mt-10 grid grid-cols-3 gap-3 border-t border-white/25 pt-6 sm:mt-12 sm:gap-8 sm:pt-8">

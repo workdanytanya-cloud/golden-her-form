@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate, useSearch, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Eye, EyeOff, Ticket } from "lucide-react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,8 +69,9 @@ function AuthPage() {
   const redeem = useServerFn(redeemPromoCode);
 
   // Free signup disabled — only signin or promo enrollment
-  const initialMode = search.mode === "promo" ? "promo" : "signin";
-  const [mode, setMode] = useState<"signin" | "promo">(initialMode);
+  const [mode, setMode] = useState<"signin" | "promo">(
+    search.mode === "promo" ? "promo" : "signin",
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -78,6 +79,22 @@ function AuthPage() {
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    setMode(search.mode === "promo" ? "promo" : "signin");
+  }, [search.mode]);
+
+  const switchMode = (next: "signin" | "promo") => {
+    setMode(next);
+    void navigate({
+      to: "/auth",
+      search: {
+        redirect: search.redirect,
+        mode: next === "promo" ? "promo" : undefined,
+      },
+      replace: true,
+    });
+  };
 
   const activatePromo = async () => {
     const code = promoSchema.parse(promoCode);
@@ -201,13 +218,47 @@ function AuthPage() {
         </div>
 
         <div className="glass rounded-3xl p-6 sm:p-8">
-          <h1 className="font-display text-3xl text-ivory">
-            {mode === "promo" ? "Вход по промокоду" : "Вход"}
+          <div
+            className="grid grid-cols-2 gap-1 rounded-2xl border border-gold/20 bg-background/40 p-1"
+            role="tablist"
+            aria-label="Способ входа"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "signin"}
+              onClick={() => switchMode("signin")}
+              className={`rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                mode === "signin"
+                  ? "bg-gold text-background"
+                  : "text-warm-gray hover:text-ivory"
+              }`}
+            >
+              У меня есть кабинет
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "promo"}
+              onClick={() => switchMode("promo")}
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                mode === "promo"
+                  ? "bg-coral text-white"
+                  : "text-warm-gray hover:text-ivory"
+              }`}
+            >
+              <Ticket className="h-3.5 w-3.5 shrink-0" />
+              Есть промокод
+            </button>
+          </div>
+
+          <h1 className="mt-6 font-display text-3xl text-ivory">
+            {mode === "promo" ? "Активация по промокоду" : "Вход"}
           </h1>
-          <p className="mt-2 text-sm text-warm-gray">
+          <p className="mt-2 text-sm leading-relaxed text-warm-gray">
             {mode === "promo"
-              ? "После оплаты наличными тренер выдаёт код. Он открывает регистрацию и анкету — курс включит тренер после проверки."
-              : "Войдите в личный кабинет"}
+              ? "Оплатили наличными — введите код от тренера ниже. Создадим кабинет (или войдём в существующий) и откроем анкету."
+              : "Войдите в личный кабинет по email и паролю."}
           </p>
 
           <form
@@ -218,28 +269,37 @@ function AuthPage() {
             method="post"
           >
             {mode === "promo" && (
-              <div>
-                <label className="mb-1.5 block text-xs uppercase tracking-wider text-warm-gray">
-                  Промокод
+              <div className="rounded-2xl border border-coral/40 bg-coral/10 p-4">
+                <label
+                  htmlFor="promo-code"
+                  className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-coral"
+                >
+                  <Ticket className="h-3.5 w-3.5" />
+                  1. Промокод от тренера
                 </label>
                 <input
+                  id="promo-code"
                   type="text"
                   name="promo"
                   required
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                  className="w-full rounded-xl border border-gold/20 bg-background/50 px-4 py-3 font-mono tracking-wider text-ivory outline-none transition-colors focus:border-gold/60"
-                  placeholder="PP-XXXXXX"
+                  className="w-full rounded-xl border border-coral/50 bg-background px-4 py-3.5 font-mono text-base tracking-[0.2em] text-ivory outline-none transition-colors placeholder:tracking-normal placeholder:text-warm-gray/70 focus:border-coral"
+                  placeholder="Например: PP-XXXXXX"
                   maxLength={32}
                   autoComplete="off"
+                  autoFocus
                 />
+                <p className="mt-2 text-xs leading-relaxed text-warm-gray">
+                  Код выдаёт тренер после оплаты. Вводите как в сообщении — без пробелов.
+                </p>
               </div>
             )}
 
             {mode === "promo" && !user && (
               <div>
                 <label className="mb-1.5 block text-xs uppercase tracking-wider text-warm-gray">
-                  Имя
+                  2. Ваше имя
                 </label>
                 <input
                   type="text"
@@ -248,7 +308,7 @@ function AuthPage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full rounded-xl border border-gold/20 bg-background/50 px-4 py-3 text-ivory outline-none transition-colors focus:border-gold/60"
-                  placeholder="Ваше имя"
+                  placeholder="Как к вам обращаться"
                   maxLength={100}
                   autoComplete="name"
                 />
@@ -259,7 +319,7 @@ function AuthPage() {
               <>
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-wider text-warm-gray">
-                    Email
+                    {mode === "promo" ? "3. Email для кабинета" : "Email"}
                   </label>
                   <input
                     type="email"
@@ -274,7 +334,7 @@ function AuthPage() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-wider text-warm-gray">
-                    Пароль
+                    {mode === "promo" ? "4. Придумайте пароль" : "Пароль"}
                   </label>
                   <div className="relative">
                     <input
@@ -298,12 +358,20 @@ function AuthPage() {
                     </button>
                   </div>
                   {mode === "promo" && (
-                    <p className="mt-2 text-[11px] text-warm-gray">
-                      Если аккаунта ещё нет — он создастся. Запомните пароль для входа.
+                    <p className="mt-2 text-[11px] leading-relaxed text-warm-gray">
+                      Если email уже зарегистрирован — войдём с этим паролем. Если нет — создадим
+                      новый кабинет. Запомните пароль.
                     </p>
                   )}
                 </div>
               </>
+            )}
+
+            {mode === "promo" && user && (
+              <p className="rounded-xl border border-gold/20 bg-background/40 px-4 py-3 text-sm text-warm-gray">
+                Вы уже вошли как{" "}
+                <span className="text-ivory">{user.email}</span>. Осталось ввести промокод выше.
+              </p>
             )}
 
             {mode === "promo" && !user && (
@@ -331,12 +399,16 @@ function AuthPage() {
             <button
               type="submit"
               disabled={submitting || authLoading || (mode === "promo" && !user && !consent)}
-              className="mt-2 w-full rounded-full bg-gold px-6 py-3.5 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
+              className={`mt-2 w-full rounded-full px-6 py-3.5 text-sm font-semibold transition-transform hover:scale-[1.02] disabled:opacity-60 ${
+                mode === "promo"
+                  ? "bg-coral text-white"
+                  : "bg-gold text-background"
+              }`}
             >
               {submitting
                 ? "..."
                 : mode === "promo"
-                  ? "Активировать и перейти к анкете"
+                  ? "Активировать промокод и открыть анкету"
                   : "Войти"}
             </button>
           </form>
@@ -350,28 +422,11 @@ function AuthPage() {
             </Link>
           )}
 
-          <div className="mt-6 space-y-3 text-center text-sm text-warm-gray">
-            {mode === "signin" ? (
-              <button
-                type="button"
-                onClick={() => setMode("promo")}
-                className="block w-full transition-colors hover:text-gold"
-              >
-                Есть промокод (оплата наличными)?
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setMode("signin")}
-                className="block w-full transition-colors hover:text-ivory"
-              >
-                Уже есть аккаунт? Обычный вход
-              </button>
-            )}
-            <p className="text-xs text-warm-gray/80">
-              Свободная регистрация отключена. Новый кабинет — только по промокоду после оплаты.
-            </p>
-          </div>
+          <p className="mt-6 text-center text-xs leading-relaxed text-warm-gray/80">
+            {mode === "promo"
+              ? "Свободная регистрация отключена. Новый доступ открывается только по промокоду после оплаты."
+              : "Нет кабинета? Переключитесь на вкладку «Есть промокод» и введите код от тренера."}
+          </p>
         </div>
 
         <Link

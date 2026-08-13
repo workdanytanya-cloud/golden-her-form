@@ -55,9 +55,16 @@ export function CtaFinal() {
             >
               Задать вопрос
             </button>
+            <Link
+              to="/auth"
+              search={{ mode: "promo" }}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-coral-soft/70 bg-coral/25 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-coral/40"
+            >
+              Ввести промокод
+            </Link>
           </div>
           <p className="mt-5 text-sm text-white/75">
-            Уже есть промокод или кабинет?{" "}
+            Уже есть кабинет?{" "}
             <Link
               to="/auth"
               className="font-medium text-coral-soft underline-offset-4 transition-colors hover:text-white hover:underline"

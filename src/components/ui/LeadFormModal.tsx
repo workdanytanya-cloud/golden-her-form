@@ -318,16 +318,26 @@ function LeadFormDialog({
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-[#5c524a]">
-          Уже есть промокод или кабинет?{" "}
+        <div className="mt-4 space-y-2 text-center text-sm text-[#5c524a]">
           <Link
             to="/auth"
+            search={{ mode: "promo" }}
             onClick={onClose}
-            className="font-medium text-coral underline-offset-4 hover:underline"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-coral/40 bg-coral/10 px-5 py-2.5 text-sm font-semibold text-coral transition-colors hover:bg-coral/15"
           >
-            Войти
+            Ввести промокод
           </Link>
-        </p>
+          <p>
+            Уже есть кабинет?{" "}
+            <Link
+              to="/auth"
+              onClick={onClose}
+              className="font-medium text-coral underline-offset-4 hover:underline"
+            >
+              Войти
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
