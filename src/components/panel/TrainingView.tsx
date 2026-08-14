@@ -214,7 +214,7 @@ export function TrainingView({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6">
       {/* Overview */}
       <section className="rounded-3xl border border-gold/15 bg-gradient-to-br from-gold/10 via-transparent to-coral/10 p-6">
         <p className="text-[11px] uppercase tracking-widest text-gold">Программа тренировок</p>
@@ -719,7 +719,7 @@ function SectionBlock({
 }) {
   const [adding, setAdding] = useState(false);
   return (
-    <section className="rounded-3xl border border-gold/15 bg-surface/40 p-5 md:p-6">
+    <section className="min-w-0 max-w-full overflow-hidden rounded-3xl border border-gold/15 bg-surface/40 p-4 sm:p-5 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-widest text-gold">{eyebrow}</p>
@@ -746,14 +746,15 @@ function SectionBlock({
             return (
               <div
                 key={i}
-                className="group flex min-w-0 items-start gap-2 overflow-hidden rounded-2xl border border-gold/10 bg-background/30 p-3 transition-colors hover:border-gold/30 sm:items-center sm:gap-3"
+                className="group flex w-full min-w-0 max-w-full items-start gap-2 overflow-hidden rounded-2xl border border-gold/10 bg-background/30 p-3 transition-colors hover:border-gold/30 sm:items-center sm:gap-3"
               >
                 <button
                   type="button"
                   onClick={() => onOpen(i, s)}
-                  className="flex min-w-0 flex-1 items-start gap-3 text-left sm:items-center"
+                  className="min-w-0 flex-1 text-left"
                 >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gold/10 text-gold sm:h-14 sm:w-14">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gold/10 text-gold sm:h-14 sm:w-14">
                     {e.gif_url ? (
                       isDirectVideoFile(e.gif_url) ? (
                         <video
@@ -775,11 +776,11 @@ function SectionBlock({
                       <ImageIcon className="h-5 w-5 opacity-60" />
                     )}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 break-words font-display text-base leading-snug text-ivory sm:line-clamp-1">
+                  <div className="w-0 min-w-0 flex-1 overflow-hidden">
+                    <p className="break-words font-display text-base leading-snug text-ivory [overflow-wrap:anywhere]">
                       {e.name}
                     </p>
-                    <p className="mt-0.5 break-words text-[11px] text-warm-gray">
+                    <p className="mt-0.5 break-words text-[11px] leading-relaxed text-warm-gray">
                       {CATEGORY_LABEL[e.category]} ·{" "}
                       {e.muscle_groups.slice(0, 2).join(" · ") || "—"}
                     </p>
@@ -802,6 +803,7 @@ function SectionBlock({
                         <span className="break-words">{s.note}</span>
                       </p>
                     )}
+                  </div>
                   </div>
                 </button>
                 <div className="hidden min-w-0 max-w-[12rem] shrink items-start gap-3 pr-1 text-right text-xs sm:flex">

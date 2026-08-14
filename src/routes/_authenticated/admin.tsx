@@ -33,7 +33,9 @@ const nav: PanelNavItem[] = [
 function AdminLayout() {
   return (
     <PanelShell brandSuffix="Admin" nav={nav}>
-      <Outlet />
+      <div className="min-w-0 max-w-full">
+        <Outlet />
+      </div>
     </PanelShell>
   );
 }

@@ -29,7 +29,9 @@ function DashboardLayout() {
   const nav = role === "admin" ? [...adminNav, ...baseNav] : baseNav;
   return (
     <PanelShell nav={nav}>
-      <Outlet />
+      <div className="min-w-0 max-w-full">
+        <Outlet />
+      </div>
     </PanelShell>
   );
 }

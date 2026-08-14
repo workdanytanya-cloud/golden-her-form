@@ -444,3 +444,9 @@
     scroll-behavior: auto !important;
   }
 }
+
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}

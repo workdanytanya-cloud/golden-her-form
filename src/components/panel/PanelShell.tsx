@@ -85,7 +85,7 @@ export function PanelShell({
       </div>
 
 
-      <div className="mx-auto flex max-w-7xl">
+      <div className="mx-auto flex w-full min-w-0 max-w-7xl">
         {/* Sidebar */}
         <aside
           className={[
@@ -174,7 +174,7 @@ export function PanelShell({
         )}
 
         {/* Main */}
-        <main className="min-h-screen min-w-0 flex-1 overflow-x-hidden px-3 py-6 sm:px-6 md:px-10 md:py-12">
+        <main className="min-h-screen w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 py-6 sm:px-6 md:px-10 md:py-12">
           {children}
         </main>
       </div>
