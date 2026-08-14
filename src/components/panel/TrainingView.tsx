@@ -723,7 +723,7 @@ function SectionBlock({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-widest text-gold">{eyebrow}</p>
-          <h4 className="mt-1 font-display text-lg text-ivory">{label}</h4>
+          <h4 className="mt-1 font-display text-base text-ivory md:text-lg">{label}</h4>
         </div>
         {editable && (
           <button
@@ -746,15 +746,15 @@ function SectionBlock({
             return (
               <div
                 key={i}
-                className="group flex w-full min-w-0 max-w-full items-start gap-2 overflow-hidden rounded-2xl border border-gold/10 bg-background/30 p-3 transition-colors hover:border-gold/30 sm:items-center sm:gap-3"
+                className="group flex w-full min-w-0 max-w-full items-start gap-2 overflow-hidden rounded-2xl border border-gold/10 bg-background/30 p-2.5 transition-colors hover:border-gold/30 md:items-center md:gap-3 md:p-3"
               >
                 <button
                   type="button"
                   onClick={() => onOpen(i, s)}
                   className="min-w-0 flex-1 text-left"
                 >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gold/10 text-gold sm:h-14 sm:w-14">
+                  <div className="flex min-w-0 items-start gap-2.5 md:gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gold/10 text-gold md:h-12 md:w-12 md:rounded-xl lg:h-14 lg:w-14">
                     {e.gif_url ? (
                       isDirectVideoFile(e.gif_url) ? (
                         <video
@@ -773,26 +773,26 @@ function SectionBlock({
                         />
                       )
                     ) : (
-                      <ImageIcon className="h-5 w-5 opacity-60" />
+                      <ImageIcon className="h-4 w-4 opacity-60 md:h-5 md:w-5" />
                     )}
                   </div>
                   <div className="w-0 min-w-0 flex-1 overflow-hidden">
-                    <p className="break-words font-sans text-[13px] font-medium leading-snug text-ivory sm:font-display sm:text-base sm:font-normal [overflow-wrap:anywhere]">
+                    <p className="break-words text-xs font-medium leading-tight text-ivory md:text-sm lg:font-display lg:text-base lg:leading-snug [overflow-wrap:anywhere]">
                       {e.name}
                     </p>
-                    <p className="mt-0.5 break-words text-[11px] leading-relaxed text-warm-gray">
+                    <p className="mt-0.5 break-words text-[10px] leading-relaxed text-warm-gray md:text-[11px]">
                       {CATEGORY_LABEL[e.category]} ·{" "}
                       {e.muscle_groups.slice(0, 2).join(" · ") || "—"}
                     </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs sm:hidden">
-                      <span className="text-xs font-medium text-ivory">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 md:hidden">
+                      <span className="text-[11px] font-medium tabular-nums text-ivory">
                         {s.sets}×{s.reps}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-warm-gray">
-                        <Timer className="h-3 w-3" /> {s.rest_seconds}с
+                      <span className="inline-flex items-center gap-0.5 text-[10px] tabular-nums text-warm-gray">
+                        <Timer className="h-2.5 w-2.5 shrink-0" /> {s.rest_seconds}с
                       </span>
                       {s.tempo && s.tempo !== "iso" && (
-                        <span className="text-[10px] uppercase tracking-widest text-warm-gray">
+                        <span className="text-[9px] uppercase tracking-widest text-warm-gray">
                           темп {s.tempo}
                         </span>
                       )}
@@ -806,20 +806,20 @@ function SectionBlock({
                   </div>
                   </div>
                 </button>
-                <div className="hidden min-w-0 max-w-[12rem] shrink items-start gap-3 pr-1 text-right text-xs sm:flex">
+                <div className="hidden min-w-0 max-w-[9.5rem] shrink-0 items-start gap-2 pr-1 text-right md:flex">
                   <div className="min-w-0">
-                    <p className="break-words font-display text-base leading-snug text-ivory">
+                    <p className="break-words text-sm font-medium tabular-nums leading-snug text-ivory">
                       {s.sets}
                       <span className="text-warm-gray">×</span>
                       {s.reps}
                     </p>
-                    <p className="mt-0.5 text-[10px] uppercase tracking-widest text-warm-gray">
+                    <p className="mt-0.5 text-[9px] uppercase tracking-widest text-warm-gray">
                       подходы×повт.
                     </p>
                   </div>
                   <div className="shrink-0 pt-0.5">
-                    <p className="inline-flex items-center gap-1 text-warm-gray">
-                      <Timer className="h-3 w-3" /> {s.rest_seconds}с
+                    <p className="inline-flex items-center gap-0.5 text-[11px] tabular-nums text-warm-gray">
+                      <Timer className="h-2.5 w-2.5 shrink-0" /> {s.rest_seconds}с
                     </p>
                     {s.tempo && s.tempo !== "iso" && (
                       <p className="text-[10px] uppercase tracking-widest text-warm-gray">
