@@ -213,7 +213,33 @@ export function FoodSwapGuide() {
 
               {open && (
                 <div className="border-t border-gold/15 bg-muted/70 px-2 py-3 sm:px-4 dark:bg-black/20">
-                  <div className="overflow-x-auto">
+                  <div className="space-y-2 sm:hidden">
+                    {s.rows.map((r, i) => (
+                      <div
+                        key={i}
+                        className="rounded-xl bg-card/90 px-3 py-2.5 dark:bg-ivory/[0.03]"
+                      >
+                        <p className="font-medium text-ivory">{r.product}</p>
+                        <dl className="mt-2 grid grid-cols-1 gap-1.5 text-xs">
+                          <div className="flex justify-between gap-3">
+                            <dt className="text-warm-gray">Вес по списку</dt>
+                            <dd className="text-right text-ivory">{r.raw}</dd>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <dt className="text-warm-gray">Готовый вес</dt>
+                            <dd className="text-right text-ivory">{r.cooked}</dd>
+                          </div>
+                          {r.note && (
+                            <div>
+                              <dt className="text-warm-gray">Важно</dt>
+                              <dd className="mt-0.5 text-ivory">{r.note}</dd>
+                            </div>
+                          )}
+                        </dl>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden overflow-x-auto sm:block">
                     <table className="w-full min-w-[560px] border-separate border-spacing-y-1 text-sm">
                       <thead>
                         <tr className="text-[11px] font-semibold uppercase tracking-widest text-gold">

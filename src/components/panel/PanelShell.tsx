@@ -47,7 +47,7 @@ export function PanelShell({
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-ivory">
       {impersonation && (
-        <div className="sticky top-0 z-50 flex items-center justify-between gap-3 border-b border-gold/30 bg-gradient-to-r from-coral/25 via-background/80 to-gold/25 px-4 py-2 text-xs text-ivory backdrop-blur">
+        <div className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-2 border-b border-gold/30 bg-gradient-to-r from-coral/25 via-background/80 to-gold/25 px-4 py-2 text-xs text-ivory backdrop-blur">
           <div className="flex items-center gap-2 min-w-0">
             <Eye className="h-4 w-4 shrink-0 text-gold" />
             <span className="truncate">

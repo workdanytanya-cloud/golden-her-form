@@ -88,8 +88,8 @@ export function NutritionView({
       </div>
 
       {/* Day tabs */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-wrap gap-2">
           {WEEKDAY_LABELS.map((label, i) => (
             <button
               key={label}
@@ -110,7 +110,7 @@ export function NutritionView({
           <button
             type="button"
             onClick={() => void onRegenerate()}
-            className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-3 py-1.5 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
+            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-gold/30 px-3 py-1.5 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
           >
             <RefreshCcw className="h-3.5 w-3.5" /> Пересобрать неделю
           </button>
@@ -156,12 +156,12 @@ export function NutritionView({
               onClick={() => setOpenMeal({ slot, meal })}
               className="w-full rounded-2xl border border-gold/15 bg-surface/40 p-5 text-left transition-colors hover:border-gold/40"
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-3 sm:gap-4">
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] uppercase tracking-widest text-warm-gray">
                     {slotLabel(slot, mealPattern)}
                   </p>
-                  <p className="mt-1 font-display text-lg text-ivory">{dish.name}</p>
+                  <p className="mt-1 break-words font-display text-lg text-ivory">{dish.name}</p>
                   <p className="mt-1 text-xs text-warm-gray">
                     Порция {meal.portion_g} г готового блюда
                   </p>
@@ -355,9 +355,9 @@ function MealDialog({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto bg-background text-ivory">
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-2xl overflow-y-auto bg-background text-ivory">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">{activeDish.name}</DialogTitle>
+          <DialogTitle className="break-words font-display text-xl sm:text-2xl">{activeDish.name}</DialogTitle>
         </DialogHeader>
 
         {preview && (
@@ -375,7 +375,7 @@ function MealDialog({
 
         <p className="text-sm text-warm-gray">{activeDish.description}</p>
 
-        <div className="grid grid-cols-4 gap-2 rounded-xl bg-surface/50 p-2 text-xs">
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-surface/50 p-2 text-xs sm:grid-cols-4">
           <span className="text-center text-warm-gray">
             <b className="text-ivory">{Math.round(n.kcal)}</b> ккал
           </span>
@@ -390,7 +390,7 @@ function MealDialog({
           </span>
         </div>
 
-        <div className="flex gap-1 border-b border-gold/15">
+        <div className="flex flex-wrap gap-1 border-b border-gold/15">
           <TabBtn active={tab === "recipe"} onClick={() => setTab("recipe")} icon={<ChefHat className="h-3.5 w-3.5" />}>
             Рецепт
           </TabBtn>

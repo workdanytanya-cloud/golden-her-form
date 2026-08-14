@@ -447,7 +447,7 @@ function FaqSection({
 
   return (
     <section className="rounded-3xl border border-gold/15 bg-surface/40 p-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <HelpCircle className="h-4 w-4 text-gold" />
           <h3 className="font-display text-lg text-ivory">Частые вопросы</h3>
@@ -720,8 +720,8 @@ function SectionBlock({
   const [adding, setAdding] = useState(false);
   return (
     <section className="rounded-3xl border border-gold/15 bg-surface/40 p-5 md:p-6">
-      <div className="flex items-center justify-between gap-2">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-widest text-gold">{eyebrow}</p>
           <h4 className="mt-1 font-display text-lg text-ivory">{label}</h4>
         </div>
@@ -746,14 +746,14 @@ function SectionBlock({
             return (
               <div
                 key={i}
-                className="group flex items-center gap-3 rounded-2xl border border-gold/10 bg-background/30 p-3 transition-colors hover:border-gold/30"
+                className="group flex min-w-0 items-start gap-2 overflow-hidden rounded-2xl border border-gold/10 bg-background/30 p-3 transition-colors hover:border-gold/30 sm:items-center sm:gap-3"
               >
                 <button
                   type="button"
                   onClick={() => onOpen(i, s)}
-                  className="flex flex-1 items-center gap-3 text-left"
+                  className="flex min-w-0 flex-1 items-start gap-3 text-left sm:items-center"
                 >
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gold/10 text-gold">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gold/10 text-gold sm:h-14 sm:w-14">
                     {e.gif_url ? (
                       isDirectVideoFile(e.gif_url) ? (
                         <video
@@ -776,14 +776,30 @@ function SectionBlock({
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-display text-base text-ivory">{e.name}</p>
-                    <p className="mt-0.5 text-[11px] text-warm-gray">
+                    <p className="line-clamp-2 break-words font-display text-base leading-snug text-ivory sm:line-clamp-1">
+                      {e.name}
+                    </p>
+                    <p className="mt-0.5 break-words text-[11px] text-warm-gray">
                       {CATEGORY_LABEL[e.category]} ·{" "}
                       {e.muscle_groups.slice(0, 2).join(" · ") || "—"}
                     </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs sm:hidden">
+                      <span className="font-display text-sm text-ivory">
+                        {s.sets}×{s.reps}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-warm-gray">
+                        <Timer className="h-3 w-3" /> {s.rest_seconds}с
+                      </span>
+                      {s.tempo && s.tempo !== "iso" && (
+                        <span className="text-[10px] uppercase tracking-widest text-warm-gray">
+                          темп {s.tempo}
+                        </span>
+                      )}
+                    </div>
                     {s.note && (
-                      <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-gold/10 px-2 py-0.5 text-[10px] text-gold">
-                        <StickyNote className="h-3 w-3" /> {s.note}
+                      <p className="mt-1 inline-flex max-w-full items-start gap-1 rounded-md bg-gold/10 px-2 py-0.5 text-[10px] text-gold">
+                        <StickyNote className="mt-0.5 h-3 w-3 shrink-0" />{" "}
+                        <span className="break-words">{s.note}</span>
                       </p>
                     )}
                   </div>
@@ -809,12 +825,6 @@ function SectionBlock({
                       </p>
                     )}
                   </div>
-                </div>
-                <div className="flex max-w-[42%] shrink-0 flex-col items-end text-right sm:hidden">
-                  <p className="break-words font-display text-sm leading-snug text-ivory">
-                    {s.sets}×{s.reps}
-                  </p>
-                  <p className="text-[10px] text-warm-gray">{s.rest_seconds}с</p>
                 </div>
                 {editable && (
                   <button
@@ -885,7 +895,7 @@ function AddExercise({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Поиск упражнения…"
-          className="flex-1 min-w-[180px] rounded-lg border border-gold/15 bg-background/60 px-3 py-2 text-sm text-ivory"
+          className="min-w-0 flex-1 basis-full rounded-lg border border-gold/15 bg-background/60 px-3 py-2 text-sm text-ivory sm:min-w-[180px] sm:basis-auto"
         />
         <select
           value={cat}
@@ -913,10 +923,10 @@ function AddExercise({
             key={e.id}
             type="button"
             onClick={() => void onAdd(e.id)}
-            className="flex w-full items-center justify-between gap-3 border-b border-gold/10 px-3 py-2 text-left text-sm hover:bg-gold/5"
+            className="flex w-full min-w-0 items-center justify-between gap-3 border-b border-gold/10 px-3 py-2 text-left text-sm hover:bg-gold/5"
           >
-            <span className="text-ivory">{e.name}</span>
-            <span className="text-[10px] uppercase tracking-widest text-warm-gray">
+            <span className="min-w-0 flex-1 break-words text-ivory">{e.name}</span>
+            <span className="shrink-0 text-[10px] uppercase tracking-widest text-warm-gray">
               {CATEGORY_LABEL[e.category]}
             </span>
           </button>
@@ -1055,11 +1065,11 @@ function ExerciseDialog({
     <Dialog open onOpenChange={onClose}>
       <DialogContent
         ref={contentRef}
-        className="flex max-h-[90vh] max-w-2xl flex-col overflow-y-auto bg-background p-0 text-ivory"
+        className="flex max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-2xl flex-col overflow-y-auto bg-background p-0 text-ivory"
       >
         <div className="space-y-4 p-6 pb-0">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">{exercise.name}</DialogTitle>
+          <DialogTitle className="break-words font-display text-xl sm:text-2xl">{exercise.name}</DialogTitle>
         </DialogHeader>
         <p className="text-[11px] uppercase tracking-widest text-gold">
           {CATEGORY_LABEL[exercise.category]} · {exercise.muscle_groups.join(" · ")}
@@ -1099,7 +1109,7 @@ function ExerciseDialog({
           )}
         </div>
 
-        <div className="flex gap-1 border-b border-gold/15">
+        <div className="flex flex-wrap gap-1 border-b border-gold/15">
           <TabBtn active={tab === "technique"} onClick={() => setTab("technique")}>
             Техника
           </TabBtn>
@@ -1209,10 +1219,10 @@ function ExerciseDialog({
                 key={e.id}
                 type="button"
                 onClick={() => void onSwap(e.id)}
-                className="flex w-full items-center justify-between gap-3 rounded-xl border border-gold/15 bg-surface/40 p-3 text-left hover:border-gold/40"
+                className="flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-gold/15 bg-surface/40 p-3 text-left hover:border-gold/40"
               >
-                <div className="min-w-0">
-                  <p className="text-sm text-ivory">{e.name}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm text-ivory">{e.name}</p>
                   <p className="text-[11px] text-warm-gray">
                     {e.muscle_groups.slice(0, 3).join(" · ")} ·{" "}
                     {e.equipment.length ? e.equipment.join(", ") : "без инвентаря"}
