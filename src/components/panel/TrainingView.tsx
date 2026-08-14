@@ -777,15 +777,15 @@ function SectionBlock({
                     )}
                   </div>
                   <div className="w-0 min-w-0 flex-1 overflow-hidden">
-                    <p className="break-words font-display text-base leading-snug text-ivory [overflow-wrap:anywhere]">
+                    <p className="break-words font-sans text-[13px] font-medium leading-snug text-ivory sm:font-display sm:text-base sm:font-normal [overflow-wrap:anywhere]">
                       {e.name}
                     </p>
                     <p className="mt-0.5 break-words text-[11px] leading-relaxed text-warm-gray">
                       {CATEGORY_LABEL[e.category]} ·{" "}
                       {e.muscle_groups.slice(0, 2).join(" · ") || "—"}
                     </p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs sm:hidden">
-                      <span className="font-display text-sm text-ivory">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs sm:hidden">
+                      <span className="text-xs font-medium text-ivory">
                         {s.sets}×{s.reps}
                       </span>
                       <span className="inline-flex items-center gap-1 text-warm-gray">
