@@ -1,13 +1,7 @@
 import { startOfWeek, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  decideWeeklyAdaptation,
-  decideWorkoutProgression,
-  explainAdaptation,
-  applyWorkoutAdaptation,
-  type AdaptationDecision,
-} from "@/lib/personalization";
-import type { WeeklyCheckIn, WorkoutFeedback } from "@/lib/personalization/types";
+import { saveWeeklyCheckInFn, saveWorkoutFeedbackFn, getWeeklyCheckInFn } from "@/lib/checkin.functions";
+import type { AdaptationDecision } from "@/lib/personalization";
 
 export type WeeklyCheckInRow = {
   id: string;
@@ -66,14 +60,10 @@ export async function getWeeklyCheckIn(
   userId: string,
   weekStart = currentWeekStart(),
 ): Promise<WeeklyCheckInRow | null> {
-  const { data, error } = await supabase
-    .from("weekly_check_ins")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("week_start", weekStart)
-    .maybeSingle();
-  if (error) throw error;
-  return data as WeeklyCheckInRow | null;
+  const row = await getWeeklyCheckInFn({
+    data: { userId, week_start: weekStart },
+  });
+  return (row as WeeklyCheckInRow | null) ?? null;
 }
 
 export async function saveWeeklyCheckIn(input: WeeklyCheckInInput): Promise<{
@@ -81,55 +71,33 @@ export async function saveWeeklyCheckIn(input: WeeklyCheckInInput): Promise<{
   decision: AdaptationDecision;
   explanation: string;
 }> {
-  const checkIn: WeeklyCheckIn = {
-    avg_weight_kg: input.avg_weight_kg,
-    waist_cm: input.waist_cm,
-    workouts_completed: input.workouts_completed ?? 0,
-    workouts_planned: input.workouts_planned ?? 0,
-    avg_steps: input.avg_steps,
-    hunger_1_10: input.hunger_1_10,
-    energy_1_10: input.energy_1_10,
-    sleep_hours: input.sleep_hours,
-    training_difficulty_1_10: input.training_difficulty_1_10,
-    nutrition_adherence_pct: input.nutrition_adherence_pct,
-    pain_reported: input.pain_reported,
-    notes: input.notes,
-  };
-
-  const decision = decideWeeklyAdaptation(checkIn);
-  const payload = {
-    user_id: input.userId,
-    week_start: input.week_start,
-    avg_weight_kg: input.avg_weight_kg,
-    waist_cm: input.waist_cm,
-    hips_cm: input.hips_cm,
-    workouts_completed: input.workouts_completed,
-    workouts_planned: input.workouts_planned,
-    avg_steps: input.avg_steps,
-    hunger_1_10: input.hunger_1_10,
-    energy_1_10: input.energy_1_10,
-    sleep_hours: input.sleep_hours,
-    training_difficulty_1_10: input.training_difficulty_1_10,
-    nutrition_adherence_pct: input.nutrition_adherence_pct,
-    pain_reported: input.pain_reported,
-    what_was_hard: input.what_was_hard,
-    what_liked: input.what_liked,
-    wants_change: input.wants_change,
-    notes: input.notes,
-    adaptation_decision: decision,
-  };
-
-  const { data, error } = await supabase
-    .from("weekly_check_ins")
-    .upsert(payload, { onConflict: "user_id,week_start" })
-    .select("*")
-    .single();
-  if (error) throw error;
-
+  // Через server fn + service role: обходим RLS-баг public.has_role в admin-политиках.
+  const result = await saveWeeklyCheckInFn({
+    data: {
+      userId: input.userId,
+      week_start: input.week_start,
+      avg_weight_kg: input.avg_weight_kg,
+      waist_cm: input.waist_cm,
+      hips_cm: input.hips_cm,
+      workouts_completed: input.workouts_completed,
+      workouts_planned: input.workouts_planned,
+      avg_steps: input.avg_steps,
+      hunger_1_10: input.hunger_1_10,
+      energy_1_10: input.energy_1_10,
+      sleep_hours: input.sleep_hours,
+      training_difficulty_1_10: input.training_difficulty_1_10,
+      nutrition_adherence_pct: input.nutrition_adherence_pct,
+      pain_reported: input.pain_reported,
+      what_was_hard: input.what_was_hard,
+      what_liked: input.what_liked,
+      wants_change: input.wants_change,
+      notes: input.notes,
+    },
+  });
   return {
-    row: data as WeeklyCheckInRow,
-    decision,
-    explanation: explainAdaptation(decision),
+    row: result.row as WeeklyCheckInRow,
+    decision: result.decision,
+    explanation: result.explanation,
   };
 }
 
@@ -137,51 +105,24 @@ export async function saveWorkoutFeedback(input: WorkoutFeedbackInput): Promise<
   decision: AdaptationDecision;
   explanation: string;
 }> {
-  const feedback: WorkoutFeedback = {
-    completed_fully: input.completed_fully,
-    difficulty_1_10: input.difficulty_1_10,
-    pain_reported: input.pain_reported,
-    too_easy_exercises: input.too_easy_exercise_ids ?? [],
-    too_hard_exercises: input.too_hard_exercise_ids ?? [],
-    actual_weights: {},
-    actual_reps: {},
-    energy_before_1_10: input.energy_before_1_10 ?? null,
-    wellbeing_after_1_10: input.wellbeing_after_1_10 ?? null,
-  };
-
-  const decision = decideWorkoutProgression(feedback);
-
-  const { error } = await supabase.from("workout_feedback").insert({
-    user_id: input.userId,
-    program_id: input.programId ?? null,
-    week_index: input.weekIndex,
-    day_index: input.dayIndex,
-    day_title: input.dayTitle ?? null,
-    completed_fully: input.completed_fully,
-    difficulty_1_10: input.difficulty_1_10,
-    pain_reported: input.pain_reported,
-    pain_details: input.pain_details ?? null,
-    too_easy_exercise_ids: input.too_easy_exercise_ids ?? [],
-    too_hard_exercise_ids: input.too_hard_exercise_ids ?? [],
-    energy_before_1_10: input.energy_before_1_10 ?? null,
-    wellbeing_after_1_10: input.wellbeing_after_1_10 ?? null,
-    notes: input.notes ?? null,
-    adaptation_decision: decision,
-  });
-  if (error) throw error;
-
-  if (decision === "PROGRESS" || decision === "REDUCE" || decision === "RECOVER") {
-    await applyWorkoutAdaptation({
+  return saveWorkoutFeedbackFn({
+    data: {
       userId: input.userId,
+      programId: input.programId ?? null,
       weekIndex: input.weekIndex,
       dayIndex: input.dayIndex,
-      decision,
-      tooEasyIds: input.too_easy_exercise_ids ?? [],
-      tooHardIds: input.too_hard_exercise_ids ?? [],
-    });
-  }
-
-  return { decision, explanation: explainAdaptation(decision) };
+      dayTitle: input.dayTitle ?? null,
+      completed_fully: input.completed_fully,
+      difficulty_1_10: input.difficulty_1_10,
+      pain_reported: input.pain_reported,
+      pain_details: input.pain_details ?? null,
+      too_easy_exercise_ids: input.too_easy_exercise_ids ?? [],
+      too_hard_exercise_ids: input.too_hard_exercise_ids ?? [],
+      energy_before_1_10: input.energy_before_1_10 ?? null,
+      wellbeing_after_1_10: input.wellbeing_after_1_10 ?? null,
+      notes: input.notes ?? null,
+    },
+  });
 }
 
 /** Сколько тренировочных (не rest) дней в программе на неделю. */

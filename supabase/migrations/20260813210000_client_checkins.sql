@@ -75,12 +75,12 @@ CREATE POLICY "Users update own weekly check-ins"
 
 CREATE POLICY "Admins view all weekly check-ins"
   ON public.weekly_check_ins FOR SELECT TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
+  USING (private.has_role(auth.uid(), 'admin'));
 
 CREATE POLICY "Admins manage weekly check-ins"
   ON public.weekly_check_ins FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+  USING (private.has_role(auth.uid(), 'admin'))
+  WITH CHECK (private.has_role(auth.uid(), 'admin'));
 
 CREATE POLICY "Users view own workout feedback"
   ON public.workout_feedback FOR SELECT TO authenticated
@@ -92,12 +92,12 @@ CREATE POLICY "Users insert own workout feedback"
 
 CREATE POLICY "Admins view all workout feedback"
   ON public.workout_feedback FOR SELECT TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
+  USING (private.has_role(auth.uid(), 'admin'));
 
 CREATE POLICY "Admins manage workout feedback"
   ON public.workout_feedback FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+  USING (private.has_role(auth.uid(), 'admin'))
+  WITH CHECK (private.has_role(auth.uid(), 'admin'));
 
 CREATE TRIGGER weekly_check_ins_set_updated_at
   BEFORE UPDATE ON public.weekly_check_ins

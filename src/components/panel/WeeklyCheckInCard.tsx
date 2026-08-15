@@ -184,7 +184,13 @@ function WeeklyCheckInDialog({
       toast.success("Check-in сохранён", { description: explanation });
       onSaved(row);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
+      const msg =
+        e instanceof Error
+          ? e.message
+          : e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string"
+            ? (e as { message: string }).message
+            : "Не удалось сохранить";
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { AdaptationDecision } from "@/lib/personalization/types";
 import type { ExerciseSet } from "@/lib/training";
@@ -33,17 +34,21 @@ export async function applyWorkoutAdaptation(params: {
   decision: AdaptationDecision;
   tooEasyIds: string[];
   tooHardIds: string[];
+  /** На сервере передавайте service-role клиент. */
+  db?: SupabaseClient;
 }): Promise<boolean> {
   if (params.decision === "KEEP" || params.decision === "REVIEW") return false;
 
-  const { data: program } = await supabase
+  const db = params.db ?? supabase;
+
+  const { data: program } = await db
     .from("training_programs")
     .select("id, targets_manual")
     .eq("user_id", params.userId)
     .maybeSingle();
   if (!program || program.targets_manual) return false;
 
-  const { data: dayRow } = await supabase
+  const { data: dayRow } = await db
     .from("training_program_days")
     .select("id, warmup, exercises, cooldown")
     .eq("program_id", program.id)
@@ -91,7 +96,7 @@ export async function applyWorkoutAdaptation(params: {
     }
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("training_program_days")
     .update({
       warmup: blocks.warmup as unknown as never,
