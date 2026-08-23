@@ -9,8 +9,9 @@ import {
   type ProgramGoal,
   type ProgramInput,
   type ProgramLevel,
-  generateProgram,
+  generateMultiWeekProgram,
   needsJointCare,
+  preferExerciseForClientGender,
 } from "@/lib/training";
 import {
   PANOVA_4WEEK_PROGRAM,
@@ -20,6 +21,14 @@ import {
 
 export const COACH_PROGRAM_WEEKS = 4;
 export const COACH_TRAINING_DAYS = [0, 2, 4] as const;
+
+/** Подписи прогрессии для UI вкладок недель. */
+export const WEEK_PROGRESS_LABELS = [
+  { short: "Неделя 1", title: "Освоение", focus: "Техника и ритм по таблице тренера." },
+  { short: "Неделя 2", title: "Объём", focus: "Больше времени и подходов при том же качестве." },
+  { short: "Неделя 3", title: "Вариации", focus: "Медленнее негатив, стабильнее кор." },
+  { short: "Неделя 4", title: "Пик", focus: "Максимум блока. Техника важнее скорости." },
+] as const;
 
 /** Slug'и упражнений из Google Sheet тренера (должны быть в public.exercises). */
 export const COACH_SHEET_EXERCISE_SLUGS: readonly string[] = PANOVA_SHEET_SLUGS;
@@ -63,12 +72,19 @@ function restDay(weekIndex: number, dayIndex: number): ProgramDay {
   };
 }
 
-function toSet(item: PanovaSheetItem, bySlug: Map<string, Exercise>, byVideo: Map<string, Exercise>): ExerciseSet | null {
-  const ex =
+function toSet(
+  item: PanovaSheetItem,
+  bySlug: Map<string, Exercise>,
+  byVideo: Map<string, Exercise>,
+  all: Exercise[],
+  gender: ProgramInput["gender"],
+): ExerciseSet | null {
+  let ex =
     (item.slug ? bySlug.get(item.slug) : undefined) ||
     byVideo.get(item.video_url) ||
     null;
   if (!ex) return null;
+  ex = preferExerciseForClientGender(ex, all, gender);
   return {
     exercise_id: ex.id,
     sets: item.sets,
@@ -85,7 +101,9 @@ function buildDayFromWorkout(
   workout: { title: string; focus: string | null; items: PanovaSheetItem[] },
   bySlug: Map<string, Exercise>,
   byVideo: Map<string, Exercise>,
+  all: Exercise[],
   jointCare: boolean,
+  gender: ProgramInput["gender"],
 ): ProgramDay {
   const meta = WEEK_META[weekIndex] ?? WEEK_META[0];
   const warmup: ExerciseSet[] = [];
@@ -94,8 +112,12 @@ function buildDayFromWorkout(
 
   for (const item of workout.items) {
     if (jointCare && /прыж|джампинг|табата/i.test(item.name)) continue;
-    const set = toSet(item, bySlug, byVideo);
+    const set = toSet(item, bySlug, byVideo, all, gender);
     if (!set) continue;
+    // Лёгкая прогрессия объёма на 2 и 4 неделях в основной части
+    if (item.section === "exercises" && (weekIndex === 1 || weekIndex === 3)) {
+      set.sets = Math.min(6, set.sets + 1);
+    }
     if (item.section === "warmup") warmup.push(set);
     else if (item.section === "cooldown") cooldown.push(set);
     else main.push(set);
@@ -111,13 +133,13 @@ function buildDayFromWorkout(
     warmup,
     exercises: main,
     cooldown,
-    day_note: `Неделя ${weekIndex + 1}/${COACH_PROGRAM_WEEKS}`,
+    day_note: `Неделя ${weekIndex + 1}/${COACH_PROGRAM_WEEKS}: ${meta.focus}`,
   };
 }
 
 export function buildCoachSheetProgramDays(
   exercises: Exercise[],
-  profile: Pick<ProgramInput, "has_injuries" | "weight_kg" | "goal" | "level">,
+  profile: Pick<ProgramInput, "has_injuries" | "weight_kg" | "goal" | "level" | "gender">,
 ): ProgramDay[] {
   const bySlug = new Map(exercises.map((e) => [e.slug, e]));
   const byVideo = new Map(
@@ -143,18 +165,39 @@ export function buildCoachSheetProgramDays(
         workouts[0];
 
       if (!workout || workout.items.length === 0) {
-        // Fallback: взять из недели 0 тот же слот
         const w0 = PANOVA_4WEEK_PROGRAM.find((w) => w.weekIndex === 0);
         const fallback = w0?.workouts[workoutNum] ?? w0?.workouts[0];
         if (!fallback) {
           days.push(restDay(week, dayIndex));
           continue;
         }
-        days.push(buildDayFromWorkout(week, dayIndex, fallback, bySlug, byVideo, jointCare));
+        days.push(
+          buildDayFromWorkout(
+            week,
+            dayIndex,
+            fallback,
+            bySlug,
+            byVideo,
+            exercises,
+            jointCare,
+            profile.gender,
+          ),
+        );
         continue;
       }
 
-      days.push(buildDayFromWorkout(week, dayIndex, workout, bySlug, byVideo, jointCare));
+      days.push(
+        buildDayFromWorkout(
+          week,
+          dayIndex,
+          workout,
+          bySlug,
+          byVideo,
+          exercises,
+          jointCare,
+          profile.gender,
+        ),
+      );
     }
   }
   return days;
@@ -231,17 +274,18 @@ export function resolveDefaultTrainingProgram(
   const sheetPool = coachSheetExercisePool(exercises);
   if (sheetPool.length >= 4) {
     return {
-      days: generateProgram(sheetPool, input),
-      programWeeks: 1,
-      coachNotes: "Программа из библиотеки упражнений тренера (таблица).",
+      days: generateMultiWeekProgram(sheetPool, input, COACH_PROGRAM_WEEKS),
+      programWeeks: COACH_PROGRAM_WEEKS,
+      coachNotes:
+        "4-недельная программа из библиотеки упражнений тренера с прогрессией нагрузки.",
       mode: "sheet_pool",
     };
   }
 
   return {
-    days: generateProgram(exercises, input),
-    programWeeks: 1,
-    coachNotes: "",
+    days: generateMultiWeekProgram(exercises, input, COACH_PROGRAM_WEEKS),
+    programWeeks: COACH_PROGRAM_WEEKS,
+    coachNotes: "4-недельная программа с прогрессией: техника → объём → вариации → пик.",
     mode: "generic",
   };
 }

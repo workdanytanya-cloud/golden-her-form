@@ -8,13 +8,13 @@ import {
   type ProgramGoal,
   type ProgramLevel,
   type FaqItem,
-  generateProgram,
   defaultFaq,
   inferGoal,
   inferLevel,
   isImpactOrJumpExercise,
   needsJointCare,
 } from "@/lib/training";
+import { COACH_PROGRAM_WEEKS, resolveDefaultTrainingProgram } from "@/lib/coach-sheet-program";
 
 async function loadLatestWeightKg(userId: string): Promise<number | null> {
   const { data } = await supabase
@@ -147,9 +147,22 @@ async function loadDaysForProgram(programId: string): Promise<DayRow[]> {
     .from("training_program_days")
     .select("*")
     .eq("program_id", programId)
+    .order("week_index", { ascending: true })
     .order("day_index", { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    // Старая схема без week_index
+    if (isMissingSchemaColumn(error, "week_index")) {
+      const legacy = await supabase
+        .from("training_program_days")
+        .select("*")
+        .eq("program_id", programId)
+        .order("day_index", { ascending: true });
+      if (legacy.error) throw legacy.error;
+      return (legacy.data ?? []).map((d) => mapDayRow(d as Record<string, unknown>));
+    }
+    throw error;
+  }
   return (data ?? []).map((d) => mapDayRow(d as Record<string, unknown>));
 }
 
@@ -157,30 +170,56 @@ async function replaceProgramDays(
   programId: string,
   rows: Record<string, unknown>[],
 ): Promise<{ multiWeek: boolean }> {
+  const needsMultiWeek = rows.some((r) => asWeekIndex(r.week_index) > 0);
+
+  // Атомарная замена через RPC (если миграция применена)
+  if (needsMultiWeek) {
+    const { data: rpcCount, error: rpcErr } = await supabase.rpc(
+      "replace_training_program_days",
+      {
+        p_program_id: programId,
+        p_rows: rows as unknown as never,
+      },
+    );
+    if (!rpcErr && typeof rpcCount === "number") {
+      return { multiWeek: true };
+    }
+    // RPC нет или ошибка схемы — fallback ниже
+    if (
+      rpcErr &&
+      !/function|schema cache|PGRST202|Could not find/i.test(rpcErr.message ?? "") &&
+      !isMissingSchemaColumn(rpcErr, "week_index")
+    ) {
+      // Недоступ по RLS и т.п. — пробуем прямой insert
+    }
+  }
+
   const { error: delErr } = await supabase
     .from("training_program_days")
     .delete()
     .eq("program_id", programId);
   if (delErr) throw delErr;
 
-  const needsMultiWeek = rows.some((r) => asWeekIndex(r.week_index) > 0);
-
   if (needsMultiWeek) {
     const fullRows = rows.map((d) => dayInsertRow(programId, d, true));
-    const { error } = await supabase.from("training_program_days").insert(fullRows);
+    const { error } = await supabase.from("training_program_days").insert(fullRows as never);
     if (!error) return { multiWeek: true };
     if (!isMissingSchemaColumn(error, "week_index")) throw error;
 
     const week0Rows = rows
       .filter((r) => asWeekIndex(r.week_index) === 0)
       .map((d) => dayInsertRow(programId, d, false));
-    const { error: fallbackErr } = await supabase.from("training_program_days").insert(week0Rows);
+    const { error: fallbackErr } = await supabase
+      .from("training_program_days")
+      .insert(week0Rows as never);
     if (fallbackErr) throw fallbackErr;
     return { multiWeek: false };
   }
 
   const legacyRows = rows.map((d) => dayInsertRow(programId, d, false));
-  const { error: daysErr } = await supabase.from("training_program_days").insert(legacyRows);
+  const { error: daysErr } = await supabase
+    .from("training_program_days")
+    .insert(legacyRows as never);
   if (daysErr) throw daysErr;
   return { multiWeek: false };
 }
@@ -197,20 +236,25 @@ export async function loadProgramFor(
   if (!program) return { program: null, days: [] };
 
   const mappedDays = await loadDaysForProgram(program.id);
+  const dbWeeks = Number((program as { program_weeks?: number }).program_weeks);
+  const inferred = inferProgramWeeks(mappedDays);
 
   return {
     program: {
       ...program,
       faq: (program.faq ?? []) as FaqItem[],
       equipment: program.equipment ?? [],
-      program_weeks: inferProgramWeeks(mappedDays),
+      program_weeks: Math.max(
+        Number.isFinite(dbWeeks) && dbWeeks > 0 ? dbWeeks : 1,
+        inferred,
+      ),
     } as ProgramRow,
     days: mappedDays,
   };
 }
 
 export async function loadProgramProfile(userId: string) {
-  const [onbRes, accessRes, weight_kg] = await Promise.all([
+  const [onbRes, accessRes, weight_kg, profileRes] = await Promise.all([
     supabase
       .from("onboarding_responses")
       .select(
@@ -220,6 +264,7 @@ export async function loadProgramProfile(userId: string) {
       .maybeSingle(),
     supabase.from("client_access").select("status").eq("user_id", userId).maybeSingle(),
     loadLatestWeightKg(userId),
+    supabase.from("profiles").select("gender").eq("id", userId).maybeSingle(),
   ]);
   const rawSessions = (onbRes.data?.training_days_per_week ?? 3) as number;
   const sessions_per_week: 3 | 4 = rawSessions >= 4 ? 4 : 3;
@@ -232,6 +277,7 @@ export async function loadProgramProfile(userId: string) {
     equipment: (onbRes.data?.equipment ?? []) as string[],
     location: onbRes.data?.training_location ?? null,
     weight_kg,
+    gender: (profileRes.data?.gender as "female" | "male" | null) ?? null,
     access_status: accessRes.data?.status ?? null,
   };
 }
@@ -249,7 +295,20 @@ export async function createOrReplaceProgram(params: {
   const { userId, input, exercises, preserveNotes, preserveFaq, targetsManual, preGeneratedDays } =
     params;
 
-  const generatedDays = preGeneratedDays ?? generateProgram(exercises, input);
+  let generatedDays: ProgramDay[];
+  let programWeeks: number;
+  let notes: string | null = preserveNotes ?? null;
+
+  if (preGeneratedDays && preGeneratedDays.length > 0) {
+    generatedDays = preGeneratedDays;
+    programWeeks = Math.max(1, inferProgramWeeks(preGeneratedDays));
+  } else {
+    const plan = resolveDefaultTrainingProgram(exercises, input);
+    generatedDays = plan.days;
+    programWeeks = plan.programWeeks;
+    if (!notes) notes = plan.coachNotes;
+  }
+
   const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
 
   const { data: existing } = await supabase
@@ -258,7 +317,7 @@ export async function createOrReplaceProgram(params: {
     .eq("user_id", userId)
     .maybeSingle();
 
-  const payload = {
+  const basePayload = {
     user_id: userId,
     sessions_per_week: input.sessions_per_week,
     goal: input.goal,
@@ -267,33 +326,16 @@ export async function createOrReplaceProgram(params: {
     injuries_details: input.injuries_details ?? null,
     equipment: input.equipment ?? [],
     location: input.location ?? null,
-    notes: preserveNotes ?? null,
+    notes,
     faq: faq as unknown as never,
     targets_manual: targetsManual ?? false,
     generated_at: new Date().toISOString(),
   };
 
-  let programId: string;
-  if (existing) {
-    const { data, error } = await supabase
-      .from("training_programs")
-      .update(payload)
-      .eq("id", existing.id)
-      .select("id")
-      .single();
-    if (error) throw error;
-    programId = data.id;
-  } else {
-    const { data, error } = await supabase
-      .from("training_programs")
-      .insert(payload)
-      .select("id")
-      .single();
-    if (error) throw error;
-    programId = data.id;
-  }
+  const programId = await upsertTrainingProgram(existing?.id ?? null, basePayload, programWeeks);
 
   const rows = generatedDays.map((d) => ({
+    week_index: d.week_index ?? 0,
     day_index: d.day_index,
     is_rest: d.is_rest,
     title: d.title,
@@ -304,12 +346,12 @@ export async function createOrReplaceProgram(params: {
     cooldown: d.cooldown as unknown as never,
     day_note: d.day_note,
   }));
-  await replaceProgramDays(programId, rows);
+  const { multiWeek } = await replaceProgramDays(programId, rows);
 
   return loadProgramFor(userId).then((r) => ({
     program: r.program!,
     days: r.days,
-    multiWeek: false,
+    multiWeek,
   }));
 }
 
@@ -323,7 +365,7 @@ export async function createOrReplaceCustomProgram(params: {
   notes?: string | null;
   targetsManual?: boolean;
 }): Promise<{ program: ProgramRow; days: DayRow[]; multiWeek: boolean }> {
-  const { userId, input, days, preserveFaq, notes, targetsManual } = params;
+  const { userId, input, days, programWeeks, preserveFaq, notes, targetsManual } = params;
   const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
 
   const { data: existing } = await supabase
@@ -332,7 +374,7 @@ export async function createOrReplaceCustomProgram(params: {
     .eq("user_id", userId)
     .maybeSingle();
 
-  const payload = {
+  const basePayload = {
     user_id: userId,
     sessions_per_week: input.sessions_per_week,
     goal: input.goal,
@@ -347,25 +389,11 @@ export async function createOrReplaceCustomProgram(params: {
     generated_at: new Date().toISOString(),
   };
 
-  let programId: string;
-  if (existing) {
-    const { data, error } = await supabase
-      .from("training_programs")
-      .update(payload)
-      .eq("id", existing.id)
-      .select("id")
-      .single();
-    if (error) throw error;
-    programId = data.id;
-  } else {
-    const { data, error } = await supabase
-      .from("training_programs")
-      .insert(payload)
-      .select("id")
-      .single();
-    if (error) throw error;
-    programId = data.id;
-  }
+  const programId = await upsertTrainingProgram(
+    existing?.id ?? null,
+    basePayload,
+    Math.max(1, programWeeks || COACH_PROGRAM_WEEKS),
+  );
 
   const rows = days.map((d) => ({
     week_index: d.week_index ?? 0,
@@ -386,6 +414,50 @@ export async function createOrReplaceCustomProgram(params: {
     days: r.days,
     multiWeek,
   }));
+}
+
+async function upsertTrainingProgram(
+  existingId: string | null,
+  payload: Record<string, unknown>,
+  programWeeks: number,
+): Promise<string> {
+  const withWeeks = { ...payload, program_weeks: programWeeks };
+
+  if (existingId) {
+    const { data, error } = await supabase
+      .from("training_programs")
+      .update(withWeeks as never)
+      .eq("id", existingId)
+      .select("id")
+      .single();
+    if (!error && data) return data.id;
+    if (error && !isMissingSchemaColumn(error, "program_weeks")) throw error;
+
+    const { data: legacy, error: legacyErr } = await supabase
+      .from("training_programs")
+      .update(payload as never)
+      .eq("id", existingId)
+      .select("id")
+      .single();
+    if (legacyErr) throw legacyErr;
+    return legacy.id;
+  }
+
+  const { data, error } = await supabase
+    .from("training_programs")
+    .insert(withWeeks as never)
+    .select("id")
+    .single();
+  if (!error && data) return data.id;
+  if (error && !isMissingSchemaColumn(error, "program_weeks")) throw error;
+
+  const { data: legacy, error: legacyErr } = await supabase
+    .from("training_programs")
+    .insert(payload as never)
+    .select("id")
+    .single();
+  if (legacyErr) throw legacyErr;
+  return legacy.id;
 }
 
 export async function updateDayPatch(

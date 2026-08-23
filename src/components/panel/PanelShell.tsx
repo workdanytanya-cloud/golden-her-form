@@ -194,13 +194,19 @@ export function PanelHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 border-b border-gold/10 pb-6 md:flex-row md:items-end md:justify-between md:gap-6">
-      <div className="min-w-0">
+    <div className="flex flex-col gap-4 border-b border-gold/10 pb-6 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
+      <div className="min-w-0 w-full flex-1 basis-full lg:basis-0">
         <p className="eyebrow">{eyebrow}</p>
-        <h1 className="mt-2 font-display text-2xl sm:text-3xl md:text-4xl">{title}</h1>
-        {description && <p className="mt-2 max-w-2xl text-sm text-warm-gray">{description}</p>}
+        <h1 className="mt-2 break-words font-display text-2xl sm:text-3xl md:text-4xl">{title}</h1>
+        {description && (
+          <p className="mt-2 w-full max-w-2xl whitespace-normal break-words text-sm leading-relaxed text-warm-gray">
+            {description.replace(/\s+/g, " ").trim()}
+          </p>
+        )}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && (
+        <div className="w-full shrink-0 lg:max-w-md lg:w-auto">{action}</div>
+      )}
     </div>
   );
 }

@@ -30,6 +30,7 @@ import {
   WEEKDAY_LABELS,
   type ProgramGoal,
 } from "@/lib/training";
+import { WEEK_PROGRESS_LABELS } from "@/lib/coach-sheet-program";
 import { getVideoEmbedUrl, isDirectVideoFile } from "@/lib/video-embed";
 import { WorkoutFeedbackDialog } from "@/components/panel/WorkoutFeedbackDialog";
 import { SubstituteSuggestions } from "@/components/panel/SubstituteSuggestions";
@@ -251,22 +252,35 @@ export function TrainingView({
 
       {/* Week cycle tabs — только если в базе реально несколько недель */}
       {multiWeek && maxWeek > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {Array.from({ length: maxWeek + 1 }, (_, w) => (
-            <button
-              key={w}
-              type="button"
-              onClick={() => setWeekIndex(w)}
-              className={[
-                "rounded-full border px-4 py-2 text-xs uppercase tracking-widest transition-colors",
-                weekIndex === w
-                  ? "border-gold/60 bg-gold/15 text-ivory"
-                  : "border-gold/20 text-warm-gray hover:border-gold/40 hover:text-ivory",
-              ].join(" ")}
-            >
-              Неделя {w + 1}
-            </button>
-          ))}
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: maxWeek + 1 }, (_, w) => {
+              const label = WEEK_PROGRESS_LABELS[w];
+              return (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => setWeekIndex(w)}
+                  className={[
+                    "rounded-full border px-4 py-2 text-xs uppercase tracking-widest transition-colors",
+                    weekIndex === w
+                      ? "border-gold/60 bg-gold/15 text-ivory"
+                      : "border-gold/20 text-warm-gray hover:border-gold/40 hover:text-ivory",
+                  ].join(" ")}
+                >
+                  {label?.short ?? `Неделя ${w + 1}`}
+                  {label?.title ? (
+                    <span className="ml-1.5 hidden font-normal normal-case tracking-normal opacity-70 sm:inline">
+                      · {label.title}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+          {WEEK_PROGRESS_LABELS[weekIndex] && (
+            <p className="text-xs text-warm-gray">{WEEK_PROGRESS_LABELS[weekIndex].focus}</p>
+          )}
         </div>
       )}
 

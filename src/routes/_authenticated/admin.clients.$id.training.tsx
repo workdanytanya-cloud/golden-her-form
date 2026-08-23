@@ -9,7 +9,6 @@ import {
   loadExercises,
   loadProgramFor,
   loadProgramProfile,
-  createOrReplaceProgram,
   createOrReplaceCustomProgram,
   updateDayPatch,
   updateProgramPatch,
@@ -31,6 +30,7 @@ import {
   coachProgramNotes,
   COACH_PROGRAM_WEEKS,
   missingCoachSheetExercises,
+  resolveDefaultTrainingProgram,
 } from "@/lib/coach-sheet-program";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/training")({
@@ -56,6 +56,7 @@ function AdminTrainingPage() {
     equipment: string[];
     location: string | null;
     weight_kg: number | null;
+    gender: "female" | "male" | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [dirtyDays, setDirtyDays] = useState<Set<string>>(() => new Set());
@@ -82,6 +83,7 @@ function AdminTrainingPage() {
       equipment: prof.equipment,
       location: prof.location,
       weight_kg: prof.weight_kg,
+      gender: prof.gender,
     });
     setProfileName(profRow.data?.full_name ?? "Клиент");
     setLoading(false);
@@ -103,21 +105,30 @@ function AdminTrainingPage() {
       equipment: profile.equipment,
       location: profile.location,
       weight_kg: profile.weight_kg,
+      gender: profile.gender,
       ...overrides,
     };
     try {
-      // Админская сборка всегда фиксирует программу — иначе клиентский кабинет
-      // может пересобрать её и стереть правки тренера.
-      await createOrReplaceProgram({
+      // 4 недели + прогрессия; не схлопываем в 1 неделю.
+      const plan = resolveDefaultTrainingProgram(exercises, input);
+      const result = await createOrReplaceCustomProgram({
         userId: id,
         input,
-        exercises,
-        preserveNotes: program?.notes ?? null,
+        days: plan.days,
+        programWeeks: plan.programWeeks,
+        notes: program?.notes ?? plan.coachNotes,
         preserveFaq: program?.faq ?? null,
         targetsManual: true,
       });
       await reload();
-      toast.success("Программа сохранена. Клиент увидит её после открытия доступа.");
+      if (result.multiWeek) {
+        toast.success(`Программа на ${plan.programWeeks} нед. сохранена.`);
+      } else {
+        toast.warning(
+          "Сохранена только 1-я неделя. Выполните SQL supabase/production-enable-4weeks-and-trainer-gender.sql в Supabase и пересоберите.",
+          { duration: 15000 },
+        );
+      }
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -144,6 +155,7 @@ function AdminTrainingPage() {
       equipment: profile.equipment,
       location: profile.location,
       weight_kg: profile.weight_kg,
+      gender: profile.gender,
     };
     try {
       const customDays = buildCoachSheetProgramDays(exercises, input);

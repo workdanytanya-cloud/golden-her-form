@@ -71,7 +71,70 @@ export type ProgramInput = {
   location?: string | null;
   /** Последний известный вес клиента (кг). При >85 — без прыжков/ударных. */
   weight_kg?: number | null;
+  /** Пол клиента: предпочитаем видео с тренером того же пола. */
+  gender?: "female" | "male" | null;
 };
+
+const TRAINER_FEMALE_TAGS = new Set([
+  "trainer_female",
+  "female_demo",
+  "woman_demo",
+  "female_trainer",
+]);
+const TRAINER_MALE_TAGS = new Set([
+  "trainer_male",
+  "male_demo",
+  "man_demo",
+  "male_trainer",
+]);
+
+/** Насколько упражнение подходит по полу тренера на видео (выше = лучше). */
+export function trainerGenderScore(
+  exercise: Pick<Exercise, "tags">,
+  gender: "female" | "male" | null | undefined,
+): number {
+  if (!gender) return 0;
+  const tags = exercise.tags.map((t) => t.toLowerCase());
+  const prefer = gender === "female" ? TRAINER_FEMALE_TAGS : TRAINER_MALE_TAGS;
+  const avoid = gender === "female" ? TRAINER_MALE_TAGS : TRAINER_FEMALE_TAGS;
+  if (tags.some((t) => prefer.has(t))) return 5;
+  if (tags.some((t) => avoid.has(t))) return -4;
+  // Библиотека Panova/sheet по умолчанию — женский показ
+  if (
+    gender === "female" &&
+    tags.some((t) => t === "sheet" || t === "panova" || t === "home")
+  ) {
+    return 2;
+  }
+  return 0;
+}
+
+/** Если есть twin с подходящим полом тренера — берём его (иначе исходное). */
+export function preferExerciseForClientGender(
+  exercise: Exercise,
+  pool: Exercise[],
+  gender: "female" | "male" | null | undefined,
+): Exercise {
+  if (!gender || !exercise.video_url) return exercise;
+  const self = trainerGenderScore(exercise, gender);
+  if (self >= 5) return exercise;
+
+  const wantPositive = gender === "female" ? TRAINER_FEMALE_TAGS : TRAINER_MALE_TAGS;
+  const twin = pool
+    .filter(
+      (e) =>
+        e.id !== exercise.id &&
+        !!e.video_url &&
+        e.category === exercise.category &&
+        e.tags.some((t) => wantPositive.has(t.toLowerCase())) &&
+        e.muscle_groups.some((m) =>
+          exercise.muscle_groups.some((x) => x.toLowerCase() === m.toLowerCase()),
+        ),
+    )
+    .sort((a, b) => trainerGenderScore(b, gender) - trainerGenderScore(a, gender))[0];
+
+  return twin ?? exercise;
+}
 
 /** Порог: выше — без ударных, прыжковых и жёстких нагрузок на суставы. */
 export const JOINT_CARE_WEIGHT_KG = 85;
@@ -418,6 +481,12 @@ function pickExerciseForSlot(
     if (jointCare && e.tags.includes("low_impact")) s += 2;
     if (jointCare && e.tags.includes("no_jumping")) s += 1;
     if (e.tags.includes("sheet")) s += 4;
+    s += trainerGenderScore(e, input.gender);
+    // Сначала упражнения с видео; ещё выше — если пол тренера совпал
+    if (e.video_url) {
+      s += 3;
+      if (trainerGenderScore(e, input.gender) >= 5) s += 2;
+    }
     return { e, s };
   });
   scored.sort((a, b) => b.s - a.s);
@@ -459,46 +528,107 @@ function toSet(e: Exercise, slot: SlotSpec, input: ProgramInput): ExerciseSet {
 // -------------- Public generator --------------
 
 export function generateProgram(exercises: Exercise[], input: ProgramInput): ProgramDay[] {
+  return generateMultiWeekProgram(exercises, input, 4);
+}
+
+const WEEK_PROGRESSION_META = [
+  {
+    title: "Неделя 1 — освоение",
+    focus: "Техника и привыкание к ритму.",
+    setBonus: 0,
+    note: "Освойте технику по видео. Веса комфортные.",
+  },
+  {
+    title: "Неделя 2 — объём",
+    focus: "Чуть больше подходов при той же технике.",
+    setBonus: 1,
+    note: "Добавьте подход в основных упражнениях, если техника стабильна.",
+  },
+  {
+    title: "Неделя 3 — вариации",
+    focus: "Новые углы нагрузки, контроль негатива.",
+    setBonus: 0,
+    note: "Медленнее негатив (3 секунды вниз). Можно заменить часть упражнений.",
+  },
+  {
+    title: "Неделя 4 — пик",
+    focus: "Максимум блока: качество важнее скорости.",
+    setBonus: 1,
+    note: "Пиковая неделя. Без читинга, полный контроль.",
+  },
+] as const;
+
+/**
+ * Мультинедельная программа с видимой прогрессией (по умолчанию 4 недели).
+ * Упражнения могут меняться между неделями, но структура дня сохраняется.
+ */
+export function generateMultiWeekProgram(
+  exercises: Exercise[],
+  input: ProgramInput,
+  weeks = 4,
+): ProgramDay[] {
+  const weekCount = Math.max(1, Math.min(4, weeks));
   const templates = planWeek(input);
   const slots = scheduleSlots(input.sessions_per_week);
-  const weekUse = new Map<string, number>();
+  const allDays: ProgramDay[] = [];
 
-  const days: ProgramDay[] = [];
-  for (let d = 0; d < 7; d++) {
-    const idx = slots.indexOf(d);
-    if (idx === -1) {
-      days.push(restDay(d));
-      continue;
-    }
-    const template = templates[idx % templates.length];
-    const usedInDay = new Set<string>();
+  for (let week = 0; week < weekCount; week++) {
+    const meta = WEEK_PROGRESSION_META[week] ?? WEEK_PROGRESSION_META[0];
+    const weekUse = new Map<string, number>();
+    // На неделях 3–4 слегка «перемешиваем» пул, исключая уже часто использованные
+    const preferFresh = week >= 2;
 
-    const build = (specs: SlotSpec[]): ExerciseSet[] => {
-      const out: ExerciseSet[] = [];
-      for (const spec of specs) {
-        const ex = pickExerciseForSlot(spec, exercises, input, usedInDay, weekUse);
-        if (!ex) continue;
-        usedInDay.add(ex.id);
-        weekUse.set(ex.id, (weekUse.get(ex.id) ?? 0) + 1);
-        out.push(toSet(ex, spec, input));
+    for (let d = 0; d < 7; d++) {
+      const idx = slots.indexOf(d);
+      if (idx === -1) {
+        allDays.push({ ...restDay(d), week_index: week });
+        continue;
       }
-      return out;
-    };
+      const template = templates[idx % templates.length];
+      const usedInDay = new Set<string>();
 
-    days.push({
-      day_index: d,
-      is_rest: false,
-      title: template.title,
-      focus: template.focus,
-      description: template.description,
-      warmup: build(template.warmup),
-      exercises: build(template.main),
-      cooldown: build(template.cooldown),
-      day_note: null,
-    });
+      const build = (specs: SlotSpec[], section: "warmup" | "main" | "cooldown"): ExerciseSet[] => {
+        const out: ExerciseSet[] = [];
+        for (const spec of specs) {
+          let pool = exercises;
+          if (preferFresh) {
+            // Слегка понижаем приоритет уже взятых на прошлых неделях того же слота
+            pool = [...exercises].sort(
+              (a, b) => (weekUse.get(a.id) ?? 0) - (weekUse.get(b.id) ?? 0),
+            );
+          }
+          const ex = pickExerciseForSlot(spec, pool, input, usedInDay, weekUse);
+          if (!ex) continue;
+          const gendered = preferExerciseForClientGender(ex, exercises, input.gender);
+          usedInDay.add(gendered.id);
+          weekUse.set(gendered.id, (weekUse.get(gendered.id) ?? 0) + 1);
+          const set = toSet(gendered, spec, input);
+          if (section === "main" && meta.setBonus > 0) {
+            set.sets = Math.min(6, set.sets + meta.setBonus);
+          }
+          out.push(set);
+        }
+        return out;
+      };
+
+      allDays.push({
+        week_index: week,
+        day_index: d,
+        is_rest: false,
+        title: `${template.title} · ${meta.title}`,
+        focus: meta.focus,
+        description: template.description,
+        warmup: build(template.warmup, "warmup"),
+        exercises: build(template.main, "main"),
+        cooldown: build(template.cooldown, "cooldown"),
+        day_note: meta.note,
+      });
+    }
   }
-  return days;
+  return allDays;
 }
+
+export { WEEK_PROGRESSION_META };
 
 // -------------- Default FAQ --------------
 
