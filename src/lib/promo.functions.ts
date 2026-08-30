@@ -179,7 +179,7 @@ export const redeemPromoCode = createServerFn({ method: "POST" })
 
     const { data: existing } = await supabaseAdmin
       .from("client_access")
-      .select("status, activated_at, activated_by, unlock_source")
+      .select("status, activated_at, activated_by, unlock_source, notes")
       .eq("user_id", context.userId)
       .maybeSingle();
 

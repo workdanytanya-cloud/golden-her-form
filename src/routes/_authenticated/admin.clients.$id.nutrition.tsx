@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { NutritionView } from "@/components/panel/NutritionView";
 import { NutritionSetup } from "@/components/panel/NutritionSetup";
+import { ConstructorAdminPanel } from "@/components/panel/ConstructorAdminPanel";
+import { NutritionRecommendationPanel } from "@/components/panel/NutritionRecommendationPanel";
 import { supabase } from "@/integrations/supabase/client";
 import {
   loadDishes,
@@ -29,6 +31,7 @@ import {
   type MealPattern,
   type RecipeComplexity,
 } from "@/lib/plan-options";
+import { publishLegacyNutrition } from "@/lib/published-programs/repo";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/nutrition")({
   component: AdminNutritionPage,
@@ -48,8 +51,12 @@ function AdminNutritionPage() {
     carbs_g: 0,
   });
   const [autoExcluded, setAutoExcluded] = useState<string[]>([]);
+  const [targetProfile, setTargetProfile] = useState<Awaited<
+    ReturnType<typeof loadTargetProfile>
+  > | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSetup, setShowSetup] = useState(false);
+  const [nutritionMode, setNutritionMode] = useState<"legacy" | "constructor">("constructor");
 
   const reload = async () => {
     setLoading(true);
@@ -65,6 +72,7 @@ function AdminNutritionPage() {
     setPlan(p.plan);
     setDays(p.days);
     setSuggested(calcTargets(prof));
+    setTargetProfile(prof);
     setAutoExcluded(extractExcludedFromText(prof.allergies, prof.disliked_foods));
     setProfileName(profRow.data?.full_name ?? "Клиент");
     setLoading(false);
@@ -102,9 +110,19 @@ function AdminNutritionPage() {
         recipeComplexity: opts.recipeComplexity,
         mealPattern: opts.mealPattern,
       });
+      const after = await loadPlanFor(id);
+      if (after.plan && after.days.length > 0) {
+        await publishLegacyNutrition({
+          userId: id,
+          plan: after.plan,
+          days: after.days,
+          dishes: await loadDishes(),
+          reason: "Публикация классического меню",
+        });
+      }
       await reload();
       setShowSetup(false);
-      toast.success("Меню сохранено. Клиент увидит его после открытия доступа.");
+      toast.success("Меню опубликовано клиенту. Предыдущая версия сохранена в истории.");
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -180,7 +198,7 @@ function AdminNutritionPage() {
       <PanelHeader
         eyebrow="Меню"
         title={profileName}
-        description="Меняйте блюда и порции. После сохранения меню фиксируется — клиент увидит его сразу (если доступ уже открыт)."
+        description="Черновик правите свободно. Клиент видит только опубликованную версию после «Назначить клиенту» / публикации."
         action={
           plan && (
             <button
@@ -193,6 +211,50 @@ function AdminNutritionPage() {
           )
         }
       />
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setNutritionMode("constructor")}
+          className={[
+            "rounded-full border px-4 py-2 text-xs uppercase tracking-widest",
+            nutritionMode === "constructor"
+              ? "border-gold/60 bg-gold/15 text-ivory"
+              : "border-gold/20 text-warm-gray hover:text-ivory",
+          ].join(" ")}
+        >
+          Конструктор · 4 приёма
+        </button>
+        <button
+          type="button"
+          onClick={() => setNutritionMode("legacy")}
+          className={[
+            "rounded-full border px-4 py-2 text-xs uppercase tracking-widest",
+            nutritionMode === "legacy"
+              ? "border-gold/60 bg-gold/15 text-ivory"
+              : "border-gold/20 text-warm-gray hover:text-ivory",
+          ].join(" ")}
+        >
+          Классическое меню
+        </button>
+      </div>
+
+      <NutritionRecommendationPanel clientId={id} onDraftCreated={() => void reload()} />
+
+      {nutritionMode === "constructor" && targetProfile && (
+        <ConstructorAdminPanel
+          userId={id}
+          profile={{
+            gender: targetProfile.gender,
+            birth_date: targetProfile.birth_date,
+            height_cm: targetProfile.height_cm,
+            weight_kg: targetProfile.weight_kg,
+            activity_level: targetProfile.activity_level,
+            goal_primary: targetProfile.goal_primary,
+          }}
+          onSaved={() => void reload()}
+        />
+      )}
 
       {plan && (
         <TargetsEditor
@@ -247,46 +309,50 @@ function AdminNutritionPage() {
         />
       )}
 
-
-      {!plan || showSetup ? (
-        <NutritionSetup
-          initialMeals={mealsChoiceFromPlan(plan?.meals_per_day, plan?.preferred_products)}
-          initialPreferred={plan?.preferred_products}
-          initialExcluded={(plan?.excluded_products ?? []).filter(
-            (p) => !autoExcluded.includes(p),
-          )}
-          suggestedTargets={suggested}
-          autoExcluded={autoExcluded}
-          onCancel={plan ? () => setShowSetup(false) : undefined}
-          onSubmit={handleGenerate}
-          submitLabel={plan ? "Пересобрать меню" : "Сгенерировать меню"}
-        />
-      ) : (
-        <NutritionView
-          dishes={dishes}
-          swapDishes={swapDishes}
-          days={days.map((d) => ({ day_index: d.day_index, day_note: d.day_note, meals: d.meals }))}
-          targets={{
-            kcal: plan.target_kcal,
-            protein_g: plan.target_protein_g,
-            fat_g: plan.target_fat_g,
-            carbs_g: plan.target_carbs_g,
-          }}
-          mealsPerDay={plan.meals_per_day as 3 | 5}
-          mealPattern={decodePlanMeta(plan.preferred_products).pattern}
-          preferredProducts={plan.preferred_products ?? []}
-          excludedProducts={[...(plan.excluded_products ?? []), ...autoExcluded]}
-          editable={true}
-          onSwap={handleSwap}
-          onPortionChange={handlePortion}
-          onMealNote={handleMealNote}
-          onDayNote={handleDayNote}
-          onRegenerate={() => {
-            setShowSetup(true);
-            return Promise.resolve();
-          }}
-        />
-      )}
+      {nutritionMode === "legacy" &&
+        (!plan || showSetup ? (
+          <NutritionSetup
+            initialMeals={mealsChoiceFromPlan(plan?.meals_per_day, plan?.preferred_products)}
+            initialPreferred={plan?.preferred_products}
+            initialExcluded={(plan?.excluded_products ?? []).filter(
+              (p) => !autoExcluded.includes(p),
+            )}
+            suggestedTargets={suggested}
+            autoExcluded={autoExcluded}
+            onCancel={plan ? () => setShowSetup(false) : undefined}
+            onSubmit={handleGenerate}
+            submitLabel={plan ? "Пересобрать меню" : "Сгенерировать меню"}
+          />
+        ) : (
+          <NutritionView
+            dishes={dishes}
+            swapDishes={swapDishes}
+            days={days.map((d) => ({
+              day_index: d.day_index,
+              day_note: d.day_note,
+              meals: d.meals,
+            }))}
+            targets={{
+              kcal: plan.target_kcal,
+              protein_g: plan.target_protein_g,
+              fat_g: plan.target_fat_g,
+              carbs_g: plan.target_carbs_g,
+            }}
+            mealsPerDay={plan.meals_per_day as 3 | 5}
+            mealPattern={decodePlanMeta(plan.preferred_products).pattern}
+            preferredProducts={plan.preferred_products ?? []}
+            excludedProducts={[...(plan.excluded_products ?? []), ...autoExcluded]}
+            editable={true}
+            onSwap={handleSwap}
+            onPortionChange={handlePortion}
+            onMealNote={handleMealNote}
+            onDayNote={handleDayNote}
+            onRegenerate={() => {
+              setShowSetup(true);
+              return Promise.resolve();
+            }}
+          />
+        ))}
     </div>
   );
 }
@@ -334,7 +400,13 @@ function TargetsEditor({
         {(["kcal", "protein_g", "fat_g", "carbs_g"] as const).map((k) => (
           <label key={k} className="block">
             <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">
-              {k === "kcal" ? "Ккал" : k === "protein_g" ? "Белки" : k === "fat_g" ? "Жиры" : "Углеводы"}
+              {k === "kcal"
+                ? "Ккал"
+                : k === "protein_g"
+                  ? "Белки"
+                  : k === "fat_g"
+                    ? "Жиры"
+                    : "Углеводы"}
             </span>
             <input
               type="number"
@@ -347,9 +419,7 @@ function TargetsEditor({
                   const next = { ...prev, [k]: v };
                   if (k !== "kcal") {
                     // Auto-recalc total kcal from macros: 4·P + 9·F + 4·C
-                    next.kcal = Math.round(
-                      next.protein_g * 4 + next.fat_g * 9 + next.carbs_g * 4,
-                    );
+                    next.kcal = Math.round(next.protein_g * 4 + next.fat_g * 9 + next.carbs_g * 4);
                   }
                   return next;
                 });
@@ -360,9 +430,9 @@ function TargetsEditor({
         ))}
       </div>
       <p className="mt-2 text-[11px] text-warm-gray">
-        Ккал считаются автоматически из белков, жиров и углеводов (4·Б + 9·Ж + 4·У). Клиент увидит меню только после того, как вы сохраните настройки.
+        Ккал считаются автоматически из белков, жиров и углеводов (4·Б + 9·Ж + 4·У). Клиент увидит
+        меню только после того, как вы сохраните настройки.
       </p>
-
 
       <label className="mt-4 block">
         <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">

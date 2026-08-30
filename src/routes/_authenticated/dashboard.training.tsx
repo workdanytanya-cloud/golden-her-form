@@ -4,18 +4,14 @@ import { PanelHeader } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
 import { TrainingView } from "@/components/panel/TrainingView";
 import { useAuth } from "@/lib/auth";
-import {
-  loadExercises,
-  loadProgramFor,
-  type ProgramRow,
-  type DayRow,
-  type Exercise,
-} from "@/lib/training-repo";
+import { loadPublishedTrainingFor } from "@/lib/published-programs/repo";
 import {
   type ProgramDay,
   type ProgramGoal,
   type ProgramLevel,
+  type Exercise,
 } from "@/lib/training";
+import type { ProgramRow, DayRow } from "@/lib/training-repo";
 
 export const Route = createFileRoute("/_authenticated/dashboard/training")({
   component: TrainingPage,
@@ -27,7 +23,7 @@ function TrainingPage() {
       <PanelHeader
         eyebrow="Курс"
         title="Тренировки"
-        description="Персональная программа на 4 недели. Состав меняет только тренер."
+        description="Персональная программа на 4 недели. Состав меняет только тренер новой версией."
       />
       <AccessGate level="active">
         <TrainingInner />
@@ -46,14 +42,16 @@ function TrainingInner() {
   const reload = async () => {
     if (!effectiveUserId) return;
     setLoading(true);
-    const [ex, p] = await Promise.all([
-      loadExercises(),
-      loadProgramFor(effectiveUserId),
-    ]);
-    // Клиент только читает: не создаём и не пересобираем программу при открытии страницы.
-    setExercises(ex);
-    setProgram(p.program);
-    setDays(p.days);
+    const published = await loadPublishedTrainingFor(effectiveUserId);
+    if (published) {
+      setExercises(published.exercises);
+      setProgram(published.program);
+      setDays(published.days);
+    } else {
+      setExercises([]);
+      setProgram(null);
+      setDays([]);
+    }
     setLoading(false);
   };
 
@@ -62,12 +60,11 @@ function TrainingInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId]);
 
-  if (loading)
-    return <div className="py-10 text-center text-warm-gray">Загружаем программу…</div>;
+  if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем программу…</div>;
   if (!program || days.length === 0)
     return (
       <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center text-warm-gray">
-        Программа пока не назначена. Тренер соберёт для вас фиксированный блок на 4 недели.
+        Программа пока не назначена. Тренер опубликует для вас фиксированный блок на 4 недели.
       </div>
     );
 
@@ -88,8 +85,8 @@ function TrainingInner() {
     <TrainingView
       exercises={exercises}
       days={programDays}
-      goal={(program.goal ?? "maintain") as ProgramGoal}
-      level={program.level as ProgramLevel}
+      goal={(program.goal as ProgramGoal) ?? "tone"}
+      level={(program.level as ProgramLevel) ?? "beginner"}
       sessionsPerWeek={program.sessions_per_week}
       programWeeks={program.program_weeks}
       notes={program.notes}
@@ -98,7 +95,6 @@ function TrainingInner() {
       userId={effectiveUserId ?? undefined}
       programId={program.id}
       enableWorkoutFeedback
-      onProgramReload={() => void reload()}
     />
   );
 }

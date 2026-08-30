@@ -32,6 +32,7 @@ import {
   missingCoachSheetExercises,
   resolveDefaultTrainingProgram,
 } from "@/lib/coach-sheet-program";
+import { loadPublishedTrainingFor, publishTrainingProgram } from "@/lib/published-programs/repo";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/training")({
   component: AdminTrainingPage,
@@ -47,6 +48,8 @@ function AdminTrainingPage() {
   const [program, setProgram] = useState<ProgramRow | null>(null);
   const [days, setDays] = useState<DayRow[]>([]);
   const [profileName, setProfileName] = useState<string>("");
+  const [publishedVersion, setPublishedVersion] = useState<number | null>(null);
+  const [publishing, setPublishing] = useState(false);
   const [profile, setProfile] = useState<{
     sessions_per_week: 3 | 4;
     goal: ProgramGoal;
@@ -64,16 +67,18 @@ function AdminTrainingPage() {
 
   const reload = async () => {
     setLoading(true);
-    const [ex, p, prof, profRow] = await Promise.all([
+    const [ex, p, prof, profRow, published] = await Promise.all([
       loadExercises(),
       loadProgramFor(id),
       loadProgramProfile(id),
       supabase.from("profiles").select("full_name").eq("id", id).maybeSingle(),
+      loadPublishedTrainingFor(id),
     ]);
     setExercises(ex);
     setProgram(p.program);
     setDays(p.days);
     setDirtyDays(new Set());
+    setPublishedVersion(published?.version?.version ?? null);
     setProfile({
       sessions_per_week: prof.sessions_per_week,
       goal: prof.goal,
@@ -122,7 +127,9 @@ function AdminTrainingPage() {
       });
       await reload();
       if (result.multiWeek) {
-        toast.success(`Программа на ${plan.programWeeks} нед. сохранена.`);
+        toast.success(
+          `Черновик на ${plan.programWeeks} нед. сохранён. Клиент увидит после «Опубликовать клиенту».`,
+        );
       } else {
         toast.warning(
           "Сохранена только 1-я неделя. Выполните SQL supabase/production-enable-4weeks-and-trainer-gender.sql в Supabase и пересоберите.",
@@ -131,6 +138,55 @@ function AdminTrainingPage() {
       }
     } catch (e) {
       toast.error((e as Error).message);
+    }
+  };
+
+  const handlePublishToClient = async () => {
+    if (!profile || !program || days.length === 0) return;
+    setPublishing(true);
+    try {
+      const input: ProgramInput = {
+        sessions_per_week: program.sessions_per_week as 3 | 4,
+        goal: (program.goal as ProgramGoal) ?? profile.goal,
+        level: (program.level as ProgramLevel) ?? profile.level,
+        has_injuries: program.has_injuries,
+        injuries_details: program.injuries_details,
+        equipment: program.equipment,
+        location: program.location,
+        weight_kg: profile.weight_kg,
+        gender: profile.gender,
+      };
+      const programDays: ProgramDay[] = days.map((d) => ({
+        week_index: d.week_index,
+        day_index: d.day_index,
+        is_rest: d.is_rest,
+        title: d.title,
+        focus: d.focus,
+        description: d.description,
+        warmup: d.warmup,
+        exercises: d.exercises,
+        cooldown: d.cooldown,
+        day_note: d.day_note,
+      }));
+      const result = await publishTrainingProgram({
+        userId: id,
+        input,
+        days: programDays,
+        programWeeks: program.program_weeks,
+        notes: program.notes,
+        faq: program.faq,
+        exercises,
+      });
+      toast.success(
+        result.usedRpc
+          ? "Тренировки опубликованы клиенту (неизменяемая версия)"
+          : "Сохранено. Миграция версий ещё не применена — выполните SQL.",
+      );
+      await reload();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -170,7 +226,9 @@ function AdminTrainingPage() {
       });
       await reload();
       if (result.multiWeek) {
-        toast.success(`Программа из таблицы сохранена: ${result.days.length} дней (${COACH_PROGRAM_WEEKS} нед.)`);
+        toast.success(
+          `Черновик из таблицы сохранён: ${result.days.length} дней. Опубликуйте клиенту отдельно.`,
+        );
       } else {
         toast.warning(
           `Сохранена 1-я неделя (${result.days.length} дн.). Для 4 недель выполните supabase/production-setup-coach-sheet.sql в Supabase и нажмите кнопку снова.`,
@@ -282,11 +340,32 @@ function AdminTrainingPage() {
       <PanelHeader
         eyebrow="Программа тренировок"
         title={profileName}
-        description="Меняйте упражнения, подходы и дни. После сохранения программа фиксируется — клиент увидит её сразу (если доступ уже открыт)."
+        description="Черновик правите свободно. Клиент видит только опубликованную версию — нажмите «Опубликовать клиенту»."
       />
+
+      {publishedVersion != null && (
+        <p className="rounded-2xl border border-gold/20 bg-gold/5 px-4 py-3 text-sm text-warm-gray">
+          Клиент сейчас на версии v{publishedVersion}. Пересборка и правки дней не меняют её, пока
+          не опубликуете новую.
+        </p>
+      )}
 
       {program && profile && (
         <>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={publishing || days.length === 0}
+              onClick={() => void handlePublishToClient()}
+              className="inline-flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-5 py-2.5 text-xs uppercase tracking-widest text-ivory disabled:opacity-40"
+            >
+              {publishing
+                ? "Публикуем…"
+                : publishedVersion != null
+                  ? "Опубликовать новую версию"
+                  : "Опубликовать клиенту"}
+            </button>
+          </div>
           {programDays.length === 0 && (
             <div className="rounded-3xl border border-coral/30 bg-coral/10 p-5 text-sm text-warm-gray">
               <p className="font-display text-base text-ivory">Дни программы пустые</p>
@@ -299,22 +378,22 @@ function AdminTrainingPage() {
             </div>
           )}
           <ParamsEditor
-          program={program}
-          profile={profile}
-          onApplyCoachSheet={() => void handleApplyCoachSheet()}
-          onSaveTargets={async (sessions, goal, level) => {
-            await handleRegenerate({ sessions_per_week: sessions, goal, level });
-          }}
-          onLock={async () => {
-            await updateProgramPatch(program.id, { targets_manual: true });
-            setProgram((p) => (p ? { ...p, targets_manual: true } : p));
-            toast.success("Программа зафиксирована для клиента");
-          }}
-          onSaveNotes={async (notes) => {
-            await handleProgramPatch({ notes });
-            toast.success("Комментарий сохранён");
-          }}
-        />
+            program={program}
+            profile={profile}
+            onApplyCoachSheet={() => void handleApplyCoachSheet()}
+            onSaveTargets={async (sessions, goal, level) => {
+              await handleRegenerate({ sessions_per_week: sessions, goal, level });
+            }}
+            onLock={async () => {
+              await updateProgramPatch(program.id, { targets_manual: true });
+              setProgram((p) => (p ? { ...p, targets_manual: true } : p));
+              toast.success("Программа зафиксирована для клиента");
+            }}
+            onSaveNotes={async (notes) => {
+              await handleProgramPatch({ notes });
+              toast.success("Комментарий сохранён");
+            }}
+          />
         </>
       )}
 
@@ -401,9 +480,7 @@ function ParamsEditor({
             Из анкеты: {profile.sessions_per_week} тренировки в неделю · {GOAL_LABEL[profile.goal]}{" "}
             · {profile.level}
             {profile.weight_kg != null ? ` · вес ${profile.weight_kg} кг` : ""}
-            {profile.weight_kg != null && profile.weight_kg > 85
-              ? " (без ударных/прыжков)"
-              : ""}
+            {profile.weight_kg != null && profile.weight_kg > 85 ? " (без ударных/прыжков)" : ""}
           </p>
         </div>
         {program.targets_manual ? (

@@ -28,8 +28,13 @@
     "exercises:import-edb": "echo Skip: MIT/ExerciseDB dumps disabled — use exercises:import-sheet && exit 1",
     "exercises:import-logpress": "echo Skip: machine-translated LogPress dump disabled — use exercises:import-sheet && exit 1",
     "coach:apply": "node --env-file=.env scripts/apply-coach-sheet-program.mjs",
+    "nutrition:apply-seed": "node --env-file=.env scripts/apply-nutrition-constructor-seed.mjs",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "supabase:types": "npx supabase gen types typescript --linked > src/integrations/supabase/types.ts"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -72,6 +77,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "decimal.js": "^10.6.0",
     "embla-carousel-react": "^8.6.0",
     "html2canvas-pro": "^2.2.1",
     "input-otp": "^1.4.2",
@@ -109,6 +115,7 @@
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^4.1.11"
   }
 }

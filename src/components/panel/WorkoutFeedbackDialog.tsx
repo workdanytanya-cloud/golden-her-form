@@ -77,8 +77,14 @@ export function WorkoutFeedbackDialog({
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const toggle = (set: Set<string>, id: string, other: Set<string>, setOther: (s: Set<string>) => void) => {
-    const next = new Set(set);
+  const toggle = (
+    current: Set<string>,
+    id: string,
+    other: Set<string>,
+    setCurrent: (s: Set<string>) => void,
+    setOther: (s: Set<string>) => void,
+  ) => {
+    const next = new Set(current);
     if (next.has(id)) next.delete(id);
     else next.add(id);
     if (next.has(id)) {
@@ -86,7 +92,7 @@ export function WorkoutFeedbackDialog({
       o.delete(id);
       setOther(o);
     }
-    set(next);
+    setCurrent(next);
   };
 
   const submit = async () => {
@@ -180,14 +186,14 @@ export function WorkoutFeedbackDialog({
                   <div className="flex gap-2 text-[10px] uppercase tracking-widest">
                     <button
                       type="button"
-                      onClick={() => toggle(tooEasy, ex.id, tooHard, setTooHard)}
+                      onClick={() => toggle(tooEasy, ex.id, tooHard, setTooEasy, setTooHard)}
                       className={tooEasy.has(ex.id) ? "text-gold" : "text-warm-gray"}
                     >
                       Легко
                     </button>
                     <button
                       type="button"
-                      onClick={() => toggle(tooHard, ex.id, tooEasy, setTooEasy)}
+                      onClick={() => toggle(tooHard, ex.id, tooEasy, setTooHard, setTooEasy)}
                       className={tooHard.has(ex.id) ? "text-coral" : "text-warm-gray"}
                     >
                       Тяжело

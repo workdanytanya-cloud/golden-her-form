@@ -266,6 +266,303 @@ export type Database = {
         }
         Relationships: []
       }
+      food_products: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          category: string
+          brand: string | null
+          state: string
+          measurement_basis: string
+          kcal_per_100g: number
+          protein_per_100g: number
+          fat_per_100g: number
+          carbs_per_100g: number
+          fiber_per_100g: number | null
+          density: number | null
+          source_name: string
+          source_url: string | null
+          verified_at: string | null
+          is_verified: boolean
+          is_active: boolean
+          allowed_for_snack: boolean
+          requires_cooking: boolean
+          weighing_note: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          name: string
+          category: string
+          brand?: string | null
+          state: string
+          measurement_basis: string
+          kcal_per_100g: number
+          protein_per_100g: number
+          fat_per_100g: number
+          carbs_per_100g: number
+          fiber_per_100g?: number | null
+          density?: number | null
+          source_name: string
+          source_url?: string | null
+          verified_at?: string | null
+          is_verified?: boolean
+          is_active?: boolean
+          allowed_for_snack?: boolean
+          requires_cooking?: boolean
+          weighing_note?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          name?: string
+          category?: string
+          brand?: string | null
+          state?: string
+          measurement_basis?: string
+          kcal_per_100g?: number
+          protein_per_100g?: number
+          fat_per_100g?: number
+          carbs_per_100g?: number
+          fiber_per_100g?: number | null
+          density?: number | null
+          source_name?: string
+          source_url?: string | null
+          verified_at?: string | null
+          is_verified?: boolean
+          is_active?: boolean
+          allowed_for_snack?: boolean
+          requires_cooking?: boolean
+          weighing_note?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meal_plan_item_ingredients: {
+        Row: {
+          id: string
+          meal_item_id: string
+          product_id: string | null
+          product_name: string
+          grams: number
+          weighing_note: string | null
+          kcal_per_100g: number
+          protein_per_100g: number
+          fat_per_100g: number
+          carbs_per_100g: number
+          fiber_per_100g: number | null
+          kcal: number
+          protein_g: number
+          fat_g: number
+          carbs_g: number
+          fiber_g: number
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          meal_item_id: string
+          product_id?: string | null
+          product_name: string
+          grams: number
+          weighing_note?: string | null
+          kcal_per_100g: number
+          protein_per_100g: number
+          fat_per_100g: number
+          carbs_per_100g: number
+          fiber_per_100g?: number | null
+          kcal: number
+          protein_g: number
+          fat_g: number
+          carbs_g: number
+          fiber_g?: number
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          meal_item_id?: string
+          product_id?: string | null
+          product_name?: string
+          grams?: number
+          weighing_note?: string | null
+          kcal_per_100g?: number
+          protein_per_100g?: number
+          fat_per_100g?: number
+          carbs_per_100g?: number
+          fiber_per_100g?: number | null
+          kcal?: number
+          protein_g?: number
+          fat_g?: number
+          carbs_g?: number
+          fiber_g?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      meal_plan_items: {
+        Row: {
+          id: string
+          plan_day_id: string
+          slot: string
+          recipe_id: string | null
+          recipe_name: string
+          requires_cooking: boolean
+          prep_time_min: number | null
+          steps: Json
+          weighing_note: string | null
+          snack_action: string | null
+          kcal: number
+          protein_g: number
+          fat_g: number
+          carbs_g: number
+          fiber_g: number
+          is_valid: boolean
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          plan_day_id: string
+          slot: string
+          recipe_id?: string | null
+          recipe_name: string
+          requires_cooking?: boolean
+          prep_time_min?: number | null
+          steps?: Json
+          weighing_note?: string | null
+          snack_action?: string | null
+          kcal: number
+          protein_g: number
+          fat_g: number
+          carbs_g: number
+          fiber_g?: number
+          is_valid?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          plan_day_id?: string
+          slot?: string
+          recipe_id?: string | null
+          recipe_name?: string
+          requires_cooking?: boolean
+          prep_time_min?: number | null
+          steps?: Json
+          weighing_note?: string | null
+          snack_action?: string | null
+          kcal?: number
+          protein_g?: number
+          fat_g?: number
+          carbs_g?: number
+          fiber_g?: number
+          is_valid?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      recipe_ingredients: {
+        Row: {
+          id: string
+          recipe_id: string
+          product_id: string
+          min_g: number
+          max_g: number
+          default_g: number | null
+          is_scalable: boolean
+          sort_order: number
+          optional: boolean
+        }
+        Insert: {
+          id?: string
+          recipe_id: string
+          product_id: string
+          min_g: number
+          max_g: number
+          default_g?: number | null
+          is_scalable?: boolean
+          sort_order?: number
+          optional?: boolean
+        }
+        Update: {
+          id?: string
+          recipe_id?: string
+          product_id?: string
+          min_g?: number
+          max_g?: number
+          default_g?: number | null
+          is_scalable?: boolean
+          sort_order?: number
+          optional?: boolean
+        }
+        Relationships: []
+      }
+      recipes: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          meal_type: string
+          steps: Json
+          prep_time_min: number | null
+          requires_cooking: boolean
+          is_active: boolean
+          weighing_note: string | null
+          is_nutrient_dense: boolean
+          contains_protein_source: boolean
+          contains_fruit_or_vegetable: boolean
+          is_treat: boolean
+          allowed_schedule_modes: string[]
+          snack_action: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          name: string
+          meal_type: string
+          steps?: Json
+          prep_time_min?: number | null
+          requires_cooking?: boolean
+          is_active?: boolean
+          weighing_note?: string | null
+          is_nutrient_dense?: boolean
+          contains_protein_source?: boolean
+          contains_fruit_or_vegetable?: boolean
+          is_treat?: boolean
+          allowed_schedule_modes?: string[]
+          snack_action?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          name?: string
+          meal_type?: string
+          steps?: Json
+          prep_time_min?: number | null
+          requires_cooking?: boolean
+          is_active?: boolean
+          weighing_note?: string | null
+          is_nutrient_dense?: boolean
+          contains_protein_source?: boolean
+          contains_fruit_or_vegetable?: boolean
+          is_treat?: boolean
+          allowed_schedule_modes?: string[]
+          snack_action?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exercises: {
         Row: {
           category: string
@@ -554,50 +851,86 @@ export type Database = {
       }
       nutrition_plans: {
         Row: {
+          bmr: number | null
+          calorie_adjustment_pct: number | null
           created_at: string
           excluded_products: string[]
           generated_at: string
           id: string
+          meal_schedule_mode: string
           meals_per_day: number
           notes: string | null
+          plan_days_count: number
+          plan_mode: string
+          plan_status: string
           preferred_products: string[]
+          primary_meal_slot: string
+          requires_manual_review: boolean
+          review_reason: string | null
           target_carbs_g: number
           target_fat_g: number
           target_kcal: number
           target_protein_g: number
           targets_manual: boolean
+          tdee: number | null
+          tolerance_kcal: number
+          tolerance_macro_g: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          bmr?: number | null
+          calorie_adjustment_pct?: number | null
           created_at?: string
           excluded_products?: string[]
           generated_at?: string
           id?: string
+          meal_schedule_mode?: string
           meals_per_day?: number
           notes?: string | null
+          plan_days_count?: number
+          plan_mode?: string
+          plan_status?: string
           preferred_products?: string[]
+          primary_meal_slot?: string
+          requires_manual_review?: boolean
+          review_reason?: string | null
           target_carbs_g: number
           target_fat_g: number
           target_kcal: number
           target_protein_g: number
           targets_manual?: boolean
+          tdee?: number | null
+          tolerance_kcal?: number
+          tolerance_macro_g?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          bmr?: number | null
+          calorie_adjustment_pct?: number | null
           created_at?: string
           excluded_products?: string[]
           generated_at?: string
           id?: string
+          meal_schedule_mode?: string
           meals_per_day?: number
           notes?: string | null
+          plan_days_count?: number
+          plan_mode?: string
+          plan_status?: string
           preferred_products?: string[]
+          primary_meal_slot?: string
+          requires_manual_review?: boolean
+          review_reason?: string | null
           target_carbs_g?: number
           target_fat_g?: number
           target_kcal?: number
           target_protein_g?: number
           targets_manual?: boolean
+          tdee?: number | null
+          tolerance_kcal?: number
+          tolerance_macro_g?: number
           updated_at?: string
           user_id?: string
         }
@@ -875,6 +1208,228 @@ export type Database = {
         }
         Relationships: []
       }
+      client_program_assignments: {
+        Row: {
+          id: string
+          client_id: string
+          kind: string
+          active_version_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          kind: string
+          active_version_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          kind?: string
+          active_version_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      nutrition_plan_versions: {
+        Row: {
+          id: string
+          client_id: string
+          version: number
+          status: string
+          snapshot: Json
+          content_hash: string
+          parent_version_id: string | null
+          created_at: string
+          created_by: string | null
+          published_at: string | null
+          published_by: string | null
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          version: number
+          status: string
+          snapshot: Json
+          content_hash: string
+          parent_version_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          published_at?: string | null
+          published_by?: string | null
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          version?: number
+          status?: string
+          snapshot?: Json
+          content_hash?: string
+          parent_version_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          published_at?: string | null
+          published_by?: string | null
+        }
+        Relationships: []
+      }
+      training_program_versions: {
+        Row: {
+          id: string
+          client_id: string
+          version: number
+          status: string
+          snapshot: Json
+          content_hash: string
+          parent_version_id: string | null
+          created_at: string
+          created_by: string | null
+          published_at: string | null
+          published_by: string | null
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          version: number
+          status: string
+          snapshot: Json
+          content_hash: string
+          parent_version_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          published_at?: string | null
+          published_by?: string | null
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          version?: number
+          status?: string
+          snapshot?: Json
+          content_hash?: string
+          parent_version_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          published_at?: string | null
+          published_by?: string | null
+        }
+        Relationships: []
+      }
+      nutrition_recommendations: {
+        Row: {
+          id: string
+          client_id: string
+          measurement_id: string | null
+          based_on_version_id: string | null
+          status: string
+          assigned_kcal: number
+          assigned_protein_g: number
+          assigned_fat_g: number
+          assigned_carbs_g: number
+          recommended_kcal: number
+          recommended_protein_g: number
+          recommended_fat_g: number
+          recommended_carbs_g: number
+          assigned_weight_kg: number | null
+          new_weight_kg: number | null
+          bmr: number
+          tdee: number
+          reason: string | null
+          created_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          measurement_id?: string | null
+          based_on_version_id?: string | null
+          status?: string
+          assigned_kcal?: number
+          assigned_protein_g?: number
+          assigned_fat_g?: number
+          assigned_carbs_g?: number
+          recommended_kcal: number
+          recommended_protein_g: number
+          recommended_fat_g: number
+          recommended_carbs_g: number
+          assigned_weight_kg?: number | null
+          new_weight_kg?: number | null
+          bmr: number
+          tdee: number
+          reason?: string | null
+          created_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          measurement_id?: string | null
+          based_on_version_id?: string | null
+          status?: string
+          assigned_kcal?: number
+          assigned_protein_g?: number
+          assigned_fat_g?: number
+          assigned_carbs_g?: number
+          recommended_kcal?: number
+          recommended_protein_g?: number
+          recommended_fat_g?: number
+          recommended_carbs_g?: number
+          assigned_weight_kg?: number | null
+          new_weight_kg?: number | null
+          bmr?: number
+          tdee?: number
+          reason?: string | null
+          created_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+        }
+        Relationships: []
+      }
+      program_change_log: {
+        Row: {
+          id: string
+          client_id: string
+          kind: string
+          action: string
+          actor_id: string | null
+          from_version_id: string | null
+          to_version_id: string | null
+          measurement_id: string | null
+          diff: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          kind: string
+          action: string
+          actor_id?: string | null
+          from_version_id?: string | null
+          to_version_id?: string | null
+          measurement_id?: string | null
+          diff?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          kind?: string
+          action?: string
+          actor_id?: string | null
+          from_version_id?: string | null
+          to_version_id?: string | null
+          measurement_id?: string | null
+          diff?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -914,6 +1469,26 @@ export type Database = {
           p_rows: Json
         }
         Returns: number
+      }
+      publish_nutrition_version: {
+        Args: {
+          p_client_id: string
+          p_snapshot: Json
+          p_content_hash: string
+          p_reason?: string
+          p_measurement_id?: string
+          p_recommendation_id?: string
+        }
+        Returns: string
+      }
+      publish_training_version: {
+        Args: {
+          p_client_id: string
+          p_snapshot: Json
+          p_content_hash: string
+          p_reason?: string
+        }
+        Returns: string
       }
     }
     Enums: {

@@ -1,0 +1,17 @@
+-- Production: выполнить в Supabase → SQL Editor (по порядку):
+-- ⚠️ Перед применением: создайте резервную копию БД в Supabase Dashboard → Database → Backups
+--
+-- 1) supabase/migrations/20260830120000_nutrition_constructor.sql
+-- 2) supabase/migrations/20260830120100_nutrition_constructor_seed.sql
+-- 3) supabase/migrations/20260830200000_immutable_published_versions.sql
+-- 4) Локально (service role только в .env, не в git): npm run nutrition:apply-seed
+--
+-- Seed не изменяет опубликованные версии клиентов.
+-- Проверка таблиц:
+--   SELECT COUNT(*) FROM food_products;          -- ожидается 32
+--   SELECT meal_type, COUNT(*) FROM recipes GROUP BY meal_type;  -- main≥22, snack≥20
+--   SELECT COUNT(*) FROM recipe_ingredients;
+--
+-- Supabase CLI (если проект связан с production):
+--   npx supabase link --project-ref oezxswbtkatryehpvuyk
+--   npx supabase db push

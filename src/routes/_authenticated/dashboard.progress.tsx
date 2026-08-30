@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { format, subDays } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Calendar as CalendarIcon, Download, Trash2, X } from "lucide-react";
+import { Calendar as CalendarIcon, Download, X } from "lucide-react";
 import { MeasurementWizard } from "@/components/panel/MeasurementWizard";
 import { WeeklyCheckInCard } from "@/components/panel/WeeklyCheckInCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -137,13 +137,6 @@ function ProgressPage() {
 
 
 
-
-  const remove = async (id: string) => {
-    const { error } = await supabase.from("measurements").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Удалено");
-    load();
-  };
 
   const resetRange = () => {
     setFrom(undefined);
@@ -429,13 +422,12 @@ function ProgressPage() {
                   <th className="px-5 py-3">Бёдра</th>
                   <th className="px-5 py-3">Грудь</th>
                   <th className="px-5 py-3">Заметка</th>
-                  <th className="px-5 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gold/10">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-8 text-center text-warm-gray">
+                    <td colSpan={6} className="px-5 py-8 text-center text-warm-gray">
                       В выбранном диапазоне пока нет замеров
                     </td>
                   </tr>
@@ -450,15 +442,6 @@ function ProgressPage() {
                       <td className="px-5 py-3 text-warm-gray">{m.hips_cm ?? "—"}</td>
                       <td className="px-5 py-3 text-warm-gray">{m.chest_cm ?? "—"}</td>
                       <td className="px-5 py-3 text-warm-gray">{m.note ?? "—"}</td>
-                      <td className="px-5 py-3 text-right">
-                        <button
-                          onClick={() => remove(m.id)}
-                          className="rounded-full p-2 text-warm-gray hover:bg-coral/15 hover:text-coral"
-                          aria-label="Удалить"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
                     </tr>
                   ))
                 )}

@@ -20,6 +20,7 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { parseRuNumber } from "@/lib/ru-number";
 import { BodyDiagram } from "./BodyDiagram";
+import { CLIENT_MEASUREMENT_SAVED_MESSAGE } from "@/lib/published-programs/config";
 
 type Zone = "weight" | "waist" | "hips" | "chest";
 const zoneForStep = (key: keyof FormState): Zone =>
@@ -205,7 +206,7 @@ export function MeasurementWizard({ userId, onSaved }: { userId: string; onSaved
       toast.error("Не удалось сохранить: " + error.message);
       return;
     }
-    toast.success("Замер сохранён! Отличная работа.");
+    toast.success(CLIENT_MEASUREMENT_SAVED_MESSAGE);
     reset();
     onSaved();
   };

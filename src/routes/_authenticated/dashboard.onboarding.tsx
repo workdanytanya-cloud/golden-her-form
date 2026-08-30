@@ -441,30 +441,13 @@ function OnboardingPage() {
     }
     if (weight != null) {
       const measuredOn = new Date().toISOString().slice(0, 10);
-      // Обновляем сегодняшний замер или создаём новый — чтобы вес из анкеты сразу попал в КБЖУ.
-      const { data: existingRows } = await supabase
-        .from("measurements")
-        .select("id")
-        .eq("user_id", effectiveUserId)
-        .eq("measured_on", measuredOn)
-        .order("created_at", { ascending: false })
-        .limit(1);
-      const existing = existingRows?.[0];
-      if (existing?.id) {
-        const { error } = await supabase
-          .from("measurements")
-          .update({ weight_kg: weight })
-          .eq("id", existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("measurements").insert({
-          user_id: effectiveUserId,
-          measured_on: measuredOn,
-          weight_kg: weight,
-          note: "Из анкеты",
-        });
-        if (error) throw error;
-      }
+      const { error } = await supabase.from("measurements").insert({
+        user_id: effectiveUserId,
+        measured_on: measuredOn,
+        weight_kg: weight,
+        note: "Из анкеты",
+      });
+      if (error) throw error;
     }
   };
 

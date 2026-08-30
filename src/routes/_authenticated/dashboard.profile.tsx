@@ -77,29 +77,13 @@ function ProfilePage() {
 
   const saveWeight = async (userId: string, weight: number) => {
     const measuredOn = new Date().toISOString().slice(0, 10);
-    const { data: existingRows } = await supabase
-      .from("measurements")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("measured_on", measuredOn)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    const existing = existingRows?.[0];
-    if (existing?.id) {
-      const { error } = await supabase
-        .from("measurements")
-        .update({ weight_kg: weight })
-        .eq("id", existing.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase.from("measurements").insert({
-        user_id: userId,
-        measured_on: measuredOn,
-        weight_kg: weight,
-        note: "Из профиля",
-      });
-      if (error) throw error;
-    }
+    const { error } = await supabase.from("measurements").insert({
+      user_id: userId,
+      measured_on: measuredOn,
+      weight_kg: weight,
+      note: "Из профиля",
+    });
+    if (error) throw error;
   };
 
   const save = async (e: React.FormEvent) => {
