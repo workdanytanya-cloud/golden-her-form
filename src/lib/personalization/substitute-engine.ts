@@ -5,6 +5,7 @@ import {
 import type { ClientProfile } from "@/lib/personalization/types";
 import {
   isImpactOrJumpExercise,
+  isExerciseAllowedForClientGender,
   type Exercise,
   type ExerciseCategory,
 } from "@/lib/training";
@@ -41,7 +42,7 @@ export function buildSubstituteCandidates(
   catalog: Exercise[],
   profile: Pick<
     ClientProfile,
-    "equipment" | "training_location" | "joint_care" | "training_level"
+    "equipment" | "training_location" | "joint_care" | "training_level" | "gender"
   >,
   reason: SubstituteReason,
 ): Exercise[] {
@@ -54,6 +55,7 @@ export function buildSubstituteCandidates(
 
   return catalog.filter((e) => {
     if (e.id === current.id) return false;
+    if (!isExerciseAllowedForClientGender(e, profile.gender)) return false;
     if (e.category !== current.category && reason !== "preference") return false;
     if (!exerciseMatchesEquipment(e, available)) return false;
     if (profile.joint_care && isImpactOrJumpExercise(e)) return false;
@@ -222,7 +224,12 @@ export async function suggestExerciseSubstitutes(params: {
   catalog: Exercise[];
   profile: Pick<
     ClientProfile,
-    "equipment" | "training_location" | "joint_care" | "training_level" | "goal_primary"
+    | "equipment"
+    | "training_location"
+    | "joint_care"
+    | "training_level"
+    | "goal_primary"
+    | "gender"
   >;
   reason: SubstituteReason;
   llm?: LlmConfig | null;

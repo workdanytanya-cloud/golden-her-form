@@ -12,6 +12,7 @@ import {
   generateMultiWeekProgram,
   needsJointCare,
   preferExerciseForClientGender,
+  isExerciseAllowedForClientGender,
 } from "@/lib/training";
 import {
   PANOVA_4WEEK_PROGRAM,
@@ -85,6 +86,7 @@ function toSet(
     null;
   if (!ex) return null;
   ex = preferExerciseForClientGender(ex, all, gender);
+  if (!isExerciseAllowedForClientGender(ex, gender)) return null;
   return {
     exercise_id: ex.id,
     sets: item.sets,

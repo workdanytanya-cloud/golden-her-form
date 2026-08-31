@@ -88,52 +88,154 @@ const TRAINER_MALE_TAGS = new Set([
   "male_trainer",
 ]);
 
+export type TrainerDemoGender = "female" | "male" | "unknown";
+
+function normalizeTags(tags: string[] | null | undefined): string[] {
+  return (tags ?? []).map((t) => t.toLowerCase());
+}
+
+/**
+ * Пол демонстратора на медиа упражнения.
+ * sheet/panova — женский показ тренера; стоковые mp4/gif без sheet — мужской.
+ */
+export function exerciseTrainerGender(
+  exercise: Pick<Exercise, "tags" | "slug" | "gif_url" | "video_url">,
+): TrainerDemoGender {
+  const tags = normalizeTags(exercise.tags);
+  if (tags.some((t) => TRAINER_FEMALE_TAGS.has(t))) return "female";
+  if (tags.some((t) => TRAINER_MALE_TAGS.has(t))) return "male";
+
+  const slug = (exercise.slug || "").toLowerCase();
+  if (
+    slug.startsWith("sheet-") ||
+    tags.some((t) =>
+      ["sheet", "panova", "anna-sheet", "legacy-coach"].includes(t),
+    )
+  ) {
+    return "female";
+  }
+
+  // Стоковые демо (локальные mp4/gif, ExerciseDB) — обычно мужчина
+  if (
+    slug.startsWith("oedb-") ||
+    slug.startsWith("edb-") ||
+    slug.startsWith("mit-") ||
+    tags.some((t) => ["exercisedb", "open_exercisedb", "stock_demo"].includes(t))
+  ) {
+    return "male";
+  }
+
+  const media = `${exercise.gif_url ?? ""}${exercise.video_url ?? ""}`.toLowerCase();
+  if (
+    media.includes("/__l5e/") ||
+    media.includes("/assets/") ||
+    media.includes("exercisedb") ||
+    /\.(gif)(\?|$)/i.test(media)
+  ) {
+    // Только gif/сток без coach video → мужской показ
+    if (!exercise.video_url || /\/__l5e\/|\.gif(\?|$)/i.test(exercise.video_url)) {
+      return "male";
+    }
+  }
+
+  // Есть только gif без video — сток
+  if (exercise.gif_url && !exercise.video_url) return "male";
+
+  return "unknown";
+}
+
+/**
+ * Видео с мужчиной — только мужчинам.
+ * При неизвестном поле клиента (часто девушки без анкеты) мужские демо тоже скрываем.
+ */
+export function isExerciseAllowedForClientGender(
+  exercise: Pick<Exercise, "tags" | "slug" | "gif_url" | "video_url">,
+  gender: "female" | "male" | null | undefined,
+): boolean {
+  const demo = exerciseTrainerGender(exercise);
+  if (gender === "male") {
+    // Мужчине можно всё; предпочтение male делается скорингом
+    return true;
+  }
+  // female | null | undefined — не подставляем мужские демо
+  return demo !== "male";
+}
+
+export function filterExercisesForClientGender<
+  T extends Pick<Exercise, "tags" | "slug" | "gif_url" | "video_url">,
+>(exercises: T[], gender: "female" | "male" | null | undefined): T[] {
+  const filtered = exercises.filter((e) =>
+    isExerciseAllowedForClientGender(e, gender),
+  );
+  if (gender === "male") {
+    const maleOnly = filtered.filter((e) => exerciseTrainerGender(e) === "male");
+    if (maleOnly.length > 0) return maleOnly;
+  }
+  return filtered;
+}
+
 /** Насколько упражнение подходит по полу тренера на видео (выше = лучше). */
 export function trainerGenderScore(
-  exercise: Pick<Exercise, "tags">,
+  exercise: Pick<Exercise, "tags" | "slug" | "gif_url" | "video_url">,
   gender: "female" | "male" | null | undefined,
 ): number {
-  if (!gender) return 0;
-  const tags = exercise.tags.map((t) => t.toLowerCase());
-  const prefer = gender === "female" ? TRAINER_FEMALE_TAGS : TRAINER_MALE_TAGS;
-  const avoid = gender === "female" ? TRAINER_MALE_TAGS : TRAINER_FEMALE_TAGS;
-  if (tags.some((t) => prefer.has(t))) return 5;
-  if (tags.some((t) => avoid.has(t))) return -4;
-  // Библиотека Panova/sheet по умолчанию — женский показ
-  if (
-    gender === "female" &&
-    tags.some((t) => t === "sheet" || t === "panova" || t === "home")
-  ) {
-    return 2;
+  if (!gender) {
+    // Без пола в профиле не поощряем мужские стоки
+    return exerciseTrainerGender(exercise) === "male" ? -8 : 0;
   }
+  const demo = exerciseTrainerGender(exercise);
+  if (gender === "female") {
+    if (demo === "female") return 5;
+    if (demo === "male") return -8;
+    return 0;
+  }
+  // male client
+  if (demo === "male") return 5;
+  if (demo === "female") return -2;
   return 0;
 }
 
-/** Если есть twin с подходящим полом тренера — берём его (иначе исходное). */
+/** Если есть twin с подходящим полом тренера — берём его (иначе исходное / безопасный fallback). */
 export function preferExerciseForClientGender(
   exercise: Exercise,
   pool: Exercise[],
   gender: "female" | "male" | null | undefined,
 ): Exercise {
-  if (!gender || !exercise.video_url) return exercise;
-  const self = trainerGenderScore(exercise, gender);
-  if (self >= 5) return exercise;
+  if (isExerciseAllowedForClientGender(exercise, gender)) {
+    const self = trainerGenderScore(exercise, gender);
+    if (gender === "male" && self >= 5) return exercise;
+    if (gender !== "male" && exerciseTrainerGender(exercise) === "female") {
+      return exercise;
+    }
+    if (!gender && exerciseTrainerGender(exercise) !== "male") return exercise;
+  }
 
-  const wantPositive = gender === "female" ? TRAINER_FEMALE_TAGS : TRAINER_MALE_TAGS;
-  const twin = pool
-    .filter(
-      (e) =>
-        e.id !== exercise.id &&
-        !!e.video_url &&
-        e.category === exercise.category &&
-        e.tags.some((t) => wantPositive.has(t.toLowerCase())) &&
+  const candidates = filterExercisesForClientGender(pool, gender).filter(
+    (e) =>
+      e.id !== exercise.id &&
+      e.category === exercise.category &&
+      (!!e.video_url || !!e.gif_url),
+  );
+
+  const twin =
+    candidates
+      .filter((e) =>
         e.muscle_groups.some((m) =>
           exercise.muscle_groups.some((x) => x.toLowerCase() === m.toLowerCase()),
         ),
-    )
-    .sort((a, b) => trainerGenderScore(b, gender) - trainerGenderScore(a, gender))[0];
+      )
+      .sort((a, b) => trainerGenderScore(b, gender) - trainerGenderScore(a, gender))[0] ??
+    candidates.sort(
+      (a, b) => trainerGenderScore(b, gender) - trainerGenderScore(a, gender),
+    )[0];
 
-  return twin ?? exercise;
+  if (twin) return twin;
+  // Не оставляем мужское демо девушке, даже если twin не найден
+  if (!isExerciseAllowedForClientGender(exercise, gender)) {
+    const anySafe = filterExercisesForClientGender(pool, gender)[0];
+    if (anySafe) return anySafe;
+  }
+  return exercise;
 }
 
 /** Порог: выше — без ударных, прыжковых и жёстких нагрузок на суставы. */
@@ -433,6 +535,7 @@ function pickExerciseForSlot(
   );
 
   const pool = exercises.filter((e) => {
+    if (!isExerciseAllowedForClientGender(e, input.gender)) return false;
     if (e.category !== slot.category) return false;
     if (usedInDay.has(e.id)) return false;
     if (!exerciseMatchesEquipment(e, availableEquipment)) return false;
@@ -452,8 +555,9 @@ function pickExerciseForSlot(
     return true;
   });
   if (pool.length === 0) {
-    // relax used-in-day, но сохраняем запрет ударных при jointCare
+    // relax used-in-day, но сохраняем запрет ударных при jointCare и пол демо
     const relaxed = exercises.filter((e) => {
+      if (!isExerciseAllowedForClientGender(e, input.gender)) return false;
       if (e.category !== slot.category) return false;
       if (!exerciseMatchesEquipment(e, availableEquipment)) return false;
       if (jointCare && (restrictedSlugs.has(e.slug) || isImpactOrJumpExercise(e))) return false;
@@ -461,7 +565,8 @@ function pickExerciseForSlot(
       return true;
     });
     if (relaxed.length === 0) return null;
-    return relaxed[Math.floor(Math.random() * relaxed.length)];
+    const genderedRelaxed = filterExercisesForClientGender(relaxed, input.gender);
+    return genderedRelaxed[Math.floor(Math.random() * genderedRelaxed.length)];
   }
 
   const scored = pool.map((e) => {
@@ -571,6 +676,7 @@ export function generateMultiWeekProgram(
   const templates = planWeek(input);
   const slots = scheduleSlots(input.sessions_per_week);
   const allDays: ProgramDay[] = [];
+  const catalog = filterExercisesForClientGender(exercises, input.gender);
 
   for (let week = 0; week < weekCount; week++) {
     const meta = WEEK_PROGRESSION_META[week] ?? WEEK_PROGRESSION_META[0];
@@ -590,16 +696,16 @@ export function generateMultiWeekProgram(
       const build = (specs: SlotSpec[], section: "warmup" | "main" | "cooldown"): ExerciseSet[] => {
         const out: ExerciseSet[] = [];
         for (const spec of specs) {
-          let pool = exercises;
+          let pool = catalog;
           if (preferFresh) {
             // Слегка понижаем приоритет уже взятых на прошлых неделях того же слота
-            pool = [...exercises].sort(
+            pool = [...catalog].sort(
               (a, b) => (weekUse.get(a.id) ?? 0) - (weekUse.get(b.id) ?? 0),
             );
           }
           const ex = pickExerciseForSlot(spec, pool, input, usedInDay, weekUse);
           if (!ex) continue;
-          const gendered = preferExerciseForClientGender(ex, exercises, input.gender);
+          const gendered = preferExerciseForClientGender(ex, catalog, input.gender);
           usedInDay.add(gendered.id);
           weekUse.set(gendered.id, (weekUse.get(gendered.id) ?? 0) + 1);
           const set = toSet(gendered, spec, input);
