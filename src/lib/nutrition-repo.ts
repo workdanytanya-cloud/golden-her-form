@@ -91,12 +91,16 @@ export async function loadDishesForClient(
   return { pool, all: [...pool, ...orphans], medicalTable };
 }
 
-export async function loadPlanFor(userId: string): Promise<{ plan: PlanRow | null; days: DayRow[] }> {
-  const { data: plan } = await supabase
-    .from("nutrition_plans")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
+export async function loadPlanFor(
+  userId: string,
+  courseId?: string | null,
+): Promise<{ plan: PlanRow | null; days: DayRow[] }> {
+  const { resolveCourseId } = await import("@/lib/client-courses/repo");
+  const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
+
+  let planQuery = supabase.from("nutrition_plans").select("*").eq("user_id", userId);
+  if (resolvedCourseId) planQuery = planQuery.eq("course_id", resolvedCourseId);
+  const { data: plan } = await planQuery.maybeSingle();
   if (!plan) return { plan: null, days: [] };
   const { data: days } = await supabase
     .from("nutrition_plan_days")

@@ -26,6 +26,28 @@ function targetsForKcal(kcal: number) {
   }).targets;
 }
 
+describe("meal schedule client labels", () => {
+  it("brands one_main_three_snacks as На бегу with clear description", async () => {
+    const {
+      MEAL_SCHEDULE_CLIENT_LABELS,
+      MEAL_SCHEDULE_DESCRIPTIONS,
+      MEAL_SCHEDULE_TAGLINES,
+      mealScheduleClientLabel,
+      mealScheduleDescription,
+    } = await import("@/lib/nutrition-constructor/config");
+
+    expect(MEAL_SCHEDULE_CLIENT_LABELS.one_main_three_snacks).toBe("На бегу");
+    expect(mealScheduleClientLabel("one_main_three_snacks")).toBe("На бегу");
+    expect(MEAL_SCHEDULE_TAGLINES.one_main_three_snacks).toMatch(/без готовки/i);
+    expect(MEAL_SCHEDULE_DESCRIPTIONS.one_main_three_snacks).toMatch(/полноценн/i);
+    expect(MEAL_SCHEDULE_DESCRIPTIONS.one_main_three_snacks).toMatch(/перекус/i);
+    expect(mealScheduleDescription("one_main_three_snacks")).toBe(
+      MEAL_SCHEDULE_DESCRIPTIONS.one_main_three_snacks,
+    );
+    expect(ONE_MAIN_UNACHIEVABLE_MESSAGE).toMatch(/На бегу/);
+  });
+});
+
 describe("seed catalog counts", () => {
   it("has 32 products, 22+ mains and 20+ snacks", () => {
     expect(SEED_PRODUCTS.length).toBe(32);

@@ -1,0 +1,1 @@
+-- Production: скопируйте целиком supabase/migrations/20260831120000_client_courses.sql в SQL Editor.

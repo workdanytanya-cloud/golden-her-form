@@ -11,6 +11,7 @@ import {
   adminUpdateClientPassword,
   adminUpdateClientProfile,
 } from "@/lib/admin-clients.functions";
+import { AdminCourseManager } from "@/components/panel/AdminCourseManager";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/")({
   component: ClientDetail,
@@ -63,6 +64,7 @@ function ClientDetail() {
   const [access, setAccess] = useState<Access | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
   const [updatingAccess, setUpdatingAccess] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   const load = () => {
     void supabase
@@ -190,6 +192,7 @@ function ClientDetail() {
             <Link
               to="/admin/clients/$id/nutrition"
               params={{ id }}
+              search={{ course: selectedCourseId ?? undefined }}
               className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
             >
               <Utensils className="h-4 w-4" /> Меню питания
@@ -197,6 +200,7 @@ function ClientDetail() {
             <Link
               to="/admin/clients/$id/training"
               params={{ id }}
+              search={{ course: selectedCourseId ?? undefined }}
               className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
             >
               <Dumbbell className="h-4 w-4" /> Программа тренировок
@@ -220,6 +224,13 @@ function ClientDetail() {
         onGrant={grantAccess}
         onRevoke={revokeAccess}
         loading={updatingAccess}
+      />
+
+      <AdminCourseManager
+        clientId={id}
+        selectedCourseId={selectedCourseId}
+        onSelectCourse={setSelectedCourseId}
+        onChanged={load}
       />
 
       <ProfileEditor

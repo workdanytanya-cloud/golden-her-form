@@ -38,6 +38,7 @@ import {
 
 type Props = {
   userId: string;
+  courseId?: string | null;
   profile: TargetProfileInput & {
     pregnancy_status?: string | null;
     health_conditions?: string | null;
@@ -79,6 +80,7 @@ function structureChecks(
 
 export function ConstructorAdminPanel({
   userId,
+  courseId,
   profile,
   excludedProductIds = [],
   onSaved,
@@ -105,9 +107,9 @@ export function ConstructorAdminPanel({
 
   useEffect(() => {
     void (async () => {
-      const pub = await loadPublishedNutritionFor(userId);
+      const pub = await loadPublishedNutritionFor(userId, courseId);
       setPublishedVersion(pub?.version?.version ?? null);
-      const { plan, days: loaded } = await loadConstructorPlanFor(userId);
+      const { plan, days: loaded } = await loadConstructorPlanFor(userId, courseId);
       if (!plan || loaded.length === 0) return;
       setDays(
         loaded.map((row) => ({
@@ -151,7 +153,7 @@ export function ConstructorAdminPanel({
         ),
       );
     })();
-  }, [userId]);
+  }, [userId, courseId]);
 
   const revalidate = (nextDays: ConstructorDay[]) => {
     const targetMacro = {
@@ -237,6 +239,7 @@ export function ConstructorAdminPanel({
       if (assign) {
         const result = await publishConstructorNutrition({
           userId,
+          courseId,
           days,
           plan: {
             target_kcal: targets.kcal,
@@ -259,11 +262,12 @@ export function ConstructorAdminPanel({
             ? "Меню опубликовано клиенту (неизменяемая версия)"
             : "Рацион назначен (миграция версий ещё не применена — выполните SQL)",
         );
-        const pub = await loadPublishedNutritionFor(userId);
+        const pub = await loadPublishedNutritionFor(userId, courseId);
         setPublishedVersion(pub?.version?.version ?? publishedVersion);
       } else {
         await saveConstructorPlan({
           userId,
+          courseId,
           days,
           targets,
           plan_days_count: daysCount,
@@ -411,6 +415,14 @@ export function ConstructorAdminPanel({
           </select>
         </label>
       </div>
+
+      {scheduleMode === "one_main_three_snacks" && (
+        <p className="rounded-xl border border-gold/15 bg-gold/5 px-3 py-2 text-sm leading-relaxed text-warm-gray">
+          <span className="font-medium text-ivory">На бегу: </span>
+          один полноценный приём в выбранное время и три перекуса без готовки — для плотного
+          графика и питания вне дома.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-end gap-4">
         <button

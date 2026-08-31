@@ -140,6 +140,42 @@ export type Database = {
         }
         Relationships: []
       }
+      client_courses: {
+        Row: {
+          id: string
+          client_id: string
+          title: string
+          start_date: string
+          end_date: string
+          status: string
+          created_at: string
+          created_by: string | null
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          title: string
+          start_date: string
+          end_date: string
+          status?: string
+          created_at?: string
+          created_by?: string | null
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          title?: string
+          start_date?: string
+          end_date?: string
+          status?: string
+          created_at?: string
+          created_by?: string | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
       client_access: {
         Row: {
           activated_at: string | null
@@ -853,6 +889,7 @@ export type Database = {
         Row: {
           bmr: number | null
           calorie_adjustment_pct: number | null
+          course_id: string | null
           created_at: string
           excluded_products: string[]
           generated_at: string
@@ -881,6 +918,7 @@ export type Database = {
         Insert: {
           bmr?: number | null
           calorie_adjustment_pct?: number | null
+          course_id?: string | null
           created_at?: string
           excluded_products?: string[]
           generated_at?: string
@@ -909,6 +947,7 @@ export type Database = {
         Update: {
           bmr?: number | null
           calorie_adjustment_pct?: number | null
+          course_id?: string | null
           created_at?: string
           excluded_products?: string[]
           generated_at?: string
@@ -1153,6 +1192,7 @@ export type Database = {
       }
       training_programs: {
         Row: {
+          course_id: string | null
           created_at: string
           equipment: string[]
           faq: Json
@@ -1171,6 +1211,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          course_id?: string | null
           created_at?: string
           equipment?: string[]
           faq?: Json
@@ -1189,6 +1230,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          course_id?: string | null
           created_at?: string
           equipment?: string[]
           faq?: Json
@@ -1212,6 +1254,7 @@ export type Database = {
         Row: {
           id: string
           client_id: string
+          course_id: string | null
           kind: string
           active_version_id: string
           updated_at: string
@@ -1220,6 +1263,7 @@ export type Database = {
         Insert: {
           id?: string
           client_id: string
+          course_id?: string | null
           kind: string
           active_version_id: string
           updated_at?: string
@@ -1228,6 +1272,7 @@ export type Database = {
         Update: {
           id?: string
           client_id?: string
+          course_id?: string | null
           kind?: string
           active_version_id?: string
           updated_at?: string
@@ -1239,6 +1284,7 @@ export type Database = {
         Row: {
           id: string
           client_id: string
+          course_id: string | null
           version: number
           status: string
           snapshot: Json
@@ -1252,6 +1298,7 @@ export type Database = {
         Insert: {
           id?: string
           client_id: string
+          course_id?: string | null
           version: number
           status: string
           snapshot: Json
@@ -1265,6 +1312,7 @@ export type Database = {
         Update: {
           id?: string
           client_id?: string
+          course_id?: string | null
           version?: number
           status?: string
           snapshot?: Json
@@ -1281,6 +1329,7 @@ export type Database = {
         Row: {
           id: string
           client_id: string
+          course_id: string | null
           version: number
           status: string
           snapshot: Json
@@ -1294,6 +1343,7 @@ export type Database = {
         Insert: {
           id?: string
           client_id: string
+          course_id?: string | null
           version: number
           status: string
           snapshot: Json
@@ -1307,6 +1357,7 @@ export type Database = {
         Update: {
           id?: string
           client_id?: string
+          course_id?: string | null
           version?: number
           status?: string
           snapshot?: Json

@@ -226,12 +226,16 @@ async function replaceProgramDays(
 
 export async function loadProgramFor(
   userId: string,
+  courseId?: string | null,
 ): Promise<{ program: ProgramRow | null; days: DayRow[] }> {
-  const { data: program, error: programError } = await supabase
-    .from("training_programs")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const { resolveCourseId } = await import("@/lib/client-courses/repo");
+  const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
+
+  let programQuery = supabase.from("training_programs").select("*").eq("user_id", userId);
+  if (resolvedCourseId) {
+    programQuery = programQuery.eq("course_id", resolvedCourseId);
+  }
+  const { data: program, error: programError } = await programQuery.maybeSingle();
   if (programError) throw programError;
   if (!program) return { program: null, days: [] };
 
@@ -284,6 +288,7 @@ export async function loadProgramProfile(userId: string) {
 
 export async function createOrReplaceProgram(params: {
   userId: string;
+  courseId?: string | null;
   input: ProgramInput;
   exercises: Exercise[];
   preserveNotes?: string | null;
@@ -292,8 +297,10 @@ export async function createOrReplaceProgram(params: {
   /** Если дни уже сгенерированы и провалидированы снаружи. */
   preGeneratedDays?: ProgramDay[];
 }): Promise<{ program: ProgramRow; days: DayRow[]; multiWeek: boolean }> {
-  const { userId, input, exercises, preserveNotes, preserveFaq, targetsManual, preGeneratedDays } =
+  const { userId, courseId, input, exercises, preserveNotes, preserveFaq, targetsManual, preGeneratedDays } =
     params;
+  const { resolveCourseId } = await import("@/lib/client-courses/repo");
+  const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
 
   let generatedDays: ProgramDay[];
   let programWeeks: number;
@@ -311,14 +318,13 @@ export async function createOrReplaceProgram(params: {
 
   const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
 
-  const { data: existing } = await supabase
-    .from("training_programs")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
+  let existingQuery = supabase.from("training_programs").select("id").eq("user_id", userId);
+  if (resolvedCourseId) existingQuery = existingQuery.eq("course_id", resolvedCourseId);
+  const { data: existing } = await existingQuery.maybeSingle();
 
   const basePayload = {
     user_id: userId,
+    ...(resolvedCourseId ? { course_id: resolvedCourseId } : {}),
     sessions_per_week: input.sessions_per_week,
     goal: input.goal,
     level: input.level,
@@ -348,7 +354,7 @@ export async function createOrReplaceProgram(params: {
   }));
   const { multiWeek } = await replaceProgramDays(programId, rows);
 
-  return loadProgramFor(userId).then((r) => ({
+  return loadProgramFor(userId, resolvedCourseId).then((r) => ({
     program: r.program!,
     days: r.days,
     multiWeek,
@@ -358,6 +364,7 @@ export async function createOrReplaceProgram(params: {
 /** Заменить программу на кастомный мультинедельный план (напр. из таблицы тренера). */
 export async function createOrReplaceCustomProgram(params: {
   userId: string;
+  courseId?: string | null;
   input: ProgramInput;
   days: ProgramDay[];
   programWeeks: number;
@@ -365,17 +372,18 @@ export async function createOrReplaceCustomProgram(params: {
   notes?: string | null;
   targetsManual?: boolean;
 }): Promise<{ program: ProgramRow; days: DayRow[]; multiWeek: boolean }> {
-  const { userId, input, days, programWeeks, preserveFaq, notes, targetsManual } = params;
+  const { userId, courseId, input, days, programWeeks, preserveFaq, notes, targetsManual } = params;
+  const { resolveCourseId } = await import("@/lib/client-courses/repo");
+  const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
   const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
 
-  const { data: existing } = await supabase
-    .from("training_programs")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
+  let existingQuery = supabase.from("training_programs").select("id").eq("user_id", userId);
+  if (resolvedCourseId) existingQuery = existingQuery.eq("course_id", resolvedCourseId);
+  const { data: existing } = await existingQuery.maybeSingle();
 
   const basePayload = {
     user_id: userId,
+    ...(resolvedCourseId ? { course_id: resolvedCourseId } : {}),
     sessions_per_week: input.sessions_per_week,
     goal: input.goal,
     level: input.level,
@@ -409,7 +417,7 @@ export async function createOrReplaceCustomProgram(params: {
   }));
   const { multiWeek } = await replaceProgramDays(programId, rows);
 
-  return loadProgramFor(userId).then((r) => ({
+  return loadProgramFor(userId, resolvedCourseId).then((r) => ({
     program: r.program!,
     days: r.days,
     multiWeek,

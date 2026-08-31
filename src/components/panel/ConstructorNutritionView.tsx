@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, ChefHat, Info, Scale } from "lucide-react";
 import {
   displayOrderForPlan,
-  MEAL_SCHEDULE_LABELS,
+  mealScheduleClientLabel,
+  mealScheduleDescription,
   slotLabel,
   WEIGHING_NOTICE,
   type MealScheduleMode,
@@ -118,8 +119,13 @@ export function ConstructorNutritionView({
         </div>
       )}
 
-      <div className="rounded-2xl border border-gold/15 bg-surface/20 px-4 py-2 text-xs text-warm-gray">
-        Структура: {MEAL_SCHEDULE_LABELS[mealScheduleMode]}
+      <div className="rounded-2xl border border-gold/15 bg-surface/20 px-4 py-3 text-sm">
+        <p className="font-medium text-foreground">
+          Формат: {mealScheduleClientLabel(mealScheduleMode)}
+        </p>
+        <p className="mt-1 leading-relaxed text-warm-gray">
+          {mealScheduleDescription(mealScheduleMode)}
+        </p>
       </div>
 
       <div className="space-y-3">

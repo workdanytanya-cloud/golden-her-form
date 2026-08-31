@@ -7,9 +7,37 @@ export const PRIMARY_MEAL_SLOTS = ["breakfast", "lunch", "dinner"] as const;
 export type PrimaryMealSlot = (typeof PRIMARY_MEAL_SLOTS)[number];
 
 export const MEAL_SCHEDULE_LABELS: Record<MealScheduleMode, string> = {
-  two_main_two_snacks: "2 основных приёма + 2 перекуса",
-  one_main_three_snacks: "1 основной приём + 3 полезных перекуса",
+  two_main_two_snacks: "Классический (2 основных + 2 перекуса)",
+  one_main_three_snacks: "На бегу (1 основной + 3 перекуса без готовки)",
 };
+
+/** Короткое название для клиентского кабинета. */
+export const MEAL_SCHEDULE_CLIENT_LABELS: Record<MealScheduleMode, string> = {
+  two_main_two_snacks: "Классический",
+  one_main_three_snacks: "На бегу",
+};
+
+/** Подзаголовок на карточке выбора. */
+export const MEAL_SCHEDULE_TAGLINES: Record<MealScheduleMode, string> = {
+  two_main_two_snacks: "2 полноценных приёма и 2 перекуса",
+  one_main_three_snacks: "1 полноценный приём и 3 перекуса без готовки",
+};
+
+/** Описание формата меню — простым и грамотным языком. */
+export const MEAL_SCHEDULE_DESCRIPTIONS: Record<MealScheduleMode, string> = {
+  two_main_two_snacks:
+    "Сбалансированный вариант на каждый день: два полноценных приёма пищи с приготовлением и два лёгких перекуса. Подходит, если вы готовите дома и хотите разнообразное меню.",
+  one_main_three_snacks:
+    "Формат для плотного графика: один полноценный приём пищи в удобное время (завтрак, обед или ужин) и три перекуса, которые не нужно готовить — их можно взять с собой и съесть за несколько минут. Орехи, фрукты, йогурт и другие простые продукты по вашему меню.",
+};
+
+export function mealScheduleClientLabel(mode: MealScheduleMode): string {
+  return MEAL_SCHEDULE_CLIENT_LABELS[mode];
+}
+
+export function mealScheduleDescription(mode: MealScheduleMode): string {
+  return MEAL_SCHEDULE_DESCRIPTIONS[mode];
+}
 
 export const PRIMARY_MEAL_SLOT_LABELS: Record<PrimaryMealSlot, string> = {
   breakfast: "утром",
@@ -185,7 +213,7 @@ export const GRAM_STEP = 1;
 export const MAIN_RECIPE_REPEAT_DAYS = 3;
 
 export const ONE_MAIN_UNACHIEVABLE_MESSAGE =
-  'Не удалось собрать рацион в формате "1 основной приём + 3 перекуса" с заданными КБЖU. Измените целевые показатели, доступные продукты или выберите режим "2 основных приёма + 2 перекуса".';
+  'Не удалось собрать рацион в формате «На бегу» (1 основной приём + 3 перекуса без готовки) с заданными КБЖU. Измените целевые показатели, доступные продукты или выберите классический формат «2 основных + 2 перекуса».';
 
 export const WEIGHING_NOTICE =
   "Крупы взвешиваются сухими, мясо и рыба — до приготовления, консервы — без жидкости. Расчёт выполнен по данным карточек продуктов.";

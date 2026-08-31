@@ -2,6 +2,7 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { BookOpen, ClipboardList, Dumbbell, LayoutDashboard, LineChart, User, Utensils, Users } from "lucide-react";
 import { PanelShell, type PanelNavItem } from "@/components/panel/PanelShell";
 import { useAuth } from "@/lib/auth";
+import { ClientCourseProvider } from "@/lib/client-course-context";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardLayout,
@@ -25,13 +26,15 @@ const adminNav: PanelNavItem[] = [
 ];
 
 function DashboardLayout() {
-  const { role } = useAuth();
+  const { role, effectiveUserId } = useAuth();
   const nav = role === "admin" ? [...adminNav, ...baseNav] : baseNav;
   return (
     <PanelShell nav={nav}>
-      <div className="min-w-0 max-w-full">
-        <Outlet />
-      </div>
+      <ClientCourseProvider clientId={effectiveUserId}>
+        <div className="min-w-0 max-w-full">
+          <Outlet />
+        </div>
+      </ClientCourseProvider>
     </PanelShell>
   );
 }

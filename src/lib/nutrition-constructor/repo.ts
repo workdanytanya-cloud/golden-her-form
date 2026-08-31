@@ -524,15 +524,19 @@ function mapMealItemRow(
 }
 
 /** Загрузить constructor-план клиента из БД. */
-export async function loadConstructorPlanFor(userId: string): Promise<{
+export async function loadConstructorPlanFor(
+  userId: string,
+  courseId?: string | null,
+): Promise<{
   plan: ConstructorPlanRow | null;
   days: ConstructorDayRow[];
 }> {
-  const { data: planRaw, error: planErr } = await supabase
-    .from("nutrition_plans")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const { resolveCourseId } = await import("@/lib/client-courses/repo");
+  const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
+
+  let planQuery = supabase.from("nutrition_plans").select("*").eq("user_id", userId);
+  if (resolvedCourseId) planQuery = planQuery.eq("course_id", resolvedCourseId);
+  const { data: planRaw, error: planErr } = await planQuery.maybeSingle();
 
   if (planErr) {
     if (isMissingColumn(planErr, "plan_mode")) return { plan: null, days: [] };
@@ -627,6 +631,7 @@ export async function loadConstructorPlanFor(userId: string): Promise<{
 
 export type SaveConstructorPlanParams = {
   userId: string;
+  courseId?: string | null;
   days: ConstructorDay[];
   targets: {
     kcal: number;
@@ -654,6 +659,7 @@ export async function saveConstructorPlan(
 ): Promise<{ plan: ConstructorPlanRow; days: ConstructorDayRow[] }> {
   const {
     userId,
+    courseId,
     days,
     targets,
     plan_days_count,
@@ -670,14 +676,16 @@ export async function saveConstructorPlan(
     primary_meal_slot,
   } = params;
 
-  const { data: existing } = await supabase
-    .from("nutrition_plans")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const { resolveCourseId } = await import("@/lib/client-courses/repo");
+  const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
+
+  let existingQuery = supabase.from("nutrition_plans").select("id").eq("user_id", userId);
+  if (resolvedCourseId) existingQuery = existingQuery.eq("course_id", resolvedCourseId);
+  const { data: existing } = await existingQuery.maybeSingle();
 
   const basePayload = {
     user_id: userId,
+    ...(resolvedCourseId ? { course_id: resolvedCourseId } : {}),
     meals_per_day: 5 as const,
     preferred_products: [] as string[],
     excluded_products: excluded_products ?? [],

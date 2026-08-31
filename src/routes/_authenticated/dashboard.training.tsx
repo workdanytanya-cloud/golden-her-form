@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
+import { ClientCoursePicker } from "@/components/panel/ClientCoursePicker";
 import { TrainingView } from "@/components/panel/TrainingView";
 import { useAuth } from "@/lib/auth";
+import { useClientCourses } from "@/lib/client-course-context";
 import { loadPublishedTrainingFor } from "@/lib/published-programs/repo";
 import {
   type ProgramDay,
@@ -18,15 +20,19 @@ export const Route = createFileRoute("/_authenticated/dashboard/training")({
 });
 
 function TrainingPage() {
+  const { selectedCourse } = useClientCourses();
   return (
     <div className="space-y-8">
       <PanelHeader
-        eyebrow="Курс"
+        eyebrow={selectedCourse?.title ?? "Курс"}
         title="Тренировки"
         description="Персональная программа на 4 недели. Состав меняет только тренер новой версией."
       />
       <AccessGate level="active">
-        <TrainingInner />
+        <div className="space-y-6">
+          <ClientCoursePicker />
+          <TrainingInner />
+        </div>
       </AccessGate>
     </div>
   );
@@ -34,6 +40,7 @@ function TrainingPage() {
 
 function TrainingInner() {
   const { effectiveUserId } = useAuth();
+  const { selectedCourseId, selectedCourse } = useClientCourses();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [program, setProgram] = useState<ProgramRow | null>(null);
   const [days, setDays] = useState<DayRow[]>([]);
@@ -42,7 +49,7 @@ function TrainingInner() {
   const reload = async () => {
     if (!effectiveUserId) return;
     setLoading(true);
-    const published = await loadPublishedTrainingFor(effectiveUserId);
+    const published = await loadPublishedTrainingFor(effectiveUserId, selectedCourseId);
     if (published) {
       setExercises(published.exercises);
       setProgram(published.program);
@@ -58,7 +65,7 @@ function TrainingInner() {
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId]);
+  }, [effectiveUserId, selectedCourseId]);
 
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем программу…</div>;
   if (!program || days.length === 0)

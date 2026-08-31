@@ -2,12 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
+import { ClientCoursePicker } from "@/components/panel/ClientCoursePicker";
+import { MealSchedulePicker } from "@/components/panel/MealSchedulePicker";
 import { NutritionView } from "@/components/panel/NutritionView";
 import { ConstructorNutritionView } from "@/components/panel/ConstructorNutritionView";
 import { FoodSwapGuide } from "@/components/panel/FoodSwapGuide";
 import { useAuth } from "@/lib/auth";
+import { useClientCourses } from "@/lib/client-course-context";
 import { type DayEntry } from "@/lib/nutrition";
 import { comparisonRows } from "@/lib/nutrition-constructor/calculator";
+import { loadClientMealSchedulePreference } from "@/lib/nutrition-constructor/client-preference";
 import type { MealScheduleMode, PrimaryMealSlot } from "@/lib/nutrition-constructor/config";
 import { d } from "@/lib/nutrition-constructor/decimal-math";
 import { constructorDaysFromSnapshot } from "@/lib/published-programs/nutrition-snapshot";
@@ -21,15 +25,19 @@ export const Route = createFileRoute("/_authenticated/dashboard/nutrition")({
 });
 
 function NutritionPage() {
+  const { selectedCourse } = useClientCourses();
   return (
     <div className="space-y-8">
       <PanelHeader
-        eyebrow="Курс"
+        eyebrow={selectedCourse?.title ?? "Курс"}
         title="Питание"
         description="Индивидуальный рацион от тренера: 4 приёма в день с точными граммовками и КБЖU."
       />
       <AccessGate level="active">
-        <NutritionInner />
+        <div className="space-y-6">
+          <ClientCoursePicker />
+          <NutritionInner />
+        </div>
       </AccessGate>
     </div>
   );
@@ -37,28 +45,55 @@ function NutritionPage() {
 
 function NutritionInner() {
   const { effectiveUserId } = useAuth();
+  const { selectedCourseId } = useClientCourses();
   const [snapshot, setSnapshot] = useState<NutritionSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [preferredMode, setPreferredMode] = useState<MealScheduleMode>("two_main_two_snacks");
+  const [preferredSlot, setPreferredSlot] = useState<PrimaryMealSlot>("lunch");
 
   const reload = async () => {
     if (!effectiveUserId) return;
     setLoading(true);
-    const published = await loadPublishedNutritionFor(effectiveUserId);
+    const [published, preference] = await Promise.all([
+      loadPublishedNutritionFor(effectiveUserId, selectedCourseId),
+      loadClientMealSchedulePreference({ userId: effectiveUserId, courseId: selectedCourseId }),
+    ]);
     setSnapshot(published?.snapshot ?? null);
+    if (preference) {
+      setPreferredMode(preference.mode);
+      setPreferredSlot(preference.primarySlot);
+    } else if (published?.snapshot?.kind === "constructor") {
+      setPreferredMode(published.snapshot.meal_schedule_mode as MealScheduleMode);
+      setPreferredSlot(published.snapshot.primary_meal_slot as PrimaryMealSlot);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId]);
+  }, [effectiveUserId, selectedCourseId]);
 
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем меню…</div>;
 
   if (!snapshot) {
     return (
-      <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center text-warm-gray">
-        Меню пока не назначено. Тренер соберёт индивидуальный рацион и опубликует его для вас.
+      <div className="space-y-6">
+        {effectiveUserId ? (
+          <MealSchedulePicker
+            userId={effectiveUserId}
+            courseId={selectedCourseId}
+            value={preferredMode}
+            primarySlot={preferredSlot}
+            onSaved={(mode, slot) => {
+              setPreferredMode(mode);
+              setPreferredSlot(slot);
+            }}
+          />
+        ) : null}
+        <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center text-warm-gray">
+          Меню пока не назначено. Тренер соберёт индивидуальный рацион и опубликует его для вас.
+        </div>
       </div>
     );
   }
@@ -85,6 +120,19 @@ function NutritionInner() {
 
     return (
       <div className="space-y-6">
+        {effectiveUserId ? (
+          <MealSchedulePicker
+            userId={effectiveUserId}
+            courseId={selectedCourseId}
+            value={preferredMode}
+            primarySlot={preferredSlot}
+            publishedMode={snapshot.meal_schedule_mode as MealScheduleMode}
+            onSaved={(mode, slot) => {
+              setPreferredMode(mode);
+              setPreferredSlot(slot);
+            }}
+          />
+        ) : null}
         {snapshot.notes && (
           <div className="rounded-2xl border border-gold/25 bg-gradient-to-br from-gold/10 to-transparent p-4 text-sm text-ivory">
             <p className="text-[11px] uppercase tracking-widest text-gold">Комментарий тренера</p>

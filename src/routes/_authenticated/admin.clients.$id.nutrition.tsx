@@ -35,10 +35,14 @@ import { publishLegacyNutrition } from "@/lib/published-programs/repo";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/nutrition")({
   component: AdminNutritionPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    course: typeof search.course === "string" ? search.course : undefined,
+  }),
 });
 
 function AdminNutritionPage() {
   const { id } = Route.useParams();
+  const { course: courseId } = Route.useSearch();
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [swapDishes, setSwapDishes] = useState<Dish[]>([]);
   const [plan, setPlan] = useState<PlanRow | null>(null);
@@ -60,7 +64,7 @@ function AdminNutritionPage() {
 
   const reload = async () => {
     setLoading(true);
-    const p = await loadPlanFor(id);
+    const p = await loadPlanFor(id, courseId);
     const planIds = p.days.flatMap((d) => d.meals.map((m) => m.dish_id));
     const [{ all, pool }, prof, profRow] = await Promise.all([
       loadDishesForClient(id, planIds),
@@ -110,10 +114,11 @@ function AdminNutritionPage() {
         recipeComplexity: opts.recipeComplexity,
         mealPattern: opts.mealPattern,
       });
-      const after = await loadPlanFor(id);
+      const after = await loadPlanFor(id, courseId);
       if (after.plan && after.days.length > 0) {
         await publishLegacyNutrition({
           userId: id,
+          courseId: courseId ?? null,
           plan: after.plan,
           days: after.days,
           dishes: await loadDishes(),
@@ -244,6 +249,7 @@ function AdminNutritionPage() {
       {nutritionMode === "constructor" && targetProfile && (
         <ConstructorAdminPanel
           userId={id}
+          courseId={courseId}
           profile={{
             gender: targetProfile.gender,
             birth_date: targetProfile.birth_date,

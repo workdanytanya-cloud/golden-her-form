@@ -87,13 +87,20 @@ function mapVersionMeta(row: Record<string, unknown>): VersionMeta {
 
 export async function loadPublishedNutritionFor(
   clientId: string,
+  courseId?: string | null,
 ): Promise<PublishedNutritionView | null> {
-  const { data: assignment, error: aErr } = await supabase
+  const { resolveCourseId } = await import("@/lib/client-courses/repo");
+  const resolvedCourseId = courseId ?? (await resolveCourseId(clientId));
+
+  let assignmentQuery = supabase
     .from("client_program_assignments" as never)
     .select("active_version_id")
     .eq("client_id", clientId)
-    .eq("kind", "nutrition")
-    .maybeSingle();
+    .eq("kind", "nutrition");
+  if (resolvedCourseId) {
+    assignmentQuery = assignmentQuery.eq("course_id", resolvedCourseId);
+  }
+  const { data: assignment, error: aErr } = await assignmentQuery.maybeSingle();
 
   if (aErr && isMissingTable(aErr)) {
     return loadNutritionLegacyFallback(clientId);
@@ -185,13 +192,20 @@ async function loadNutritionLegacyFallback(
 
 export async function loadPublishedTrainingFor(
   clientId: string,
+  courseId?: string | null,
 ): Promise<PublishedTrainingView | null> {
-  const { data: assignment, error: aErr } = await supabase
+  const { resolveCourseId } = await import("@/lib/client-courses/repo");
+  const resolvedCourseId = courseId ?? (await resolveCourseId(clientId));
+
+  let assignmentQuery = supabase
     .from("client_program_assignments" as never)
     .select("active_version_id")
     .eq("client_id", clientId)
-    .eq("kind", "training")
-    .maybeSingle();
+    .eq("kind", "training");
+  if (resolvedCourseId) {
+    assignmentQuery = assignmentQuery.eq("course_id", resolvedCourseId);
+  }
+  const { data: assignment, error: aErr } = await assignmentQuery.maybeSingle();
 
   if (aErr && isMissingTable(aErr)) {
     return loadTrainingLegacyFallback(clientId);
@@ -297,6 +311,7 @@ async function loadTrainingLegacyFallback(clientId: string): Promise<PublishedTr
 
 export async function publishConstructorNutrition(params: {
   userId: string;
+  courseId?: string | null;
   days: ConstructorDay[];
   plan: Pick<
     ConstructorPlanRow,
@@ -335,6 +350,7 @@ export async function publishConstructorNutrition(params: {
   // Сначала сохраняем workspace (черновик/зеркало), затем публикуем атомарно
   await saveConstructorPlan({
     userId: params.userId,
+    courseId: params.courseId,
     days: params.days,
     targets: {
       kcal: params.plan.target_kcal,
@@ -362,6 +378,7 @@ export async function publishConstructorNutrition(params: {
       p_reason: params.reason ?? null,
       p_measurement_id: null,
       p_recommendation_id: null,
+      p_course_id: params.courseId ?? null,
     } as never,
   );
 
@@ -374,6 +391,7 @@ export async function publishConstructorNutrition(params: {
 
 export async function publishLegacyNutrition(params: {
   userId: string;
+  courseId?: string | null;
   plan: PlanRow;
   days: DayRow[];
   dishes: Dish[];
@@ -406,6 +424,7 @@ export async function publishLegacyNutrition(params: {
       p_reason: params.reason ?? null,
       p_measurement_id: null,
       p_recommendation_id: null,
+      p_course_id: params.courseId ?? null,
     } as never,
   );
   if (error && isMissingRpc(error)) return { versionId: null, usedRpc: false };
@@ -415,6 +434,7 @@ export async function publishLegacyNutrition(params: {
 
 export async function publishTrainingProgram(params: {
   userId: string;
+  courseId?: string | null;
   input: ProgramInput;
   days: ProgramDay[];
   programWeeks: number;
@@ -426,6 +446,7 @@ export async function publishTrainingProgram(params: {
   // Workspace (черновик) — клиент читает только published assignment
   await createOrReplaceCustomProgram({
     userId: params.userId,
+    courseId: params.courseId,
     input: params.input,
     days: params.days,
     programWeeks: params.programWeeks,
@@ -456,6 +477,7 @@ export async function publishTrainingProgram(params: {
       p_snapshot: snapshot as never,
       p_content_hash: hash,
       p_reason: "trainer_publish",
+      p_course_id: params.courseId ?? null,
     } as never,
   );
   if (error && isMissingRpc(error)) return { versionId: null, usedRpc: false };

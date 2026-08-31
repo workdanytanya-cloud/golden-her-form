@@ -36,6 +36,9 @@ import { loadPublishedTrainingFor, publishTrainingProgram } from "@/lib/publishe
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/training")({
   component: AdminTrainingPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    course: typeof search.course === "string" ? search.course : undefined,
+  }),
 });
 
 function dayKey(weekIndex: number, dayIndex: number) {
@@ -44,6 +47,7 @@ function dayKey(weekIndex: number, dayIndex: number) {
 
 function AdminTrainingPage() {
   const { id } = Route.useParams();
+  const { course: courseId } = Route.useSearch();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [program, setProgram] = useState<ProgramRow | null>(null);
   const [days, setDays] = useState<DayRow[]>([]);
@@ -69,10 +73,10 @@ function AdminTrainingPage() {
     setLoading(true);
     const [ex, p, prof, profRow, published] = await Promise.all([
       loadExercises(),
-      loadProgramFor(id),
+      loadProgramFor(id, courseId),
       loadProgramProfile(id),
       supabase.from("profiles").select("full_name").eq("id", id).maybeSingle(),
-      loadPublishedTrainingFor(id),
+      loadPublishedTrainingFor(id, courseId),
     ]);
     setExercises(ex);
     setProgram(p.program);
@@ -170,6 +174,7 @@ function AdminTrainingPage() {
       }));
       const result = await publishTrainingProgram({
         userId: id,
+        courseId: courseId ?? null,
         input,
         days: programDays,
         programWeeks: program.program_weeks,
