@@ -7,6 +7,7 @@ import {
   d,
   displayMacro,
   macroFromPer100,
+  roundTargetsForDb,
   sumMacros,
   withinTolerance,
 } from "@/lib/nutrition-constructor/decimal-math";
@@ -78,6 +79,22 @@ describe("nutrition-constructor decimal math", () => {
     const dMacro = displayMacro(m);
     expect(dMacro.kcal).toBe(548);
     expect(dMacro.protein_g).toBe(10.7);
+  });
+
+  it("rounds display targets to integers for Postgres nutrition_plans", () => {
+    expect(
+      roundTargetsForDb({
+        kcal: 1847,
+        protein_g: 89.9,
+        fat_g: 44.5,
+        carbs_g: 201.2,
+      }),
+    ).toEqual({
+      kcal: 1847,
+      protein_g: 90,
+      fat_g: 45,
+      carbs_g: 201,
+    });
   });
 
   it("sums meal ingredients without intermediate rounding drift", () => {

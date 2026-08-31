@@ -22,6 +22,7 @@ import {
   type MealPattern,
   type RecipeComplexity,
 } from "@/lib/plan-options";
+import { roundTargetsForDb } from "@/lib/nutrition-constructor/decimal-math";
 
 export type PlanRow = {
   id: string;
@@ -240,15 +241,16 @@ export async function createOrReplacePlan(params: {
     .eq("user_id", userId)
     .maybeSingle();
 
+  const dbTargets = roundTargetsForDb(targets);
   const payload = {
     user_id: userId,
     meals_per_day: mealsPerDay,
     preferred_products: preferredStored,
     excluded_products: excluded,
-    target_kcal: targets.kcal,
-    target_protein_g: targets.protein_g,
-    target_fat_g: targets.fat_g,
-    target_carbs_g: targets.carbs_g,
+    target_kcal: dbTargets.kcal,
+    target_protein_g: dbTargets.protein_g,
+    target_fat_g: dbTargets.fat_g,
+    target_carbs_g: dbTargets.carbs_g,
     targets_manual: targetsManual ?? false,
     generated_at: new Date().toISOString(),
   };

@@ -95,6 +95,18 @@ export function displayMacro(m: MacroBreakdown): MacroDisplay {
   };
 }
 
+export type TargetMacroNumbers = Pick<MacroDisplay, "kcal" | "protein_g" | "fat_g" | "carbs_g">;
+
+/** nutrition_plans.target_* в Postgres — integer; UI может показывать десятые. */
+export function roundTargetsForDb(targets: TargetMacroNumbers): TargetMacroNumbers {
+  return {
+    kcal: Math.round(targets.kcal),
+    protein_g: Math.round(targets.protein_g),
+    fat_g: Math.round(targets.fat_g),
+    carbs_g: Math.round(targets.carbs_g),
+  };
+}
+
 export function displayGrams(grams: Decimal | number | string): number {
   return d(grams).toDecimalPlaces(0, Decimal.ROUND_HALF_UP).toNumber();
 }

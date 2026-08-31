@@ -13,6 +13,7 @@ import {
 } from "@/lib/nutrition-constructor/config";
 import {
   d as dec,
+  roundTargetsForDb,
   snapshotMacro,
   withinTolerance,
   sumMacros,
@@ -715,16 +716,18 @@ export async function saveConstructorPlan(
   if (resolvedCourseId) existingQuery = existingQuery.eq("course_id", resolvedCourseId);
   const { data: existing } = await existingQuery.maybeSingle();
 
+  const dbTargets = roundTargetsForDb(targets);
+
   const basePayload = {
     user_id: userId,
     ...(resolvedCourseId ? { course_id: resolvedCourseId } : {}),
     meals_per_day: 5 as const,
     preferred_products: [] as string[],
     excluded_products: excluded_products ?? [],
-    target_kcal: targets.kcal,
-    target_protein_g: targets.protein_g,
-    target_fat_g: targets.fat_g,
-    target_carbs_g: targets.carbs_g,
+    target_kcal: dbTargets.kcal,
+    target_protein_g: dbTargets.protein_g,
+    target_fat_g: dbTargets.fat_g,
+    target_carbs_g: dbTargets.carbs_g,
     targets_manual: targets_manual ?? true,
     notes: notes ?? null,
     generated_at: new Date().toISOString(),
