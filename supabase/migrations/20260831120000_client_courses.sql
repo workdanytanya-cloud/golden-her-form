@@ -154,9 +154,12 @@ WHERE v.course_id IS NULL
     LIMIT 1
   );
 
--- Уникальность: один черновик программы/плана на курс
+-- Уникальность: один черновик программы/плана на курс (не на клиента)
 ALTER TABLE public.training_programs
   DROP CONSTRAINT IF EXISTS training_programs_user_id_key;
+
+ALTER TABLE public.nutrition_plans
+  DROP CONSTRAINT IF EXISTS nutrition_plans_user_id_key;
 
 CREATE UNIQUE INDEX IF NOT EXISTS training_programs_course_id_key
   ON public.training_programs (course_id)

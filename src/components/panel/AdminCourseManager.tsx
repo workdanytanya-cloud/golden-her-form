@@ -10,7 +10,7 @@ import {
   courseStatusLabel,
   type ClientCourse,
 } from "@/lib/client-courses";
-import { useAuth } from "@/lib/auth";
+import { errorMessage } from "@/lib/error-message";
 
 export function AdminCourseManager({
   clientId,
@@ -63,7 +63,18 @@ export function AdminCourseManager({
       await load();
       onChanged();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Ошибка создания курса");
+      const partial =
+        typeof e === "object" &&
+        e !== null &&
+        "partial" in e &&
+        (e as { partial?: boolean }).partial === true;
+      const course = partial ? (e as { course?: { id: string } }).course : undefined;
+      if (course?.id) {
+        onSelectCourse(course.id);
+        await load();
+        onChanged();
+      }
+      toast.error(errorMessage(e, "Ошибка создания курса"), { duration: partial ? 8000 : 4000 });
     } finally {
       setBusy(false);
     }
@@ -77,7 +88,7 @@ export function AdminCourseManager({
       await load();
       onChanged();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Ошибка активации");
+      toast.error(errorMessage(e, "Ошибка активации"));
     } finally {
       setBusy(false);
     }

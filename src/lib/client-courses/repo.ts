@@ -82,6 +82,8 @@ export async function resolveCourseId(
   return (data as string | null) ?? null;
 }
 
+import { errorMessage } from "@/lib/error-message";
+
 async function cloneTrainingProgram(
   sourceCourseId: string,
   targetCourseId: string,
@@ -312,8 +314,26 @@ export async function createClientCourse(params: {
     null;
 
   if (sourceId) {
-    await cloneTrainingProgram(sourceId, created.id, params.clientId);
-    await cloneNutritionPlan(sourceId, created.id, params.clientId);
+    const cloneErrors: string[] = [];
+    try {
+      await cloneTrainingProgram(sourceId, created.id, params.clientId);
+    } catch (e) {
+      cloneErrors.push(`тренировки: ${errorMessage(e, "не скопированы")}`);
+    }
+    try {
+      await cloneNutritionPlan(sourceId, created.id, params.clientId);
+    } catch (e) {
+      cloneErrors.push(`питание: ${errorMessage(e, "не скопировано")}`);
+    }
+    if (cloneErrors.length > 0) {
+      const err = new Error(
+        `Курс создан, но не всё скопировалось (${cloneErrors.join("; ")}). ` +
+          "Если видите duplicate key — выполните supabase/production-fix-client-courses-clone.sql в Supabase.",
+      );
+      (err as Error & { partial?: boolean; course?: ClientCourse }).partial = true;
+      (err as Error & { partial?: boolean; course?: ClientCourse }).course = created;
+      throw err;
+    }
   }
 
   return created;
