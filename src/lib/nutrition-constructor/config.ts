@@ -205,11 +205,15 @@ export const DEFAULT_TOLERANCE = {
 
 /** Чуть шире допуск для режима «На бегу» (1 основной + 3 перекуса). */
 export const ONE_MAIN_TOLERANCE = {
-  kcal: 12,
-  protein_g: 3,
-  fat_g: 3,
-  carbs_g: 4,
+  kcal: 25,
+  protein_g: 10,
+  fat_g: 8,
+  carbs_g: 12,
 } as const;
+
+export function toleranceForMode(mode: MealScheduleMode): typeof DEFAULT_TOLERANCE | typeof ONE_MAIN_TOLERANCE {
+  return mode === "one_main_three_snacks" ? ONE_MAIN_TOLERANCE : DEFAULT_TOLERANCE;
+}
 
 export const SAFE_KCAL = { min: 1200, max: 4000 } as const;
 export const MIN_AUTO_AGE = 18;

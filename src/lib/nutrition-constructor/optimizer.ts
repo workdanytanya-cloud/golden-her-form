@@ -33,6 +33,7 @@ import type {
   Recipe,
   RecipeIngredient,
 } from "@/lib/nutrition-constructor/types";
+import { buildPlanValidationMessage } from "@/lib/nutrition-constructor/validation-messages";
 
 export type OptimizerContext = {
   products: Map<string, FoodProduct>;
@@ -316,7 +317,8 @@ function buildDay(
     })),
   );
 
-  for (let step = 0; step < 200; step++) {
+  const maxTuneSteps = mode === "one_main_three_snacks" ? 400 : 200;
+  for (let step = 0; step < maxTuneSteps; step++) {
     const dayTolerance = mode === "one_main_three_snacks" ? ONE_MAIN_TOLERANCE : DEFAULT_TOLERANCE;
     if (withinTolerance(dayTotals, targets, dayTolerance)) break;
     let moved = false;
@@ -405,6 +407,7 @@ export function generateConstructorPlan(
   }
 
   const allValid = days.every((dayRow) => dayRow.is_valid);
+  const invalidDayCount = days.filter((dayRow) => !dayRow.is_valid).length;
   const avgTotals = sumMacros(
     days.map((dayRow) => ({
       kcal: d(dayRow.kcal),
@@ -449,11 +452,27 @@ export function generateConstructorPlan(
     },
   ];
 
-  const valid = allValid && withinTolerance(avg, input.targets, tolerance);
+  const avgValid = withinTolerance(avg, input.targets, tolerance);
+  const allowedBadDays =
+    mode === "one_main_three_snacks" ? Math.max(1, Math.floor(days.length * 0.15)) : 0;
+  const valid =
+    avgValid &&
+    (mode === "one_main_three_snacks"
+      ? invalidDayCount <= allowedBadDays
+      : allValid);
 
   return {
     is_valid: valid,
-    message: valid ? null : days.length > 0 ? `${failMessage} Рацион собран как черновик — проверьте граммовки.` : failMessage,
+    message: valid
+      ? null
+      : buildPlanValidationMessage({
+          comparison,
+          tolerance,
+          hasDays: days.length > 0,
+          failMessage,
+          invalidDayCount,
+          totalDays: days.length,
+        }),
     comparison,
     days,
     best_approximation: valid ? undefined : { days, comparison },

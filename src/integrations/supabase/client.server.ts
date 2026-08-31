@@ -3,10 +3,15 @@
 // Use this for admin operations in server functions and server routes only.
 // For user-authenticated queries (with RLS), use the auth middleware instead.
 import { createClient } from '@supabase/supabase-js';
+import { WebSocket as NodeWebSocket } from 'ws';
 import type { Database } from './types';
 
 function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
+}
+
+function serverRealtimeTransport(): typeof WebSocket {
+  return typeof WebSocket !== 'undefined' ? WebSocket : (NodeWebSocket as unknown as typeof WebSocket);
 }
 
 function createSupabaseFetch(supabaseKey: string): typeof fetch {
@@ -31,7 +36,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 
 function createSupabaseAdminClient() {
   const env = process.env as Record<string, string | undefined>;
-  const SUPABASE_URL = (env.SUPABASE_URL || "").trim();
+  const SUPABASE_URL = (env.SUPABASE_URL || env.VITE_SUPABASE_URL || "").trim();
   const SUPABASE_SERVICE_ROLE_KEY = (env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -52,7 +57,8 @@ function createSupabaseAdminClient() {
       storage: undefined,
       persistSession: false,
       autoRefreshToken: false,
-    }
+    },
+    realtime: { transport: serverRealtimeTransport() },
   });
 }
 

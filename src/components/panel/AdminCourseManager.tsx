@@ -60,7 +60,11 @@ export function AdminCourseManager({
         cloneFromCourseId: selectedCourseId,
         activate,
       });
-      toast.success(activate ? "Новый курс активирован" : "Черновик готов");
+      toast.success(
+        activate
+          ? "Новый курс активирован — программа собрана с прогрессией"
+          : "Черновик готов — программа продолжает прошлый курс",
+      );
       onSelectCourse(created.id);
       await load();
       onChanged();
@@ -161,7 +165,7 @@ export function AdminCourseManager({
 
       {courses.length === 0 ? (
         <p className="text-sm text-warm-gray">
-          Курсов пока нет. Создайте первый — контент скопируется из текущих программ.
+          Курсов пока нет. Создайте первый — программа соберётся по анкете клиента.
         </p>
       ) : (
         <>

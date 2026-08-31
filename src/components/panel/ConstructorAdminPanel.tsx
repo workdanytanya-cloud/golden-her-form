@@ -9,6 +9,7 @@ import {
   PLAN_DAY_OPTIONS,
   PRIMARY_MEAL_SLOT_LABELS,
   PRIMARY_MEAL_SLOTS,
+  toleranceForMode,
   type MealScheduleMode,
   type PlanDaysCount,
   type PlanSlot,
@@ -30,6 +31,7 @@ import {
   saveConstructorPlan,
 } from "@/lib/nutrition-constructor/repo";
 import type { ConstructorDay, Recipe } from "@/lib/nutrition-constructor/types";
+import { formatMacroDeviationSummary } from "@/lib/nutrition-constructor/validation-messages";
 import type { TargetProfileInput } from "@/lib/nutrition-constructor/targets";
 import {
   loadPublishedNutritionFor,
@@ -155,6 +157,13 @@ export function ConstructorAdminPanel({
     })();
   }, [userId, courseId]);
 
+  const kbjuTolerance = useMemo(() => toleranceForMode(scheduleMode), [scheduleMode]);
+
+  const deviationSummary = useMemo(
+    () => (comparison.length > 0 ? formatMacroDeviationSummary(comparison, kbjuTolerance) : ""),
+    [comparison, kbjuTolerance],
+  );
+
   const revalidate = (nextDays: ConstructorDay[]) => {
     const targetMacro = {
       kcal: d(targets.kcal),
@@ -173,22 +182,70 @@ export function ConstructorAdminPanel({
           fiber_g: d(day.fiber_g),
         },
         targetMacro,
-        DEFAULT_TOLERANCE,
+        kbjuTolerance,
       ),
     );
-    setPlanStatus(allValid ? "validated" : "draft");
-    if (nextDays.length > 0) {
+    const avgTotals =
+      nextDays.length > 0
+        ? sumMacros(
+            nextDays.map((day) => ({
+              kcal: d(day.kcal),
+              protein_g: d(day.protein_g),
+              fat_g: d(day.fat_g),
+              carbs_g: d(day.carbs_g),
+              fiber_g: d(day.fiber_g),
+            })),
+          )
+        : null;
+    const avgValid =
+      avgTotals != null &&
+      withinTolerance(
+        {
+          kcal: avgTotals.kcal.div(nextDays.length),
+          protein_g: avgTotals.protein_g.div(nextDays.length),
+          fat_g: avgTotals.fat_g.div(nextDays.length),
+          carbs_g: avgTotals.carbs_g.div(nextDays.length),
+          fiber_g: avgTotals.fiber_g.div(nextDays.length),
+        },
+        targetMacro,
+        kbjuTolerance,
+      );
+    const invalidDayCount = nextDays.filter(
+      (day) =>
+        !withinTolerance(
+          {
+            kcal: d(day.kcal),
+            protein_g: d(day.protein_g),
+            fat_g: d(day.fat_g),
+            carbs_g: d(day.carbs_g),
+            fiber_g: d(day.fiber_g),
+          },
+          targetMacro,
+          kbjuTolerance,
+        ),
+    ).length;
+    const allowedBadDays =
+      scheduleMode === "one_main_three_snacks"
+        ? Math.max(1, Math.floor(nextDays.length * 0.15))
+        : 0;
+    const valid =
+      scheduleMode === "one_main_three_snacks"
+        ? avgValid && invalidDayCount <= allowedBadDays
+        : allValid && avgValid;
+
+    setPlanStatus(valid ? "validated" : "draft");
+    if (avgTotals && nextDays.length > 0) {
       setComparison(
         comparisonRows(targetMacro, {
-          kcal: d(nextDays[0]!.kcal),
-          protein_g: d(nextDays[0]!.protein_g),
-          fat_g: d(nextDays[0]!.fat_g),
-          carbs_g: d(nextDays[0]!.carbs_g),
-          fiber_g: d(nextDays[0]!.fiber_g),
+          kcal: avgTotals.kcal.div(nextDays.length),
+          protein_g: avgTotals.protein_g.div(nextDays.length),
+          fat_g: avgTotals.fat_g.div(nextDays.length),
+          carbs_g: avgTotals.carbs_g.div(nextDays.length),
+          fiber_g: avgTotals.fiber_g.div(nextDays.length),
         }),
       );
     }
-    return allValid;
+    return valid;
   };
 
   const handleGenerate = async () => {
@@ -231,7 +288,8 @@ export function ConstructorAdminPanel({
     if (days.length === 0) return;
     const valid = revalidate(days);
     if (assign && !valid) {
-      toast.error("Нельзя назначить: рацион не прошёл проверку по допускам");
+      const hint = deviationSummary ? ` Отклонение: ${deviationSummary}.` : "";
+      toast.error(`Нельзя назначить: рацион не прошёл проверку KBJU.${hint}`);
       return;
     }
     setSaving(true);
@@ -487,6 +545,9 @@ export function ConstructorAdminPanel({
               {planStatus === "validated" ? "пройдена" : "не пройдена"}
             </span>
             {!structureOk && " · структура дня не соответствует режиму"}
+            {planStatus !== "validated" && deviationSummary ? (
+              <span className="mt-1 block text-coral">Отклонение: {deviationSummary}</span>
+            ) : null}
           </p>
         </div>
       )}

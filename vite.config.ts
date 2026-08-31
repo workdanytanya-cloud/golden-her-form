@@ -15,9 +15,14 @@ function shortGitSha(): string {
 }
 
 export default defineConfig(({ mode, command }) => {
-  const env = loadEnv(mode, process.cwd(), "VITE_");
-  const defineEnv: Record<string, string> = {};
+  const env = loadEnv(mode, process.cwd(), "");
+  const viteEnv = loadEnv(mode, process.cwd(), "VITE_");
+  // SSR / server functions читают SUPABASE_* из process.env
   for (const [key, value] of Object.entries(env)) {
+    if (process.env[key] === undefined) process.env[key] = value;
+  }
+  const defineEnv: Record<string, string> = {};
+  for (const [key, value] of Object.entries(viteEnv)) {
     defineEnv[`import.meta.env.${key}`] = JSON.stringify(value);
   }
 
@@ -48,6 +53,9 @@ export default defineConfig(({ mode, command }) => {
     server: {
       host: true,
       port: 3000,
+    },
+    ssr: {
+      external: ["ws"],
     },
     plugins: [
       tailwindcss(),

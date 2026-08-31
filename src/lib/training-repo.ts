@@ -15,6 +15,7 @@ import {
   needsJointCare,
 } from "@/lib/training";
 import { COACH_PROGRAM_WEEKS, resolveDefaultTrainingProgram } from "@/lib/coach-sheet-program";
+import { persistProgramWithDaysForClient } from "@/lib/training-persist";
 
 async function loadLatestWeightKg(userId: string): Promise<number | null> {
   const { data } = await supabase
@@ -235,8 +236,17 @@ export async function loadProgramFor(
   if (resolvedCourseId) {
     programQuery = programQuery.eq("course_id", resolvedCourseId);
   }
-  const { data: program, error: programError } = await programQuery.maybeSingle();
+  let { data: program, error: programError } = await programQuery.maybeSingle();
   if (programError) throw programError;
+  if (!program && resolvedCourseId) {
+    const legacy = await supabase
+      .from("training_programs")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (legacy.error) throw legacy.error;
+    program = legacy.data;
+  }
   if (!program) return { program: null, days: [] };
 
   const mappedDays = await loadDaysForProgram(program.id);
@@ -318,10 +328,6 @@ export async function createOrReplaceProgram(params: {
 
   const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
 
-  let existingQuery = supabase.from("training_programs").select("id").eq("user_id", userId);
-  if (resolvedCourseId) existingQuery = existingQuery.eq("course_id", resolvedCourseId);
-  const { data: existing } = await existingQuery.maybeSingle();
-
   const basePayload = {
     user_id: userId,
     ...(resolvedCourseId ? { course_id: resolvedCourseId } : {}),
@@ -338,8 +344,6 @@ export async function createOrReplaceProgram(params: {
     generated_at: new Date().toISOString(),
   };
 
-  const programId = await upsertTrainingProgram(existing?.id ?? null, basePayload, programWeeks);
-
   const rows = generatedDays.map((d) => ({
     week_index: d.week_index ?? 0,
     day_index: d.day_index,
@@ -352,7 +356,14 @@ export async function createOrReplaceProgram(params: {
     cooldown: d.cooldown as unknown as never,
     day_note: d.day_note,
   }));
-  const { multiWeek } = await replaceProgramDays(programId, rows);
+  const { multiWeek } = await persistProgramWithDaysForClient(
+    supabase,
+    userId,
+    resolvedCourseId,
+    basePayload,
+    programWeeks,
+    rows,
+  );
 
   return loadProgramFor(userId, resolvedCourseId).then((r) => ({
     program: r.program!,
@@ -361,7 +372,7 @@ export async function createOrReplaceProgram(params: {
   }));
 }
 
-/** Заменить программу на кастомный мультинедельный план (напр. из таблицы тренера). */
+/** Заменить программу на кастомный мультинедельный план. */
 export async function createOrReplaceCustomProgram(params: {
   userId: string;
   courseId?: string | null;
@@ -376,10 +387,6 @@ export async function createOrReplaceCustomProgram(params: {
   const { resolveCourseId } = await import("@/lib/client-courses/repo");
   const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
   const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
-
-  let existingQuery = supabase.from("training_programs").select("id").eq("user_id", userId);
-  if (resolvedCourseId) existingQuery = existingQuery.eq("course_id", resolvedCourseId);
-  const { data: existing } = await existingQuery.maybeSingle();
 
   const basePayload = {
     user_id: userId,
@@ -397,12 +404,6 @@ export async function createOrReplaceCustomProgram(params: {
     generated_at: new Date().toISOString(),
   };
 
-  const programId = await upsertTrainingProgram(
-    existing?.id ?? null,
-    basePayload,
-    Math.max(1, programWeeks || COACH_PROGRAM_WEEKS),
-  );
-
   const rows = days.map((d) => ({
     week_index: d.week_index ?? 0,
     day_index: d.day_index,
@@ -415,57 +416,21 @@ export async function createOrReplaceCustomProgram(params: {
     cooldown: d.cooldown as unknown as never,
     day_note: d.day_note,
   }));
-  const { multiWeek } = await replaceProgramDays(programId, rows);
+  const weeks = Math.max(1, programWeeks || COACH_PROGRAM_WEEKS);
+  const { multiWeek } = await persistProgramWithDaysForClient(
+    supabase,
+    userId,
+    resolvedCourseId,
+    basePayload,
+    weeks,
+    rows,
+  );
 
   return loadProgramFor(userId, resolvedCourseId).then((r) => ({
     program: r.program!,
     days: r.days,
     multiWeek,
   }));
-}
-
-async function upsertTrainingProgram(
-  existingId: string | null,
-  payload: Record<string, unknown>,
-  programWeeks: number,
-): Promise<string> {
-  const withWeeks = { ...payload, program_weeks: programWeeks };
-
-  if (existingId) {
-    const { data, error } = await supabase
-      .from("training_programs")
-      .update(withWeeks as never)
-      .eq("id", existingId)
-      .select("id")
-      .single();
-    if (!error && data) return data.id;
-    if (error && !isMissingSchemaColumn(error, "program_weeks")) throw error;
-
-    const { data: legacy, error: legacyErr } = await supabase
-      .from("training_programs")
-      .update(payload as never)
-      .eq("id", existingId)
-      .select("id")
-      .single();
-    if (legacyErr) throw legacyErr;
-    return legacy.id;
-  }
-
-  const { data, error } = await supabase
-    .from("training_programs")
-    .insert(withWeeks as never)
-    .select("id")
-    .single();
-  if (!error && data) return data.id;
-  if (error && !isMissingSchemaColumn(error, "program_weeks")) throw error;
-
-  const { data: legacy, error: legacyErr } = await supabase
-    .from("training_programs")
-    .insert(payload as never)
-    .select("id")
-    .single();
-  if (legacyErr) throw legacyErr;
-  return legacy.id;
 }
 
 export async function updateDayPatch(

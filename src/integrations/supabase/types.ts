@@ -1541,6 +1541,16 @@ export type Database = {
         }
         Returns: string
       }
+      save_client_training_program_draft: {
+        Args: {
+          p_user_id: string
+          p_course_id: string | null
+          p_program: Json
+          p_days: Json
+          p_program_weeks?: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "client"

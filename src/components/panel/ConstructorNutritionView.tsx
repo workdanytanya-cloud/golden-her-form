@@ -16,6 +16,7 @@ import type {
   MacroComparisonRow,
   MealPlanItem,
 } from "@/lib/nutrition-constructor/types";
+import { formatMacroDeviationPhrase } from "@/lib/nutrition-constructor/validation-messages";
 
 type Props = {
   days: ConstructorDay[];
@@ -197,8 +198,7 @@ function MacroComparisonTable({ rows }: { rows: MacroComparisonRow[] }) {
                       : "text-coral",
                 ].join(" ")}
               >
-                {row.diff > 0 ? "+" : ""}
-                {row.diff}
+                {formatMacroDeviationPhrase(row)}
               </td>
             </tr>
           ))}

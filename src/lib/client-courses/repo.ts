@@ -83,62 +83,18 @@ export async function resolveCourseId(
 }
 
 import { errorMessage } from "@/lib/error-message";
+import { seedTrainingContinuationForCourse } from "@/lib/client-courses/seed-training-continuation";
 
-async function cloneTrainingProgram(
+async function generateTrainingContinuation(
   sourceCourseId: string,
   targetCourseId: string,
   clientId: string,
 ): Promise<void> {
-  const { data: src } = await supabase
-    .from("training_programs")
-    .select("*")
-    .eq("course_id", sourceCourseId)
-    .maybeSingle();
-  if (!src) return;
-
-  const { data: created, error: insErr } = await supabase
-    .from("training_programs")
-    .insert({
-      user_id: clientId,
-      course_id: targetCourseId,
-      sessions_per_week: src.sessions_per_week,
-      goal: src.goal,
-      level: src.level,
-      has_injuries: src.has_injuries,
-      injuries_details: src.injuries_details,
-      equipment: src.equipment,
-      location: src.location,
-      notes: src.notes,
-      faq: src.faq,
-      targets_manual: src.targets_manual,
-      program_weeks: (src as { program_weeks?: number }).program_weeks ?? 4,
-      generated_at: new Date().toISOString(),
-    } as never)
-    .select("id")
-    .single();
-  if (insErr) throw insErr;
-
-  const { data: days } = await supabase
-    .from("training_program_days")
-    .select("*")
-    .eq("program_id", src.id);
-  if (!days?.length) return;
-
-  const rows = days.map((d) => ({
-    program_id: created.id,
-    week_index: d.week_index ?? 0,
-    day_index: d.day_index,
-    is_rest: d.is_rest,
-    title: d.title,
-    focus: d.focus,
-    description: d.description,
-    warmup: d.warmup,
-    exercises: d.exercises,
-    cooldown: d.cooldown,
-    day_note: d.day_note,
-  }));
-  const { error: daysErr } = await supabase.from("training_program_days").insert(rows as never);
-  if (daysErr) throw daysErr;
+  await seedTrainingContinuationForCourse({
+    clientId,
+    sourceCourseId,
+    targetCourseId,
+  });
 }
 
 async function cloneNutritionPlan(
@@ -349,7 +305,7 @@ export async function createClientCourse(params: {
   return created;
 }
 
-/** Клиент запрашивает продление: новый 4-недельный курс-черновик с копией прошлого контента. */
+/** Клиент запрашивает продление: новый 4-недельный блок с прогрессией от прошлого курса. */
 export async function renewClientCourse(clientId: string): Promise<ClientCourse> {
   return createClientCourse({
     clientId,
@@ -431,9 +387,9 @@ async function cloneFromSource(
 ): Promise<string[]> {
   const cloneErrors: string[] = [];
   try {
-    await cloneTrainingProgram(sourceId, targetCourseId, clientId);
+    await generateTrainingContinuation(sourceId, targetCourseId, clientId);
   } catch (e) {
-    cloneErrors.push(`тренировки: ${errorMessage(e, "не скопированы")}`);
+    cloneErrors.push(`тренировки: ${errorMessage(e, "не сгенерированы")}`);
   }
   try {
     await cloneNutritionPlan(sourceId, targetCourseId, clientId);

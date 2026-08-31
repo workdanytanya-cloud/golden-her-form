@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -9,7 +10,6 @@ import {
   loadExercises,
   loadProgramFor,
   loadProgramProfile,
-  createOrReplaceCustomProgram,
   updateDayPatch,
   updateProgramPatch,
   lockProgramManual,
@@ -25,14 +25,8 @@ import {
   type FaqItem,
   GOAL_LABEL,
 } from "@/lib/training";
-import {
-  buildCoachSheetProgramDays,
-  coachProgramNotes,
-  COACH_PROGRAM_WEEKS,
-  missingCoachSheetExercises,
-  resolveDefaultTrainingProgram,
-} from "@/lib/coach-sheet-program";
 import { loadPublishedTrainingFor, publishTrainingProgram } from "@/lib/published-programs/repo";
+import { adminRegenerateTrainingProgram } from "@/lib/training.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/training")({
   component: AdminTrainingPage,
@@ -68,6 +62,8 @@ function AdminTrainingPage() {
   const [loading, setLoading] = useState(true);
   const [dirtyDays, setDirtyDays] = useState<Set<string>>(() => new Set());
   const [savingDayKey, setSavingDayKey] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const regenerateTraining = useServerFn(adminRegenerateTrainingProgram);
 
   const reload = async () => {
     setLoading(true);
@@ -104,7 +100,12 @@ function AdminTrainingPage() {
   }, [id, courseId]);
 
   const handleRegenerate = async (overrides?: Partial<ProgramInput>) => {
-    if (!profile) return;
+    if (!profile) {
+      toast.error("Анкета клиента ещё не загружена — обновите страницу");
+      return;
+    }
+    if (generating) return;
+    setGenerating(true);
     const input: ProgramInput = {
       sessions_per_week: profile.sessions_per_week,
       goal: profile.goal,
@@ -118,22 +119,20 @@ function AdminTrainingPage() {
       ...overrides,
     };
     try {
-      // 4 недели + прогрессия; не схлопываем в 1 неделю.
-      const plan = resolveDefaultTrainingProgram(exercises, input);
-      const result = await createOrReplaceCustomProgram({
-        userId: id,
-        courseId,
-        input,
-        days: plan.days,
-        programWeeks: plan.programWeeks,
-        notes: program?.notes ?? plan.coachNotes,
-        preserveFaq: program?.faq ?? null,
-        targetsManual: true,
+      const result = await regenerateTraining({
+        data: {
+          userId: id,
+          courseId: courseId ?? null,
+          input,
+          notes: program?.notes ?? null,
+          preserveFaq: program?.faq ?? null,
+          targetsManual: true,
+        },
       });
       await reload();
       if (result.multiWeek) {
         toast.success(
-          `Черновик на ${plan.programWeeks} нед. сохранён. Клиент увидит после «Опубликовать клиенту».`,
+          `Черновик на ${result.programWeeks} нед. сохранён. Клиент увидит после «Опубликовать клиенту».`,
         );
       } else {
         toast.warning(
@@ -142,7 +141,15 @@ function AdminTrainingPage() {
         );
       }
     } catch (e) {
-      toast.error((e as Error).message);
+      const msg =
+        e instanceof Error
+          ? e.message
+          : typeof e === "string"
+            ? e
+            : "Не удалось пересобрать программу";
+      toast.error(msg);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -193,57 +200,6 @@ function AdminTrainingPage() {
       toast.error((e as Error).message);
     } finally {
       setPublishing(false);
-    }
-  };
-
-  const handleApplyCoachSheet = async () => {
-    if (!profile) return;
-
-    const missing = missingCoachSheetExercises(exercises);
-    if (missing.length > 0) {
-      toast.error(
-        `В базе нет ${missing.length} упражнений из 4-недельной таблицы. Выполните seed: npm run exercises:apply-seed или SQL supabase/migrations/20260813220000_coach_exercises_panova_sheet.sql`,
-        { duration: 15000 },
-      );
-      return;
-    }
-
-    const input: ProgramInput = {
-      sessions_per_week: 3,
-      goal: profile.goal,
-      level: profile.level,
-      has_injuries: profile.has_injuries,
-      injuries_details: profile.injuries_details,
-      equipment: profile.equipment,
-      location: profile.location,
-      weight_kg: profile.weight_kg,
-      gender: profile.gender,
-    };
-    try {
-      const customDays = buildCoachSheetProgramDays(exercises, input);
-      const result = await createOrReplaceCustomProgram({
-        userId: id,
-        courseId,
-        input: { ...input, sessions_per_week: 3 },
-        days: customDays,
-        programWeeks: COACH_PROGRAM_WEEKS,
-        notes: coachProgramNotes(input),
-        preserveFaq: program?.faq ?? null,
-        targetsManual: true,
-      });
-      await reload();
-      if (result.multiWeek) {
-        toast.success(
-          `Черновик из таблицы сохранён: ${result.days.length} дней. Опубликуйте клиенту отдельно.`,
-        );
-      } else {
-        toast.warning(
-          `Сохранена 1-я неделя (${result.days.length} дн.). Для 4 недель выполните supabase/production-setup-coach-sheet.sql в Supabase и нажмите кнопку снова.`,
-          { duration: 15000 },
-        );
-      }
-    } catch (e) {
-      toast.error((e as Error).message);
     }
   };
 
@@ -377,17 +333,15 @@ function AdminTrainingPage() {
             <div className="rounded-3xl border border-coral/30 bg-coral/10 p-5 text-sm text-warm-gray">
               <p className="font-display text-base text-ivory">Дни программы пустые</p>
               <p className="mt-2">
-                Нажмите «Таблица тренера · 4 нед.» — если появится ошибка про{" "}
-                <code className="text-gold">week_index</code>, выполните в Supabase SQL Editor
-                миграции <code className="text-gold">20260813180000</code> и{" "}
-                <code className="text-gold">20260813190000</code>, затем повторите.
+                Нажмите «Пересобрать под эти параметры» или «Автогенерация по анкете», чтобы
+                заново собрать черновик.
               </p>
             </div>
           )}
           <ParamsEditor
             program={program}
             profile={profile}
-            onApplyCoachSheet={() => void handleApplyCoachSheet()}
+            generating={generating}
             onSaveTargets={async (sessions, goal, level) => {
               await handleRegenerate({ sessions_per_week: sessions, goal, level });
             }}
@@ -410,17 +364,12 @@ function AdminTrainingPage() {
           <div className="mt-4 flex flex-wrap justify-center gap-3">
             <button
               type="button"
-              onClick={() => void handleApplyCoachSheet()}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-xs uppercase tracking-widest text-background"
-            >
-              <Sparkles className="h-4 w-4" /> Программа из таблицы (4 нед.)
-            </button>
-            <button
-              type="button"
+              disabled={generating}
               onClick={() => void handleRegenerate()}
-              className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-5 py-2.5 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-xs uppercase tracking-widest text-background disabled:opacity-60"
             >
-              Автогенерация по анкете
+              <Sparkles className="h-4 w-4" />{" "}
+              {generating ? "Генерируем…" : "Автогенерация по анкете"}
             </button>
           </div>
         </div>
@@ -454,7 +403,7 @@ function AdminTrainingPage() {
 function ParamsEditor({
   program,
   profile,
-  onApplyCoachSheet,
+  generating = false,
   onSaveTargets,
   onLock,
   onSaveNotes,
@@ -466,7 +415,7 @@ function ParamsEditor({
     level: ProgramLevel;
     weight_kg?: number | null;
   };
-  onApplyCoachSheet: () => void;
+  generating?: boolean;
   onSaveTargets: (sessions: 3 | 4, goal: ProgramGoal, level: ProgramLevel) => Promise<void>;
   onLock: () => Promise<void>;
   onSaveNotes: (notes: string | null) => Promise<void>;
@@ -550,17 +499,12 @@ function ParamsEditor({
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={onApplyCoachSheet}
-          className="inline-flex items-center gap-2 rounded-full border border-gold/40 px-4 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
-        >
-          <Sparkles className="h-3.5 w-3.5" /> Программа из таблицы (4 нед.)
-        </button>
-        <button
-          type="button"
+          disabled={generating}
           onClick={() => void onSaveTargets(sessions, goal, level)}
-          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-xs uppercase tracking-widest text-background"
+          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-xs uppercase tracking-widest text-background disabled:opacity-60"
         >
-          <Sparkles className="h-3.5 w-3.5" /> Пересобрать под эти параметры
+          <Sparkles className="h-3.5 w-3.5" />{" "}
+          {generating ? "Генерируем…" : "Пересобрать под эти параметры"}
         </button>
         {!program.targets_manual && (
           <button
