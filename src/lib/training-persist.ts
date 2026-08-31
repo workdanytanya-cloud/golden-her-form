@@ -168,10 +168,12 @@ export async function persistProgramWithDaysForClient(
   payload: Record<string, unknown>,
   programWeeks: number,
   rows: Record<string, unknown>[],
-  options?: { skipRpc?: boolean },
+  options?: { skipRpc?: boolean; skipDraftRpc?: boolean },
 ): Promise<{ programId: string; multiWeek: boolean }> {
-  const rpcResult = await saveProgramDraftViaRpc(sb, userId, courseId, payload, programWeeks, rows);
-  if (rpcResult) return rpcResult;
+  if (!options?.skipDraftRpc) {
+    const rpcResult = await saveProgramDraftViaRpc(sb, userId, courseId, payload, programWeeks, rows);
+    if (rpcResult) return rpcResult;
+  }
 
   let existingQuery = sb.from("training_programs").select("id").eq("user_id", userId);
   if (courseId) {
@@ -193,5 +195,17 @@ export async function persistProgramWithDaysForClient(
 
   const programId = await upsertTrainingProgram(sb, existing?.id ?? null, payload, programWeeks);
   const { multiWeek } = await replaceProgramDays(sb, programId, rows, options);
+
+  const { count, error: countErr } = await sb
+    .from("training_program_days")
+    .select("id", { count: "exact", head: true })
+    .eq("program_id", programId);
+  if (countErr) throw countErr;
+  if ((count ?? 0) < rows.length) {
+    throw new Error(
+      `Дни программы не сохранились полностью (${count ?? 0} из ${rows.length}). Проверьте миграции week_index в Supabase.`,
+    );
+  }
+
   return { programId, multiWeek };
 }

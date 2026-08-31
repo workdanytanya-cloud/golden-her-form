@@ -130,12 +130,20 @@ function AdminTrainingPage() {
           notes: program?.notes ?? null,
           preserveFaq: program?.faq ?? null,
           targetsManual: true,
+          mode: "fresh",
         },
       });
       await reload();
+      const timeLabel = result.generatedAt
+        ? new Date(result.generatedAt).toLocaleString("ru-RU")
+        : "";
       if (result.multiWeek) {
         toast.success(
-          `Черновик на ${result.programWeeks} нед. сохранён. Клиент увидит после «Опубликовать клиенту».`,
+          `Черновик пересобран: ${result.dayCount} дней, ${result.programWeeks} нед.${timeLabel ? ` · ${timeLabel}` : ""}`,
+          {
+            description:
+              "Программа по таблице тренера. Упражнения те же при тех же параметрах — меняются подходы/недели. Клиент увидит после публикации.",
+          },
         );
       } else {
         toast.warning(
@@ -395,6 +403,7 @@ function AdminTrainingPage() {
       ) : (
         <>
           <TrainingView
+            key={`${program.id}-${program.generated_at ?? ""}`}
             exercises={exercises}
             days={programDays}
             goal={(program.goal ?? "maintain") as ProgramGoal}

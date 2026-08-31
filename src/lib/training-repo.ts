@@ -459,11 +459,8 @@ export async function updateDayPatch(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .update(dbPatch as any)
     .eq("program_id", programId)
-    .eq("day_index", dayIndex);
-
-  if (weekIndex > 0) {
-    query = query.eq("week_index", weekIndex);
-  }
+    .eq("day_index", dayIndex)
+    .eq("week_index", weekIndex);
 
   const { data, error } = await query.select("id");
   if (error) throw error;

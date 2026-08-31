@@ -40,25 +40,29 @@ function mapDayRows(days: ProgramDay[]) {
 }
 
 async function resolveTrainingPlanAdmin(
-  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
-  clientId: string,
-  courseId: string | null,
+  _supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  _clientId: string,
+  _courseId: string | null,
   exercises: Exercise[],
   input: ProgramInput,
+  mode: "fresh" | "continuation" = "fresh",
 ) {
-  try {
-    const { resolveTrainingPlanForCourse } = await import(
-      "@/lib/client-courses/seed-training-continuation"
-    );
-    return await resolveTrainingPlanForCourse({
-      clientId,
-      courseId,
-      exercises,
-      input,
-    });
-  } catch {
-    return resolveDefaultTrainingProgram(exercises, input);
+  if (mode === "continuation") {
+    try {
+      const { resolveTrainingPlanForCourse } = await import(
+        "@/lib/client-courses/seed-training-continuation"
+      );
+      return await resolveTrainingPlanForCourse({
+        clientId: _clientId,
+        courseId: _courseId,
+        exercises,
+        input,
+      });
+    } catch {
+      // fallback ниже
+    }
   }
+  return resolveDefaultTrainingProgram(exercises, input);
 }
 
 /** Сгенерировать 4-недельный черновик на сервере (service role) и сохранить. */
@@ -72,6 +76,7 @@ export const adminRegenerateTrainingProgram = createServerFn({ method: "POST" })
       notes: z.string().nullable().optional(),
       preserveFaq: z.array(z.record(z.string(), z.unknown())).nullable().optional(),
       targetsManual: z.boolean().optional(),
+      mode: z.enum(["fresh", "continuation"]).optional(),
     });
     return schema.parse(input);
   })
@@ -99,6 +104,7 @@ export const adminRegenerateTrainingProgram = createServerFn({ method: "POST" })
       resolvedCourseId,
       (exercises ?? []) as Exercise[],
       input,
+      data.mode ?? "fresh",
     );
 
     if (!plan.days.length) {
@@ -110,6 +116,7 @@ export const adminRegenerateTrainingProgram = createServerFn({ method: "POST" })
         ? (data.preserveFaq as FaqItem[])
         : defaultFaq(input);
 
+    const generatedAt = new Date().toISOString();
     const basePayload = {
       user_id: data.userId,
       ...(resolvedCourseId ? { course_id: resolvedCourseId } : {}),
@@ -123,21 +130,28 @@ export const adminRegenerateTrainingProgram = createServerFn({ method: "POST" })
       notes: data.notes ?? plan.coachNotes ?? null,
       faq: faq as unknown as never,
       targets_manual: data.targetsManual ?? true,
-      generated_at: new Date().toISOString(),
+      generated_at: generatedAt,
     };
 
     const weeks = Math.max(1, plan.programWeeks || COACH_PROGRAM_WEEKS);
-    const { multiWeek } = await persistProgramWithDaysForClient(
+    const dayRows = mapDayRows(plan.days);
+    const { programId, multiWeek } = await persistProgramWithDaysForClient(
       supabaseAdmin,
       data.userId,
       resolvedCourseId,
       basePayload,
       weeks,
-      mapDayRows(plan.days),
-      { skipRpc: true },
+      dayRows,
+      { skipRpc: true, skipDraftRpc: true },
     );
 
-    return { multiWeek, programWeeks: weeks, dayCount: plan.days.length };
+    return {
+      multiWeek,
+      programWeeks: weeks,
+      dayCount: plan.days.length,
+      programId,
+      generatedAt,
+    };
   });
 
 export const adminSaveTrainingProgramDraft = createServerFn({ method: "POST" })
@@ -216,7 +230,7 @@ export const adminSaveTrainingProgramDraft = createServerFn({ method: "POST" })
       basePayload,
       weeks,
       rows,
-      { skipRpc: true },
+      { skipRpc: true, skipDraftRpc: true },
     );
 
     return { multiWeek, programWeeks: weeks };
@@ -280,10 +294,8 @@ export const adminPatchTrainingDay = createServerFn({ method: "POST" })
       .from("training_program_days")
       .update(dbPatch as never)
       .eq("program_id", data.programId)
-      .eq("day_index", data.dayIndex);
-    if (data.weekIndex > 0) {
-      query = query.eq("week_index", data.weekIndex);
-    }
+      .eq("day_index", data.dayIndex)
+      .eq("week_index", data.weekIndex);
     const { data: rows, error } = await query.select("id");
     if (error) throw error;
     if (!rows?.length) throw new Error("День программы не найден — изменения не сохранились");
