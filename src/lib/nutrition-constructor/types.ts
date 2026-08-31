@@ -133,6 +133,7 @@ export type MacroComparisonRow = {
 
 export type PlanValidationResult = {
   is_valid: boolean;
+  kbju_acceptable?: boolean;
   message: string | null;
   comparison: MacroComparisonRow[];
   days: ConstructorDay[];

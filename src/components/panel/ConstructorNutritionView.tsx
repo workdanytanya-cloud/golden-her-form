@@ -23,6 +23,8 @@ type Props = {
   comparison: MacroComparisonRow[];
   targets: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
   planStatus?: "draft" | "validated" | "assigned";
+  kbjuAcceptable?: boolean;
+  precisionHint?: string;
   mealScheduleMode?: MealScheduleMode;
   primaryMealSlot?: PrimaryMealSlot;
   editable?: boolean;
@@ -40,6 +42,8 @@ export function ConstructorNutritionView({
   comparison,
   targets,
   planStatus = "draft",
+  kbjuAcceptable = false,
+  precisionHint = "",
   mealScheduleMode = "two_main_two_snacks",
   primaryMealSlot = "lunch",
   editable = false,
@@ -80,7 +84,20 @@ export function ConstructorNutritionView({
         {WEIGHING_NOTICE}
       </div>
 
-      {planStatus !== "assigned" && !day.is_valid && (
+      {planStatus !== "assigned" && !kbjuAcceptable && precisionHint && (
+        <div className="flex gap-3 rounded-2xl border border-gold/20 bg-gold/5 p-4 text-sm text-warm-gray">
+          <Info className="h-5 w-5 shrink-0 text-gold" />
+          <p>
+            Рацион собран по структуре режима. Для назначения клиенту подправьте граммовки или
+            дождитесь попадания в допуск.{" "}
+            <span className="block mt-1 text-[11px] text-warm-gray/90">
+              Для идеально точного попадания в цель: {precisionHint}.
+            </span>
+          </p>
+        </div>
+      )}
+
+      {planStatus !== "assigned" && !kbjuAcceptable && !precisionHint && !day.is_valid && (
         <div className="flex gap-3 rounded-2xl border border-coral/30 bg-coral/10 p-4 text-sm text-warm-gray">
           <AlertTriangle className="h-5 w-5 shrink-0 text-coral" />
           <p>
@@ -90,7 +107,7 @@ export function ConstructorNutritionView({
         </div>
       )}
 
-      <MacroComparisonTable rows={comparison} />
+      <MacroComparisonTable rows={comparison} precisionHint={precisionHint} />
 
       <div className="grid gap-3 sm:grid-cols-4">
         <StatCard label="Ккал" value={dayDisplay!.kcal} target={targets.kcal} />
@@ -169,10 +186,17 @@ export function ConstructorNutritionView({
   );
 }
 
-function MacroComparisonTable({ rows }: { rows: MacroComparisonRow[] }) {
+function MacroComparisonTable({
+  rows,
+  precisionHint = "",
+}: {
+  rows: MacroComparisonRow[];
+  precisionHint?: string;
+}) {
   if (rows.length === 0) return null;
   return (
-    <div className="overflow-x-auto rounded-2xl border border-gold/15">
+    <div className="space-y-1">
+      <div className="overflow-x-auto rounded-2xl border border-gold/15">
       <table className="w-full min-w-[320px] text-sm">
         <thead>
           <tr className="border-b border-gold/10 text-left text-xs uppercase tracking-widest text-warm-gray">
@@ -204,6 +228,12 @@ function MacroComparisonTable({ rows }: { rows: MacroComparisonRow[] }) {
           ))}
         </tbody>
       </table>
+      </div>
+      {precisionHint ? (
+        <p className="px-1 text-[10px] leading-relaxed text-warm-gray/80">
+          Для идеально точного попадания (±1&nbsp;г / ±5&nbsp;ккал): {precisionHint}
+        </p>
+      ) : null}
     </div>
   );
 }

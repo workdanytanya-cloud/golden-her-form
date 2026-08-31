@@ -4,6 +4,7 @@ import {
   buildPlanValidationMessage,
   formatMacroDeviationPhrase,
   formatMacroDeviationSummary,
+  formatMacroPrecisionHint,
 } from "@/lib/nutrition-constructor/validation-messages";
 
 describe("validation-messages", () => {
@@ -26,6 +27,15 @@ describe("validation-messages", () => {
     expect(summary).toContain("−15 г белка");
     expect(summary).toContain("+30 ккал");
     expect(summary).not.toContain("жиров");
+  });
+
+  it("builds precision hint with strict tolerance", () => {
+    expect(
+      formatMacroPrecisionHint(
+        [{ label: "Белки", target: 120, actual: 105, diff: -15 }],
+        { kcal: 5, protein_g: 1, fat_g: 1, carbs_g: 1 },
+      ),
+    ).toBe("−15 г белка");
   });
 
   it("builds human-readable plan message", () => {

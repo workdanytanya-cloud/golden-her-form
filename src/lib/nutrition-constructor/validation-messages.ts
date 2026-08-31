@@ -50,6 +50,16 @@ export function formatMacroDeviationSummary(
   return macroDeviationsOutsideTolerance(rows, tolerance).map(formatMacroDeviationPhrase).join(", ");
 }
 
+/** Подсказка для доводки до строгого допуска (±1 г / ±5 ккал). */
+export function formatMacroPrecisionHint(
+  rows: MacroComparisonRow[],
+  strictTolerance: MacroTolerance,
+): string {
+  return macroDeviationsOutsideTolerance(rows, strictTolerance)
+    .map(formatMacroDeviationPhrase)
+    .join(", ");
+}
+
 export function buildPlanValidationMessage(params: {
   comparison: MacroComparisonRow[];
   tolerance: MacroTolerance;

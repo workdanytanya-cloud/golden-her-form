@@ -455,14 +455,23 @@ export function generateConstructorPlan(
   const avgValid = withinTolerance(avg, input.targets, tolerance);
   const allowedBadDays =
     mode === "one_main_three_snacks" ? Math.max(1, Math.floor(days.length * 0.15)) : 0;
-  const valid =
+  const kbjuAcceptable =
     avgValid &&
     (mode === "one_main_three_snacks"
       ? invalidDayCount <= allowedBadDays
       : allValid);
+  const structureValid = days.every((dayRow) => {
+    const mains = dayRow.items.filter((i) => i.slot.startsWith("main")).length;
+    const snacks = dayRow.items.filter((i) => i.slot.startsWith("snack")).length;
+    if (mode === "two_main_two_snacks") return mains === 2 && snacks === 2;
+    return mains === 1 && snacks === 3;
+  });
+  const valid =
+    kbjuAcceptable || (mode === "one_main_three_snacks" && structureValid && days.length > 0);
 
   return {
     is_valid: valid,
+    kbju_acceptable: kbjuAcceptable,
     message: valid
       ? null
       : buildPlanValidationMessage({

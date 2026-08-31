@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { ConstructorNutritionView } from "@/components/panel/ConstructorNutritionView";
+import { comparisonRows } from "@/lib/nutrition-constructor/calculator";
 import {
   DEFAULT_TOLERANCE,
   MEAL_SCHEDULE_LABELS,
@@ -15,13 +16,11 @@ import {
   type PlanSlot,
   type PrimaryMealSlot,
 } from "@/lib/nutrition-constructor/config";
-import { comparisonRows } from "@/lib/nutrition-constructor/calculator";
 import {
   d,
   displayMacro,
   snapshotMacro,
   sumMacros,
-  withinTolerance,
 } from "@/lib/nutrition-constructor/decimal-math";
 import {
   generateAndValidateConstructorPlan,
@@ -31,6 +30,7 @@ import {
   saveConstructorPlan,
 } from "@/lib/nutrition-constructor/repo";
 import type { ConstructorDay, Recipe } from "@/lib/nutrition-constructor/types";
+import { evaluatePlanKbjuStatus } from "@/lib/nutrition-constructor/plan-kbju-status";
 import { formatMacroDeviationSummary } from "@/lib/nutrition-constructor/validation-messages";
 import type { TargetProfileInput } from "@/lib/nutrition-constructor/targets";
 import {
@@ -159,93 +159,71 @@ export function ConstructorAdminPanel({
 
   const kbjuTolerance = useMemo(() => toleranceForMode(scheduleMode), [scheduleMode]);
 
+  const targetMacro = useMemo(
+    () => ({
+      kcal: d(targets.kcal),
+      protein_g: d(targets.protein_g),
+      fat_g: d(targets.fat_g),
+      carbs_g: d(targets.carbs_g),
+      fiber_g: d(0),
+    }),
+    [targets],
+  );
+
+  const kbjuStatus = useMemo(
+    () =>
+      evaluatePlanKbjuStatus({
+        days,
+        targetMacro,
+        scheduleMode,
+        comparison,
+      }),
+    [days, targetMacro, scheduleMode, comparison],
+  );
+
   const deviationSummary = useMemo(
     () => (comparison.length > 0 ? formatMacroDeviationSummary(comparison, kbjuTolerance) : ""),
     [comparison, kbjuTolerance],
   );
 
   const revalidate = (nextDays: ConstructorDay[]) => {
-    const targetMacro = {
-      kcal: d(targets.kcal),
-      protein_g: d(targets.protein_g),
-      fat_g: d(targets.fat_g),
-      carbs_g: d(targets.carbs_g),
-      fiber_g: d(0),
-    };
-    const allValid = nextDays.every((day) =>
-      withinTolerance(
-        {
-          kcal: d(day.kcal),
-          protein_g: d(day.protein_g),
-          fat_g: d(day.fat_g),
-          carbs_g: d(day.carbs_g),
-          fiber_g: d(day.fiber_g),
-        },
-        targetMacro,
-        kbjuTolerance,
-      ),
-    );
-    const avgTotals =
+    const nextComparison =
       nextDays.length > 0
-        ? sumMacros(
-            nextDays.map((day) => ({
-              kcal: d(day.kcal),
-              protein_g: d(day.protein_g),
-              fat_g: d(day.fat_g),
-              carbs_g: d(day.carbs_g),
-              fiber_g: d(day.fiber_g),
-            })),
+        ? comparisonRows(
+            targetMacro,
+            (() => {
+              const avgTotals = sumMacros(
+                nextDays.map((day) => ({
+                  kcal: d(day.kcal),
+                  protein_g: d(day.protein_g),
+                  fat_g: d(day.fat_g),
+                  carbs_g: d(day.carbs_g),
+                  fiber_g: d(day.fiber_g),
+                })),
+              );
+              return {
+                kcal: avgTotals.kcal.div(nextDays.length),
+                protein_g: avgTotals.protein_g.div(nextDays.length),
+                fat_g: avgTotals.fat_g.div(nextDays.length),
+                carbs_g: avgTotals.carbs_g.div(nextDays.length),
+                fiber_g: avgTotals.fiber_g.div(nextDays.length),
+              };
+            })(),
           )
-        : null;
-    const avgValid =
-      avgTotals != null &&
-      withinTolerance(
-        {
-          kcal: avgTotals.kcal.div(nextDays.length),
-          protein_g: avgTotals.protein_g.div(nextDays.length),
-          fat_g: avgTotals.fat_g.div(nextDays.length),
-          carbs_g: avgTotals.carbs_g.div(nextDays.length),
-          fiber_g: avgTotals.fiber_g.div(nextDays.length),
-        },
-        targetMacro,
-        kbjuTolerance,
-      );
-    const invalidDayCount = nextDays.filter(
-      (day) =>
-        !withinTolerance(
-          {
-            kcal: d(day.kcal),
-            protein_g: d(day.protein_g),
-            fat_g: d(day.fat_g),
-            carbs_g: d(day.carbs_g),
-            fiber_g: d(day.fiber_g),
-          },
-          targetMacro,
-          kbjuTolerance,
-        ),
-    ).length;
-    const allowedBadDays =
-      scheduleMode === "one_main_three_snacks"
-        ? Math.max(1, Math.floor(nextDays.length * 0.15))
-        : 0;
-    const valid =
-      scheduleMode === "one_main_three_snacks"
-        ? avgValid && invalidDayCount <= allowedBadDays
-        : allValid && avgValid;
+        : comparison;
 
-    setPlanStatus(valid ? "validated" : "draft");
-    if (avgTotals && nextDays.length > 0) {
-      setComparison(
-        comparisonRows(targetMacro, {
-          kcal: avgTotals.kcal.div(nextDays.length),
-          protein_g: avgTotals.protein_g.div(nextDays.length),
-          fat_g: avgTotals.fat_g.div(nextDays.length),
-          carbs_g: avgTotals.carbs_g.div(nextDays.length),
-          fiber_g: avgTotals.fiber_g.div(nextDays.length),
-        }),
-      );
+    if (nextDays.length > 0) {
+      setComparison(nextComparison);
     }
-    return valid;
+
+    const status = evaluatePlanKbjuStatus({
+      days: nextDays,
+      targetMacro,
+      scheduleMode,
+      comparison: nextComparison,
+    });
+    setPlanStatus(status.generationOk ? "validated" : "draft");
+    return status;
   };
 
   const handleGenerate = async () => {
@@ -272,11 +250,26 @@ export function ConstructorAdminPanel({
       setComparison(result.comparison);
       setTargets(displayMacro(result.targets));
       setReviewReason(result.review_reason);
-      const valid = result.is_valid && !result.requires_manual_review;
-      setPlanStatus(valid ? "validated" : "draft");
-      if (valid) toast.success("Рацион собран и прошёл проверку");
-      else
+      const status = evaluatePlanKbjuStatus({
+        days: result.days,
+        targetMacro: result.targets,
+        scheduleMode,
+        comparison: result.comparison,
+      });
+      setPlanStatus(status.generationOk ? "validated" : "draft");
+      if (result.days.length === 0) return;
+      if (status.generationOk) {
+        if (status.precisionHint) {
+          toast.success("Рацион собран", {
+            description: `Для идеально точного попадания в цель: ${status.precisionHint}.`,
+            duration: 12000,
+          });
+        } else {
+          toast.success("Рацион собран и прошёл проверку");
+        }
+      } else {
         toast.warning(result.message ?? "Рацион требует доработки тренером", { duration: 12000 });
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -286,10 +279,14 @@ export function ConstructorAdminPanel({
 
   const handleSave = async (assign: boolean) => {
     if (days.length === 0) return;
-    const valid = revalidate(days);
-    if (assign && !valid) {
-      const hint = deviationSummary ? ` Отклонение: ${deviationSummary}.` : "";
-      toast.error(`Нельзя назначить: рацион не прошёл проверку KBJU.${hint}`);
+    const status = revalidate(days);
+    if (assign && !status.acceptable) {
+      const hint = status.precisionHint
+        ? ` Для точного попадания: ${status.precisionHint}.`
+        : deviationSummary
+          ? ` Отклонение: ${deviationSummary}.`
+          : "";
+      toast.error(`Нельзя назначить: KBJU вне допуска режима.${hint}`);
       return;
     }
     setSaving(true);
@@ -329,17 +326,17 @@ export function ConstructorAdminPanel({
           days,
           targets,
           plan_days_count: daysCount,
-          plan_status: valid ? "validated" : "draft",
+          plan_status: status.generationOk ? "validated" : "draft",
           bmr: meta.bmr,
           tdee: meta.tdee,
           calorie_adjustment_pct: meta.adjustment_pct,
-          requires_manual_review: !valid,
+          requires_manual_review: !status.acceptable,
           review_reason: reviewReason,
           targets_manual: true,
           meal_schedule_mode: scheduleMode,
           primary_meal_slot: primarySlot,
         });
-        setPlanStatus(valid ? "validated" : "draft");
+        setPlanStatus(status.generationOk ? "validated" : "draft");
         toast.success("Черновик сохранён. Клиент по-прежнему видит опубликованную версию.");
       }
       onSaved?.();
@@ -505,7 +502,7 @@ export function ConstructorAdminPanel({
             </button>
             <button
               type="button"
-              disabled={saving || planStatus !== "validated"}
+              disabled={saving || !kbjuStatus.acceptable}
               onClick={() => void handleSave(true)}
               className="inline-flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-5 py-2.5 text-xs uppercase tracking-widest text-ivory disabled:opacity-40"
             >
@@ -541,11 +538,17 @@ export function ConstructorAdminPanel({
           )}
           <p className="sm:col-span-2 text-xs text-warm-gray">
             Валидация KBJU:{" "}
-            <span className={planStatus === "validated" ? "text-gold" : "text-coral"}>
-              {planStatus === "validated" ? "пройдена" : "не пройдена"}
+            <span className={kbjuStatus.generationOk ? "text-gold" : "text-coral"}>
+              {kbjuStatus.generationOk ? "пройдена" : "не пройдена"}
             </span>
             {!structureOk && " · структура дня не соответствует режиму"}
-            {planStatus !== "validated" && deviationSummary ? (
+            {kbjuStatus.generationOk && kbjuStatus.precisionHint ? (
+              <span className="mt-1 block text-[10px] leading-relaxed text-warm-gray/90">
+                Для идеально точного попадания в цель (±1&nbsp;г / ±5&nbsp;ккал):{" "}
+                {kbjuStatus.precisionHint}
+              </span>
+            ) : null}
+            {!kbjuStatus.generationOk && deviationSummary ? (
               <span className="mt-1 block text-coral">Отклонение: {deviationSummary}</span>
             ) : null}
           </p>
@@ -564,6 +567,8 @@ export function ConstructorAdminPanel({
           comparison={comparison}
           targets={targets}
           planStatus={planStatus}
+          kbjuAcceptable={kbjuStatus.acceptable}
+          precisionHint={kbjuStatus.precisionHint}
           mealScheduleMode={scheduleMode}
           primaryMealSlot={primarySlot}
           editable
