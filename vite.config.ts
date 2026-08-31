@@ -4,6 +4,15 @@ import { nitro } from "nitro/vite";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
+import { execSync } from "node:child_process";
+
+function shortGitSha(): string {
+  try {
+    return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
+  } catch {
+    return "unknown";
+  }
+}
 
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
@@ -16,7 +25,10 @@ export default defineConfig(({ mode, command }) => {
   const nitroPreset = process.env.NITRO_PRESET || (command === "build" ? "node-server" : undefined);
 
   return {
-    define: defineEnv,
+    define: {
+      ...defineEnv,
+      "import.meta.env.VITE_BUILD_SHA": JSON.stringify(shortGitSha()),
+    },
     css: {
       // Как в прежнем Lovable-конфиге: не цепляем чужой PostCSS/Tailwind v3 из родительской папки
       transformer: "lightningcss",

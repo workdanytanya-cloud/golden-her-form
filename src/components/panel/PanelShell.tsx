@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { NotificationsBell } from "./NotificationsBell";
 import { ClientNotificationsBell } from "./ClientNotificationsBell";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { BUILD_SHA } from "@/lib/build-info";
 
 
 export type PanelNavItem = {
@@ -150,6 +151,9 @@ export function PanelShell({
             </nav>
 
             <div className="mt-6 flex flex-col gap-2">
+              <p className="px-1 text-[10px] text-warm-gray/70" title="Версия сборки на сервере">
+                Сборка {BUILD_SHA}
+              </p>
               <div className="flex items-center justify-between rounded-2xl border border-gold/15 bg-background/40 px-4 py-3 md:hidden">
                 <span className="text-xs text-warm-gray">Тема оформления</span>
                 <ThemeToggle />

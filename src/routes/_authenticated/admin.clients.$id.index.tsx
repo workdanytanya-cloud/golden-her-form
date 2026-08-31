@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
+import { StatCard } from "@/components/panel/PanelShell";
 import { ArrowLeft, ClipboardList, Dumbbell, Eye, KeyRound, Lock, Plus, Save, Trash2, Unlock, UserX, Utensils } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -172,49 +172,53 @@ function ClientDetail() {
         <ArrowLeft className="h-4 w-4" /> Ко всем клиентам
       </Link>
 
-      <PanelHeader
-        eyebrow="Клиент"
-        title={profile?.full_name || "Без имени"}
-        description={profile?.goal || "Цель не задана"}
-        action={
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                startImpersonation(id, profile?.full_name || "Клиент");
-                toast.success("Открываем кабинет клиента");
-                void navigate({ to: "/dashboard" });
-              }}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-xs uppercase tracking-widest text-background transition-transform hover:scale-[1.02]"
-            >
-              <Eye className="h-4 w-4" /> Просмотр как клиент
-            </button>
-            <Link
-              to="/admin/clients/$id/nutrition"
-              params={{ id }}
-              search={{ course: selectedCourseId ?? undefined }}
-              className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
-            >
-              <Utensils className="h-4 w-4" /> Меню питания
-            </Link>
-            <Link
-              to="/admin/clients/$id/training"
-              params={{ id }}
-              search={{ course: selectedCourseId ?? undefined }}
-              className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
-            >
-              <Dumbbell className="h-4 w-4" /> Программа тренировок
-            </Link>
-            <Link
-              to="/admin/clients/$id/onboarding"
-              params={{ id }}
-              className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
-            >
-              <ClipboardList className="h-4 w-4" /> Анкета онбординга
-            </Link>
-          </div>
-        }
-      />
+      <header className="space-y-4 border-b border-gold/10 pb-6">
+        <div>
+          <p className="eyebrow">Клиент</p>
+          <h1 className="mt-2 font-display text-2xl sm:text-3xl md:text-4xl">
+            {profile?.full_name || "Без имени"}
+          </h1>
+        </div>
+        <p className="max-w-3xl text-base leading-relaxed text-warm-gray">
+          {profile?.goal?.replace(/\s+/g, " ").trim() || "Цель не задана"}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              startImpersonation(id, profile?.full_name || "Клиент");
+              toast.success("Открываем кабинет клиента");
+              void navigate({ to: "/dashboard" });
+            }}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-xs uppercase tracking-widest text-background transition-transform hover:scale-[1.02]"
+          >
+            <Eye className="h-4 w-4" /> Просмотр как клиент
+          </button>
+          <Link
+            to="/admin/clients/$id/nutrition"
+            params={{ id }}
+            search={{ course: selectedCourseId ?? undefined }}
+            className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
+          >
+            <Utensils className="h-4 w-4" /> Меню питания
+          </Link>
+          <Link
+            to="/admin/clients/$id/training"
+            params={{ id }}
+            search={{ course: selectedCourseId ?? undefined }}
+            className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
+          >
+            <Dumbbell className="h-4 w-4" /> Программа тренировок
+          </Link>
+          <Link
+            to="/admin/clients/$id/onboarding"
+            params={{ id }}
+            className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
+          >
+            <ClipboardList className="h-4 w-4" /> Анкета онбординга
+          </Link>
+        </div>
+      </header>
 
       <AdminCourseManager
         clientId={id}
