@@ -254,6 +254,61 @@ export type DefaultProgramPlan = {
   mode: "coach_sheet" | "sheet_pool" | "generic";
 };
 
+export function summarizeTrainingPlan(days: ProgramDay[]) {
+  const week0 = days.filter((d) => (d.week_index ?? 0) === 0 && !d.is_rest);
+  const first = week0[0] ?? days.find((d) => !d.is_rest);
+  return {
+    trainingDaysPerWeek: week0.length,
+    firstDayTitle: first?.title ?? "",
+    firstExerciseCount: first?.exercises.length ?? 0,
+    firstExerciseIds: (first?.exercises ?? []).map((e) => e.exercise_id),
+  };
+}
+
+function adaptivePlanFromPool(
+  pool: Exercise[],
+  input: ProgramInput,
+  mode: DefaultProgramPlan["mode"],
+  notes: string,
+): DefaultProgramPlan {
+  return {
+    days: generateMultiWeekProgram(pool, input, COACH_PROGRAM_WEEKS),
+    programWeeks: COACH_PROGRAM_WEEKS,
+    coachNotes: notes,
+    mode,
+  };
+}
+
+/**
+ * Пересборка тренером: всегда учитывает цель, уровень и число тренировок.
+ * Не берёт фиксированную таблицу 3×пн/ср/пт — иначе смена параметров ничего не меняет.
+ */
+export function resolveAdaptiveTrainingProgram(
+  exercises: Exercise[],
+  input: ProgramInput,
+): DefaultProgramPlan {
+  const sheetPool = coachSheetExercisePool(exercises);
+  const goalRu =
+    input.goal === "weight_loss"
+      ? "снижение веса"
+      : input.goal === "tone"
+        ? "тонус"
+        : input.goal === "muscle_gain"
+          ? "набор мышц"
+          : input.goal === "rehab"
+            ? "восстановление"
+            : "поддержание формы";
+  return adaptivePlanFromPool(
+    exercises,
+    input,
+    sheetPool.length >= 8 ? "sheet_pool" : "generic",
+    [
+      `4-недельная программа под параметры: ${input.sessions_per_week} тренировки в неделю, цель «${goalRu}», уровень ${input.level}.`,
+      "Состав дней и упражнений меняется при пересборке и смене параметров.",
+    ].join("\n"),
+  );
+}
+
 /**
  * Стартовая программа: сначала 4-недельный блок из таблицы,
  * иначе — генерация только из sheet-упражнений, иначе — общий пул.
@@ -273,21 +328,20 @@ export function resolveDefaultTrainingProgram(
 
   const sheetPool = coachSheetExercisePool(exercises);
   if (sheetPool.length >= 4) {
-    return {
-      days: generateMultiWeekProgram(sheetPool, input, COACH_PROGRAM_WEEKS),
-      programWeeks: COACH_PROGRAM_WEEKS,
-      coachNotes:
-        "4-недельная программа из библиотеки упражнений тренера с прогрессией нагрузки.",
-      mode: "sheet_pool",
-    };
+    return adaptivePlanFromPool(
+      sheetPool,
+      input,
+      "sheet_pool",
+      "4-недельная программа из библиотеки упражнений тренера с прогрессией нагрузки.",
+    );
   }
 
-  return {
-    days: generateMultiWeekProgram(exercises, input, COACH_PROGRAM_WEEKS),
-    programWeeks: COACH_PROGRAM_WEEKS,
-    coachNotes: "4-недельная программа с прогрессией: техника → объём → вариации → пик.",
-    mode: "generic",
-  };
+  return adaptivePlanFromPool(
+    exercises,
+    input,
+    "generic",
+    "4-недельная программа с прогрессией: техника → объём → вариации → пик.",
+  );
 }
 
 export const ANNA_USER_ID = "5f75b433-8b2d-46ac-9a8b-a708634cb3d7";

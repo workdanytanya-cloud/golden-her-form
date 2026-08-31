@@ -55,7 +55,8 @@ export default defineConfig(({ mode, command }) => {
       port: 3000,
     },
     ssr: {
-      external: ["ws"],
+      // Не externalize ws: иначе serverFn не находит native WebSocket в Node 20.
+      noExternal: ["ws"],
     },
     plugins: [
       tailwindcss(),

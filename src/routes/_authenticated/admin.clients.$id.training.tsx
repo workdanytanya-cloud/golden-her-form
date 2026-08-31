@@ -139,10 +139,10 @@ function AdminTrainingPage() {
         : "";
       if (result.multiWeek) {
         toast.success(
-          `Черновик пересобран: ${result.dayCount} дней, ${result.programWeeks} нед.${timeLabel ? ` · ${timeLabel}` : ""}`,
+          `Черновик пересобран: ${result.trainingDaysPerWeek} трен./нед., «${result.firstDayTitle}» (${result.firstExerciseCount} упр.)${timeLabel ? ` · ${timeLabel}` : ""}`,
           {
             description:
-              "Программа по таблице тренера. Упражнения те же при тех же параметрах — меняются подходы/недели. Клиент увидит после публикации.",
+              "Состав дней зависит от цели, уровня и частоты. Клиент увидит после «Опубликовать клиенту».",
           },
         );
       } else {
@@ -157,8 +157,11 @@ function AdminTrainingPage() {
           ? e.message
           : typeof e === "string"
             ? e
-            : "Не удалось пересобрать программу";
-      toast.error(msg);
+            : typeof e === "object" && e && "message" in e
+              ? String((e as { message: unknown }).message)
+              : "Не удалось пересобрать программу";
+      console.error("[adminRegenerateTrainingProgram]", e);
+      toast.error(msg.includes("WebSocket") ? "Ошибка сервера (WebSocket). Перезапустите npm run dev." : msg);
     } finally {
       setGenerating(false);
     }
@@ -361,6 +364,7 @@ function AdminTrainingPage() {
             </div>
           )}
           <ParamsEditor
+            key={`${program.id}-${program.generated_at ?? ""}-${program.goal}-${program.level}-${program.sessions_per_week}`}
             program={program}
             profile={profile}
             generating={generating}
@@ -421,6 +425,7 @@ function AdminTrainingPage() {
             onProgramPatch={handleProgramPatch}
             userId={id}
             onProgramReload={() => void reload()}
+            onRegenerate={() => handleRegenerate()}
           />
         </>
       )}

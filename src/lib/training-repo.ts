@@ -236,16 +236,24 @@ export async function loadProgramFor(
   if (resolvedCourseId) {
     programQuery = programQuery.eq("course_id", resolvedCourseId);
   }
-  let { data: program, error: programError } = await programQuery.maybeSingle();
-  if (programError) throw programError;
+  const latest = await programQuery.order("generated_at", { ascending: false }).limit(1);
+  let program = latest.data?.[0] ?? null;
+  if (latest.error) {
+    if (!isMissingSchemaColumn(latest.error, "generated_at")) throw latest.error;
+    let fallbackQuery = supabase.from("training_programs").select("*").eq("user_id", userId);
+    if (resolvedCourseId) fallbackQuery = fallbackQuery.eq("course_id", resolvedCourseId);
+    const fallback = await fallbackQuery.limit(1);
+    if (fallback.error) throw fallback.error;
+    program = fallback.data?.[0] ?? null;
+  }
   if (!program && resolvedCourseId) {
     const legacy = await supabase
       .from("training_programs")
       .select("*")
       .eq("user_id", userId)
-      .maybeSingle();
+      .limit(1);
     if (legacy.error) throw legacy.error;
-    program = legacy.data;
+    program = legacy.data?.[0] ?? null;
   }
   if (!program) return { program: null, days: [] };
 

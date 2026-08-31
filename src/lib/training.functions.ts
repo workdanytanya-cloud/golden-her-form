@@ -9,7 +9,11 @@ import {
   type ProgramDay,
   type ProgramInput,
 } from "@/lib/training";
-import { COACH_PROGRAM_WEEKS, resolveDefaultTrainingProgram } from "@/lib/coach-sheet-program";
+import {
+  COACH_PROGRAM_WEEKS,
+  resolveAdaptiveTrainingProgram,
+  summarizeTrainingPlan,
+} from "@/lib/coach-sheet-program";
 import { persistProgramWithDaysForClient } from "@/lib/training-persist";
 
 const programInputSchema = z.object({
@@ -62,7 +66,7 @@ async function resolveTrainingPlanAdmin(
       // fallback ниже
     }
   }
-  return resolveDefaultTrainingProgram(exercises, input);
+  return resolveAdaptiveTrainingProgram(exercises, input);
 }
 
 /** Сгенерировать 4-недельный черновик на сервере (service role) и сохранить. */
@@ -145,12 +149,19 @@ export const adminRegenerateTrainingProgram = createServerFn({ method: "POST" })
       { skipRpc: true, skipDraftRpc: true },
     );
 
+    const summary = summarizeTrainingPlan(plan.days);
+
     return {
       multiWeek,
       programWeeks: weeks,
       dayCount: plan.days.length,
       programId,
       generatedAt,
+      mode: plan.mode,
+      trainingDaysPerWeek: summary.trainingDaysPerWeek,
+      firstDayTitle: summary.firstDayTitle,
+      firstExerciseCount: summary.firstExerciseCount,
+      firstExerciseIds: summary.firstExerciseIds,
     };
   });
 

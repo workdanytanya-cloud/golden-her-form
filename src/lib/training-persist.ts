@@ -181,7 +181,8 @@ export async function persistProgramWithDaysForClient(
   } else {
     existingQuery = existingQuery.is("course_id", null);
   }
-  let { data: existing } = await existingQuery.maybeSingle();
+  const existingRes = await existingQuery.limit(1);
+  let existing = existingRes.data?.[0] ?? null;
 
   // Старая схема: одна строка на user_id без course_id — обновляем её.
   if (!existing?.id) {
@@ -189,8 +190,8 @@ export async function persistProgramWithDaysForClient(
       .from("training_programs")
       .select("id")
       .eq("user_id", userId)
-      .maybeSingle();
-    existing = legacy.data;
+      .limit(1);
+    existing = legacy.data?.[0] ?? null;
   }
 
   const programId = await upsertTrainingProgram(sb, existing?.id ?? null, payload, programWeeks);
