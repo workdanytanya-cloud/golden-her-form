@@ -46,6 +46,14 @@ export async function listClientCourses(clientId: string): Promise<ClientCourse[
   return (data ?? []) as ClientCourse[];
 }
 
+/** false — таблица client_courses ещё не создана (нужна SQL-миграция). */
+export async function isClientCoursesAvailable(): Promise<boolean> {
+  const { error } = await supabase.from("client_courses" as never).select("id").limit(1);
+  if (error && (isMissingTable(error) || isMissingColumn(error))) return false;
+  if (error) throw error;
+  return true;
+}
+
 export async function getClientCourse(courseId: string): Promise<ClientCourse | null> {
   const { data, error } = await supabase
     .from("client_courses" as never)

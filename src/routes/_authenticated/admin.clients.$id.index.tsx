@@ -216,6 +216,12 @@ function ClientDetail() {
         }
       />
 
+      <AdminCourseManager
+        clientId={id}
+        selectedCourseId={selectedCourseId}
+        onSelectCourse={setSelectedCourseId}
+        onChanged={load}
+      />
 
       <AccessManager
         status={access?.status ?? null}
@@ -224,13 +230,6 @@ function ClientDetail() {
         onGrant={grantAccess}
         onRevoke={revokeAccess}
         loading={updatingAccess}
-      />
-
-      <AdminCourseManager
-        clientId={id}
-        selectedCourseId={selectedCourseId}
-        onSelectCourse={setSelectedCourseId}
-        onChanged={load}
       />
 
       <ProfileEditor

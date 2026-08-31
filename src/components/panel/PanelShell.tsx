@@ -193,20 +193,18 @@ export function PanelHeader({
   description?: string;
   action?: ReactNode;
 }) {
+  const normalizedDescription = description?.replace(/\s+/g, " ").trim();
+
   return (
-    <div className="flex flex-col gap-4 border-b border-gold/10 pb-6 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
-      <div className="min-w-0 w-full flex-1 basis-full lg:basis-0">
+    <div className="space-y-4 border-b border-gold/10 pb-6">
+      <div className="min-w-0">
         <p className="eyebrow">{eyebrow}</p>
         <h1 className="mt-2 break-words font-display text-2xl sm:text-3xl md:text-4xl">{title}</h1>
-        {description && (
-          <p className="mt-2 w-full max-w-2xl whitespace-normal break-words text-sm leading-relaxed text-warm-gray">
-            {description.replace(/\s+/g, " ").trim()}
-          </p>
-        )}
+        {normalizedDescription ? (
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-warm-gray">{normalizedDescription}</p>
+        ) : null}
       </div>
-      {action && (
-        <div className="w-full shrink-0 lg:max-w-md lg:w-auto">{action}</div>
-      )}
+      {action ? <div className="flex flex-wrap gap-2">{action}</div> : null}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   activateClientCourse,
   createClientCourse,
+  isClientCoursesAvailable,
   listClientCourses,
   courseStatusLabel,
   type ClientCourse,
@@ -26,9 +27,17 @@ export function AdminCourseManager({
   const [courses, setCourses] = useState<ClientCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [schemaReady, setSchemaReady] = useState(true);
 
   const load = async () => {
     setLoading(true);
+    const ready = await isClientCoursesAvailable();
+    setSchemaReady(ready);
+    if (!ready) {
+      setCourses([]);
+      setLoading(false);
+      return;
+    }
     const list = await listClientCourses(clientId);
     setCourses(list);
     if (!selectedCourseId && list[0]) onSelectCourse(list[0].id);
@@ -76,6 +85,23 @@ export function AdminCourseManager({
 
   if (loading) {
     return <p className="text-sm text-warm-gray">Загружаем курсы клиента…</p>;
+  }
+
+  if (!schemaReady) {
+    return (
+      <div className="space-y-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+        <h3 className="font-display text-lg text-foreground">Курсы (4 недели)</h3>
+        <p className="text-sm leading-relaxed text-warm-gray">
+          Раздел пока не активен: в Supabase не применена миграция{" "}
+          <code className="rounded bg-background/60 px-1 py-0.5 text-xs">client_courses</code>. Откройте
+          SQL Editor проекта и выполните файл{" "}
+          <code className="rounded bg-background/60 px-1 py-0.5 text-xs">
+            supabase/migrations/20260831120000_client_courses.sql
+          </code>
+          , затем обновите страницу.
+        </p>
+      </div>
+    );
   }
 
   return (

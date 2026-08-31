@@ -29,6 +29,7 @@
     "exercises:import-logpress": "echo Skip: machine-translated LogPress dump disabled — use exercises:import-sheet && exit 1",
     "coach:apply": "node --env-file=.env scripts/apply-coach-sheet-program.mjs",
     "nutrition:apply-seed": "node --env-file=.env scripts/apply-nutrition-constructor-seed.mjs",
+    "db:apply-client-courses": "node --env-file=.env scripts/apply-client-courses.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
