@@ -172,7 +172,7 @@ function AdminDishes() {
       <PanelHeader
         eyebrow="Библиотека"
         title="Рационы"
-        description="Общая библиотека и рационы столов Певзнера №1–15. Фото, видео-рецепты, состав и КБЖУ."
+        description="Общая библиотека и рационы столов Певзнера №1–15. Фото, видео-рецепты, состав и KBJU."
         action={
           <button
             onClick={() => setEditing({ ...emptyDish })}

@@ -1,6 +1,6 @@
 /**
  * Белый список продуктов конструктора рационов.
- * КБЖU verified — USDA FoodData Central (SR Legacy / Foundation).
+ * KBJU verified — USDA FoodData Central (SR Legacy / Foundation).
  * is_verified=false — требуется этикетка конкретной упаковки.
  */
 export type SeedProduct = {

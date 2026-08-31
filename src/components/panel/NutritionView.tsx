@@ -323,7 +323,7 @@ function MealDialog({
   const [tab, setTab] = useState<"recipe" | "swap" | "adjust">("recipe");
   const [portion, setPortion] = useState(meal.portion_g);
   const [note, setNote] = useState(meal.note ?? "");
-  /** Просмотр варианта замены (рецепт + КБЖУ) без смены блюда в плане */
+  /** Просмотр варианта замены (рецепт + KBJU) без смены блюда в плане */
   const [preview, setPreview] = useState<{ dish: Dish; portion_g: number } | null>(null);
 
   const replacements = useMemo(() => {
@@ -495,7 +495,7 @@ function MealDialog({
             <p className="text-xs text-warm-gray">
               {editable
                 ? "Нажмите на блюдо, чтобы открыть рецепт. Кнопка «Заменить» подставит его в меню."
-                : "Нажмите на вариант — откроются рецепт и полные данные по КБЖУ."}
+                : "Нажмите на вариант — откроются рецепт и полные данные по KBJU."}
             </p>
             {replacements.slice(0, 8).map((d) => {
               const rep_portion = Math.max(

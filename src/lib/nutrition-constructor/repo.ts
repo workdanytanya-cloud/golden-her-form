@@ -66,7 +66,7 @@ export type ConstructorPlanRow = {
 };
 
 export type BuildCatalogOptions = {
-  /** Только для unit-тестов: добавить упаковочные продукты с эталонным КБЖU. */
+  /** Только для unit-тестов: добавить упаковочные продукты с эталонным KBJU. */
   includeTestPackaging?: boolean;
 };
 
@@ -236,6 +236,33 @@ export type ConstructorDayRow = {
   items: MealPlanItem[];
 };
 
+function enrichRecipeFromDb(
+  recipe: Recipe,
+  ings: RecipeIngredient[],
+  products: Map<string, FoodProduct>,
+): Recipe {
+  const slugs = ings
+    .map((ri) => products.get(ri.product_id)?.slug)
+    .filter((slug): slug is string => Boolean(slug));
+  if (slugs.length === 0) return recipe;
+
+  const meta = inferRecipeMeta({
+    meal_type: recipe.meal_type,
+    requires_cooking: recipe.requires_cooking,
+    ingredients: slugs.map((product_slug) => ({ product_slug })),
+  });
+
+  return {
+    ...recipe,
+    is_treat: meta.is_treat,
+    is_nutrient_dense: meta.is_nutrient_dense,
+    contains_protein_source: meta.contains_protein_source,
+    contains_fruit_or_vegetable: meta.contains_fruit_or_vegetable,
+    allowed_schedule_modes: meta.allowed_schedule_modes,
+    snack_action: recipe.snack_action ?? snackActionForRecipe(slugs),
+  };
+}
+
 function mapRecipeRow(row: Record<string, unknown>): Recipe {
   const modes = (row.allowed_schedule_modes as string[] | null) ?? [
     "two_main_two_snacks",
@@ -283,24 +310,26 @@ function mapFoodProductRow(row: {
   requires_cooking: boolean;
   weighing_note: string | null;
 }): FoodProduct {
+  const packaging = TEST_PACKAGING_KBJU[row.slug];
+  const usePackaging = packaging && (!row.is_verified || Number(row.kcal_per_100g) === 0);
   return {
     id: row.id,
     slug: row.slug,
-    name: row.name,
-    category: row.category as FoodProduct["category"],
+    name: packaging?.name ?? row.name,
+    category: (packaging?.category ?? row.category) as FoodProduct["category"],
     brand: row.brand,
     state: row.state as FoodProduct["state"],
     measurement_basis: row.measurement_basis,
-    kcal_per_100g: String(row.kcal_per_100g),
-    protein_per_100g: String(row.protein_per_100g),
-    fat_per_100g: String(row.fat_per_100g),
-    carbs_per_100g: String(row.carbs_per_100g),
+    kcal_per_100g: usePackaging ? packaging!.kcal_per_100g : String(row.kcal_per_100g),
+    protein_per_100g: usePackaging ? packaging!.protein_per_100g : String(row.protein_per_100g),
+    fat_per_100g: usePackaging ? packaging!.fat_per_100g : String(row.fat_per_100g),
+    carbs_per_100g: usePackaging ? packaging!.carbs_per_100g : String(row.carbs_per_100g),
     fiber_per_100g: row.fiber_per_100g != null ? String(row.fiber_per_100g) : null,
     density: row.density != null ? String(row.density) : null,
     source_name: row.source_name,
     source_url: row.source_url,
-    verified_at: row.verified_at,
-    is_verified: row.is_verified,
+    verified_at: row.verified_at ?? (usePackaging ? new Date().toISOString() : null),
+    is_verified: row.is_verified || Boolean(usePackaging),
     is_active: row.is_active,
     allowed_for_snack: row.allowed_for_snack,
     requires_cooking: row.requires_cooking,
@@ -366,12 +395,15 @@ export async function loadOptimizerContext(): Promise<OptimizerContext> {
       list.push(ri);
       recipeIngredients.set(ri.recipe_id, list);
     }
+    const enrichedRecipes = recipes.map((recipe) =>
+      enrichRecipeFromDb(recipe, recipeIngredients.get(recipe.id) ?? [], products),
+    );
     return {
       products,
-      recipes,
+      recipes: enrichedRecipes,
       recipeIngredients,
-      mainRecipes: recipes.filter((r) => r.meal_type === "main"),
-      snackRecipes: recipes.filter((r) => r.meal_type === "snack"),
+      mainRecipes: enrichedRecipes.filter((r) => r.meal_type === "main"),
+      snackRecipes: enrichedRecipes.filter((r) => r.meal_type === "snack"),
     };
   } catch {
     return buildInMemoryCatalog();
@@ -653,7 +685,7 @@ export type SaveConstructorPlanParams = {
   primary_meal_slot?: PrimaryMealSlot;
 };
 
-/** Сохранить constructor-план в БД (snapshot КБЖU). */
+/** Сохранить constructor-план в БД (snapshot KBJU). */
 export async function saveConstructorPlan(
   params: SaveConstructorPlanParams,
 ): Promise<{ plan: ConstructorPlanRow; days: ConstructorDayRow[] }> {

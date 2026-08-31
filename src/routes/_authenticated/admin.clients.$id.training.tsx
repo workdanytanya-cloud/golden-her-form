@@ -101,7 +101,7 @@ function AdminTrainingPage() {
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, courseId]);
 
   const handleRegenerate = async (overrides?: Partial<ProgramInput>) => {
     if (!profile) return;
@@ -122,6 +122,7 @@ function AdminTrainingPage() {
       const plan = resolveDefaultTrainingProgram(exercises, input);
       const result = await createOrReplaceCustomProgram({
         userId: id,
+        courseId,
         input,
         days: plan.days,
         programWeeks: plan.programWeeks,
@@ -222,6 +223,7 @@ function AdminTrainingPage() {
       const customDays = buildCoachSheetProgramDays(exercises, input);
       const result = await createOrReplaceCustomProgram({
         userId: id,
+        courseId,
         input: { ...input, sessions_per_week: 3 },
         days: customDays,
         programWeeks: COACH_PROGRAM_WEEKS,

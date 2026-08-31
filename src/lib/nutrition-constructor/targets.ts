@@ -94,7 +94,7 @@ export function clampAdjustmentPct(pct: number): number {
   return Math.min(ADJUSTMENT_PCT_MAX, Math.max(ADJUSTMENT_PCT_MIN, pct));
 }
 
-/** Целевые КБЖU с точной арифметикой. */
+/** Целевые KBJU с точной арифметикой. */
 export function calcMacroTargets(p: TargetProfileInput): TargetCalculation {
   const bmr = calcBmr(p);
   const tdee = calcTdee(p);

@@ -85,7 +85,7 @@ function AdminNutritionPage() {
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, courseId]);
 
   const handleGenerate = async (opts: {
     mealsPerDay: 3 | 5;
@@ -284,7 +284,7 @@ function AdminNutritionPage() {
               return;
             }
 
-            // If any target actually changed, regenerate the menu so KБЖУ per day
+            // If any target actually changed, regenerate the menu so KBJU per day
             // matches the new targets and totals stay consistent.
             const changed =
               targets.kcal !== plan.target_kcal ||
@@ -385,7 +385,7 @@ function TargetsEditor({
     <section className="rounded-3xl border border-gold/15 bg-surface/40 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-widest text-warm-gray">Целевые КБЖУ</p>
+          <p className="text-[11px] uppercase tracking-widest text-warm-gray">Целевые KBJU</p>
           <p className="mt-1 text-sm text-warm-gray">
             Автосчёт по анкете: <b className="text-ivory">{suggested.kcal}</b> ккал · Б{" "}
             {suggested.protein_g} · Ж {suggested.fat_g} · У {suggested.carbs_g}

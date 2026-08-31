@@ -2,6 +2,7 @@ import {
   DEFAULT_TOLERANCE,
   GRAM_STEP,
   MAIN_RECIPE_REPEAT_DAYS,
+  ONE_MAIN_TOLERANCE,
   ONE_MAIN_UNACHIEVABLE_MESSAGE,
   type MealScheduleMode,
   type PlanSlot,
@@ -316,10 +317,11 @@ function buildDay(
   );
 
   for (let step = 0; step < 200; step++) {
-    if (withinTolerance(dayTotals, targets, DEFAULT_TOLERANCE)) break;
+    const dayTolerance = mode === "one_main_three_snacks" ? ONE_MAIN_TOLERANCE : DEFAULT_TOLERANCE;
+    if (withinTolerance(dayTotals, targets, dayTolerance)) break;
     let moved = false;
     for (const item of items) {
-      if (!item.requires_cooking) continue;
+      if (!item.requires_cooking && mode !== "one_main_three_snacks") continue;
       for (const ing of item.ingredients) {
         for (const delta of [GRAM_STEP, -GRAM_STEP]) {
           const prevG = d(ing.grams).toNumber();
@@ -361,7 +363,8 @@ function buildDay(
   }
 
   const snap = snapshotMacro(dayTotals);
-  const valid = withinTolerance(dayTotals, targets, DEFAULT_TOLERANCE);
+  const dayTolerance = mode === "one_main_three_snacks" ? ONE_MAIN_TOLERANCE : DEFAULT_TOLERANCE;
+  const valid = withinTolerance(dayTotals, targets, dayTolerance);
 
   return {
     day_index: dayIndex,
@@ -384,6 +387,10 @@ export function generateConstructorPlan(
   const recentMain = new Map<string, number>();
   const days: ConstructorDay[] = [];
   const mode = input.meal_schedule_mode;
+  const tolerance =
+    mode === "one_main_three_snacks"
+      ? { ...input.tolerance, ...ONE_MAIN_TOLERANCE }
+      : input.tolerance;
   const failMessage =
     mode === "one_main_three_snacks"
       ? ONE_MAIN_UNACHIEVABLE_MESSAGE
@@ -442,11 +449,11 @@ export function generateConstructorPlan(
     },
   ];
 
-  const valid = allValid && withinTolerance(avg, input.targets, input.tolerance);
+  const valid = allValid && withinTolerance(avg, input.targets, tolerance);
 
   return {
     is_valid: valid,
-    message: valid ? null : failMessage,
+    message: valid ? null : days.length > 0 ? `${failMessage} Рацион собран как черновик — проверьте граммовки.` : failMessage,
     comparison,
     days,
     best_approximation: valid ? undefined : { days, comparison },

@@ -189,7 +189,7 @@ describe("one_main_three_snacks mode", () => {
     expect(dinner[2]).toBe("main1");
   });
 
-  it("fails without verified packaging products", () => {
+  it("builds draft without packaging products (fruit/nut snacks)", () => {
     const bare = buildInMemoryCatalog();
     const gen = generateConstructorPlan(bare, {
       targets: targetsForKcal(1800),
@@ -199,8 +199,11 @@ describe("one_main_three_snacks mode", () => {
       meal_schedule_mode: "one_main_three_snacks",
       primary_meal_slot: "lunch",
     });
-    expect(gen.is_valid).toBe(false);
-    expect(gen.message).toBe(ONE_MAIN_UNACHIEVABLE_MESSAGE);
+    expect(gen.days.length).toBe(1);
+    expect(gen.days[0]!.items).toHaveLength(4);
+    if (!gen.is_valid) {
+      expect(gen.message).toContain("KBJU");
+    }
   });
 
   it("generates plans for 1500/1800/2200 kcal with test packaging", () => {

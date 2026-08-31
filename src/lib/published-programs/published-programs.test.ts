@@ -372,7 +372,7 @@ describe("immutable published programs", () => {
     expect(afterFail.nutritionVersions.filter((v) => v.status === "published")).toHaveLength(1);
   });
 
-  it("16. изменение КБЖУ продукта не меняет сохранённый snapshot", () => {
+  it("16. изменение KBJU продукта не меняет сохранённый snapshot", () => {
     const snap = sampleNutrition();
     const hash = contentHash(snap);
     snap.constructor_days[0]!.items[0]!.ingredients[0]!.kcal_per_100g = "350";

@@ -1228,7 +1228,7 @@ function ExerciseDialog({
               />
             )}
             <p className="text-xs text-warm-gray">
-              Замены в той же категории. КБЖУ дня не завязано на упражнения — заменяем свободно.
+              Замены в той же категории. KBJU дня не завязано на упражнения — заменяем свободно.
             </p>
             {replacements.slice(0, 12).map((e) => (
               <button

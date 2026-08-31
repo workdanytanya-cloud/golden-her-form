@@ -348,7 +348,7 @@ export function ConstructorAdminPanel({
       <div>
         <p className="text-[11px] uppercase tracking-widest text-gold">Конструктор рациона</p>
         <p className="mt-1 text-sm text-warm-gray">
-          Точный расчёт КБЖU · только разрешённые продукты · два режима структуры дня
+          Точный расчёт KBJU · только разрешённые продукты · два режима структуры дня
         </p>
         {publishedVersion != null && (
           <p className="mt-2 rounded-xl border border-gold/20 bg-gold/5 px-3 py-2 text-xs text-warm-gray">
@@ -482,7 +482,7 @@ export function ConstructorAdminPanel({
             />
           )}
           <p className="sm:col-span-2 text-xs text-warm-gray">
-            Валидация КБЖU:{" "}
+            Валидация KBJU:{" "}
             <span className={planStatus === "validated" ? "text-gold" : "text-coral"}>
               {planStatus === "validated" ? "пройдена" : "не пройдена"}
             </span>

@@ -31,7 +31,7 @@ function NutritionPage() {
       <PanelHeader
         eyebrow={selectedCourse?.title ?? "Курс"}
         title="Питание"
-        description="Индивидуальный рацион от тренера: 4 приёма в день с точными граммовками и КБЖU."
+        description="Индивидуальный рацион от тренера: 4 приёма в день с точными граммовками и KBJU."
       />
       <AccessGate level="active">
         <div className="space-y-6">
