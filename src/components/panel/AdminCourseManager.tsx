@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarPlus, CheckCircle2, Play } from "lucide-react";
+import { CalendarPlus, CheckCircle2, Play, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   activateClientCourse,
   createClientCourse,
+  deleteClientCourseDraft,
   isClientCoursesAvailable,
   listClientCourses,
   courseStatusLabel,
@@ -21,7 +22,7 @@ export function AdminCourseManager({
 }: {
   clientId: string;
   selectedCourseId: string | null;
-  onSelectCourse: (id: string) => void;
+  onSelectCourse: (id: string | null) => void;
   onChanged: () => void;
 }) {
   const { user } = useAuth();
@@ -59,7 +60,7 @@ export function AdminCourseManager({
         cloneFromCourseId: selectedCourseId,
         activate,
       });
-      toast.success(activate ? "Новый курс активирован" : "Новый курс создан (черновик)");
+      toast.success(activate ? "Новый курс активирован" : "Черновик готов");
       onSelectCourse(created.id);
       await load();
       onChanged();
@@ -90,6 +91,22 @@ export function AdminCourseManager({
       onChanged();
     } catch (e) {
       toast.error(errorMessage(e, "Ошибка активации"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeDraft = async (courseId: string) => {
+    if (!window.confirm("Удалить этот черновик? Действие необратимо.")) return;
+    setBusy(true);
+    try {
+      await deleteClientCourseDraft(courseId, clientId);
+      if (selectedCourseId === courseId) onSelectCourse(null);
+      toast.success("Черновик удалён");
+      await load();
+      onChanged();
+    } catch (e) {
+      toast.error(errorMessage(e, "Не удалось удалить черновик"));
     } finally {
       setBusy(false);
     }
@@ -144,10 +161,17 @@ export function AdminCourseManager({
 
       {courses.length === 0 ? (
         <p className="text-sm text-warm-gray">
-          Курсов пока нет. Создайте первый — контент скопируется из текущих программ после миграции.
+          Курсов пока нет. Создайте первый — контент скопируется из текущих программ.
         </p>
       ) : (
-        <ul className="space-y-2">
+        <>
+          {courses.filter((c) => c.status === "draft").length > 1 ? (
+            <p className="text-xs leading-relaxed text-warm-gray">
+              Несколько черновиков на одну дату — это следствие прошлых ошибок при создании. Оставьте
+              один и удалите лишние кнопкой «Удалить».
+            </p>
+          ) : null}
+          <ul className="space-y-2">
           {courses.map((c) => {
             const selected = c.id === selectedCourseId;
             return (
@@ -184,6 +208,17 @@ export function AdminCourseManager({
                       Активный
                     </span>
                   )}
+                  {c.status === "draft" ? (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void removeDraft(c.id)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-coral/30 px-2.5 py-1 text-xs text-coral hover:bg-coral/10"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Удалить
+                    </button>
+                  ) : null}
                   <Link
                     to="/admin/clients/$id/training"
                     params={{ id: clientId }}
@@ -205,6 +240,7 @@ export function AdminCourseManager({
             );
           })}
         </ul>
+        </>
       )}
     </div>
   );

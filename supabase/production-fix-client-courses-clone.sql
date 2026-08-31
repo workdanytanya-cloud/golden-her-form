@@ -1,5 +1,6 @@
--- Production: если «Новый курс» падает с duplicate key на nutrition_plans — выполните в SQL Editor.
--- Разрешает несколько планов питания у одного клиента (по одному на курс).
+-- Production: duplicate key при «Новый курс» + право удалять черновики.
+
+GRANT DELETE ON public.client_courses TO authenticated;
 
 ALTER TABLE public.nutrition_plans
   DROP CONSTRAINT IF EXISTS nutrition_plans_user_id_key;

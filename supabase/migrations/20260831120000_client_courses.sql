@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.client_courses (
 CREATE INDEX IF NOT EXISTS client_courses_client_start_idx
   ON public.client_courses (client_id, start_date DESC);
 
-GRANT SELECT, INSERT, UPDATE ON public.client_courses TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.client_courses TO authenticated;
 GRANT ALL ON public.client_courses TO service_role;
 ALTER TABLE public.client_courses ENABLE ROW LEVEL SECURITY;
 

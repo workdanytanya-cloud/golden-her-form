@@ -279,6 +279,29 @@ export async function createClientCourse(params: {
   const title = formatCourseTitle(start, courseEndDate(start));
   const status: ClientCourseStatus = params.activate ? "active" : "draft";
 
+  const resolveSourceId = async (excludeId?: string) =>
+    params.cloneFromCourseId ??
+    (
+      await listClientCourses(params.clientId).then((list) =>
+        list.find((c) => c.id !== excludeId && c.status !== "draft"),
+      )
+    )?.id ??
+    null;
+
+  if (!params.activate) {
+    const existingDraft = await findDraftForStart(params.clientId, startIso);
+    if (existingDraft) {
+      const sourceId = await resolveSourceId(existingDraft.id);
+      if (sourceId && !(await courseHasLinkedContent(existingDraft.id))) {
+        const cloneErrors = await cloneFromSource(sourceId, existingDraft.id, params.clientId);
+        if (cloneErrors.length > 0) {
+          throw new Error(`Черновик уже есть, но копирование не удалось (${cloneErrors.join("; ")})`);
+        }
+      }
+      return existingDraft;
+    }
+  }
+
   if (params.activate) {
     await supabase
       .from("client_courses" as never)
@@ -304,31 +327,18 @@ export async function createClientCourse(params: {
   if (error) throw error;
   const created = course as ClientCourse;
 
-  const sourceId =
-    params.cloneFromCourseId ??
-    (
-      await listClientCourses(params.clientId).then((list) =>
-        list.find((c) => c.id !== created.id && c.status !== "draft"),
-      )
-    )?.id ??
-    null;
+  const sourceId = await resolveSourceId(created.id);
 
   if (sourceId) {
-    const cloneErrors: string[] = [];
-    try {
-      await cloneTrainingProgram(sourceId, created.id, params.clientId);
-    } catch (e) {
-      cloneErrors.push(`тренировки: ${errorMessage(e, "не скопированы")}`);
-    }
-    try {
-      await cloneNutritionPlan(sourceId, created.id, params.clientId);
-    } catch (e) {
-      cloneErrors.push(`питание: ${errorMessage(e, "не скопировано")}`);
-    }
+    const cloneErrors = await cloneFromSource(sourceId, created.id, params.clientId);
     if (cloneErrors.length > 0) {
+      const hasContent = await courseHasLinkedContent(created.id);
+      if (!hasContent) {
+        await deleteClientCourseRow(created.id);
+        throw new Error(`Не удалось создать курс (${cloneErrors.join("; ")})`);
+      }
       const err = new Error(
-        `Курс создан, но не всё скопировалось (${cloneErrors.join("; ")}). ` +
-          "Если видите duplicate key — выполните supabase/production-fix-client-courses-clone.sql в Supabase.",
+        `Курс создан, но не всё скопировалось (${cloneErrors.join("; ")}).`,
       );
       (err as Error & { partial?: boolean; course?: ClientCourse }).partial = true;
       (err as Error & { partial?: boolean; course?: ClientCourse }).course = created;
@@ -370,4 +380,65 @@ export async function archiveClientCourse(courseId: string): Promise<void> {
     .update({ status: "archived" } as never)
     .eq("id", courseId);
   if (error) throw error;
+}
+
+async function findDraftForStart(clientId: string, startIso: string): Promise<ClientCourse | null> {
+  const { data, error } = await supabase
+    .from("client_courses" as never)
+    .select("*")
+    .eq("client_id", clientId)
+    .eq("status", "draft")
+    .eq("start_date", startIso)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error && (isMissingTable(error) || isMissingColumn(error))) return null;
+  if (error) throw error;
+  return (data as ClientCourse | null) ?? null;
+}
+
+async function courseHasLinkedContent(courseId: string): Promise<boolean> {
+  const [training, nutrition] = await Promise.all([
+    supabase.from("training_programs").select("id").eq("course_id", courseId).limit(1),
+    supabase.from("nutrition_plans").select("id").eq("course_id", courseId).limit(1),
+  ]);
+  if (training.error && !isMissingColumn(training.error)) throw training.error;
+  if (nutrition.error && !isMissingColumn(nutrition.error)) throw nutrition.error;
+  return Boolean(training.data?.length || nutrition.data?.length);
+}
+
+async function deleteClientCourseRow(courseId: string): Promise<void> {
+  const { error } = await supabase.from("client_courses" as never).delete().eq("id", courseId);
+  if (error) throw error;
+}
+
+/** Удалить черновик курса (лишние дубликаты после неудачного создания). */
+export async function deleteClientCourseDraft(courseId: string, clientId: string): Promise<void> {
+  const course = await getClientCourse(courseId);
+  if (!course || course.client_id !== clientId) {
+    throw new Error("Курс не найден");
+  }
+  if (course.status !== "draft") {
+    throw new Error("Удалить можно только черновик");
+  }
+  await deleteClientCourseRow(courseId);
+}
+
+async function cloneFromSource(
+  sourceId: string,
+  targetCourseId: string,
+  clientId: string,
+): Promise<string[]> {
+  const cloneErrors: string[] = [];
+  try {
+    await cloneTrainingProgram(sourceId, targetCourseId, clientId);
+  } catch (e) {
+    cloneErrors.push(`тренировки: ${errorMessage(e, "не скопированы")}`);
+  }
+  try {
+    await cloneNutritionPlan(sourceId, targetCourseId, clientId);
+  } catch (e) {
+    cloneErrors.push(`питание: ${errorMessage(e, "не скопировано")}`);
+  }
+  return cloneErrors;
 }
