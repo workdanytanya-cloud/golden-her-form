@@ -24,6 +24,7 @@ import {
   type Dish,
 } from "@/lib/nutrition-repo";
 import { calcTargets, type Slot, type NutritionTargets } from "@/lib/nutrition";
+import { roundTargetsForDb } from "@/lib/nutrition-constructor/decimal-math";
 import { mergeUnique, normalizeFoodTerms } from "@/lib/food-products";
 import {
   decodePlanMeta,
@@ -267,14 +268,15 @@ function AdminNutritionPage() {
           plan={plan}
           suggested={suggested}
           onSave={async (targets, manual, notes) => {
+            const dbTargets = roundTargetsForDb(targets);
             // Save the new targets + notes first
             const { error } = await supabase
               .from("nutrition_plans")
               .update({
-                target_kcal: targets.kcal,
-                target_protein_g: targets.protein_g,
-                target_fat_g: targets.fat_g,
-                target_carbs_g: targets.carbs_g,
+                target_kcal: dbTargets.kcal,
+                target_protein_g: dbTargets.protein_g,
+                target_fat_g: dbTargets.fat_g,
+                target_carbs_g: dbTargets.carbs_g,
                 targets_manual: manual,
                 notes,
               })
@@ -287,10 +289,10 @@ function AdminNutritionPage() {
             // If any target actually changed, regenerate the menu so KBJU per day
             // matches the new targets and totals stay consistent.
             const changed =
-              targets.kcal !== plan.target_kcal ||
-              targets.protein_g !== plan.target_protein_g ||
-              targets.fat_g !== plan.target_fat_g ||
-              targets.carbs_g !== plan.target_carbs_g;
+              dbTargets.kcal !== plan.target_kcal ||
+              dbTargets.protein_g !== plan.target_protein_g ||
+              dbTargets.fat_g !== plan.target_fat_g ||
+              dbTargets.carbs_g !== plan.target_carbs_g;
 
             if (changed) {
               try {
@@ -299,7 +301,7 @@ function AdminNutritionPage() {
                   mealsPerDay: (plan.meals_per_day as 3 | 5) ?? 5,
                   preferred: plan.preferred_products ?? [],
                   excluded: [...(plan.excluded_products ?? []), ...autoExcluded],
-                  targets,
+                  targets: dbTargets,
                   targetsManual: manual,
                   dishes: await loadDishes(),
                 });

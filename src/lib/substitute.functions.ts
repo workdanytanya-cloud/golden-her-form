@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertAdmin } from "@/lib/server/assert-admin";
 import { buildClientProfile } from "@/lib/personalization/client-profile";
 import { suggestExerciseSubstitutes, type SubstituteReason } from "@/lib/personalization/substitute-engine";
 import type { Exercise, ExerciseSet } from "@/lib/training";
@@ -23,17 +24,8 @@ const applyInputSchema = z.object({
   newExerciseId: z.string().uuid(),
 });
 
-async function assertAdmin(ctx: { supabase: { rpc: Function }; userId: string }) {
-  const { data, error } = await ctx.supabase.rpc("has_role", {
-    _user_id: ctx.userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
-}
-
 async function resolveTargetUserId(
-  context: { userId: string; supabase: { rpc: Function } },
+  context: { userId: string; supabase: Parameters<typeof assertAdmin>[0]["supabase"] },
   requested?: string,
 ): Promise<string> {
   if (!requested || requested === context.userId) return context.userId;

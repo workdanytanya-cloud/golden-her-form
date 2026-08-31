@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertAdmin } from "@/lib/server/assert-admin";
 import { z } from "zod";
 import {
   defaultFaq,
@@ -22,15 +23,6 @@ const programInputSchema = z.object({
   weight_kg: z.number().nullable().optional(),
   gender: z.enum(["female", "male"]).nullable().optional(),
 });
-
-async function assertAdmin(ctx: { supabase: any; userId: string }) {
-  const { data, error } = await ctx.supabase.rpc("has_role", {
-    _user_id: ctx.userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
-}
 
 function mapDayRows(days: ProgramDay[]) {
   return days.map((d) => ({
@@ -228,4 +220,80 @@ export const adminSaveTrainingProgramDraft = createServerFn({ method: "POST" })
     );
 
     return { multiWeek, programWeeks: weeks };
+  });
+
+export const adminPatchTrainingProgram = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => {
+    const schema = z.object({
+      programId: z.string().uuid(),
+      patch: z.object({
+        notes: z.string().nullable().optional(),
+        faq: z.array(z.record(z.string(), z.unknown())).nullable().optional(),
+        sessions_per_week: z.union([z.literal(3), z.literal(4)]).optional(),
+        goal: z.string().optional(),
+        level: z.string().optional(),
+        targets_manual: z.boolean().optional(),
+      }),
+    });
+    return schema.parse(input);
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const dbPatch: Record<string, unknown> = { ...data.patch };
+    if (dbPatch.faq != null) dbPatch.faq = dbPatch.faq as never;
+    const { error } = await supabaseAdmin
+      .from("training_programs")
+      .update(dbPatch as never)
+      .eq("id", data.programId);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const adminPatchTrainingDay = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => {
+    const schema = z.object({
+      programId: z.string().uuid(),
+      weekIndex: z.number().int().min(0),
+      dayIndex: z.number().int().min(0).max(6),
+      patch: z.object({
+        title: z.string().optional(),
+        focus: z.string().nullable().optional(),
+        description: z.string().nullable().optional(),
+        is_rest: z.boolean().optional(),
+        warmup: z.array(z.unknown()).optional(),
+        exercises: z.array(z.unknown()).optional(),
+        cooldown: z.array(z.unknown()).optional(),
+        day_note: z.string().nullable().optional(),
+      }),
+      lockManual: z.boolean().optional(),
+    });
+    return schema.parse(input);
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const dbPatch: Record<string, unknown> = { ...data.patch };
+    let query = supabaseAdmin
+      .from("training_program_days")
+      .update(dbPatch as never)
+      .eq("program_id", data.programId)
+      .eq("day_index", data.dayIndex);
+    if (data.weekIndex > 0) {
+      query = query.eq("week_index", data.weekIndex);
+    }
+    const { data: rows, error } = await query.select("id");
+    if (error) throw error;
+    if (!rows?.length) throw new Error("День программы не найден — изменения не сохранились");
+
+    if (data.lockManual !== false) {
+      const { error: lockErr } = await supabaseAdmin
+        .from("training_programs")
+        .update({ targets_manual: true })
+        .eq("id", data.programId);
+      if (lockErr) throw lockErr;
+    }
+    return { ok: true };
   });

@@ -10,9 +10,6 @@ import {
   loadExercises,
   loadProgramFor,
   loadProgramProfile,
-  updateDayPatch,
-  updateProgramPatch,
-  lockProgramManual,
   type ProgramRow,
   type DayRow,
   type Exercise,
@@ -26,7 +23,11 @@ import {
   GOAL_LABEL,
 } from "@/lib/training";
 import { loadPublishedTrainingFor, publishTrainingProgram } from "@/lib/published-programs/repo";
-import { adminRegenerateTrainingProgram } from "@/lib/training.functions";
+import {
+  adminPatchTrainingDay,
+  adminPatchTrainingProgram,
+  adminRegenerateTrainingProgram,
+} from "@/lib/training.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/training")({
   component: AdminTrainingPage,
@@ -64,6 +65,8 @@ function AdminTrainingPage() {
   const [savingDayKey, setSavingDayKey] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const regenerateTraining = useServerFn(adminRegenerateTrainingProgram);
+  const patchTrainingProgram = useServerFn(adminPatchTrainingProgram);
+  const patchTrainingDay = useServerFn(adminPatchTrainingDay);
 
   const reload = async () => {
     setLoading(true);
@@ -226,17 +229,23 @@ function AdminTrainingPage() {
       const key = dayKey(weekIndex, dayIndex);
       setSavingDayKey(key);
       try {
-        await updateDayPatch(program.id, weekIndex, dayIndex, {
-          title: day.title,
-          focus: day.focus,
-          description: day.description,
-          is_rest: day.is_rest,
-          warmup: day.warmup,
-          exercises: day.exercises,
-          cooldown: day.cooldown,
-          day_note: day.day_note,
+        await patchTrainingDay({
+          data: {
+            programId: program.id,
+            weekIndex,
+            dayIndex,
+            patch: {
+              title: day.title,
+              focus: day.focus,
+              description: day.description,
+              is_rest: day.is_rest,
+              warmup: day.warmup,
+              exercises: day.exercises,
+              cooldown: day.cooldown,
+              day_note: day.day_note,
+            },
+          },
         });
-        await lockProgramManual(program.id);
         setProgram((p) => (p ? { ...p, targets_manual: true } : p));
         setDirtyDays((cur) => {
           const next = new Set(cur);
@@ -251,7 +260,7 @@ function AdminTrainingPage() {
         setSavingDayKey(null);
       }
     },
-    [program, days],
+    [program, days, patchTrainingDay],
   );
 
   const handleDayPatch = async (
@@ -265,7 +274,12 @@ function AdminTrainingPage() {
   const handleProgramPatch = async (patch: { notes?: string | null; faq?: FaqItem[] }) => {
     if (!program) return;
     try {
-      await updateProgramPatch(program.id, { ...patch, targets_manual: true });
+      await patchTrainingProgram({
+        data: {
+          programId: program.id,
+          patch: { ...patch, targets_manual: true },
+        },
+      });
       setProgram((p) =>
         p ? { ...p, ...patch, faq: patch.faq ?? p.faq, targets_manual: true } : p,
       );
@@ -346,7 +360,12 @@ function AdminTrainingPage() {
               await handleRegenerate({ sessions_per_week: sessions, goal, level });
             }}
             onLock={async () => {
-              await updateProgramPatch(program.id, { targets_manual: true });
+              await patchTrainingProgram({
+                data: {
+                  programId: program.id,
+                  patch: { targets_manual: true },
+                },
+              });
               setProgram((p) => (p ? { ...p, targets_manual: true } : p));
               toast.success("Программа зафиксирована для клиента");
             }}
