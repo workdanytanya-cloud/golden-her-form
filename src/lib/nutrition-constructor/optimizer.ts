@@ -18,7 +18,6 @@ import {
 import {
   d,
   displayMacro,
-  macroDiff,
   snapshotMacro,
   sumMacros,
   withinTolerance,
@@ -34,6 +33,17 @@ import type {
   RecipeIngredient,
 } from "@/lib/nutrition-constructor/types";
 import { buildPlanValidationMessage } from "@/lib/nutrition-constructor/validation-messages";
+import {
+  macroDeviationScore,
+  macroPriorities,
+  pickBestRecipe,
+  scoreRecipeForSlot,
+  slotMacroTargets,
+  pickTopProteinMains,
+  isProteinRichRecipe,
+  verifiedIngredients,
+  type MacroPriorities,
+} from "@/lib/nutrition-constructor/recipe-selection";
 
 export type OptimizerContext = {
   products: Map<string, FoodProduct>;
@@ -43,14 +53,12 @@ export type OptimizerContext = {
   snackRecipes: Recipe[];
 };
 
-function deviationScore(actual: MacroBreakdown, target: MacroBreakdown): number {
-  const diff = macroDiff(actual, target);
-  return (
-    diff.kcal.abs().toNumber() * 10 +
-    diff.protein_g.abs().toNumber() * 8 +
-    diff.fat_g.abs().toNumber() * 8 +
-    diff.carbs_g.abs().toNumber() * 8
-  );
+function deviationScore(
+  actual: MacroBreakdown,
+  target: MacroBreakdown,
+  priorities?: MacroPriorities,
+): number {
+  return macroDeviationScore(actual, target, priorities);
 }
 
 function initialGrams(ri: RecipeIngredient): number {
@@ -61,11 +69,13 @@ function initialGrams(ri: RecipeIngredient): number {
 function optimizeMealIngredients(
   ings: RecipeIngredient[],
   products: Map<string, FoodProduct>,
-  slotTargetKcal: number,
+  slotTargets: MacroBreakdown,
+  priorities: MacroPriorities,
   maxShareOfDay?: number,
   dayTargetKcal?: number,
 ): { lines: ReturnType<typeof buildIngredientLine>[]; totals: MacroBreakdown } {
   const grams = ings.map((ri) => initialGrams(ri));
+  const slotTargetKcal = slotTargets.kcal.toNumber();
   const maxKcal =
     maxShareOfDay != null && dayTargetKcal != null ? dayTargetKcal * maxShareOfDay : undefined;
 
@@ -78,7 +88,7 @@ function optimizeMealIngredients(
   };
 
   let { lines, totals } = build();
-  const target = { ...totals, kcal: d(slotTargetKcal) };
+  const target = slotTargets;
 
   for (let pass = 0; pass < 120; pass++) {
     let improved = false;
@@ -96,9 +106,10 @@ function optimizeMealIngredients(
           continue;
         }
         const prevScore =
-          deviationScore(totals, target) + Math.abs(totals.kcal.toNumber() - slotTargetKcal) * 5;
+          deviationScore(totals, target, priorities) +
+          Math.abs(totals.kcal.toNumber() - slotTargetKcal) * 5;
         const nextScore =
-          deviationScore(candidate.totals, target) +
+          deviationScore(candidate.totals, target, priorities) +
           Math.abs(candidate.totals.kcal.toNumber() - slotTargetKcal) * 5;
         if (nextScore < prevScore) {
           lines = candidate.lines;
@@ -113,17 +124,6 @@ function optimizeMealIngredients(
   }
 
   return { lines, totals };
-}
-
-function verifiedIngredients(
-  ctx: OptimizerContext,
-  recipe: Recipe,
-  excluded: Set<string>,
-): RecipeIngredient[] {
-  return (ctx.recipeIngredients.get(recipe.id) ?? []).filter((ri) => {
-    const p = ctx.products.get(ri.product_id);
-    return p && p.is_active && p.is_verified && !excluded.has(p.id);
-  });
 }
 
 function isNutHeavyRecipe(ctx: OptimizerContext, recipe: Recipe): boolean {
@@ -168,42 +168,48 @@ function pickSnackTriplet(
   ctx: OptimizerContext,
   mode: MealScheduleMode,
   dayIndex: number,
+  targets: MacroBreakdown,
+  shares: Record<PlanSlot, number>,
+  excluded: Set<string>,
+  priorities: MacroPriorities,
 ): [Recipe, Recipe, Recipe] | null {
   const pool = snacksForMode(ctx, mode).filter(
-    (r) => verifiedIngredients(ctx, r, new Set()).length > 0,
+    (r) => verifiedIngredients(ctx, r, excluded).length > 0,
   );
   if (pool.length < 3) return null;
 
-  for (let a = 0; a < pool.length; a++) {
-    for (let b = a + 1; b < pool.length; b++) {
-      for (let c = b + 1; c < pool.length; c++) {
-        const triplet = [
-          pool[(a + dayIndex) % pool.length]!,
-          pool[(b + dayIndex) % pool.length]!,
-          pool[(c + dayIndex) % pool.length]!,
-        ];
-        const unique = [...new Set(triplet.map((x) => x.id))];
-        if (unique.length !== 3) continue;
-        if (snackTripletValid(ctx, triplet)) return triplet as [Recipe, Recipe, Recipe];
-      }
-    }
-  }
+  const snackSlots: PlanSlot[] = ["snack1", "snack2", "snack3"];
+  let best: { triplet: [Recipe, Recipe, Recipe]; score: number } | null = null;
 
   for (let i = 0; i < pool.length - 2; i++) {
     for (let j = i + 1; j < pool.length - 1; j++) {
       for (let k = j + 1; k < pool.length; k++) {
-        const triplet = [pool[i]!, pool[j]!, pool[k]!];
-        if (snackTripletValid(ctx, triplet)) return triplet as [Recipe, Recipe, Recipe];
+        const triplet = [pool[i]!, pool[j]!, pool[k]!] as [Recipe, Recipe, Recipe];
+        if (!snackTripletValid(ctx, triplet)) continue;
+        const score = triplet.reduce((sum, recipe, idx) => {
+          const slot = snackSlots[idx]!;
+          const slotTargets = slotMacroTargets(targets, shares[slot]);
+          return (
+            sum +
+            scoreRecipeForSlot(ctx, recipe, slotTargets, excluded, priorities, "snack")
+          );
+        }, 0);
+        if (!best || score < best.score) best = { triplet, score };
       }
     }
   }
-  return null;
+
+  return best?.triplet ?? null;
 }
 
 function pickRecipesForDayTwoMain(
   ctx: OptimizerContext,
   dayIndex: number,
   recentMain: Map<string, number>,
+  targets: MacroBreakdown,
+  shares: Record<PlanSlot, number>,
+  excluded: Set<string>,
+  priorities: MacroPriorities,
 ): { main1: Recipe; main2: Recipe; snack1: Recipe; snack2: Recipe } | null {
   const mains = ctx.mainRecipes.filter((r) => r.is_active);
   const snacks = snacksForMode(ctx, "two_main_two_snacks");
@@ -215,23 +221,107 @@ function pickRecipesForDayTwoMain(
   });
   const mainPool = mainCandidates.length >= 2 ? mainCandidates : mains;
 
-  const main1 = mainPool[dayIndex % mainPool.length]!;
-  let main2 = mainPool[(dayIndex + 1) % mainPool.length]!;
-  if (main1.id === main2.id && mainPool.length > 1) {
-    main2 = mainPool[(dayIndex + 2) % mainPool.length]!;
+  const main1Targets = slotMacroTargets(targets, shares.main1);
+  const main2Targets = slotMacroTargets(targets, shares.main2);
+  const snack1Targets = slotMacroTargets(targets, shares.snack1);
+  const snack2Targets = slotMacroTargets(targets, shares.snack2);
+
+  let main1: Recipe;
+  let resolvedMain2: Recipe;
+
+  const snack1 =
+    pickBestRecipe(snacks, ctx, snack1Targets, excluded, priorities, "snack", dayIndex) ??
+    snacks[dayIndex % snacks.length]!;
+  const snack2 =
+    pickBestRecipe(
+      snacks,
+      ctx,
+      snack2Targets,
+      excluded,
+      priorities,
+      "snack",
+      dayIndex + 1,
+      new Set([snack1.id]),
+    ) ?? snacks[(dayIndex + 1) % snacks.length]!;
+
+  if (priorities.proteinFocused && priorities.lowCarb) {
+    const proteinMains = pickTopProteinMains(mainPool, ctx, excluded, 6);
+    const pairPool =
+      proteinMains.length >= 2
+        ? proteinMains
+        : mainPool.filter((r) => isProteinRichRecipe(ctx, r));
+    let bestPair: { main1: Recipe; main2: Recipe; score: number } | null = null;
+
+    for (let i = 0; i < pairPool.length; i++) {
+      for (let j = i + 1; j < pairPool.length; j++) {
+        const candidate = assembleAndTuneDay(
+          ctx,
+          targets,
+          shares,
+          excluded,
+          "two_main_two_snacks",
+          priorities,
+          {
+            main1: pairPool[i]!,
+            snack1,
+            main2: pairPool[j]!,
+            snack2,
+          },
+          180,
+        );
+        if (!candidate) continue;
+        const score = deviationScore(
+          {
+            kcal: d(candidate.kcal),
+            protein_g: d(candidate.protein_g),
+            fat_g: d(candidate.fat_g),
+            carbs_g: d(candidate.carbs_g),
+            fiber_g: d(candidate.fiber_g),
+          },
+          targets,
+          priorities,
+        );
+        if (!bestPair || score < bestPair.score) {
+          bestPair = { main1: pairPool[i]!, main2: pairPool[j]!, score };
+        }
+      }
+    }
+
+    if (bestPair) {
+      return { main1: bestPair.main1, main2: bestPair.main2, snack1, snack2 };
+    }
   }
 
-  const snack1 = snacks[dayIndex % snacks.length]!;
-  let snack2 = snacks[(dayIndex + 1) % snacks.length]!;
-  if (snack2.id === snack1.id) snack2 = snacks[(dayIndex + 2) % snacks.length]!;
+  main1 =
+    pickBestRecipe(mainPool, ctx, main1Targets, excluded, priorities, "main", dayIndex) ??
+    mainPool[dayIndex % mainPool.length]!;
+  const main2 =
+    pickBestRecipe(
+      mainPool,
+      ctx,
+      main2Targets,
+      excluded,
+      priorities,
+      "main",
+      dayIndex + 1,
+      new Set([main1.id]),
+    ) ?? mainPool[(dayIndex + 1) % mainPool.length]!;
+  resolvedMain2 =
+    main2.id === main1.id && mainPool.length > 1
+      ? mainPool[(dayIndex + 2) % mainPool.length]!
+      : main2;
 
-  return { main1, main2, snack1, snack2 };
+  return { main1, main2: resolvedMain2, snack1, snack2 };
 }
 
 function pickRecipesForDayOneMain(
   ctx: OptimizerContext,
   dayIndex: number,
   recentMain: Map<string, number>,
+  targets: MacroBreakdown,
+  shares: Record<PlanSlot, number>,
+  excluded: Set<string>,
+  priorities: MacroPriorities,
 ): { main1: Recipe; snack1: Recipe; snack2: Recipe; snack3: Recipe } | null {
   const mains = ctx.mainRecipes.filter((r) => r.is_active);
   if (mains.length < 1) return null;
@@ -241,50 +331,40 @@ function pickRecipesForDayOneMain(
     return last === undefined || dayIndex - last >= MAIN_RECIPE_REPEAT_DAYS;
   });
   const mainPool = mainCandidates.length >= 1 ? mainCandidates : mains;
-  const main1 = mainPool[dayIndex % mainPool.length]!;
+  const main1Targets = slotMacroTargets(targets, shares.main1);
+  const main1 =
+    pickBestRecipe(mainPool, ctx, main1Targets, excluded, priorities, "main", dayIndex) ??
+    mainPool[dayIndex % mainPool.length]!;
 
-  const triplet = pickSnackTriplet(ctx, "one_main_three_snacks", dayIndex);
+  const triplet = pickSnackTriplet(ctx, "one_main_three_snacks", dayIndex, targets, shares, excluded, priorities);
   if (!triplet) return null;
 
   return { main1, snack1: triplet[0], snack2: triplet[1], snack3: triplet[2] };
 }
 
-function buildDay(
+function ingredientGramBounds(
   ctx: OptimizerContext,
-  dayIndex: number,
+  recipeId: string,
+  productId: string,
+): { min: number; max: number } {
+  const ings = ctx.recipeIngredients.get(recipeId) ?? [];
+  const ri = ings.find((x) => x.product_id === productId);
+  if (ri) return { min: ri.min_g, max: ri.max_g };
+  return { min: 20, max: 600 };
+}
+
+function assembleAndTuneDay(
+  ctx: OptimizerContext,
   targets: MacroBreakdown,
-  recentMain: Map<string, number>,
+  shares: Record<PlanSlot, number>,
   excluded: Set<string>,
   mode: MealScheduleMode,
-): ConstructorDay | null {
+  priorities: MacroPriorities,
+  slotRecipes: Partial<Record<PlanSlot, Recipe>>,
+  tuneSteps?: number,
+): Omit<ConstructorDay, "day_index" | "day_note"> | null {
   const slots = slotsForMode(mode);
-  const shares = slotCalorieShare(mode);
   const dayKcal = targets.kcal.toNumber();
-
-  let slotRecipes: Partial<Record<PlanSlot, Recipe>>;
-
-  if (mode === "two_main_two_snacks") {
-    const picks = pickRecipesForDayTwoMain(ctx, dayIndex, recentMain);
-    if (!picks) return null;
-    slotRecipes = {
-      main1: picks.main1,
-      snack1: picks.snack1,
-      main2: picks.main2,
-      snack2: picks.snack2,
-    };
-    recentMain.set(picks.main1.id, dayIndex);
-    recentMain.set(picks.main2.id, dayIndex);
-  } else {
-    const picks = pickRecipesForDayOneMain(ctx, dayIndex, recentMain);
-    if (!picks) return null;
-    slotRecipes = {
-      main1: picks.main1,
-      snack1: picks.snack1,
-      snack2: picks.snack2,
-      snack3: picks.snack3,
-    };
-    recentMain.set(picks.main1.id, dayIndex);
-  }
 
   const items = slots
     .map((slot) => {
@@ -292,12 +372,13 @@ function buildDay(
       if (!recipe) return null;
       const ings = verifiedIngredients(ctx, recipe, excluded);
       if (ings.length === 0) return null;
-      const slotTargetKcal = targets.kcal.mul(shares[slot]).toNumber();
+      const slotTargets = slotMacroTargets(targets, shares[slot]);
       const isMain = slot.startsWith("main");
       const { lines } = optimizeMealIngredients(
         ings,
         ctx.products,
-        slotTargetKcal,
+        slotTargets,
+        priorities,
         isMain && mode === "one_main_three_snacks" ? 0.55 : undefined,
         isMain && mode === "one_main_three_snacks" ? dayKcal : undefined,
       );
@@ -317,18 +398,20 @@ function buildDay(
     })),
   );
 
-  const maxTuneSteps = mode === "one_main_three_snacks" ? 400 : 200;
+  const maxTuneSteps =
+    tuneSteps ??
+    (mode === "one_main_three_snacks" ? 400 : priorities.proteinFocused ? 350 : 200);
   for (let step = 0; step < maxTuneSteps; step++) {
     const dayTolerance = mode === "one_main_three_snacks" ? ONE_MAIN_TOLERANCE : DEFAULT_TOLERANCE;
     if (withinTolerance(dayTotals, targets, dayTolerance)) break;
     let moved = false;
     for (const item of items) {
-      if (!item.requires_cooking && mode !== "one_main_three_snacks") continue;
       for (const ing of item.ingredients) {
         for (const delta of [GRAM_STEP, -GRAM_STEP]) {
           const prevG = d(ing.grams).toNumber();
           const nextG = prevG + delta;
-          if (nextG < 20 || nextG > 600) continue;
+          const bounds = ingredientGramBounds(ctx, item.recipe_id, ing.product_id);
+          if (nextG < bounds.min || nextG > bounds.max) continue;
           const product = ctx.products.get(ing.product_id);
           if (!product) continue;
           const newLine = buildIngredientLine(product, nextG, ing.sort_order);
@@ -349,7 +432,10 @@ function buildDay(
               fiber_g: d(i.fiber_g),
             })),
           );
-          if (deviationScore(newDayTotals, targets) < deviationScore(dayTotals, targets)) {
+          if (
+            deviationScore(newDayTotals, targets, priorities) <
+            deviationScore(dayTotals, targets, priorities)
+          ) {
             const idx = items.findIndex((x) => x.slot === item.slot);
             items[idx] = newItems.find((x) => x.slot === item.slot)!;
             Object.assign(dayTotals, newDayTotals);
@@ -369,8 +455,6 @@ function buildDay(
   const valid = withinTolerance(dayTotals, targets, dayTolerance);
 
   return {
-    day_index: dayIndex,
-    day_note: null,
     items,
     kcal: snap.kcal,
     protein_g: snap.protein_g,
@@ -378,6 +462,76 @@ function buildDay(
     carbs_g: snap.carbs_g,
     fiber_g: snap.fiber_g,
     is_valid: valid,
+  };
+}
+
+function buildDay(
+  ctx: OptimizerContext,
+  dayIndex: number,
+  targets: MacroBreakdown,
+  recentMain: Map<string, number>,
+  excluded: Set<string>,
+  mode: MealScheduleMode,
+): ConstructorDay | null {
+  const shares = slotCalorieShare(mode);
+  const priorities = macroPriorities(targets);
+
+  let slotRecipes: Partial<Record<PlanSlot, Recipe>>;
+
+  if (mode === "two_main_two_snacks") {
+    const picks = pickRecipesForDayTwoMain(
+      ctx,
+      dayIndex,
+      recentMain,
+      targets,
+      shares,
+      excluded,
+      priorities,
+    );
+    if (!picks) return null;
+    slotRecipes = {
+      main1: picks.main1,
+      snack1: picks.snack1,
+      main2: picks.main2,
+      snack2: picks.snack2,
+    };
+    recentMain.set(picks.main1.id, dayIndex);
+    recentMain.set(picks.main2.id, dayIndex);
+  } else {
+    const picks = pickRecipesForDayOneMain(
+      ctx,
+      dayIndex,
+      recentMain,
+      targets,
+      shares,
+      excluded,
+      priorities,
+    );
+    if (!picks) return null;
+    slotRecipes = {
+      main1: picks.main1,
+      snack1: picks.snack1,
+      snack2: picks.snack2,
+      snack3: picks.snack3,
+    };
+    recentMain.set(picks.main1.id, dayIndex);
+  }
+
+  const assembled = assembleAndTuneDay(
+    ctx,
+    targets,
+    shares,
+    excluded,
+    mode,
+    priorities,
+    slotRecipes,
+  );
+  if (!assembled) return null;
+
+  return {
+    day_index: dayIndex,
+    day_note: null,
+    ...assembled,
   };
 }
 

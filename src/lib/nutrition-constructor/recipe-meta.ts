@@ -9,6 +9,16 @@ export const PROTEIN_SNACK_PRODUCT_SLUGS = new Set([
   "pumpkin-seeds",
 ]);
 
+/** Мясo/рыба/яйца/сыр — источники белка в основных блюдах. */
+export const PROTEIN_MAIN_PRODUCT_SLUGS = new Set([
+  "chicken-breast-raw",
+  "beef-lean-raw",
+  "pollock-raw",
+  "egg-whole",
+  "hard-cheese",
+  "canned-tuna",
+]);
+
 export const FRUIT_VEG_PRODUCT_SLUGS = new Set([
   "cucumber",
   "tomato",
@@ -53,7 +63,7 @@ export type RecipeMetaInput = {
 
 export function inferRecipeMeta(input: RecipeMetaInput) {
   const slugs = input.ingredients.map((i) => i.product_slug);
-  const hasProtein = slugs.some((s) => PROTEIN_SNACK_PRODUCT_SLUGS.has(s));
+  const hasProtein = slugs.some((s) => PROTEIN_SNACK_PRODUCT_SLUGS.has(s) || PROTEIN_MAIN_PRODUCT_SLUGS.has(s));
   const hasFruitVeg = slugs.some((s) => FRUIT_VEG_PRODUCT_SLUGS.has(s));
   const hasTreat = slugs.some((s) => TREAT_PRODUCT_SLUGS.has(s));
   const nutCount = slugs.filter((s) => NUT_SEED_PRODUCT_SLUGS.has(s)).length;
