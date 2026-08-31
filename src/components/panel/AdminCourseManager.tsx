@@ -10,6 +10,7 @@ import {
   courseStatusLabel,
   type ClientCourse,
 } from "@/lib/client-courses";
+import { useAuth } from "@/lib/auth";
 import { errorMessage } from "@/lib/error-message";
 
 export function AdminCourseManager({
