@@ -27,7 +27,7 @@ function targetsForKcal(kcal: number) {
 }
 
 describe("meal schedule client labels", () => {
-  it("brands one_main_three_snacks as На бегу with clear description", async () => {
+  it("labels one_main_three_snacks for client UI", async () => {
     const {
       MEAL_SCHEDULE_CLIENT_LABELS,
       MEAL_SCHEDULE_DESCRIPTIONS,
@@ -36,21 +36,21 @@ describe("meal schedule client labels", () => {
       mealScheduleDescription,
     } = await import("@/lib/nutrition-constructor/config");
 
-    expect(MEAL_SCHEDULE_CLIENT_LABELS.one_main_three_snacks).toBe("На бегу");
-    expect(mealScheduleClientLabel("one_main_three_snacks")).toBe("На бегу");
+    expect(MEAL_SCHEDULE_CLIENT_LABELS.one_main_three_snacks).toBe("1 основной + 3 перекуса");
+    expect(mealScheduleClientLabel("one_main_three_snacks")).toBe("1 основной + 3 перекуса");
     expect(MEAL_SCHEDULE_TAGLINES.one_main_three_snacks).toMatch(/без готовки/i);
     expect(MEAL_SCHEDULE_DESCRIPTIONS.one_main_three_snacks).toMatch(/полноценн/i);
     expect(MEAL_SCHEDULE_DESCRIPTIONS.one_main_three_snacks).toMatch(/перекус/i);
     expect(mealScheduleDescription("one_main_three_snacks")).toBe(
       MEAL_SCHEDULE_DESCRIPTIONS.one_main_three_snacks,
     );
-    expect(ONE_MAIN_UNACHIEVABLE_MESSAGE).toMatch(/На бегу/);
+    expect(ONE_MAIN_UNACHIEVABLE_MESSAGE).toMatch(/1 основной/i);
   });
 });
 
 describe("seed catalog counts", () => {
-  it("has 32 products, 22+ mains and 20+ snacks", () => {
-    expect(SEED_PRODUCTS.length).toBe(32);
+  it("has 35 products, 22+ mains and 20+ snacks", () => {
+    expect(SEED_PRODUCTS.length).toBe(35);
     const mains = SEED_RECIPES.filter((r) => r.meal_type === "main");
     const snacks = SEED_RECIPES.filter((r) => r.meal_type === "snack");
     expect(mains.length).toBeGreaterThanOrEqual(22);

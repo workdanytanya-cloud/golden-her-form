@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   MEAL_SCHEDULE_CLIENT_LABELS,
   MEAL_SCHEDULE_DESCRIPTIONS,
-  MEAL_SCHEDULE_MODES,
+  MEAL_SCHEDULE_MODES_CLIENT,
   MEAL_SCHEDULE_TAGLINES,
   PRIMARY_MEAL_SLOT_LABELS,
   PRIMARY_MEAL_SLOTS,
@@ -83,7 +83,7 @@ export function MealSchedulePicker({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {MEAL_SCHEDULE_MODES.map((m) => {
+        {MEAL_SCHEDULE_MODES_CLIENT.map((m) => {
           const selected = mode === m;
           return (
             <button

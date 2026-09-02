@@ -31,6 +31,7 @@ import {
 import {
   calcMacroTargets,
   checkAutoGenerationSafety,
+  checkMacroCompatibility,
   checkTargetSafety,
   type TargetProfileInput,
 } from "@/lib/nutrition-constructor/targets";
@@ -153,6 +154,12 @@ function seedToRecipe(r: SeedRecipe, productSlugs: Set<string>): Recipe | null {
     is_treat: meta.is_treat,
     allowed_schedule_modes: meta.allowed_schedule_modes,
     snack_action: r.meal_type === "snack" ? snackActionForRecipe(slugs) : null,
+    is_everyday: true,
+    is_nutritionally_complete: true,
+    dietitian_approved: true,
+    active_prep_minutes: r.prep_time_min,
+    total_cook_minutes: r.prep_time_min,
+    complexity: "easy" as const,
   };
 }
 
@@ -186,6 +193,7 @@ export function buildInMemoryCatalog(options: BuildCatalogOptions = {}): Optimiz
       allowed_for_snack: p.allowed_for_snack,
       requires_cooking: p.requires_cooking,
       weighing_note: p.weighing_note,
+      is_active_for_autogeneration: p.is_active_for_autogeneration !== false,
     });
   }
 
@@ -209,7 +217,7 @@ export function buildInMemoryCatalog(options: BuildCatalogOptions = {}): Optimiz
         default_g: ing.default_g,
         is_scalable: true,
         sort_order: idx,
-        optional: false,
+        optional: ing.product_slug === "olive-oil" || ing.min_g === 0,
       })),
     );
   }
@@ -456,6 +464,22 @@ export async function generateAndValidateConstructorPlan(params: {
     profile_complete: params.profile.profile_complete ?? true,
   });
   const calc = calcMacroTargets(params.profile);
+  const macroCheck = checkMacroCompatibility(calc.targets);
+  if (!macroCheck.compatible) {
+    return {
+      is_valid: false,
+      kbju_acceptable: false,
+      message: macroCheck.message,
+      comparison: [],
+      days: [],
+      bmr: calc.bmr,
+      tdee: calc.tdee,
+      adjustment_pct: calc.adjustment_pct,
+      targets: calc.targets,
+      requires_manual_review: true,
+      review_reason: macroCheck.message,
+    };
+  }
   const targetSafety = checkTargetSafety(calc.targets);
   const ctx = await loadOptimizerContext();
   const result = generateConstructorPlan(ctx, {

@@ -59,13 +59,18 @@ export async function saveClientMealSchedulePreference(params: {
     params.publishedMode != null && params.publishedMode !== params.mode;
 
   if (needsTrainer) {
+    const modeLabel =
+      params.mode === "three_main_two_snacks"
+        ? "5 приёмов (3 основных + 2 перекуса)"
+        : params.mode === "three_mains_only"
+          ? "3 полноценных приёма без перекусов"
+          : params.mode === "one_main_three_snacks"
+            ? "1 основной + 3 перекуса без готовки"
+            : "классический формат (legacy 2+2)";
     await supabase.from("admin_notifications").insert({
       type: "nutrition_schedule_preference",
       client_id: params.userId,
-      message:
-        params.mode === "one_main_three_snacks"
-          ? "Клиент выбрал формат «На бегу» (1 основной + 3 перекуса без готовки). Соберите и опубликуйте меню."
-          : "Клиент выбрал классический формат (2 основных + 2 перекуса). Соберите и опубликуйте меню.",
+      message: `Клиент хочет изменить режим питания на «${modeLabel}». Соберите и опубликуйте новую версию меню.`,
       link: `/admin/clients/${params.userId}/nutrition${courseId ? `?course=${courseId}` : ""}`,
     } as never);
   }

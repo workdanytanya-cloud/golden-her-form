@@ -43,7 +43,7 @@ function sampleDay(overrides: Partial<ConstructorDay> = {}): ConstructorDay {
 }
 
 describe("plan-kbju-status", () => {
-  it("allows generation for one_main when structure ok but macros are off", () => {
+  it("rejects generation when structure ok but macros are off", () => {
     const target = {
       kcal: d(1800),
       protein_g: d(120),
@@ -63,13 +63,13 @@ describe("plan-kbju-status", () => {
       scheduleMode: "one_main_three_snacks",
       comparison,
     });
-    expect(status.generationOk).toBe(true);
+    expect(status.generationOk).toBe(false);
     expect(status.acceptable).toBe(false);
     expect(status.precisionHint).toContain("−15 г белка");
     expect(status.precisionHint).toContain("+70 г углеводов");
   });
 
-  it("marks acceptable when avg within one_main tolerance", () => {
+  it("marks acceptable when day within strict tolerance", () => {
     const target = {
       kcal: d(1800),
       protein_g: d(120),
@@ -78,16 +78,16 @@ describe("plan-kbju-status", () => {
       fiber_g: d(0),
     };
     const comparison = [
-      { label: "Калории", target: 1800, actual: 1810, diff: 10 },
-      { label: "Белки", target: 120, actual: 118, diff: -2 },
+      { label: "Калории", target: 1800, actual: 1803, diff: 3 },
+      { label: "Белки", target: 120, actual: 119, diff: -1 },
       { label: "Жиры", target: 60, actual: 61, diff: 1 },
-      { label: "Углеводы", target: 180, actual: 182, diff: 2 },
+      { label: "Углеводы", target: 180, actual: 181, diff: 1 },
     ];
     const day = sampleDay({
-      kcal: "1810",
-      protein_g: "118",
+      kcal: "1803",
+      protein_g: "119",
       fat_g: "61",
-      carbs_g: "182",
+      carbs_g: "181",
       is_valid: true,
     });
     const status = evaluatePlanKbjuStatus({
@@ -98,7 +98,6 @@ describe("plan-kbju-status", () => {
     });
     expect(status.acceptable).toBe(true);
     expect(status.generationOk).toBe(true);
-    expect(status.exact).toBe(false);
-    expect(status.precisionHint).toContain("−2 г белка");
+    expect(status.exact).toBe(true);
   });
 });

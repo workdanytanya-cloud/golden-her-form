@@ -13,8 +13,16 @@ import {
 export function dayHasRequiredSlots(day: ConstructorDay, mode: MealScheduleMode): boolean {
   const mains = day.items.filter((i) => i.slot.startsWith("main")).length;
   const snacks = day.items.filter((i) => i.slot.startsWith("snack")).length;
-  if (mode === "two_main_two_snacks") return mains === 2 && snacks === 2;
-  return mains === 1 && snacks === 3;
+  switch (mode) {
+    case "three_main_two_snacks":
+      return mains === 3 && snacks === 2;
+    case "three_mains_only":
+      return mains === 3 && snacks === 0;
+    case "one_main_three_snacks":
+      return mains === 1 && snacks === 3;
+    default:
+      return mains === 2 && snacks === 2;
+  }
 }
 
 export function planStructureValid(days: ConstructorDay[], mode: MealScheduleMode): boolean {
@@ -87,18 +95,12 @@ export function evaluatePlanKbjuStatus(params: {
 
   const avgValid = withinTolerance(avgMacro, targetMacro, tolerance);
   const allDaysValid = invalidDayCount === 0;
-  const allowedBadDays =
-    scheduleMode === "one_main_three_snacks" ? Math.max(1, Math.floor(days.length * 0.15)) : 0;
 
-  const acceptable =
-    scheduleMode === "one_main_three_snacks"
-      ? avgValid && invalidDayCount <= allowedBadDays
-      : allDaysValid && avgValid;
+  const acceptable = allDaysValid && avgValid && structureOk;
 
   const exact = macroDeviationsOutsideTolerance(comparison, DEFAULT_TOLERANCE).length === 0;
   const precisionHint = formatMacroPrecisionHint(comparison, DEFAULT_TOLERANCE);
-  const generationOk =
-    acceptable || (scheduleMode === "one_main_three_snacks" && structureOk);
+  const generationOk = acceptable;
 
   return {
     acceptable,

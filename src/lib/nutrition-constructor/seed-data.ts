@@ -3,6 +3,7 @@
  * KBJU verified — USDA FoodData Central (SR Legacy / Foundation).
  * is_verified=false — требуется этикетка конкретной упаковки.
  */
+import { OIL_PRODUCT_SLUGS } from "@/lib/nutrition-constructor/recipe-meta";
 export type SeedProduct = {
   slug: string;
   name: string;
@@ -22,6 +23,8 @@ export type SeedProduct = {
   allowed_for_snack: boolean;
   requires_cooking: boolean;
   weighing_note: string;
+  /** По умолчанию true; false — не использовать в автогенерации. */
+  is_active_for_autogeneration?: boolean;
 };
 
 export const SEED_PRODUCTS: SeedProduct[] = [
@@ -416,6 +419,60 @@ export const SEED_PRODUCTS: SeedProduct[] = [
     requires_cooking: false,
     weighing_note: "Очищенные семечки.",
   },
+  {
+    slug: "olive-oil",
+    name: "Оливковое масло",
+    category: "fat",
+    state: "ready",
+    measurement_basis: "per_100g",
+    kcal: 884,
+    protein: 0,
+    fat: 100,
+    carbs: 0,
+    fiber: 0,
+    source_name: "USDA FDC 171413",
+    is_verified: true,
+    allowed_for_snack: false,
+    requires_cooking: false,
+    weighing_note: "Точное количество в граммах.",
+    is_active_for_autogeneration: true,
+  },
+  {
+    slug: "sunflower-oil",
+    name: "Подсолнечное масло",
+    category: "fat",
+    state: "ready",
+    measurement_basis: "per_100g",
+    kcal: 884,
+    protein: 0,
+    fat: 100,
+    carbs: 0,
+    fiber: 0,
+    source_name: "USDA FDC 171028",
+    is_verified: true,
+    allowed_for_snack: false,
+    requires_cooking: false,
+    weighing_note: "Точное количество в граммах.",
+    is_active_for_autogeneration: true,
+  },
+  {
+    slug: "butter",
+    name: "Сливочное масло",
+    category: "fat",
+    state: "ready",
+    measurement_basis: "per_100g",
+    kcal: 717,
+    protein: 0.85,
+    fat: 81.11,
+    carbs: 0.06,
+    fiber: 0,
+    source_name: "USDA FDC 173410",
+    is_verified: true,
+    allowed_for_snack: false,
+    requires_cooking: false,
+    weighing_note: "Точное количество в граммах.",
+    is_active_for_autogeneration: false,
+  },
   // Непроверенные — только ручной ввод тренером или после этикетки
   {
     slug: "stevia-candy",
@@ -584,7 +641,7 @@ export type SeedRecipe = {
   ingredients: Array<{ product_slug: string; min_g: number; max_g: number; default_g: number }>;
 };
 
-export const SEED_RECIPES: SeedRecipe[] = [
+const SEED_RECIPES_RAW: SeedRecipe[] = [
   {
     slug: "oats-milk-banana",
     name: "Овсянка с молоком и бананом",
@@ -1238,6 +1295,26 @@ export const SEED_RECIPES: SeedRecipe[] = [
     ],
   },
 ];
+
+function enrichMainRecipesWithOil(recipes: SeedRecipe[]): SeedRecipe[] {
+  return recipes.map((recipe) => {
+    if (recipe.meal_type !== "main") return recipe;
+    if (recipe.ingredients.some((i) => OIL_PRODUCT_SLUGS.has(i.product_slug))) return recipe;
+    const steps = recipe.steps.some((s) => /масл/i.test(s))
+      ? recipe.steps
+      : [...recipe.steps, "Добавить оливковое масло в указанном количестве."];
+    return {
+      ...recipe,
+      steps,
+      ingredients: [
+        ...recipe.ingredients,
+        { product_slug: "olive-oil", min_g: 0, max_g: 15, default_g: 5 },
+      ],
+    };
+  });
+}
+
+export const SEED_RECIPES: SeedRecipe[] = enrichMainRecipesWithOil(SEED_RECIPES_RAW);
 
 /** Slug'и продуктов белого списка для валидации. */
 export const ALLOWED_PRODUCT_SLUGS = new Set(SEED_PRODUCTS.map((p) => p.slug));

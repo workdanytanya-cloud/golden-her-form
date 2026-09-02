@@ -1,5 +1,9 @@
 import { mealTotalsFromIngredients, buildIngredientLine } from "@/lib/nutrition-constructor/calculator";
 import {
+  MAX_ACTIVE_PREP_MINUTES,
+  MAX_TOTAL_COOK_MINUTES,
+} from "@/lib/nutrition-constructor/config";
+import {
   d,
   macroDiff,
   type MacroBreakdown,
@@ -17,11 +21,13 @@ const MAIN_PROTEIN_SLUGS = PROTEIN_MAIN_PRODUCT_SLUGS;
 export type MacroPriorities = {
   proteinFocused: boolean;
   lowCarb: boolean;
+  /** 1313/112 — жёсткий режим: только protein-rich mains + tuna/cheese snacks. */
+  strictHighProtein: boolean;
 };
 
 export function macroPriorities(targets: MacroBreakdown): MacroPriorities {
   const kcal = targets.kcal.toNumber();
-  if (kcal <= 0) return { proteinFocused: false, lowCarb: false };
+  if (kcal <= 0) return { proteinFocused: false, lowCarb: false, strictHighProtein: false };
   const proteinKcal = targets.protein_g.toNumber() * 4;
   const carbsKcal = targets.carbs_g.toNumber() * 4;
   const proteinPct = proteinKcal / kcal;
@@ -31,7 +37,15 @@ export function macroPriorities(targets: MacroBreakdown): MacroPriorities {
       proteinPct >= 0.28 ||
       targets.protein_g.toNumber() >= targets.carbs_g.toNumber() * 0.85,
     lowCarb: carbsPct <= 0.35,
+    strictHighProtein: isHighProteinTarget(targets),
   };
+}
+
+/** Жёсткий high-protein профиль (1313/112): tuna/cheese snacks + day-level solver. */
+export function isHighProteinTarget(targets: MacroBreakdown): boolean {
+  const kcal = targets.kcal.toNumber();
+  if (kcal <= 0) return false;
+  return (targets.protein_g.toNumber() * 4) / kcal >= 0.32;
 }
 
 export function slotMacroTargets(targets: MacroBreakdown, share: number): MacroBreakdown {
@@ -47,6 +61,19 @@ export function slotMacroTargets(targets: MacroBreakdown, share: number): MacroB
 function initialGrams(ri: RecipeIngredient): number {
   if (ri.default_g != null) return ri.default_g;
   return Math.round((ri.min_g + ri.max_g) / 2);
+}
+
+export function isAutoGenerationEligible(recipe: Recipe): boolean {
+  if (!recipe.is_active) return false;
+  if (recipe.dietitian_approved === false) return false;
+  if (recipe.is_nutritionally_complete === false) return false;
+  if (recipe.meal_type === "main") {
+    const activePrep = recipe.active_prep_minutes ?? recipe.prep_time_min ?? 999;
+    const totalCook = recipe.total_cook_minutes ?? recipe.prep_time_min ?? 999;
+    if (activePrep > MAX_ACTIVE_PREP_MINUTES) return false;
+    if (totalCook > MAX_TOTAL_COOK_MINUTES) return false;
+  }
+  return true;
 }
 
 export function verifiedIngredients(
@@ -141,7 +168,7 @@ export function scoreRecipeForSlot(
   const base = estimateRecipeDefaultMacros(ctx, recipe, excluded);
   if (!base) return Number.POSITIVE_INFINITY;
 
-  if (mealType === "main" && priorities.proteinFocused) {
+  if (mealType === "main" && priorities.strictHighProtein) {
     if (!isProteinRichRecipe(ctx, recipe)) return Number.POSITIVE_INFINITY;
     if (isGrainBreakfastRecipe(ctx, recipe)) return Number.POSITIVE_INFINITY;
     if (isCarbDominantRecipe(base) && !isProteinRichRecipe(ctx, recipe)) {

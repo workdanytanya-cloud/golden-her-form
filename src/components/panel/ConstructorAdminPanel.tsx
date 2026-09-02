@@ -10,12 +10,15 @@ import {
   PLAN_DAY_OPTIONS,
   PRIMARY_MEAL_SLOT_LABELS,
   PRIMARY_MEAL_SLOTS,
+  expectedMainCount,
+  expectedSnackCount,
   toleranceForMode,
   type MealScheduleMode,
   type PlanDaysCount,
   type PlanSlot,
   type PrimaryMealSlot,
 } from "@/lib/nutrition-constructor/config";
+import { checkDayStructure } from "@/lib/nutrition-constructor/types";
 import {
   d,
   displayMacro,
@@ -29,7 +32,7 @@ import {
   loadConstructorPlanFor,
   saveConstructorPlan,
 } from "@/lib/nutrition-constructor/repo";
-import type { ConstructorDay, Recipe } from "@/lib/nutrition-constructor/types";
+import type { ConstructorDay } from "@/lib/nutrition-constructor/types";
 import { evaluatePlanKbjuStatus } from "@/lib/nutrition-constructor/plan-kbju-status";
 import { formatMacroDeviationSummary } from "@/lib/nutrition-constructor/validation-messages";
 import type { TargetProfileInput } from "@/lib/nutrition-constructor/targets";
@@ -49,35 +52,24 @@ type Props = {
   onSaved?: () => void;
 };
 
-function structureChecks(
-  day: ConstructorDay | undefined,
-  mode: MealScheduleMode,
-  recipesById: Map<string, Recipe>,
-) {
+function structureChecks(day: ConstructorDay | undefined, mode: MealScheduleMode) {
   if (!day) {
-    return {
-      mains: { actual: 0, expected: mode === "two_main_two_snacks" ? 2 : 1 },
-      snacks: { actual: 0, expected: mode === "two_main_two_snacks" ? 2 : 3 },
-      noCookSnacks: { actual: 0, expected: mode === "two_main_two_snacks" ? 2 : 3 },
-      nutrientDenseSnacks: { actual: 0, expected: mode === "two_main_two_snacks" ? 2 : 3 },
-    };
+    return checkDayStructure(
+      {
+        day_index: 0,
+        day_note: null,
+        items: [],
+        kcal: "0",
+        protein_g: "0",
+        fat_g: "0",
+        carbs_g: "0",
+        fiber_g: "0",
+        is_valid: false,
+      },
+      mode,
+    );
   }
-  const mains = day.items.filter((i) => i.slot.startsWith("main"));
-  const snacks = day.items.filter((i) => i.slot.startsWith("snack"));
-  const expectedMains = mode === "two_main_two_snacks" ? 2 : 1;
-  const expectedSnacks = mode === "two_main_two_snacks" ? 2 : 3;
-  const noCook = snacks.filter((s) => !s.requires_cooking).length;
-  const nutrientDense = snacks.filter((s) => {
-    const recipe = recipesById.get(s.recipe_id);
-    return recipe?.is_nutrient_dense ?? !s.requires_cooking;
-  }).length;
-
-  return {
-    mains: { actual: mains.length, expected: expectedMains },
-    snacks: { actual: snacks.length, expected: expectedSnacks },
-    noCookSnacks: { actual: noCook, expected: expectedSnacks },
-    nutrientDenseSnacks: { actual: nutrientDense, expected: expectedSnacks },
-  };
+  return checkDayStructure(day, mode);
 }
 
 export function ConstructorAdminPanel({
@@ -88,7 +80,7 @@ export function ConstructorAdminPanel({
   onSaved,
 }: Props) {
   const [daysCount, setDaysCount] = useState<PlanDaysCount>(7);
-  const [scheduleMode, setScheduleMode] = useState<MealScheduleMode>("two_main_two_snacks");
+  const [scheduleMode, setScheduleMode] = useState<MealScheduleMode>("three_main_two_snacks");
   const [primarySlot, setPrimarySlot] = useState<PrimaryMealSlot>("lunch");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -102,10 +94,6 @@ export function ConstructorAdminPanel({
   const [meta, setMeta] = useState<{ bmr?: number; tdee?: number; adjustment_pct?: number }>({});
   const [publishedVersion, setPublishedVersion] = useState<number | null>(null);
   const catalog = useMemo(() => buildInMemoryCatalog(), []);
-  const recipesById = useMemo(
-    () => new Map(catalog.recipes.map((r) => [r.id, r])),
-    [catalog.recipes],
-  );
 
   useEffect(() => {
     void (async () => {
@@ -390,20 +378,19 @@ export function ConstructorAdminPanel({
     toast.message("Граммовка изменена — перепроверьте день");
   };
 
-  const checks = structureChecks(days[0], scheduleMode, recipesById);
+  const checks = structureChecks(days[0], scheduleMode);
   const structureOk =
     checks.mains.actual === checks.mains.expected &&
     checks.snacks.actual === checks.snacks.expected &&
-    checks.noCookSnacks.actual === checks.noCookSnacks.expected &&
-    (scheduleMode === "two_main_two_snacks" ||
-      checks.nutrientDenseSnacks.actual === checks.nutrientDenseSnacks.expected);
+    (expectedSnackCount(scheduleMode) === 0 ||
+      checks.noCookSnacks.actual === checks.noCookSnacks.expected);
 
   return (
     <section className="space-y-6 rounded-3xl border border-gold/20 bg-surface/30 p-6">
       <div>
         <p className="text-[11px] uppercase tracking-widest text-gold">Конструктор рациона</p>
         <p className="mt-1 text-sm text-warm-gray">
-          Точный расчёт KBJU · только разрешённые продукты · два режима структуры дня
+          Точный расчёт KBJU · только проверенные продукты · режимы: 5 приёмов, 3 основных или 1+3
         </p>
         {publishedVersion != null && (
           <p className="mt-2 rounded-xl border border-gold/20 bg-gold/5 px-3 py-2 text-xs text-warm-gray">
@@ -537,11 +524,14 @@ export function ConstructorAdminPanel({
             />
           )}
           <p className="sm:col-span-2 text-xs text-warm-gray">
-            Валидация KBJU:{" "}
-            <span className={kbjuStatus.generationOk ? "text-gold" : "text-coral"}>
-              {kbjuStatus.generationOk ? "пройдена" : "не пройдена"}
+            Статус:{" "}
+            <span className={kbjuStatus.acceptable ? "text-gold" : "text-coral"}>
+              {kbjuStatus.acceptable
+                ? "Рацион сбалансирован — можно назначать"
+                : "Рацион не прошёл проверку — назначение запрещено"}
             </span>
-            {!structureOk && " · структура дня не соответствует режиму"}
+            {!structureOk &&
+              ` · структура: ${checks.mains.actual}/${expectedMainCount(scheduleMode)} основных, ${checks.snacks.actual}/${expectedSnackCount(scheduleMode)} перекусов`}
             {kbjuStatus.generationOk && kbjuStatus.precisionHint ? (
               <span className="mt-1 block text-[10px] leading-relaxed text-warm-gray/90">
                 Для идеально точного попадания в цель (±1&nbsp;г / ±5&nbsp;ккал):{" "}

@@ -193,3 +193,28 @@ export function checkTargetSafety(targets: MacroBreakdown): string[] {
   }
   return reasons;
 }
+
+/** Проверка согласованности калорий и БЖУ (±5% или ±25 ккал). */
+export function checkMacroCompatibility(targets: MacroBreakdown): {
+  compatible: boolean;
+  macroKcal: number;
+  statedKcal: number;
+  message: string | null;
+} {
+  const stated = targets.kcal.toNumber();
+  const macroKcal =
+    targets.protein_g.toNumber() * 4 +
+    targets.fat_g.toNumber() * 9 +
+    targets.carbs_g.toNumber() * 4;
+  const diff = Math.abs(macroKcal - stated);
+  const pct = stated > 0 ? diff / stated : diff;
+  const compatible = diff <= 25 || pct <= 0.05;
+  return {
+    compatible,
+    macroKcal,
+    statedKcal: stated,
+    message: compatible
+      ? null
+      : "Заданные калории и БЖУ математически несовместимы. Проверьте целевые показатели.",
+  };
+}

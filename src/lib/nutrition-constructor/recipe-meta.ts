@@ -38,6 +38,26 @@ export const FRUIT_VEG_PRODUCT_SLUGS = new Set([
 
 export const NUT_SEED_PRODUCT_SLUGS = new Set(["walnut", "almond", "pumpkin-seeds"]);
 
+export const OIL_PRODUCT_SLUGS = new Set([
+  "olive-oil",
+  "sunflower-oil",
+  "butter",
+]);
+
+/** Масла, разрешённые в автоматической генерации (без сливочного). */
+export const AUTOGEN_OIL_PRODUCT_SLUGS = new Set(["olive-oil", "sunflower-oil"]);
+
+/** Продукты для точной подгонки жиров (не только масло). */
+export const FAT_LEVER_SLUGS = new Set([
+  ...OIL_PRODUCT_SLUGS,
+  "avocado",
+  "walnut",
+  "almond",
+  "pumpkin-seeds",
+  "hard-cheese",
+  "egg-whole",
+]);
+
 export const TREAT_PRODUCT_SLUGS = new Set(["stevia-candy", "marshmallow", "dried-mango"]);
 
 export const RAW_MEAT_FISH_SLUGS = new Set([
@@ -87,7 +107,12 @@ export function inferRecipeMeta(input: RecipeMetaInput) {
     input.allowed_schedule_modes ??
     (isTreat
       ? (["two_main_two_snacks"] as MealScheduleMode[])
-      : (["two_main_two_snacks", "one_main_three_snacks"] as MealScheduleMode[]));
+      : ([
+          "three_main_two_snacks",
+          "three_mains_only",
+          "one_main_three_snacks",
+          "two_main_two_snacks",
+        ] as MealScheduleMode[]));
 
   return {
     is_treat: isTreat,
