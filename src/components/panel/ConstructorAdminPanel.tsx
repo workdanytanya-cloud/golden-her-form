@@ -92,6 +92,7 @@ export function ConstructorAdminPanel({
   const [planStatus, setPlanStatus] = useState<"draft" | "validated" | "assigned">("draft");
   const [reviewReason, setReviewReason] = useState<string | null>(null);
   const [meta, setMeta] = useState<{ bmr?: number; tdee?: number; adjustment_pct?: number }>({});
+  const [forcePublish, setForcePublish] = useState(false);
   const [publishedVersion, setPublishedVersion] = useState<number | null>(null);
   const catalog = useMemo(() => buildInMemoryCatalog(), []);
 
@@ -268,7 +269,7 @@ export function ConstructorAdminPanel({
   const handleSave = async (assign: boolean) => {
     if (days.length === 0) return;
     const status = revalidate(days);
-    if (assign && !status.acceptable) {
+    if (assign && !status.acceptable && !forcePublish) {
       const hint = status.precisionHint
         ? ` Для точного попадания: ${status.precisionHint}.`
         : deviationSummary
@@ -489,7 +490,7 @@ export function ConstructorAdminPanel({
             </button>
             <button
               type="button"
-              disabled={saving || !kbjuStatus.acceptable}
+              disabled={saving || (!kbjuStatus.acceptable && !forcePublish)}
               onClick={() => void handleSave(true)}
               className="inline-flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-5 py-2.5 text-xs uppercase tracking-widest text-ivory disabled:opacity-40"
             >
@@ -498,6 +499,18 @@ export function ConstructorAdminPanel({
           </>
         )}
       </div>
+
+      {days.length > 0 && !kbjuStatus.acceptable && (
+        <label className="flex items-center gap-2 text-xs text-warm-gray cursor-pointer">
+          <input
+            type="checkbox"
+            checked={forcePublish}
+            onChange={(e) => setForcePublish(e.target.checked)}
+            className="accent-gold"
+          />
+          Опубликовать с текущими отклонениями (тренер подтверждает допуск)
+        </label>
+      )}
 
       {days.length > 0 && (
         <div className="grid gap-2 rounded-2xl border border-gold/15 bg-surface/20 p-4 text-sm sm:grid-cols-2">
