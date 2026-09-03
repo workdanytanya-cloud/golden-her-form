@@ -1,0 +1,44 @@
+valid true
+message 
+reason недобор белка (-1.9 г); избыток жиров (+8.8 г); недобор углеводов (-13.6 г)
+checked 41
+elapsed 2693
+timed_out false
+best slugs undefined
+best score undefined
+priorities {"proteinFocused":true,"lowCarb":false,"strictHighProtein":false}
+
+DAY kcal=1800.0000 P=134.1493 F=60.8756 C=179.2879 valid=true
+
+== main1 Курица с гречкой и морковью slug=chicken-buckwheat-carrot
+   meal 480.0100 / P48.8445 F7.1104 C57.7070
+   - Курица (chicken-breast-raw) 172g [120-280]  P38.7000 F4.5064 C0.0000
+   - Гречка (buckwheat-dry) 72g [50-140]  P9.5400 F2.4480 C51.4800
+   - Морковь (carrot) 65g [60-120]  P0.6045 F0.1560 C6.2270
+   - Оливковое масло (olive-oil) 0g [0-15] MIN  P0.0000 F0.0000 C0.0000
+
+== snack1 Сыр, огурец и хлебцы slug=cheese-cucumber-crispbread
+   meal 201.7500 / P11.5525 F9.7735 C16.7655
+   - Сыр твёрдый (hard-cheese) 34g [25-60]  P8.5000 F9.1800 C0.6800
+   - Огурцы (cucumber) 85g [80-150]  P0.5525 F0.0935 C3.0855
+   - Хлебцы (crispbread) 25g [20-55]  P2.5000 F0.5000 C13.0000
+
+== main2 Рис с курицей и овощами slug=rice-chicken-vegetables
+   meal 554.4900 / P46.2841 F5.4888 C75.6072
+   - Рис (rice-white-dry) 80g [50-140]  P5.7040 F0.5280 C63.9600
+   - Курица (chicken-breast-raw) 174g [120-280]  P39.1500 F4.5588 C0.0000
+   - Перец (bell-pepper) 74g [60-120]  P0.7326 F0.2220 C4.4622
+   - Морковь (carrot) 75g [60-120]  P0.6975 F0.1800 C7.1850
+   - Оливковое масло (olive-oil) 0g [0-15] MIN  P0.0000 F0.0000 C0.0000
+
+== snack2 Вишня и грецкий орех slug=cherry-walnut-snack
+   meal 125.9000 / P2.7330 F6.8840 C16.1088
+   - Вишня (cherry) 121g [100-180]  P1.2100 F0.3630 C14.7378
+   - Грецкий орех (walnut) 10g [10-25] MIN  P1.5230 F6.5210 C1.3710
+
+== main3 Омлет с помидорами, перцем и сыром slug=omelette-tomato-pepper-cheese
+   meal 437.8500 / P24.7352 F31.6189 C13.0994
+   - Яйца (egg-whole) 179g [100-200]  P22.4824 F17.0229 C1.2888
+   - Помидоры (tomato) 130g [80-150]  P1.1440 F0.2600 C5.0570
+   - Перец (bell-pepper) 112g [60-120]  P1.1088 F0.3360 C6.7536
+   - Оливковое масло (olive-oil) 14g [0-15]  P0.0000 F14.0000 C0.0000

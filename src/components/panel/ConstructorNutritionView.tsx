@@ -18,6 +18,8 @@ import type {
   MealPlanItem,
 } from "@/lib/nutrition-constructor/types";
 import { formatMacroDeviationPhrase } from "@/lib/nutrition-constructor/validation-messages";
+import type { ProductMacros } from "@/lib/nutrition-constructor/ingredient-swap";
+import { IngredientSwapHint } from "@/components/panel/IngredientSwapHint";
 
 type Props = {
   days: ConstructorDay[];
@@ -36,6 +38,8 @@ type Props = {
     grams: number,
   ) => Promise<void>;
   onAssign?: () => Promise<void>;
+  /** Каталог продуктов для подбора замен (клиентский вид). */
+  swapCatalog?: ProductMacros[];
 };
 
 export function ConstructorNutritionView({
@@ -50,6 +54,7 @@ export function ConstructorNutritionView({
   editable = false,
   onIngredientGramsChange,
   onAssign,
+  swapCatalog,
 }: Props) {
   const [dayIndex, setDayIndex] = useState(0);
   const day = days.find((d) => d.day_index === dayIndex) ?? days[0];
@@ -169,6 +174,7 @@ export function ConstructorNutritionView({
               dayIndex={day.day_index}
               editable={editable}
               onIngredientGramsChange={onIngredientGramsChange}
+              swapCatalog={swapCatalog}
             />
           );
         })}
@@ -263,6 +269,7 @@ function MealCard({
   dayIndex,
   editable,
   onIngredientGramsChange,
+  swapCatalog,
 }: {
   slot: PlanSlot;
   slotTitle: string;
@@ -270,6 +277,7 @@ function MealCard({
   dayIndex: number;
   editable?: boolean;
   onIngredientGramsChange?: Props["onIngredientGramsChange"];
+  swapCatalog?: ProductMacros[];
 }) {
   const mealMacro = displayMacro({
     kcal: d(item.kcal),
@@ -337,6 +345,16 @@ function MealCard({
               />
             ) : (
               <span className="font-medium text-gold">{displayGrams(ing.grams)} г</span>
+            )}
+            {!editable && swapCatalog && swapCatalog.length > 0 && (
+              <div className="w-full">
+                <IngredientSwapHint
+                  productId={ing.product_id}
+                  productName={ing.product_name}
+                  grams={displayGrams(ing.grams)}
+                  catalog={swapCatalog}
+                />
+              </div>
             )}
           </li>
         ))}

@@ -1,0 +1,16 @@
+{
+  "checked": 9660,
+  "validCount": 0,
+  "best": {
+    "valid": false,
+    "score": 253.48999999999955,
+    "macro": {
+      "kcal": 1313,
+      "protein_g": 97.9,
+      "fat_g": 59.4,
+      "carbs_g": 96.3,
+      "fiber_g": 14.3
+    },
+    "n": 763
+  }
+}

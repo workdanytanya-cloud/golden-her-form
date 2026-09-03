@@ -1,0 +1,69 @@
+valid true
+message 
+reason недобор белка (-4.5 г); избыток жиров (+3.2 г)
+checked 105
+elapsed 19838
+timed_out false
+best slugs undefined
+priorities {"proteinFocused":true,"lowCarb":true,"strictHighProtein":true}
+
+SNACKS available for mode:
+  - apple-almond-snack cook=false protein=true
+  - banana-pumpkin-seeds-snack cook=false protein=true
+  - cherry-walnut-snack cook=false protein=true
+  - banana-walnut-snack cook=false protein=true
+  - apple-almond-alt cook=false protein=true
+  - banana-almond-snack cook=false protein=true
+  - apple-cherry-snack cook=false protein=false
+  - avocado-walnut-snack cook=false protein=true
+  - carrot-apple-snack cook=false protein=false
+  - cherry-almond-snack cook=false protein=true
+  - cucumber-apple-snack cook=false protein=false
+  - banana-almond-pumpkin-snack cook=false protein=true
+  - tuna-cucumber-crispbread cook=false protein=true
+  - tuna-tomato-crispbread cook=false protein=true
+  - tuna-napa-lavash cook=false protein=true
+  - tuna-avocado-crispbread cook=false protein=true
+  - tuna-corn-pepper cook=false protein=true
+  - cheese-tomato-crispbread cook=false protein=true
+  - cheese-cucumber-crispbread cook=false protein=true
+  - milk-apple-almond cook=false protein=true
+  - milk-banana-pumpkin cook=false protein=true
+  - avocado-tomato-crispbread cook=false protein=false
+  - apple-cheese-almond cook=false protein=true
+  - cherry-milk-walnut cook=false protein=true
+
+DAY kcal=1312.7300 P=111.9576 F=57.0440 C=89.6612 valid=true
+
+== main1 Гречка с яйцом, курицей и овощами slug=egg-chicken-buckwheat
+   meal 460.2000 / P51.9000 F11.0232 C39.0140
+   - Гречка (buckwheat-dry) 50g [50-140] MIN  P6.6250 F1.7000 C35.7500
+   - Курица (chicken-breast-raw) 171g [100-280]  P38.4750 F4.4802 C0.0000
+   - Яйца (egg-whole) 50g [50-150] MIN  P6.2800 F4.7550 C0.3600
+   - Огурцы (cucumber) 80g [80-150] MIN  P0.5200 F0.0880 C2.9040
+   - Оливковое масло (olive-oil) 0g [0-15] MIN  P0.0000 F0.0000 C0.0000
+
+== snack1 Сыр, помидор и хлебцы slug=cheese-tomato-crispbread
+   meal 157.9000 / P8.9540 F7.3100 C14.0120
+   - Сыр твёрдый (hard-cheese) 25g [25-60] MIN  P6.2500 F6.7500 C0.5000
+   - Помидоры (tomato) 80g [80-150] MIN  P0.7040 F0.1600 C3.1120
+   - Хлебцы (crispbread) 20g [20-55] MIN  P2.0000 F0.4000 C10.4000
+
+== main2 Говядина с баклажанами и помидорами slug=beef-eggplant-tomato
+   meal 358.9500 / P34.1538 F18.8838 C11.7918
+   - Говядина (beef-lean-raw) 123g [120-200]  P31.9800 F18.4500 C0.0000
+   - Баклажаны (eggplant) 141g [100-200]  P1.3818 F0.2538 C8.2908
+   - Помидоры (tomato) 90g [80-150]  P0.7920 F0.1800 C3.5010
+   - Оливковое масло (olive-oil) 0g [0-15] MIN  P0.0000 F0.0000 C0.0000
+
+== snack2 Вишня и грецкий орех slug=cherry-walnut-snack
+   meal 121.4000 / P2.6430 F6.8570 C15.0126
+   - Вишня (cherry) 112g [100-180]  P1.1200 F0.3360 C13.6416
+   - Грецкий орех (walnut) 10g [10-25] MIN  P1.5230 F6.5210 C1.3710
+
+== main3 Омлет с помидорами, перцем и сыром slug=omelette-tomato-pepper-cheese
+   meal 214.2800 / P14.3068 F12.9700 C9.8308
+   - Яйца (egg-whole) 100g [100-200] MIN  P12.5600 F9.5100 C0.7200
+   - Помидоры (tomato) 104g [80-150]  P0.9152 F0.2080 C4.0456
+   - Перец (bell-pepper) 84g [60-120]  P0.8316 F0.2520 C5.0652
+   - Оливковое масло (olive-oil) 3g [0-15]  P0.0000 F3.0000 C0.0000

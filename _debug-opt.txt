@@ -1,0 +1,4 @@
+valid=true days=1
+{"combinations_checked":259,"elapsed_ms":12814,"timed_out":false,"infeasible":false,"last_failure_reason":"недобор белка (-1.7 г); недобор жиров (-3.0 г); избыток углеводов (+7.4 г)","days_with_issues":0}
+
+{"kcal":1314,"protein_g":111.4,"fat_g":56.1,"carbs_g":89.5,"fiber_g":0}

@@ -1,0 +1,11 @@
+valid false
+message Рацион не удалось собрать: избыток белка (+5.1 г); недобор жиров (-4.8 г); избыток углеводов (+11.5 г). Проверьте исключённые продукты или выберите другой режим.
+best chicken-buckwheat-carrot, chicken-buckwheat-salad, rice-chicken-vegetables, cheese-tomato-crispbread, tuna-avocado-crispbread
+reason избыток белка (+5.1 г); недобор жиров (-4.8 г); избыток углеводов (+11.5 г)
+manual valid=false P=137.4 F=62.7 C=175.8 K=1800
+diff P=2.40 F=2.70 C=-4.20 K=0.00
+main1 chicken-buckwheat-carrot :: chicken-breast-raw:120.0000[120-280] | buckwheat-dry:50.0000[50-140] | carrot:69.0000[60-120] | olive-oil:15.0000[0-15]
+main2 chicken-buckwheat-salad :: chicken-breast-raw:120.0000[120-280] | buckwheat-dry:50.0000[50-140] | cucumber:121.0000[80-200] | tomato:90.0000[80-150] | olive-oil:7.0000[0-15]
+main3 rice-chicken-vegetables :: rice-white-dry:50.0000[50-140] | chicken-breast-raw:120.0000[120-280] | bell-pepper:80.0000[60-120] | carrot:80.0000[60-120] | olive-oil:5.0000[0-15]
+snack1 cheese-tomato-crispbread :: hard-cheese:30.0000[30-60] | tomato:100.0000[80-150] | crispbread:20.0000[20-55]
+snack2 tuna-avocado-crispbread :: canned-tuna:80.0000[80-180] | avocado:80.0000[60-120] | crispbread:30.0000[20-55]

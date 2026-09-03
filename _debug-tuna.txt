@@ -1,0 +1,15 @@
+{
+  "n": 40,
+  "validCount": 9,
+  "best": {
+    "valid": true,
+    "macro": {
+      "kcal": 1314,
+      "protein_g": 111.4,
+      "fat_g": 56.1,
+      "carbs_g": 89.5,
+      "fiber_g": 13.2
+    },
+    "n": 11
+  }
+}

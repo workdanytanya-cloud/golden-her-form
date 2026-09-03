@@ -18,6 +18,8 @@ import { constructorDaysFromSnapshot } from "@/lib/published-programs/nutrition-
 import { loadPublishedNutritionFor } from "@/lib/published-programs/repo";
 import type { NutritionSnapshot } from "@/lib/published-programs/types";
 import type { ConstructorDay } from "@/lib/nutrition-constructor/types";
+import type { ProductMacros } from "@/lib/nutrition-constructor/ingredient-swap";
+import { loadFoodProductsFromDb } from "@/lib/nutrition-constructor/repo";
 import type { Dish } from "@/lib/nutrition";
 
 export const Route = createFileRoute("/_authenticated/dashboard/nutrition")({
@@ -50,14 +52,28 @@ function NutritionInner() {
   const [loading, setLoading] = useState(true);
   const [preferredMode, setPreferredMode] = useState<MealScheduleMode>("two_main_two_snacks");
   const [preferredSlot, setPreferredSlot] = useState<PrimaryMealSlot>("lunch");
+  const [swapCatalog, setSwapCatalog] = useState<ProductMacros[]>([]);
 
   const reload = async () => {
     if (!effectiveUserId) return;
     setLoading(true);
-    const [published, preference] = await Promise.all([
+    const [published, preference, products] = await Promise.all([
       loadPublishedNutritionFor(effectiveUserId, selectedCourseId),
       loadClientMealSchedulePreference({ userId: effectiveUserId, courseId: selectedCourseId }),
+      loadFoodProductsFromDb(),
     ]);
+    setSwapCatalog(
+      products
+        .filter((p) => Number(p.kcal_per_100g) > 0)
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          kcal_per_100g: Number(p.kcal_per_100g),
+          protein_per_100g: Number(p.protein_per_100g),
+          fat_per_100g: Number(p.fat_per_100g),
+          carbs_per_100g: Number(p.carbs_per_100g),
+        })),
+    );
     setSnapshot(published?.snapshot ?? null);
     if (preference) {
       setPreferredMode(preference.mode);
@@ -147,7 +163,9 @@ function NutritionInner() {
           mealScheduleMode={snapshot.meal_schedule_mode as MealScheduleMode}
           primaryMealSlot={snapshot.primary_meal_slot as PrimaryMealSlot}
           editable={false}
+          swapCatalog={swapCatalog}
         />
+        <FoodSwapGuide />
       </div>
     );
   }
