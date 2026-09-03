@@ -43,13 +43,21 @@ export type DayBalanceContext = {
 export function balancedMacroDeviationScore(
   actual: MacroBreakdown,
   target: MacroBreakdown,
-  _priorities?: MacroPriorities,
+  priorities?: MacroPriorities,
 ): number {
   const diff = macroDiff(actual, target);
   const proteinDiff = diff.protein_g.toNumber();
   const fatDiff = diff.fat_g.toNumber();
   const carbsDiff = diff.carbs_g.toNumber();
   const kcalDiff = diff.kcal.abs().toNumber();
+
+  // 1800-style (proteinFocused, not strict HP, not lowCarb): нужен белок+углеводы, жир не раздувать.
+  if (priorities?.proteinFocused && !priorities.strictHighProtein && !priorities.lowCarb) {
+    const proteinPenalty = proteinDiff < 0 ? Math.abs(proteinDiff) * 16 : proteinDiff * 10;
+    const fatPenalty = fatDiff > 0 ? fatDiff * 18 : Math.abs(fatDiff) * 10;
+    const carbsPenalty = carbsDiff < 0 ? Math.abs(carbsDiff) * 16 : carbsDiff * 8;
+    return kcalDiff * 10 + proteinPenalty + fatPenalty + carbsPenalty;
+  }
 
   const proteinPenalty =
     proteinDiff > 0 ? proteinDiff * 18 : Math.abs(proteinDiff) * 8;
@@ -172,8 +180,9 @@ export function tuneDayToTargets(params: {
   targets: MacroBreakdown;
   tolerance: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
   maxSteps?: number;
+  priorities?: MacroPriorities;
 }): { items: MealPlanItem[]; totals: MacroBreakdown; valid: boolean } {
-  const { ctx, targets, tolerance } = params;
+  const { ctx, targets, tolerance, priorities } = params;
   let items = params.items.map((i) => ({ ...i, ingredients: [...i.ingredients] }));
   let totals = totalsFromItems(items);
   const maxSteps = params.maxSteps ?? 1200;
@@ -222,7 +231,7 @@ export function tuneDayToTargets(params: {
           if (proteinSurplus) deltas = [-stepSize];
           else if (proteinDeficit) deltas = [stepSize];
           else deltas = [stepSize, -stepSize];
-        } else if (slug?.includes("-dry")) {
+        } else if (slug?.includes("-dry") || slug === "crispbread" || slug === "lavash" || slug === "banana") {
           if (carbsDeficit) deltas = [stepSize];
           else if (carbsSurplus) deltas = [-stepSize];
           else deltas = [stepSize, -stepSize];
@@ -251,7 +260,7 @@ export function tuneDayToTargets(params: {
             return rebuildItem(it, ctx, newIngs);
           });
           const newTotals = totalsFromItems(newItems);
-          const score = balancedMacroDeviationScore(newTotals, targets);
+          const score = balancedMacroDeviationScore(newTotals, targets, priorities);
           candidates.push({ score, apply: () => newItems });
         }
       }
@@ -259,7 +268,7 @@ export function tuneDayToTargets(params: {
 
     candidates.sort((a, b) => a.score - b.score);
     const best = candidates[0];
-    if (!best || best.score >= balancedMacroDeviationScore(totals, targets)) break;
+    if (!best || best.score >= balancedMacroDeviationScore(totals, targets, priorities)) break;
     items = best.apply();
     totals = totalsFromItems(items);
     }

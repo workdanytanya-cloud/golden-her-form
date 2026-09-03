@@ -128,6 +128,20 @@ export function isGrainBreakfastRecipe(ctx: RecipeSelectionContext, recipe: Reci
   return hasGrain && !hasProtein;
 }
 
+/** Курица/минтай + крупа — оптимально для 1800 (белок + углеводы, мало жира). */
+export function isLeanCarbMainRecipe(ctx: RecipeSelectionContext, recipe: Recipe): boolean {
+  const slugs = (ctx.recipeIngredients.get(recipe.id) ?? [])
+    .map((ri) => ctx.products.get(ri.product_id)?.slug)
+    .filter(Boolean) as string[];
+  const hasLeanProtein =
+    slugs.includes("chicken-breast-raw") || slugs.includes("pollock-raw");
+  const hasCarbGrain =
+    slugs.includes("rice-white-dry") || slugs.includes("buckwheat-dry");
+  // Яйца фиксируют лишний белок на min_g — мешают 1800.
+  if (slugs.includes("egg-whole")) return false;
+  return hasLeanProtein && hasCarbGrain;
+}
+
 function scaledMacroEstimate(base: MacroBreakdown, targetKcal: number): MacroBreakdown {
   const baseKcal = base.kcal.toNumber();
   if (baseKcal <= 0) return base;
@@ -148,11 +162,17 @@ export function macroDeviationScore(
 ): number {
   const diff = macroDiff(actual, target);
   const proteinWeight = priorities?.proteinFocused ? 14 : 8;
-  const carbsWeight = priorities?.lowCarb ? 20 : 8;
+  const carbsWeight = priorities?.lowCarb
+    ? 20
+    : priorities?.proteinFocused && !priorities.strictHighProtein
+      ? 14
+      : 8;
+  const fatWeight =
+    priorities?.proteinFocused && !priorities.strictHighProtein && !priorities.lowCarb ? 12 : 8;
   return (
     diff.kcal.abs().toNumber() * 10 +
     diff.protein_g.abs().toNumber() * proteinWeight +
-    diff.fat_g.abs().toNumber() * 8 +
+    diff.fat_g.abs().toNumber() * fatWeight +
     diff.carbs_g.abs().toNumber() * carbsWeight
   );
 }
@@ -173,6 +193,12 @@ export function scoreRecipeForSlot(
     if (isGrainBreakfastRecipe(ctx, recipe)) return Number.POSITIVE_INFINITY;
     if (isCarbDominantRecipe(base) && !isProteinRichRecipe(ctx, recipe)) {
       return Number.POSITIVE_INFINITY;
+    }
+    // 1800: омлеты/сыр без крупы — жир без углеводов.
+    if (!priorities.strictHighProtein && !priorities.lowCarb) {
+      if (!isLeanCarbMainRecipe(ctx, recipe)) {
+        return Number.POSITIVE_INFINITY;
+      }
     }
   }
 

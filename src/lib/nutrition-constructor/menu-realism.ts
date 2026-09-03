@@ -1,5 +1,6 @@
 import { OIL_GRAM_MAX, OIL_DAILY_MAX_G } from "@/lib/nutrition-constructor/config";
 import { d } from "@/lib/nutrition-constructor/decimal-math";
+import { ingredientsForPdfExport } from "@/lib/nutrition-constructor/ingredient-normalize";
 import {
   NUT_SEED_PRODUCT_SLUGS,
   PROTEIN_MAIN_PRODUCT_SLUGS,
@@ -124,8 +125,7 @@ export function formatDayMenuReport(day: ConstructorDay): string {
     lines.push(
       `\n${item.slot}: ${item.recipe_name} · ${item.kcal} ккал · Б${item.protein_g} Ж${item.fat_g} У${item.carbs_g} · ${item.prep_time_min ?? "—"} мин`,
     );
-    for (const ing of item.ingredients) {
-      if (d(ing.grams).toNumber() <= 0) continue;
+    for (const ing of ingredientsForPdfExport(item.ingredients)) {
       lines.push(`  - ${ing.product_name}: ${ing.grams} г`);
     }
   }

@@ -12,6 +12,7 @@ import {
 } from "@/lib/nutrition-constructor/calculator";
 import {
   d,
+  finiteMacroNumber,
   macroDiff,
   snapshotMacro,
   sumMacros,
@@ -82,10 +83,10 @@ function boundsForIngredient(
 
 function perGramFromProduct(p: FoodProduct): LeverRef["perG"] {
   return {
-    kcal: p.kcal_per_100g / 100,
-    protein_g: p.protein_per_100g / 100,
-    fat_g: p.fat_per_100g / 100,
-    carbs_g: p.carbs_per_100g / 100,
+    kcal: finiteMacroNumber(p.kcal_per_100g) / 100,
+    protein_g: finiteMacroNumber(p.protein_per_100g) / 100,
+    fat_g: finiteMacroNumber(p.fat_per_100g) / 100,
+    carbs_g: finiteMacroNumber(p.carbs_per_100g) / 100,
   };
 }
 
@@ -175,6 +176,22 @@ function deviationScore(totals: MacroBreakdown, targets: MacroBreakdown): number
   );
 }
 
+/** Когда уже близко к допуску — штрафуем только выход за tolerance. */
+function finishingViolationScore(
+  totals: MacroBreakdown,
+  targets: MacroBreakdown,
+  tolerance: { kcal: number; protein_g: number; fat_g: number; carbs_g: number },
+): number {
+  const diff = macroDiff(totals, targets);
+  const over = (v: number, tol: number) => Math.max(0, Math.abs(v) - tol);
+  return (
+    over(diff.kcal.toNumber(), tolerance.kcal) * 20 +
+    over(diff.protein_g.toNumber(), tolerance.protein_g) * 100 +
+    over(diff.fat_g.toNumber(), tolerance.fat_g) * 100 +
+    over(diff.carbs_g.toNumber(), tolerance.carbs_g) * 100
+  );
+}
+
 /** Solve (A^T A + λI) x = A^T b for small n. */
 function solveNormalEq(A: number[][], b: number[], lambda: number): number[] | null {
   const m = A.length;
@@ -216,10 +233,7 @@ function gaussElim(A: number[][], b: number[]): number[] | null {
   return M.map((row) => row[n]!);
 }
 
-function buildMacroMatrix(
-  levers: LeverRef[],
-  weights: Record<MacroKey, number>,
-): number[][] {
+function buildMacroMatrix(levers: LeverRef[], weights: Record<MacroKey, number>): number[][] {
   const keys: MacroKey[] = ["kcal", "protein_g", "fat_g", "carbs_g"];
   return keys.map((k) => levers.map((l) => l.perG[k] * weights[k]!));
 }
@@ -272,7 +286,9 @@ export function solveDayMacros(params: {
     const levers = collectLevers(items, ctx);
     if (levers.length === 0) break;
 
-    const currentGrams = levers.map((l) => d(items[l.itemIdx]!.ingredients[l.ingIdx]!.grams).toNumber());
+    const currentGrams = levers.map((l) =>
+      d(items[l.itemIdx]!.ingredients[l.ingIdx]!.grams).toNumber(),
+    );
     const diff = macroDiff(totals, targets);
     const carbNeed = Math.abs(diff.carbs_g.toNumber());
     const fatNeed = Math.abs(diff.fat_g.toNumber());
@@ -391,7 +407,8 @@ export function solveDayMacros(params: {
     if (d0.fat_g.toNumber() > 8 && d0.carbs_g.toNumber() < -15) {
       const levers = collectLevers(items, ctx);
       const fatLevers = levers.filter(
-        (l) => l.perG.fat_g >= 0.3 || isOil(l.slug) || l.slug === "hard-cheese" || l.slug === "avocado",
+        (l) =>
+          l.perG.fat_g >= 0.3 || isOil(l.slug) || l.slug === "hard-cheese" || l.slug === "avocado",
       );
       const carbLevers = levers.filter(
         (l) =>
@@ -421,6 +438,178 @@ export function solveDayMacros(params: {
               improved = true;
               break;
             }
+          }
+          if (improved) break;
+        }
+        if (!improved) break;
+      }
+    }
+  }
+
+  // Обмен жир→белок при недоборе белка и избытке жира (типично для 1800).
+  if (enableFinishing) {
+    const d1 = macroDiff(totals, targets);
+    if (d1.fat_g.toNumber() > 5 && d1.protein_g.toNumber() < -5) {
+      const levers = collectLevers(items, ctx);
+      const fatLevers = levers.filter(
+        (l) =>
+          l.perG.fat_g >= 0.25 ||
+          isOil(l.slug) ||
+          l.slug === "hard-cheese" ||
+          l.slug === "avocado" ||
+          l.slug === "beef-lean-raw",
+      );
+      const proteinLevers = levers.filter(
+        (l) =>
+          PROTEIN_MAIN_PRODUCT_SLUGS.has(l.slug ?? "") ||
+          l.slug === "canned-tuna" ||
+          l.slug === "chicken-breast-raw" ||
+          l.slug === "pollock-raw",
+      );
+      for (let pass = 0; pass < 50; pass++) {
+        if (withinTolerance(totals, targets, tolerance)) break;
+        const diffNow = macroDiff(totals, targets);
+        if (diffNow.protein_g.toNumber() >= -1 && diffNow.fat_g.toNumber() <= 1) break;
+        let improved = false;
+        for (const fl of fatLevers) {
+          for (const pl of proteinLevers) {
+            if (fl.itemIdx === pl.itemIdx && fl.ingIdx === pl.ingIdx) continue;
+            const gf = d(items[fl.itemIdx]!.ingredients[fl.ingIdx]!.grams).toNumber();
+            const gp = d(items[pl.itemIdx]!.ingredients[pl.ingIdx]!.grams).toNumber();
+            let trial = applyGrams(items, ctx, fl, snapToStep(gf - 5, 1, fl.minG, fl.maxG));
+            if (!trial) continue;
+            trial = applyGrams(trial, ctx, pl, snapToStep(gp + 10, 1, pl.minG, pl.maxG));
+            if (!trial) continue;
+            const newTotals = totalsFromItems(trial);
+            if (deviationScore(newTotals, targets) < deviationScore(totals, targets)) {
+              items = trial;
+              totals = newTotals;
+              improved = true;
+              break;
+            }
+          }
+          if (improved) break;
+        }
+        if (!improved) break;
+      }
+    }
+  }
+
+  // Обмен белок→жир при избытке белка и недоборе жира (lean 1800 + масло).
+  if (enableFinishing) {
+    const d2 = macroDiff(totals, targets);
+    if (d2.protein_g.toNumber() > 2 && d2.fat_g.toNumber() < -0.5) {
+      const levers = collectLevers(items, ctx);
+      const proteinLevers = levers.filter(
+        (l) =>
+          PROTEIN_MAIN_PRODUCT_SLUGS.has(l.slug ?? "") ||
+          l.slug === "canned-tuna" ||
+          l.slug === "chicken-breast-raw" ||
+          l.slug === "pollock-raw",
+      );
+      const fatLevers = levers.filter(
+        (l) =>
+          isOil(l.slug) ||
+          l.slug === "hard-cheese" ||
+          l.slug === "avocado" ||
+          l.slug === "egg-whole",
+      );
+      for (let pass = 0; pass < 80; pass++) {
+        if (withinTolerance(totals, targets, tolerance)) break;
+        const diffNow = macroDiff(totals, targets);
+        if (diffNow.protein_g.toNumber() <= 1 && diffNow.fat_g.toNumber() >= -1) break;
+        let improved = false;
+        for (const pl of proteinLevers) {
+          for (const fl of fatLevers) {
+            const gp = d(items[pl.itemIdx]!.ingredients[pl.ingIdx]!.grams).toNumber();
+            const gf = d(items[fl.itemIdx]!.ingredients[fl.ingIdx]!.grams).toNumber();
+            for (const [dp, df] of [
+              [-5, 2],
+              [-10, 3],
+              [-5, 1],
+              [-5, 3],
+            ] as const) {
+              let trial = applyGrams(items, ctx, pl, snapToStep(gp + dp, 1, pl.minG, pl.maxG));
+              if (!trial) continue;
+              trial = applyGrams(trial, ctx, fl, snapToStep(gf + df, 1, fl.minG, fl.maxG));
+              if (!trial) continue;
+              const newTotals = totalsFromItems(trial);
+              if (deviationScore(newTotals, targets) < deviationScore(totals, targets)) {
+                items = trial;
+                totals = newTotals;
+                improved = true;
+                break;
+              }
+            }
+            if (improved) break;
+          }
+          if (improved) break;
+        }
+        if (!improved) break;
+      }
+    }
+  }
+
+  // Подрезка избытка белка, когда жир/углеводы уже близко.
+  if (enableFinishing) {
+    const d3 = macroDiff(totals, targets);
+    if (
+      d3.protein_g.toNumber() > 1 &&
+      Math.abs(d3.fat_g.toNumber()) <= 4 &&
+      Math.abs(d3.carbs_g.toNumber()) <= 6 &&
+      Math.abs(d3.kcal.toNumber()) <= 30
+    ) {
+      const levers = collectLevers(items, ctx);
+      const proteinLevers = levers.filter(
+        (l) =>
+          l.slug === "canned-tuna" ||
+          l.slug === "chicken-breast-raw" ||
+          l.slug === "pollock-raw" ||
+          l.slug === "egg-whole" ||
+          l.slug === "hard-cheese",
+      );
+      const fillLevers = levers.filter(
+        (l) =>
+          isOil(l.slug) ||
+          l.slug === "crispbread" ||
+          l.slug === "lavash" ||
+          l.slug?.includes("-dry") ||
+          l.slug === "banana" ||
+          l.slug === "avocado",
+      );
+      for (let pass = 0; pass < 80; pass++) {
+        if (withinTolerance(totals, targets, tolerance)) break;
+        const baseViolation = finishingViolationScore(totals, targets, tolerance);
+        let improved = false;
+        for (const pl of proteinLevers) {
+          const gp = d(items[pl.itemIdx]!.ingredients[pl.ingIdx]!.grams).toNumber();
+          for (const dp of [-1, -2, -5, -10]) {
+            const trial = applyGrams(items, ctx, pl, snapToStep(gp + dp, 1, pl.minG, pl.maxG));
+            if (!trial) continue;
+            let newTotals = totalsFromItems(trial);
+            if (finishingViolationScore(newTotals, targets, tolerance) < baseViolation) {
+              items = trial;
+              totals = newTotals;
+              improved = true;
+              break;
+            }
+            for (const fl of fillLevers) {
+              if (fl.itemIdx === pl.itemIdx && fl.ingIdx === pl.ingIdx) continue;
+              const gf = d(trial[fl.itemIdx]!.ingredients[fl.ingIdx]!.grams).toNumber();
+              for (const df of [1, 2, 3, 5, 8]) {
+                const trial2 = applyGrams(trial, ctx, fl, snapToStep(gf + df, 1, fl.minG, fl.maxG));
+                if (!trial2) continue;
+                newTotals = totalsFromItems(trial2);
+                if (finishingViolationScore(newTotals, targets, tolerance) < baseViolation) {
+                  items = trial2;
+                  totals = newTotals;
+                  improved = true;
+                  break;
+                }
+              }
+              if (improved) break;
+            }
+            if (improved) break;
           }
           if (improved) break;
         }

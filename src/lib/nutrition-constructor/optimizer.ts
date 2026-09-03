@@ -42,6 +42,11 @@ import type {
   Recipe,
   RecipeIngredient,
 } from "@/lib/nutrition-constructor/types";
+import {
+  constructorDaysHaveInvalidGrams,
+  finalizeConstructorPlanDays,
+  INVALID_INGREDIENT_GRAMS_MESSAGE,
+} from "@/lib/nutrition-constructor/ingredient-normalize";
 import { buildPlanValidationMessage } from "@/lib/nutrition-constructor/validation-messages";
 import {
   isAutoGenerationEligible,
@@ -54,6 +59,14 @@ import {
   verifiedIngredients,
   type MacroPriorities,
 } from "@/lib/nutrition-constructor/recipe-selection";
+import {
+  UNIQUE_WEEK_TARGET,
+  WEEK_SEARCH_BUDGET_MS,
+  arrangeBestWeekCycle,
+  makeComboReject,
+  shouldUseWeekTiling,
+  tileConstructorWeek,
+} from "@/lib/nutrition-constructor/week-cycle";
 
 export type OptimizerContext = {
   products: Map<string, FoodProduct>;
@@ -252,10 +265,7 @@ function pickSnackTriplet(
         const score = triplet.reduce((sum, recipe, idx) => {
           const slot = snackSlots[idx]!;
           const slotTargets = slotMacroTargets(targets, shares[slot]);
-          return (
-            sum +
-            scoreRecipeForSlot(ctx, recipe, slotTargets, excluded, priorities, "snack")
-          );
+          return sum + scoreRecipeForSlot(ctx, recipe, slotTargets, excluded, priorities, "snack");
         }, 0);
         if (!best || score < best.score) best = { triplet, score };
       }
@@ -283,7 +293,8 @@ function pickRecipesForDayThreeMainTwoSnacks(
   const mains = eligibleMains(ctx, "three_main_two_snacks");
   const snacksRaw = snacksForMode(ctx, "three_main_two_snacks");
   const snacks =
-    priorities.strictHighProtein && strictProteinSnacksForMode(ctx, "three_main_two_snacks").length >= 2
+    priorities.strictHighProtein &&
+    strictProteinSnacksForMode(ctx, "three_main_two_snacks").length >= 2
       ? strictProteinSnacksForMode(ctx, "three_main_two_snacks")
       : snacksRaw;
   if (mains.length < 3 || snacks.length < 2) return null;
@@ -295,8 +306,15 @@ function pickRecipesForDayThreeMainTwoSnacks(
   const mainPool = mainCandidates.length >= 3 ? mainCandidates : mains;
 
   const snack1 =
-    pickBestRecipe(snacks, ctx, slotMacroTargets(targets, shares.snack1), excluded, priorities, "snack", dayIndex) ??
-    snacks[dayIndex % snacks.length]!;
+    pickBestRecipe(
+      snacks,
+      ctx,
+      slotMacroTargets(targets, shares.snack1),
+      excluded,
+      priorities,
+      "snack",
+      dayIndex,
+    ) ?? snacks[dayIndex % snacks.length]!;
   const snack2 =
     pickBestRecipe(
       snacks,
@@ -310,8 +328,15 @@ function pickRecipesForDayThreeMainTwoSnacks(
     ) ?? snacks[(dayIndex + 1) % snacks.length]!;
 
   const main1 =
-    pickBestRecipe(mainPool, ctx, slotMacroTargets(targets, shares.main1), excluded, priorities, "main", dayIndex) ??
-    mainPool[dayIndex % mainPool.length]!;
+    pickBestRecipe(
+      mainPool,
+      ctx,
+      slotMacroTargets(targets, shares.main1),
+      excluded,
+      priorities,
+      "main",
+      dayIndex,
+    ) ?? mainPool[dayIndex % mainPool.length]!;
   const main2 =
     pickBestRecipe(
       mainPool,
@@ -357,8 +382,15 @@ function pickRecipesForDayThreeMainsOnly(
   const mainPool = mainCandidates.length >= 3 ? mainCandidates : mains;
 
   const main1 =
-    pickBestRecipe(mainPool, ctx, slotMacroTargets(targets, shares.main1), excluded, priorities, "main", dayIndex) ??
-    mainPool[dayIndex % mainPool.length]!;
+    pickBestRecipe(
+      mainPool,
+      ctx,
+      slotMacroTargets(targets, shares.main1),
+      excluded,
+      priorities,
+      "main",
+      dayIndex,
+    ) ?? mainPool[dayIndex % mainPool.length]!;
   const main2 =
     pickBestRecipe(
       mainPool,
@@ -397,7 +429,8 @@ function pickRecipesForDayTwoMain(
   const mains = eligibleMains(ctx, "two_main_two_snacks");
   const snacksRaw = snacksForMode(ctx, "two_main_two_snacks");
   const snacks =
-    priorities.strictHighProtein && strictProteinSnacksForMode(ctx, "two_main_two_snacks").length >= 2
+    priorities.strictHighProtein &&
+    strictProteinSnacksForMode(ctx, "two_main_two_snacks").length >= 2
       ? strictProteinSnacksForMode(ctx, "two_main_two_snacks")
       : snacksRaw;
   if (mains.length < 2 || snacks.length < 2) return null;
@@ -412,9 +445,6 @@ function pickRecipesForDayTwoMain(
   const main2Targets = slotMacroTargets(targets, shares.main2);
   const snack1Targets = slotMacroTargets(targets, shares.snack1);
   const snack2Targets = slotMacroTargets(targets, shares.snack2);
-
-  let main1: Recipe;
-  let resolvedMain2: Recipe;
 
   const snack1 =
     pickBestRecipe(snacks, ctx, snack1Targets, excluded, priorities, "snack", dayIndex) ??
@@ -434,14 +464,12 @@ function pickRecipesForDayTwoMain(
   if (priorities.proteinFocused) {
     const proteinMains = pickTopProteinMains(mainPool, ctx, excluded, 8);
     const pairPool =
-      proteinMains.length >= 2
-        ? proteinMains
-        : mainPool.filter((r) => isProteinRichRecipe(ctx, r));
+      proteinMains.length >= 2 ? proteinMains : mainPool.filter((r) => isProteinRichRecipe(ctx, r));
     const snackPairs: Array<[Recipe, Recipe]> = [];
     for (let a = 0; a < snacks.length; a++) {
       for (let b = 0; b < snacks.length; b++) {
         if (a === b) continue;
-        if (priorities.strictHighProtein || (priorities.proteinFocused && snacks.some((s) => s.slug.includes("tuna")))) {
+        if (priorities.strictHighProtein) {
           if (!snacks[a]!.slug.includes("tuna") && !snacks[a]!.slug.includes("cheese")) continue;
           if (!snacks[b]!.slug.includes("tuna") && !snacks[b]!.slug.includes("cheese")) continue;
         }
@@ -450,7 +478,8 @@ function pickRecipesForDayTwoMain(
       }
       if (snackPairs.length >= 24) break;
     }
-    const snackPairList = snackPairs.length > 0 ? snackPairs : ([[snack1, snack2]] as Array<[Recipe, Recipe]>);
+    const snackPairList =
+      snackPairs.length > 0 ? snackPairs : ([[snack1, snack2]] as Array<[Recipe, Recipe]>);
 
     let bestPair: {
       main1: Recipe;
@@ -518,7 +547,7 @@ function pickRecipesForDayTwoMain(
     }
   }
 
-  main1 =
+  const main1 =
     pickBestRecipe(mainPool, ctx, main1Targets, excluded, priorities, "main", dayIndex) ??
     mainPool[dayIndex % mainPool.length]!;
   const main2 =
@@ -532,7 +561,7 @@ function pickRecipesForDayTwoMain(
       dayIndex + 1,
       new Set([main1.id]),
     ) ?? mainPool[(dayIndex + 1) % mainPool.length]!;
-  resolvedMain2 =
+  const resolvedMain2 =
     main2.id === main1.id && mainPool.length > 1
       ? mainPool[(dayIndex + 2) % mainPool.length]!
       : main2;
@@ -562,12 +591,19 @@ function pickRecipesForDayOneMain(
     pickBestRecipe(mainPool, ctx, main1Targets, excluded, priorities, "main", dayIndex) ??
     mainPool[dayIndex % mainPool.length]!;
 
-  const triplet = pickSnackTriplet(ctx, "one_main_three_snacks", dayIndex, targets, shares, excluded, priorities);
+  const triplet = pickSnackTriplet(
+    ctx,
+    "one_main_three_snacks",
+    dayIndex,
+    targets,
+    shares,
+    excluded,
+    priorities,
+  );
   if (!triplet) return null;
 
   return { main1, snack1: triplet[0], snack2: triplet[1], snack3: triplet[2] };
 }
-
 
 function assembleAndTuneDay(
   ctx: OptimizerContext,
@@ -590,12 +626,17 @@ function assembleAndTuneDay(
       if (!recipe) return null;
       let ings = verifiedIngredients(ctx, recipe, excluded);
       if (ings.length === 0) return null;
-      if (slot.startsWith("main") && priorities.lowCarb) {
+      if (
+        slot.startsWith("main") &&
+        (priorities.lowCarb || (priorities.proteinFocused && !priorities.strictHighProtein))
+      ) {
         ings = enrichMainIngredientsWithOil(dayCtx, recipe, ings, excluded);
       }
       const slotTargets = slotMacroTargets(targets, shares[slot]);
       const isMain = slot.startsWith("main");
-      const useQuickMealOpt = priorities.proteinFocused && mode !== "three_mains_only";
+      // Quick path only for strict high-protein (e.g. 1313): optimizes kcal+protein only.
+      // Standard proteinFocused (e.g. 1800) needs full optimizeMealIngredients for carbs/fat.
+      const useQuickMealOpt = priorities.strictHighProtein && mode !== "three_mains_only";
       let lines: ReturnType<typeof buildIngredientLine>[];
       if (useQuickMealOpt) {
         lines = optimizeMealQuick(ings, ctx.products, slotTargets);
@@ -624,6 +665,7 @@ function assembleAndTuneDay(
     targets,
     tolerance: DEFAULT_TOLERANCE,
     maxSteps: tuneMax,
+    priorities,
   });
 
   const solved = solveDayMacros({
@@ -725,6 +767,11 @@ function buildDay(
   recentMain: Map<string, number>,
   excluded: Set<string>,
   mode: MealScheduleMode,
+  options?: {
+    timeoutMs?: number;
+    comboReject?: (slotRecipes: Partial<Record<PlanSlot, Recipe>>) => boolean;
+    collectUnique?: ConstructorDay[];
+  },
 ): { day: ConstructorDay | null; diagnostics: ComboSearchDiagnostics | null } {
   const priorities = macroPriorities(targets);
   const shares = slotCalorieShare(mode);
@@ -732,9 +779,7 @@ function buildDay(
   let snacks = priorities.strictHighProtein
     ? ctx.snackRecipes.filter(
         (r) =>
-          r.is_active &&
-          r.allowed_schedule_modes.includes(mode) &&
-          isAutoGenerationEligible(r),
+          r.is_active && r.allowed_schedule_modes.includes(mode) && isAutoGenerationEligible(r),
       )
     : snacksForMode(ctx, mode);
 
@@ -752,8 +797,21 @@ function buildDay(
     }
   }
 
-  const assemble = (slotRecipes: Partial<Record<PlanSlot, Recipe>>, options?: { searchPhase?: boolean }) =>
-    assembleAndTuneDay(ctx, targets, shares, excluded, mode, priorities, slotRecipes, undefined, options);
+  const assemble = (
+    slotRecipes: Partial<Record<PlanSlot, Recipe>>,
+    options?: { searchPhase?: boolean },
+  ) =>
+    assembleAndTuneDay(
+      ctx,
+      targets,
+      shares,
+      excluded,
+      mode,
+      priorities,
+      slotRecipes,
+      undefined,
+      options,
+    );
 
   const slotRecipes = pickSlotRecipesForMode(
     ctx,
@@ -764,10 +822,13 @@ function buildDay(
     excluded,
     priorities,
   );
-  if (slotRecipes) {
+  if (slotRecipes && !options?.comboReject?.(slotRecipes) && !options?.collectUnique) {
     const legacy = assemble(slotRecipes);
     if (legacy?.is_valid) {
-      return { day: finalizeBuiltDay(dayIndex, legacy, slotRecipes, recentMain), diagnostics: null };
+      return {
+        day: finalizeBuiltDay(dayIndex, legacy, slotRecipes, recentMain),
+        diagnostics: null,
+      };
     }
   }
 
@@ -781,7 +842,24 @@ function buildDay(
     mains,
     snacks,
     assemble,
+    timeoutMs: options?.timeoutMs,
+    comboReject: options?.comboReject,
+    collectValid: options?.collectUnique
+      ? {
+          take: (day, slotRecipesFound) => {
+            options.collectUnique!.push(
+              finalizeBuiltDay(options.collectUnique!.length, day, slotRecipesFound, recentMain),
+            );
+            return options.collectUnique!.length < UNIQUE_WEEK_TARGET;
+          },
+        }
+      : undefined,
   });
+
+  if (options?.collectUnique) {
+    const last = options.collectUnique[options.collectUnique.length - 1] ?? null;
+    return { day: last, diagnostics: search.diagnostics };
+  }
 
   if (search.day?.is_valid && search.slotRecipes) {
     return {
@@ -806,13 +884,28 @@ export function generateConstructorPlan(
   let totalElapsedMs = 0;
   let timedOut = false;
   let lastFailureReason: string | null = null;
+  let uniqueWeekDays: number | undefined;
+  const weekTiled = shouldUseWeekTiling(mode, input.days_count);
   const failMessage =
     mode === "one_main_three_snacks"
       ? ONE_MAIN_UNACHIEVABLE_MESSAGE
       : "Не удалось собрать рацион в заданных ограничениях. Измените целевые показатели, исключённые продукты или режим питания.";
 
-  for (let i = 0; i < input.days_count; i++) {
-    const { day, diagnostics } = buildDay(ctx, i, input.targets, recentMain, excluded, mode);
+  if (shouldUseWeekTiling(mode, input.days_count)) {
+    const uniqueDays: ConstructorDay[] = [];
+    const { diagnostics } = buildDay(
+      ctx,
+      0,
+      input.targets,
+      new Map<string, number>(),
+      excluded,
+      mode,
+      {
+        timeoutMs: WEEK_SEARCH_BUDGET_MS,
+        comboReject: makeComboReject(uniqueDays, UNIQUE_WEEK_TARGET),
+        collectUnique: uniqueDays,
+      },
+    );
     if (diagnostics) {
       totalCombinations += diagnostics.combinations_checked;
       totalElapsedMs += diagnostics.elapsed_ms;
@@ -821,7 +914,8 @@ export function generateConstructorPlan(
         lastFailureReason = diagnostics.last_failure_reason;
       }
     }
-    if (!day || !day.is_valid) {
+    uniqueWeekDays = uniqueDays.length;
+    if (uniqueDays.length === 0) {
       const infeasibleMsg = lastFailureReason
         ? `Рацион не удалось собрать: ${lastFailureReason}. Проверьте исключённые продукты или выберите другой режим.`
         : failMessage;
@@ -837,17 +931,82 @@ export function generateConstructorPlan(
           timed_out: timedOut,
           infeasible: true,
           last_failure_reason: lastFailureReason,
-          days_with_issues: i + 1,
+          days_with_issues: 1,
+          best_recipe_slugs: diagnostics?.best_recipe_slugs ?? null,
+          best_deviation_score: diagnostics?.best_deviation_score ?? null,
+          unique_week_days: 0,
+          week_tiled: true,
         },
       };
     }
-    days.push(day);
+    const arranged = arrangeBestWeekCycle(uniqueDays);
+    uniqueWeekDays = arranged.length;
+    days.push(...tileConstructorWeek(arranged, input.days_count));
+    if (days.length !== input.days_count || days.some((dayRow) => !dayRow.is_valid)) {
+      const infeasibleMsg = lastFailureReason
+        ? `Рацион не удалось собрать: ${lastFailureReason}. Проверьте исключённые продукты или выберите другой режим.`
+        : failMessage;
+      return {
+        is_valid: false,
+        kbju_acceptable: false,
+        message: infeasibleMsg,
+        comparison: [],
+        days: [],
+        diagnostics: {
+          combinations_checked: totalCombinations,
+          elapsed_ms: totalElapsedMs,
+          timed_out: timedOut,
+          infeasible: true,
+          last_failure_reason: lastFailureReason,
+          days_with_issues: uniqueDays.length,
+          unique_week_days: uniqueDays.length,
+          week_tiled: true,
+        },
+      };
+    }
+  } else {
+    for (let i = 0; i < input.days_count; i++) {
+      const { day, diagnostics } = buildDay(ctx, i, input.targets, recentMain, excluded, mode);
+      if (diagnostics) {
+        totalCombinations += diagnostics.combinations_checked;
+        totalElapsedMs += diagnostics.elapsed_ms;
+        timedOut = timedOut || diagnostics.timed_out;
+        if (diagnostics.last_failure_reason) {
+          lastFailureReason = diagnostics.last_failure_reason;
+        }
+      }
+      if (!day || !day.is_valid) {
+        const infeasibleMsg = lastFailureReason
+          ? `Рацион не удалось собрать: ${lastFailureReason}. Проверьте исключённые продукты или выберите другой режим.`
+          : failMessage;
+        return {
+          is_valid: false,
+          kbju_acceptable: false,
+          message: diagnostics?.infeasible || diagnostics?.timed_out ? infeasibleMsg : failMessage,
+          comparison: [],
+          days: [],
+          diagnostics: {
+            combinations_checked: totalCombinations,
+            elapsed_ms: totalElapsedMs,
+            timed_out: timedOut,
+            infeasible: true,
+            last_failure_reason: lastFailureReason,
+            days_with_issues: i + 1,
+            best_recipe_slugs: diagnostics?.best_recipe_slugs ?? null,
+            best_deviation_score: diagnostics?.best_deviation_score ?? null,
+          },
+        };
+      }
+      days.push(day);
+    }
   }
 
-  const allValid = days.every((dayRow) => dayRow.is_valid);
-  const invalidDayCount = days.filter((dayRow) => !dayRow.is_valid).length;
+  const gramsInvalid = constructorDaysHaveInvalidGrams(days);
+  const finalizedDays = finalizeConstructorPlanDays(days);
+  const allValid = !gramsInvalid && finalizedDays.every((dayRow) => dayRow.is_valid);
+  const invalidDayCount = finalizedDays.filter((dayRow) => !dayRow.is_valid).length;
   const avgTotals = sumMacros(
-    days.map((dayRow) => ({
+    finalizedDays.map((dayRow) => ({
       kcal: d(dayRow.kcal),
       protein_g: d(dayRow.protein_g),
       fat_g: d(dayRow.fat_g),
@@ -856,11 +1015,11 @@ export function generateConstructorPlan(
     })),
   );
   const avg = {
-    kcal: avgTotals.kcal.div(days.length),
-    protein_g: avgTotals.protein_g.div(days.length),
-    fat_g: avgTotals.fat_g.div(days.length),
-    carbs_g: avgTotals.carbs_g.div(days.length),
-    fiber_g: avgTotals.fiber_g.div(days.length),
+    kcal: avgTotals.kcal.div(finalizedDays.length),
+    protein_g: avgTotals.protein_g.div(finalizedDays.length),
+    fat_g: avgTotals.fat_g.div(finalizedDays.length),
+    carbs_g: avgTotals.carbs_g.div(finalizedDays.length),
+    fiber_g: avgTotals.fiber_g.div(finalizedDays.length),
   };
 
   const comparison = [
@@ -897,19 +1056,21 @@ export function generateConstructorPlan(
   return {
     is_valid: valid,
     kbju_acceptable: kbjuAcceptable,
-    message: valid
-      ? null
-      : buildPlanValidationMessage({
-          comparison,
-          tolerance,
-          hasDays: days.length > 0,
-          failMessage,
-          invalidDayCount,
-          totalDays: days.length,
-        }),
+    message: gramsInvalid
+      ? INVALID_INGREDIENT_GRAMS_MESSAGE
+      : valid
+        ? null
+        : buildPlanValidationMessage({
+            comparison,
+            tolerance,
+            hasDays: finalizedDays.length > 0,
+            failMessage,
+            invalidDayCount,
+            totalDays: finalizedDays.length,
+          }),
     comparison,
-    days,
-    best_approximation: valid ? undefined : { days, comparison },
+    days: finalizedDays,
+    best_approximation: valid ? undefined : { days: finalizedDays, comparison },
     diagnostics: {
       combinations_checked: totalCombinations,
       elapsed_ms: totalElapsedMs,
@@ -917,6 +1078,8 @@ export function generateConstructorPlan(
       infeasible: !valid,
       last_failure_reason: lastFailureReason,
       days_with_issues: invalidDayCount,
+      unique_week_days: uniqueWeekDays,
+      week_tiled: weekTiled || undefined,
     },
   };
 }

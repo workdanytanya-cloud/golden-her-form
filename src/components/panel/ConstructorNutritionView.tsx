@@ -11,6 +11,7 @@ import {
   type PrimaryMealSlot,
 } from "@/lib/nutrition-constructor/config";
 import { displayGrams, displayMacro, d } from "@/lib/nutrition-constructor/decimal-math";
+import { ingredientsForClientDisplay } from "@/lib/nutrition-constructor/ingredient-normalize";
 import type {
   ConstructorDay,
   MacroComparisonRow,
@@ -277,6 +278,7 @@ function MealCard({
     carbs_g: d(item.carbs_g),
     fiber_g: d(item.fiber_g),
   });
+  const displayIngredients = ingredientsForClientDisplay(item.ingredients);
 
   return (
     <div className="rounded-2xl border border-gold/15 bg-surface/40 p-4 sm:p-5">
@@ -307,7 +309,7 @@ function MealCard({
       </div>
 
       <ul className="mt-4 space-y-2">
-        {item.ingredients.map((ing) => (
+        {displayIngredients.map((ing) => (
           <li
             key={ing.product_id}
             className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-background/40 px-3 py-2 text-sm"

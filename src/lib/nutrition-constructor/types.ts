@@ -156,6 +156,10 @@ export type OptimizerDiagnostics = {
   infeasible: boolean;
   last_failure_reason: string | null;
   days_with_issues: number;
+  best_recipe_slugs?: string[] | null;
+  best_deviation_score?: number | null;
+  unique_week_days?: number;
+  week_tiled?: boolean;
 };
 
 export type PlanValidationResult = {

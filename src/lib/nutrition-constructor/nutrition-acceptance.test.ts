@@ -8,6 +8,7 @@ import { d, displayMacro, withinTolerance } from "@/lib/nutrition-constructor/de
 import { generateConstructorPlan } from "@/lib/nutrition-constructor/optimizer";
 import { validateMenuRealism } from "@/lib/nutrition-constructor/menu-realism";
 import { buildInMemoryCatalog } from "@/lib/nutrition-constructor/repo";
+import type { ConstructorDay } from "@/lib/nutrition-constructor/types";
 
 const PROFILE_1313 = {
   name: "1313 high-protein",
@@ -31,89 +32,75 @@ const PROFILE_1800 = {
   },
 } as const;
 
-/** Готово: 1313 в 3+2, 2+2, 1+3. Pending: three_mains_only + весь 1800. */
-const MODES_1313_READY: MealScheduleMode[] = [
+const MODES_ALL: MealScheduleMode[] = [
   "three_main_two_snacks",
   "two_main_two_snacks",
   "one_main_three_snacks",
+  "three_mains_only",
 ];
 
 const PRIMARY_SLOTS: PrimaryMealSlot[] = ["breakfast", "lunch", "dinner"];
 
+function expectDayWithinTolerance(
+  day: Pick<ConstructorDay, "kcal" | "protein_g" | "fat_g" | "carbs_g">,
+  targets: typeof PROFILE_1313.targets,
+) {
+  const macro = {
+    kcal: d(day.kcal),
+    protein_g: d(day.protein_g),
+    fat_g: d(day.fat_g),
+    carbs_g: d(day.carbs_g),
+    fiber_g: d(0),
+  };
+  expect(withinTolerance(macro, targets, DEFAULT_TOLERANCE)).toBe(true);
+}
+
 describe("acceptance: control KBJU profiles (test catalog)", () => {
   const ctx = buildInMemoryCatalog({ includeTestPackaging: true });
 
-  for (const mode of MODES_1313_READY) {
-    if (mode === "one_main_three_snacks") {
-      for (const primary of PRIMARY_SLOTS) {
-        it(`${PROFILE_1313.name} · ${mode} · ${primary}`, { timeout: 45_000 }, () => {
+  for (const profile of [PROFILE_1313, PROFILE_1800]) {
+    for (const mode of MODES_ALL) {
+      if (mode === "one_main_three_snacks") {
+        for (const primary of PRIMARY_SLOTS) {
+          it(`${profile.name} · ${mode} · ${primary}`, { timeout: 45_000 }, () => {
+            const gen = generateConstructorPlan(ctx, {
+              targets: profile.targets,
+              days_count: 1,
+              excluded_product_ids: [],
+              tolerance: DEFAULT_TOLERANCE,
+              meal_schedule_mode: mode,
+              primary_meal_slot: primary,
+            });
+            expect(gen.is_valid, gen.message ?? "invalid").toBe(true);
+            expect(gen.days).toHaveLength(1);
+            const day = gen.days[0]!;
+            expectDayWithinTolerance(day, profile.targets);
+            if (profile === PROFILE_1313) {
+              expect(
+                validateMenuRealism({
+                  day,
+                  products: ctx.products,
+                  dayProteinTargetG: displayMacro(profile.targets).protein_g,
+                }),
+              ).toEqual([]);
+            }
+          });
+        }
+      } else {
+        it(`${profile.name} · ${mode}`, { timeout: 45_000 }, () => {
           const gen = generateConstructorPlan(ctx, {
-            targets: PROFILE_1313.targets,
+            targets: profile.targets,
             days_count: 1,
             excluded_product_ids: [],
             tolerance: DEFAULT_TOLERANCE,
             meal_schedule_mode: mode,
-            primary_meal_slot: primary,
+            primary_meal_slot: "lunch",
           });
           expect(gen.is_valid, gen.message ?? "invalid").toBe(true);
           expect(gen.days).toHaveLength(1);
-          const day = gen.days[0]!;
-          const macro = {
-            kcal: d(day.kcal),
-            protein_g: d(day.protein_g),
-            fat_g: d(day.fat_g),
-            carbs_g: d(day.carbs_g),
-            fiber_g: d(0),
-          };
-          expect(withinTolerance(macro, PROFILE_1313.targets, DEFAULT_TOLERANCE)).toBe(true);
-          expect(
-            validateMenuRealism({
-              day,
-              products: ctx.products,
-              dayProteinTargetG: displayMacro(PROFILE_1313.targets).protein_g,
-            }),
-          ).toEqual([]);
+          expectDayWithinTolerance(gen.days[0]!, profile.targets);
         });
       }
-    } else {
-      it(`${PROFILE_1313.name} · ${mode}`, { timeout: 45_000 }, () => {
-        const gen = generateConstructorPlan(ctx, {
-          targets: PROFILE_1313.targets,
-          days_count: 1,
-          excluded_product_ids: [],
-          tolerance: DEFAULT_TOLERANCE,
-          meal_schedule_mode: mode,
-          primary_meal_slot: "lunch",
-        });
-        expect(gen.is_valid, gen.message ?? "invalid").toBe(true);
-        expect(gen.days).toHaveLength(1);
-        const day = gen.days[0]!;
-        const macro = {
-          kcal: d(day.kcal),
-          protein_g: d(day.protein_g),
-          fat_g: d(day.fat_g),
-          carbs_g: d(day.carbs_g),
-          fiber_g: d(0),
-        };
-        expect(withinTolerance(macro, PROFILE_1313.targets, DEFAULT_TOLERANCE)).toBe(true);
-      });
-    }
-  }
-
-  it.skip(`${PROFILE_1313.name} · three_mains_only (pending)`, () => {});
-
-  for (const mode of [
-    "three_main_two_snacks",
-    "three_mains_only",
-    "one_main_three_snacks",
-    "two_main_two_snacks",
-  ] as MealScheduleMode[]) {
-    if (mode === "one_main_three_snacks") {
-      for (const primary of PRIMARY_SLOTS) {
-        it.skip(`${PROFILE_1800.name} · ${mode} · ${primary} (pending)`, () => {});
-      }
-    } else {
-      it.skip(`${PROFILE_1800.name} · ${mode} (pending)`, () => {});
     }
   }
 

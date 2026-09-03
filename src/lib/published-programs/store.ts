@@ -3,6 +3,10 @@
  * и семантика, которую реализует SQL RPC publish_*_version.
  */
 import { contentHash } from "@/lib/published-programs/hash";
+import {
+  persistableNutritionSnapshot,
+  nutritionSnapshotForClientDisplay,
+} from "@/lib/published-programs/nutrition-snapshot";
 import { PUBLISHED_IMMUTABLE_ERROR } from "@/lib/published-programs/config";
 import { calcMacroTargets } from "@/lib/nutrition-constructor/targets";
 import type {
@@ -130,7 +134,7 @@ export function clientVisibleNutrition(
   if (!a) return null;
   const v = store.nutritionVersions.find((x) => x.id === a.active_version_id);
   if (!v || v.status !== "published") return null;
-  return structuredClone(v.snapshot);
+  return nutritionSnapshotForClientDisplay(structuredClone(v.snapshot));
 }
 
 export function clientVisibleTraining(
@@ -163,7 +167,7 @@ export function saveNutritionDraft(
   const row: DraftNutrition = {
     client_id: clientId,
     status: "draft",
-    snapshot: structuredClone(snapshot),
+    snapshot: persistableNutritionSnapshot(structuredClone(snapshot)),
     parent_version_id: parentVersionId,
   };
   if (idx >= 0) next.nutritionDrafts[idx] = row;
@@ -194,12 +198,13 @@ export function publishNutritionVersion(
   store: PublishedStore,
   params: PublishNutritionParams,
 ): PublishedStore {
+  const snapshot = persistableNutritionSnapshot(params.snapshot);
   const rollback = cloneStore(store);
   try {
     const next = cloneStore(store);
     if (params.failAt === "validate") throw new Error("validate failed");
 
-    const hash = contentHash(params.snapshot);
+    const hash = contentHash(snapshot);
     if (params.failAt === "snapshot") throw new Error("snapshot failed");
 
     const prevAssign = next.assignments.find(
@@ -223,7 +228,7 @@ export function publishNutritionVersion(
       client_id: params.clientId,
       version: versionNum,
       status: "published",
-      snapshot: structuredClone(params.snapshot),
+      snapshot: structuredClone(snapshot),
       content_hash: hash,
       parent_version_id: prevVersion?.id ?? null,
       created_at: now,
@@ -254,7 +259,7 @@ export function publishNutritionVersion(
       diff: {
         reason: params.reason ?? null,
         old_kcal: prevVersion?.snapshot.targets.kcal ?? null,
-        new_kcal: params.snapshot.targets.kcal,
+        new_kcal: snapshot.targets.kcal,
       },
       created_at: now,
     });
@@ -264,7 +269,7 @@ export function publishNutritionVersion(
     const synced: DraftNutrition = {
       client_id: params.clientId,
       status: "validated",
-      snapshot: structuredClone(params.snapshot),
+      snapshot: structuredClone(snapshot),
       parent_version_id: newId,
     };
     if (dIdx >= 0) next.nutritionDrafts[dIdx] = synced;
@@ -441,6 +446,29 @@ export function onMeasurementSaved(
   });
 
   // Меню и тренировки не трогаем
+  return next;
+}
+
+export function recordClientMealPreference(
+  store: PublishedStore,
+  params: { clientId: string; requestedMode: string },
+): PublishedStore {
+  const next = cloneStore(store);
+  const assignment = next.assignments.find(
+    (x) => x.client_id === params.clientId && x.kind === "nutrition",
+  );
+  next.audit.push({
+    id: id("log"),
+    client_id: params.clientId,
+    kind: "nutrition",
+    action: "client_schedule_preference",
+    actor_id: params.clientId,
+    from_version_id: assignment?.active_version_id ?? null,
+    to_version_id: null,
+    measurement_id: null,
+    diff: { requested_mode: params.requestedMode },
+    created_at: new Date().toISOString(),
+  });
   return next;
 }
 

@@ -6,6 +6,11 @@ import {
   mealTotalsFromIngredients,
 } from "@/lib/nutrition-constructor/calculator";
 import {
+  prepareConstructorDaysForSave,
+  visibleIngredients,
+  normalizeMealPlanItem,
+} from "@/lib/nutrition-constructor/ingredient-normalize";
+import {
   DEFAULT_TOLERANCE,
   type MealScheduleMode,
   type PlanDaysCount,
@@ -38,6 +43,7 @@ import {
 import type {
   ConstructorDay,
   FoodProduct,
+  IngredientLine,
   MealPlanItem,
   Recipe,
   RecipeIngredient,
@@ -138,6 +144,9 @@ function seedToRecipe(r: SeedRecipe, productSlugs: Set<string>): Recipe | null {
     ingredients: r.ingredients,
   });
   const slugs = r.ingredients.map((i) => i.product_slug);
+  // Активное время ≤20 мин; кипение крупы/мяса — в total_cook.
+  const activePrep = Math.min(r.prep_time_min, 15);
+  const totalCook = r.prep_time_min;
   return {
     id: r.slug,
     slug: r.slug,
@@ -157,8 +166,8 @@ function seedToRecipe(r: SeedRecipe, productSlugs: Set<string>): Recipe | null {
     is_everyday: true,
     is_nutritionally_complete: true,
     dietitian_approved: true,
-    active_prep_minutes: r.prep_time_min,
-    total_cook_minutes: r.prep_time_min,
+    active_prep_minutes: activePrep,
+    total_cook_minutes: totalCook,
     complexity: "easy" as const,
   };
 }
@@ -428,21 +437,17 @@ export function recalculateMealItem(
     if (!p) return ing;
     return buildIngredientLine(p, ing.grams, ing.sort_order);
   });
-  return {
+  const totals = mealTotalsFromIngredients(lines);
+  const snap = snapshotMacro(totals);
+  return normalizeMealPlanItem({
     ...item,
     ingredients: lines,
-    ...(() => {
-      const totals = mealTotalsFromIngredients(lines);
-      const snap = snapshotMacro(totals);
-      return {
-        kcal: snap.kcal,
-        protein_g: snap.protein_g,
-        fat_g: snap.fat_g,
-        carbs_g: snap.carbs_g,
-        fiber_g: snap.fiber_g,
-      };
-    })(),
-  };
+    kcal: snap.kcal,
+    protein_g: snap.protein_g,
+    fat_g: snap.fat_g,
+    carbs_g: snap.carbs_g,
+    fiber_g: snap.fiber_g,
+  });
 }
 
 export async function generateAndValidateConstructorPlan(params: {
@@ -540,10 +545,81 @@ function isMissingColumn(error: { message?: string }, col: string): boolean {
   return new RegExp(col, "i").test(msg) && /schema cache|could not find|PGRST204|column/i.test(msg);
 }
 
+type MealPlanIngredientRow = {
+  grams: string | number;
+  product_id?: string | null;
+  product_name: string;
+  weighing_note?: string | null;
+  kcal_per_100g: string | number;
+  protein_per_100g: string | number;
+  fat_per_100g: string | number;
+  carbs_per_100g: string | number;
+  fiber_per_100g?: string | number | null;
+  kcal: string | number;
+  protein_g: string | number;
+  fat_g: string | number;
+  carbs_g: string | number;
+  fiber_g?: string | number | null;
+  sort_order?: number | null;
+};
+
+function isNumericMacro(value: unknown): value is string | number {
+  return typeof value === "string" || typeof value === "number";
+}
+
+function isMealPlanIngredientRow(row: Record<string, unknown>): row is MealPlanIngredientRow {
+  return (
+    isNumericMacro(row.grams) &&
+    typeof row.product_name === "string" &&
+    (row.product_id === undefined ||
+      row.product_id === null ||
+      typeof row.product_id === "string") &&
+    (row.weighing_note === undefined ||
+      row.weighing_note === null ||
+      typeof row.weighing_note === "string") &&
+    isNumericMacro(row.kcal_per_100g) &&
+    isNumericMacro(row.protein_per_100g) &&
+    isNumericMacro(row.fat_per_100g) &&
+    isNumericMacro(row.carbs_per_100g) &&
+    (row.fiber_per_100g === undefined ||
+      row.fiber_per_100g === null ||
+      isNumericMacro(row.fiber_per_100g)) &&
+    isNumericMacro(row.kcal) &&
+    isNumericMacro(row.protein_g) &&
+    isNumericMacro(row.fat_g) &&
+    isNumericMacro(row.carbs_g) &&
+    (row.fiber_g === undefined || row.fiber_g === null || isNumericMacro(row.fiber_g)) &&
+    (row.sort_order === undefined || row.sort_order === null || typeof row.sort_order === "number")
+  );
+}
+
+function mapIngredientRow(ing: MealPlanIngredientRow, idx: number): IngredientLine {
+  return {
+    product_id: ing.product_id ?? "",
+    product_name: ing.product_name,
+    grams: String(ing.grams),
+    weighing_note: ing.weighing_note ?? null,
+    kcal_per_100g: String(ing.kcal_per_100g),
+    protein_per_100g: String(ing.protein_per_100g),
+    fat_per_100g: String(ing.fat_per_100g),
+    carbs_per_100g: String(ing.carbs_per_100g),
+    fiber_per_100g: ing.fiber_per_100g != null ? String(ing.fiber_per_100g) : null,
+    kcal: String(ing.kcal),
+    protein_g: String(ing.protein_g),
+    fat_g: String(ing.fat_g),
+    carbs_g: String(ing.carbs_g),
+    fiber_g: String(ing.fiber_g ?? 0),
+    sort_order: ing.sort_order ?? idx,
+  };
+}
+
 function mapMealItemRow(
   item: Record<string, unknown>,
   ingredients: Record<string, unknown>[],
 ): MealPlanItem {
+  const typedIngredients = ingredients.flatMap((row, idx) =>
+    isMealPlanIngredientRow(row) ? [mapIngredientRow(row, idx)] : [],
+  );
   return {
     id: item.id as string,
     slot: item.slot as MealPlanItem["slot"],
@@ -560,23 +636,7 @@ function mapMealItemRow(
     carbs_g: String(item.carbs_g),
     fiber_g: String(item.fiber_g ?? 0),
     is_valid: Boolean(item.is_valid),
-    ingredients: ingredients.map((ing, idx) => ({
-      product_id: (ing.product_id as string) ?? "",
-      product_name: ing.product_name as string,
-      grams: String(ing.grams),
-      weighing_note: (ing.weighing_note as string | null) ?? null,
-      kcal_per_100g: String(ing.kcal_per_100g),
-      protein_per_100g: String(ing.protein_per_100g),
-      fat_per_100g: String(ing.fat_per_100g),
-      carbs_per_100g: String(ing.carbs_per_100g),
-      fiber_per_100g: ing.fiber_per_100g != null ? String(ing.fiber_per_100g) : null,
-      kcal: String(ing.kcal),
-      protein_g: String(ing.protein_g),
-      fat_g: String(ing.fat_g),
-      carbs_g: String(ing.carbs_g),
-      fiber_g: String(ing.fiber_g ?? 0),
-      sort_order: (ing.sort_order as number) ?? idx,
-    })),
+    ingredients: visibleIngredients(typedIngredients),
   };
 }
 
@@ -733,6 +793,8 @@ export async function saveConstructorPlan(
     primary_meal_slot,
   } = params;
 
+  const persistDays = prepareConstructorDaysForSave(days);
+
   const { resolveCourseId } = await import("@/lib/client-courses/repo");
   const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
 
@@ -821,7 +883,7 @@ export async function saveConstructorPlan(
     .eq("plan_id", planId);
   if (delErr) throw delErr;
 
-  for (const day of days) {
+  for (const day of persistDays) {
     const { data: dayRow, error: dayInsErr } = await supabase
       .from("nutrition_plan_days")
       .insert({

@@ -3,6 +3,12 @@
 /** Запрет автопересборки назначенных программ при деплое. */
 export const AUTO_REGENERATE_ON_DEPLOY = false;
 
+/** Новый конструктор не включается всем клиентам сам — только после публикации тренером. */
+export const AUTO_ENABLE_CONSTRUCTOR_FOR_ALL_CLIENTS = false;
+
+/** Клиент не редактирует опубликованный рацион (режим, блюда, граммы, КБЖУ, версии). */
+export const CLIENT_CAN_MUTATE_PUBLISHED_NUTRITION = false;
+
 /** Seed каталога не трогает client_program_assignments / *_versions. */
 export const SEED_TOUCHES_CLIENT_ASSIGNMENTS = false;
 

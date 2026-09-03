@@ -195,7 +195,12 @@ async function cloneNutritionPlan(
         .eq("meal_item_id", item.id as string);
       if (!ings?.length) continue;
 
-      const ingRows = (ings as Array<Record<string, unknown>>).map((ig) => ({
+      const ingRows = (ings as Array<Record<string, unknown>>)
+        .filter((ig) => {
+          const n = Number(ig.grams);
+          return Number.isFinite(n) && n > 0;
+        })
+        .map((ig) => ({
         meal_item_id: mealItemId,
         product_id: ig.product_id,
         product_name: ig.product_name,

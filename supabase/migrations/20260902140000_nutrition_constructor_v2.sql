@@ -13,6 +13,9 @@ INSERT INTO public.food_products (
 ON CONFLICT (slug) DO NOTHING;
 
 ALTER TABLE public.food_products ADD COLUMN IF NOT EXISTS is_active_for_autogeneration boolean NOT NULL DEFAULT true;
+ALTER TABLE public.food_products ADD COLUMN IF NOT EXISTS allergen_tags text[] NOT NULL DEFAULT '{}'::text[];
+ALTER TABLE public.food_products ADD COLUMN IF NOT EXISTS product_group text;
+ALTER TABLE public.food_products ADD COLUMN IF NOT EXISTS may_contain_traces text[] NOT NULL DEFAULT '{}'::text[];
 
 UPDATE public.food_products
 SET is_active_for_autogeneration = false,
@@ -61,8 +64,3 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS disliked_products text[] NO
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS food_allergies text[] NOT NULL DEFAULT '{}'::text[];
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS food_intolerances text[] NOT NULL DEFAULT '{}'::text[];
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS excluded_food_products text[] NOT NULL DEFAULT '{}'::text[];
-
--- Product allergen tags
-ALTER TABLE public.food_products ADD COLUMN IF NOT EXISTS allergen_tags text[] NOT NULL DEFAULT '{}'::text[];
-ALTER TABLE public.food_products ADD COLUMN IF NOT EXISTS product_group text;
-ALTER TABLE public.food_products ADD COLUMN IF NOT EXISTS may_contain_traces text[] NOT NULL DEFAULT '{}'::text[];

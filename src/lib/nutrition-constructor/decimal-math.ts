@@ -133,6 +133,27 @@ export function snapshotFromStrings(s: MacroSnapshot): MacroBreakdown {
   };
 }
 
+/**
+ * Граница данных: NUMERIC/snapshot (`string | number`) → конечное `number`.
+ * Отклоняет пустые строки, NaN, Infinity и значения, которые Decimal не парсит.
+ */
+export function finiteMacroNumber(value: string | number): number {
+  const normalized = typeof value === "string" ? value.trim() : value;
+  if (normalized === "") {
+    throw new Error(`Некорректное числовое значение КБЖУ: ${String(value)}`);
+  }
+  let n: number;
+  try {
+    n = d(normalized).toNumber();
+  } catch {
+    throw new Error(`Некорректное числовое значение КБЖУ: ${String(value)}`);
+  }
+  if (!Number.isFinite(n)) {
+    throw new Error(`Некорректное числовое значение КБЖУ: ${String(value)}`);
+  }
+  return n;
+}
+
 export function withinTolerance(
   actual: MacroBreakdown,
   target: MacroBreakdown,

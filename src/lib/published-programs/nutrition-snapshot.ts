@@ -1,4 +1,11 @@
 import type { ConstructorDay, MealPlanItem } from "@/lib/nutrition-constructor/types";
+import {
+  assertSaveableConstructorDays,
+  assertSaveableIngredients,
+  ingredientsForPdfExport,
+  normalizeConstructorDays,
+  visibleIngredients,
+} from "@/lib/nutrition-constructor/ingredient-normalize";
 import type { Dish, MealEntry } from "@/lib/nutrition";
 import type {
   FrozenLegacyMeal,
@@ -20,7 +27,7 @@ function freezeMealItem(item: MealPlanItem): FrozenMealItem {
     weighing_note: item.weighing_note,
     snack_action: item.snack_action ?? null,
     replacements: [],
-    ingredients: item.ingredients.map((ing) => ({
+    ingredients: ingredientsForPdfExport(item.ingredients).map((ing) => ({
       product_id: ing.product_id,
       product_name: ing.product_name,
       grams: String(ing.grams),
@@ -47,7 +54,8 @@ function freezeMealItem(item: MealPlanItem): FrozenMealItem {
 }
 
 export function freezeConstructorDays(days: ConstructorDay[]): FrozenNutritionDay[] {
-  return days.map((day) => ({
+  assertSaveableConstructorDays(days);
+  return normalizeConstructorDays(days).map((day) => ({
     day_index: day.day_index,
     day_note: day.day_note,
     items: day.items.map(freezeMealItem),
@@ -147,6 +155,31 @@ export function nutritionSnapshotHash(snapshot: NutritionSnapshot): string {
   return contentHash(snapshot);
 }
 
+export function nutritionSnapshotForClientDisplay(snapshot: NutritionSnapshot): NutritionSnapshot {
+  if (snapshot.kind !== "constructor") return snapshot;
+  return {
+    ...snapshot,
+    constructor_days: snapshot.constructor_days.map((day) => ({
+      ...day,
+      items: day.items.map((item) => ({
+        ...item,
+        ingredients: visibleIngredients(item.ingredients),
+      })),
+    })),
+  };
+}
+
+export function persistableNutritionSnapshot(snapshot: NutritionSnapshot): NutritionSnapshot {
+  if (snapshot.kind === "constructor") {
+    for (const day of snapshot.constructor_days) {
+      for (const item of day.items) {
+        assertSaveableIngredients(item.ingredients);
+      }
+    }
+  }
+  return nutritionSnapshotForClientDisplay(snapshot);
+}
+
 export function constructorDaysFromSnapshot(snapshot: NutritionSnapshot): ConstructorDay[] {
   return snapshot.constructor_days.map((day) => ({
     day_index: day.day_index,
@@ -160,7 +193,7 @@ export function constructorDaysFromSnapshot(snapshot: NutritionSnapshot): Constr
       steps: item.steps,
       weighing_note: item.weighing_note,
       snack_action: item.snack_action,
-      ingredients: item.ingredients.map((ing) => ({
+      ingredients: visibleIngredients(item.ingredients).map((ing) => ({
         product_id: ing.product_id,
         product_name: ing.product_name,
         grams: ing.grams,

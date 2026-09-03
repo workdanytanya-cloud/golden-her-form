@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  AUTO_ENABLE_CONSTRUCTOR_FOR_ALL_CLIENTS,
   AUTO_REGENERATE_ON_DEPLOY,
+  CLIENT_CAN_MUTATE_PUBLISHED_NUTRITION,
   PUBLISHED_IMMUTABLE_ERROR,
   SEED_TOUCHES_CLIENT_ASSIGNMENTS,
 } from "@/lib/published-programs/config";
@@ -22,6 +24,7 @@ import {
   onMeasurementSaved,
   publishNutritionVersion,
   publishTrainingVersion,
+  recordClientMealPreference,
   reseedCatalog,
   saveNutritionDraft,
   startNutritionRevisionFromPublished,
@@ -79,6 +82,22 @@ function sampleDay(kcal = 1800): ConstructorDay {
       },
     ],
   };
+}
+
+function sampleNutrition28(kcal = 1313): NutritionSnapshot {
+  const days = Array.from({ length: 28 }, (_, i) => {
+    const day = sampleDay(kcal);
+    day.day_index = i;
+    return day;
+  });
+  return buildConstructorNutritionSnapshot({
+    days,
+    targets: { kcal, protein_g: 112, fat_g: 56, carbs_g: 90 },
+    meal_schedule_mode: "two_main_two_snacks",
+    primary_meal_slot: "lunch",
+    bmr: 1200,
+    tdee: 1600,
+  });
 }
 
 function sampleNutrition(kcal = 1800): NutritionSnapshot {
@@ -509,5 +528,68 @@ describe("immutable published programs", () => {
     const tampered = structuredClone(v.snapshot);
     tampered.targets.kcal = 1;
     expect(assertUnchangedHash(tampered, v.content_hash)).toBe(false);
+  });
+
+  it("21. конструктор не включается всем клиентам автоматически", () => {
+    expect(AUTO_ENABLE_CONSTRUCTOR_FOR_ALL_CLIENTS).toBe(false);
+    expect(CLIENT_CAN_MUTATE_PUBLISHED_NUTRITION).toBe(false);
+    expect(clientVisibleNutrition(createEmptyStore(), "c1")).toBeNull();
+  });
+
+  it("22. клиент без назначения не видит чужой опубликованный рацион", () => {
+    let store = createEmptyStore();
+    store = publishNutritionVersion(store, {
+      clientId: "pilot",
+      actorId: "t1",
+      snapshot: sampleNutrition28(),
+    });
+    expect(clientVisibleNutrition(store, "other")).toBeNull();
+    expect(clientVisibleNutrition(store, "pilot")!.constructor_days).toHaveLength(28);
+  });
+
+  it("23. смена предпочтений клиента не меняет опубликованный snapshot", () => {
+    let store = createEmptyStore();
+    store = publishNutritionVersion(store, {
+      clientId: "c1",
+      actorId: "t1",
+      snapshot: sampleNutrition28(),
+    });
+    const before = clientVisibleNutrition(store, "c1")!;
+    const hash = store.nutritionVersions[0]!.content_hash;
+    store = recordClientMealPreference(store, {
+      clientId: "c1",
+      requestedMode: "three_main_two_snacks",
+    });
+    expect(clientVisibleNutrition(store, "c1")).toEqual(before);
+    expect(store.nutritionVersions[0]!.content_hash).toBe(hash);
+    expect(store.assignments[0]!.active_version_id).toBe(store.nutritionVersions[0]!.id);
+  });
+
+  it("24. draft → publish → client для 28 дней и неизменность после seed/каталога", () => {
+    let store = createEmptyStore();
+    const snap = sampleNutrition28(1313);
+    store = saveNutritionDraft(store, "c1", snap);
+    expect(store.nutritionDrafts[0]!.snapshot.constructor_days).toHaveLength(28);
+    expect(clientVisibleNutrition(store, "c1")).toBeNull();
+
+    const reloadedDraft = store.nutritionDrafts[0]!.snapshot;
+    store = publishNutritionVersion(store, {
+      clientId: "c1",
+      actorId: "t1",
+      snapshot: reloadedDraft,
+    });
+    const published = clientVisibleNutrition(store, "c1")!;
+    expect(published.constructor_days).toHaveLength(28);
+    expect(published.targets.kcal).toBe(1313);
+    const hash = store.nutritionVersions[0]!.content_hash;
+    const before = structuredClone(published);
+
+    store = reseedCatalog(store, { cheese: { kcal_per_100g: "1" } });
+    store = applyProductCatalogChange(store, "cheese", "10");
+    store = applyRecipeCatalogChange(store, "r1", "Новое имя");
+    const after = clientVisibleNutrition(store, "c1")!;
+    expect(after).toEqual(before);
+    expect(store.nutritionVersions[0]!.content_hash).toBe(hash);
+    expect(assertUnchangedHash(store.nutritionVersions[0]!.snapshot, hash)).toBe(true);
   });
 });

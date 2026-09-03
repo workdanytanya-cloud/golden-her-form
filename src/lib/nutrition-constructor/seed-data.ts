@@ -712,7 +712,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     name: "Говядина с гречкой, морковью и капустой",
     meal_type: "main",
     requires_cooking: true,
-    prep_time_min: 45,
+    prep_time_min: 40,
     weighing_note: "Сырое мясо и сухая крупа.",
     steps: ["Отварить гречку.", "Тушить говядину с овощами на воде."],
     ingredients: [
@@ -746,7 +746,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     steps: ["Сварить гречку.", "Приготовить курицу и яйцо.", "Добавить овощи."],
     ingredients: [
       { product_slug: "buckwheat-dry", min_g: 50, max_g: 140, default_g: 80 },
-      { product_slug: "chicken-breast-raw", min_g: 100, max_g: 240, default_g: 160 },
+      { product_slug: "chicken-breast-raw", min_g: 100, max_g: 280, default_g: 180 },
       { product_slug: "egg-whole", min_g: 50, max_g: 150, default_g: 100 },
       { product_slug: "cucumber", min_g: 80, max_g: 150, default_g: 100 },
     ],
@@ -882,7 +882,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     weighing_note: "Мясо — сырое, до готовки.",
     steps: ["Тушить курицу с овощами на воде без масла."],
     ingredients: [
-      { product_slug: "chicken-breast-raw", min_g: 120, max_g: 220, default_g: 160 },
+      { product_slug: "chicken-breast-raw", min_g: 120, max_g: 280, default_g: 180 },
       { product_slug: "eggplant", min_g: 100, max_g: 200, default_g: 150 },
       { product_slug: "tomato", min_g: 80, max_g: 150, default_g: 100 },
     ],
@@ -955,7 +955,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     steps: ["Отварить рис.", "Приготовить курицу с овощами."],
     ingredients: [
       { product_slug: "rice-white-dry", min_g: 50, max_g: 140, default_g: 80 },
-      { product_slug: "chicken-breast-raw", min_g: 120, max_g: 220, default_g: 160 },
+      { product_slug: "chicken-breast-raw", min_g: 120, max_g: 280, default_g: 180 },
       { product_slug: "bell-pepper", min_g: 60, max_g: 120, default_g: 80 },
       { product_slug: "carrot", min_g: 60, max_g: 120, default_g: 80 },
     ],
@@ -983,7 +983,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     weighing_note: "Крупа и мясо — до варки.",
     steps: ["Отварить гречку.", "Приготовить курицу с морковью."],
     ingredients: [
-      { product_slug: "chicken-breast-raw", min_g: 120, max_g: 220, default_g: 160 },
+      { product_slug: "chicken-breast-raw", min_g: 120, max_g: 280, default_g: 180 },
       { product_slug: "buckwheat-dry", min_g: 50, max_g: 140, default_g: 80 },
       { product_slug: "carrot", min_g: 60, max_g: 120, default_g: 80 },
     ],
@@ -1135,7 +1135,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     weighing_note: "Тунец — без жидкости, хлебцы — по этикетке.",
     steps: ["Открыть тунец, смешать с нарезанным огурцом.", "Выложить на хлебцы."],
     ingredients: [
-      { product_slug: "canned-tuna", min_g: 80, max_g: 180, default_g: 120 },
+      { product_slug: "canned-tuna", min_g: 60, max_g: 180, default_g: 100 },
       { product_slug: "cucumber", min_g: 80, max_g: 150, default_g: 100 },
       { product_slug: "crispbread", min_g: 20, max_g: 55, default_g: 35 },
     ],
@@ -1149,7 +1149,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     weighing_note: "Тунец — без жидкости.",
     steps: ["Смешать тунец с помидором.", "Подать с хлебцами."],
     ingredients: [
-      { product_slug: "canned-tuna", min_g: 80, max_g: 180, default_g: 120 },
+      { product_slug: "canned-tuna", min_g: 60, max_g: 180, default_g: 100 },
       { product_slug: "tomato", min_g: 80, max_g: 150, default_g: 100 },
       { product_slug: "crispbread", min_g: 20, max_g: 55, default_g: 35 },
     ],
@@ -1163,7 +1163,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     weighing_note: "Тунец — без жидкости, лаваш — по этикетке.",
     steps: ["Смешать тунец с нашинкованной капустой.", "Завернуть в лаваш."],
     ingredients: [
-      { product_slug: "canned-tuna", min_g: 80, max_g: 180, default_g: 120 },
+      { product_slug: "canned-tuna", min_g: 60, max_g: 180, default_g: 100 },
       { product_slug: "napa-cabbage", min_g: 60, max_g: 120, default_g: 80 },
       { product_slug: "lavash", min_g: 40, max_g: 80, default_g: 50 },
     ],
@@ -1177,7 +1177,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     weighing_note: "Тунец — без жидкости.",
     steps: ["Размять авокадо, смешать с тунцом.", "Подать с хлебцами."],
     ingredients: [
-      { product_slug: "canned-tuna", min_g: 80, max_g: 180, default_g: 120 },
+      { product_slug: "canned-tuna", min_g: 60, max_g: 180, default_g: 100 },
       { product_slug: "avocado", min_g: 60, max_g: 120, default_g: 80 },
       { product_slug: "crispbread", min_g: 20, max_g: 55, default_g: 35 },
     ],
@@ -1191,7 +1191,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     weighing_note: "Консервы — без жидкости.",
     steps: ["Смешать тунец, кукурузу и нарезанный перец."],
     ingredients: [
-      { product_slug: "canned-tuna", min_g: 80, max_g: 180, default_g: 120 },
+      { product_slug: "canned-tuna", min_g: 60, max_g: 180, default_g: 100 },
       { product_slug: "canned-corn", min_g: 60, max_g: 120, default_g: 80 },
       { product_slug: "bell-pepper", min_g: 60, max_g: 120, default_g: 80 },
     ],
@@ -1205,7 +1205,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     weighing_note: "Сыр и хлебцы — по этикетке.",
     steps: ["Нарезать сыр и помидор.", "Подать с хлебцами."],
     ingredients: [
-      { product_slug: "hard-cheese", min_g: 30, max_g: 60, default_g: 40 },
+      { product_slug: "hard-cheese", min_g: 25, max_g: 60, default_g: 40 },
       { product_slug: "tomato", min_g: 80, max_g: 150, default_g: 100 },
       { product_slug: "crispbread", min_g: 20, max_g: 55, default_g: 35 },
     ],
@@ -1219,7 +1219,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     weighing_note: "Сыр и хлебцы — по этикетке.",
     steps: ["Нарезать сыр и огурец.", "Подать с хлебцами."],
     ingredients: [
-      { product_slug: "hard-cheese", min_g: 30, max_g: 60, default_g: 40 },
+      { product_slug: "hard-cheese", min_g: 25, max_g: 60, default_g: 40 },
       { product_slug: "cucumber", min_g: 80, max_g: 150, default_g: 100 },
       { product_slug: "crispbread", min_g: 20, max_g: 55, default_g: 35 },
     ],
@@ -1276,7 +1276,7 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
     steps: ["Нарезать яблоко и сыр, добавить миндаль."],
     ingredients: [
       { product_slug: "apple", min_g: 100, max_g: 180, default_g: 130 },
-      { product_slug: "hard-cheese", min_g: 25, max_g: 50, default_g: 35 },
+      { product_slug: "hard-cheese", min_g: 20, max_g: 50, default_g: 35 },
       { product_slug: "almond", min_g: 10, max_g: 25, default_g: 15 },
     ],
   },
