@@ -168,7 +168,7 @@ export function scoreRecipeForSlot(
   const base = estimateRecipeDefaultMacros(ctx, recipe, excluded);
   if (!base) return Number.POSITIVE_INFINITY;
 
-  if (mealType === "main" && priorities.strictHighProtein) {
+  if (mealType === "main" && priorities.proteinFocused) {
     if (!isProteinRichRecipe(ctx, recipe)) return Number.POSITIVE_INFINITY;
     if (isGrainBreakfastRecipe(ctx, recipe)) return Number.POSITIVE_INFINITY;
     if (isCarbDominantRecipe(base) && !isProteinRichRecipe(ctx, recipe)) {

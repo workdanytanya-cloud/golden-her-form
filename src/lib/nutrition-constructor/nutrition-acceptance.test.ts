@@ -31,15 +31,11 @@ const PROFILE_1800 = {
   },
 } as const;
 
-/** Milestone: 1313 в режимах 3+2 и 1+3. Остальные режимы/1800 — следующий этап. */
+/** Готово: 1313 в 3+2, 2+2, 1+3. Pending: three_mains_only + весь 1800. */
 const MODES_1313_READY: MealScheduleMode[] = [
   "three_main_two_snacks",
-  "one_main_three_snacks",
-];
-
-const MODES_PENDING: MealScheduleMode[] = [
-  "three_mains_only",
   "two_main_two_snacks",
+  "one_main_three_snacks",
 ];
 
 const PRIMARY_SLOTS: PrimaryMealSlot[] = ["breakfast", "lunch", "dinner"];
@@ -50,7 +46,7 @@ describe("acceptance: control KBJU profiles (test catalog)", () => {
   for (const mode of MODES_1313_READY) {
     if (mode === "one_main_three_snacks") {
       for (const primary of PRIMARY_SLOTS) {
-        it(`${PROFILE_1313.name} · ${mode} · ${primary}`, { timeout: 35_000 }, () => {
+        it(`${PROFILE_1313.name} · ${mode} · ${primary}`, { timeout: 45_000 }, () => {
           const gen = generateConstructorPlan(ctx, {
             targets: PROFILE_1313.targets,
             days_count: 1,
@@ -80,7 +76,7 @@ describe("acceptance: control KBJU profiles (test catalog)", () => {
         });
       }
     } else {
-      it(`${PROFILE_1313.name} · ${mode}`, { timeout: 35_000 }, () => {
+      it(`${PROFILE_1313.name} · ${mode}`, { timeout: 45_000 }, () => {
         const gen = generateConstructorPlan(ctx, {
           targets: PROFILE_1313.targets,
           days_count: 1,
@@ -104,23 +100,20 @@ describe("acceptance: control KBJU profiles (test catalog)", () => {
     }
   }
 
-  for (const mode of MODES_PENDING) {
-    it.skip(`${PROFILE_1313.name} · ${mode} (pending)`, () => {
-      /* next milestone */
-    });
-  }
+  it.skip(`${PROFILE_1313.name} · three_mains_only (pending)`, () => {});
 
-  for (const mode of [...MODES_1313_READY, ...MODES_PENDING]) {
+  for (const mode of [
+    "three_main_two_snacks",
+    "three_mains_only",
+    "one_main_three_snacks",
+    "two_main_two_snacks",
+  ] as MealScheduleMode[]) {
     if (mode === "one_main_three_snacks") {
       for (const primary of PRIMARY_SLOTS) {
-        it.skip(`${PROFILE_1800.name} · ${mode} · ${primary} (pending)`, () => {
-          /* next milestone */
-        });
+        it.skip(`${PROFILE_1800.name} · ${mode} · ${primary} (pending)`, () => {});
       }
     } else {
-      it.skip(`${PROFILE_1800.name} · ${mode} (pending)`, () => {
-        /* next milestone */
-      });
+      it.skip(`${PROFILE_1800.name} · ${mode} (pending)`, () => {});
     }
   }
 

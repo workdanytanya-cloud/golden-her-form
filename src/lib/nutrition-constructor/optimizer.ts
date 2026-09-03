@@ -431,53 +431,90 @@ function pickRecipesForDayTwoMain(
       new Set([snack1.id]),
     ) ?? snacks[(dayIndex + 1) % snacks.length]!;
 
-  if (priorities.proteinFocused && priorities.lowCarb) {
-    const proteinMains = pickTopProteinMains(mainPool, ctx, excluded, 6);
+  if (priorities.proteinFocused) {
+    const proteinMains = pickTopProteinMains(mainPool, ctx, excluded, 8);
     const pairPool =
       proteinMains.length >= 2
         ? proteinMains
         : mainPool.filter((r) => isProteinRichRecipe(ctx, r));
-    let bestPair: { main1: Recipe; main2: Recipe; score: number } | null = null;
-
-    for (let i = 0; i < pairPool.length; i++) {
-      for (let j = i + 1; j < pairPool.length; j++) {
-        const candidate = assembleAndTuneDay(
-          ctx,
-          targets,
-          shares,
-          excluded,
-          "two_main_two_snacks",
-          priorities,
-          {
-            main1: pairPool[i]!,
-            snack1,
-            main2: pairPool[j]!,
-            snack2,
-          },
-        );
-        if (!candidate) continue;
-        if (candidate.is_valid) {
-          return { main1: pairPool[i]!, main2: pairPool[j]!, snack1, snack2 };
+    const snackPairs: Array<[Recipe, Recipe]> = [];
+    for (let a = 0; a < snacks.length; a++) {
+      for (let b = 0; b < snacks.length; b++) {
+        if (a === b) continue;
+        if (priorities.strictHighProtein || (priorities.proteinFocused && snacks.some((s) => s.slug.includes("tuna")))) {
+          if (!snacks[a]!.slug.includes("tuna") && !snacks[a]!.slug.includes("cheese")) continue;
+          if (!snacks[b]!.slug.includes("tuna") && !snacks[b]!.slug.includes("cheese")) continue;
         }
-        const score = deviationScore(
-          {
-            kcal: d(candidate.kcal),
-            protein_g: d(candidate.protein_g),
-            fat_g: d(candidate.fat_g),
-            carbs_g: d(candidate.carbs_g),
-            fiber_g: d(candidate.fiber_g),
-          },
-          targets,
-          priorities,
-        );
-        if (!bestPair || score < bestPair.score) {
-          bestPair = { main1: pairPool[i]!, main2: pairPool[j]!, score };
+        snackPairs.push([snacks[a]!, snacks[b]!]);
+        if (snackPairs.length >= 24) break;
+      }
+      if (snackPairs.length >= 24) break;
+    }
+    const snackPairList = snackPairs.length > 0 ? snackPairs : ([[snack1, snack2]] as Array<[Recipe, Recipe]>);
+
+    let bestPair: {
+      main1: Recipe;
+      main2: Recipe;
+      snack1: Recipe;
+      snack2: Recipe;
+      score: number;
+    } | null = null;
+    let attempts = 0;
+    const maxAttempts = priorities.strictHighProtein ? 120 : 60;
+
+    outer: for (let i = 0; i < pairPool.length; i++) {
+      for (let j = i + 1; j < pairPool.length; j++) {
+        for (const [s1, s2] of snackPairList) {
+          if (++attempts > maxAttempts) break outer;
+          const candidate = assembleAndTuneDay(
+            ctx,
+            targets,
+            shares,
+            excluded,
+            "two_main_two_snacks",
+            priorities,
+            {
+              main1: pairPool[i]!,
+              snack1: s1,
+              main2: pairPool[j]!,
+              snack2: s2,
+            },
+          );
+          if (!candidate) continue;
+          if (candidate.is_valid) {
+            return { main1: pairPool[i]!, main2: pairPool[j]!, snack1: s1, snack2: s2 };
+          }
+          const score = deviationScore(
+            {
+              kcal: d(candidate.kcal),
+              protein_g: d(candidate.protein_g),
+              fat_g: d(candidate.fat_g),
+              carbs_g: d(candidate.carbs_g),
+              fiber_g: d(candidate.fiber_g),
+            },
+            targets,
+            priorities,
+          );
+          if (!bestPair || score < bestPair.score) {
+            bestPair = {
+              main1: pairPool[i]!,
+              main2: pairPool[j]!,
+              snack1: s1,
+              snack2: s2,
+              score,
+            };
+          }
         }
       }
     }
 
     if (bestPair) {
-      return { main1: bestPair.main1, main2: bestPair.main2, snack1, snack2 };
+      return {
+        main1: bestPair.main1,
+        main2: bestPair.main2,
+        snack1: bestPair.snack1,
+        snack2: bestPair.snack2,
+      };
     }
   }
 
@@ -553,12 +590,12 @@ function assembleAndTuneDay(
       if (!recipe) return null;
       let ings = verifiedIngredients(ctx, recipe, excluded);
       if (ings.length === 0) return null;
-      if (slot.startsWith("main")) {
+      if (slot.startsWith("main") && priorities.lowCarb) {
         ings = enrichMainIngredientsWithOil(dayCtx, recipe, ings, excluded);
       }
       const slotTargets = slotMacroTargets(targets, shares[slot]);
       const isMain = slot.startsWith("main");
-      const useQuickMealOpt = priorities.strictHighProtein && mode !== "three_mains_only";
+      const useQuickMealOpt = priorities.proteinFocused && mode !== "three_mains_only";
       let lines: ReturnType<typeof buildIngredientLine>[];
       if (useQuickMealOpt) {
         lines = optimizeMealQuick(ings, ctx.products, slotTargets);

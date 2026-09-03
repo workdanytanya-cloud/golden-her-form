@@ -274,6 +274,11 @@ export function solveDayMacros(params: {
 
     const currentGrams = levers.map((l) => d(items[l.itemIdx]!.ingredients[l.ingIdx]!.grams).toNumber());
     const diff = macroDiff(totals, targets);
+    const carbNeed = Math.abs(diff.carbs_g.toNumber());
+    const fatNeed = Math.abs(diff.fat_g.toNumber());
+    weights.carbs_g = carbNeed > 15 ? 1.8 : carbNeed > 5 ? 1.3 : 0.85;
+    weights.fat_g = fatNeed > 10 ? 1.5 : 1;
+    weights.protein_g = Math.abs(diff.protein_g.toNumber()) > 5 ? 1.4 : 1;
     const b = [
       diff.kcal.toNumber() * weights.kcal,
       diff.protein_g.toNumber() * weights.protein_g,
@@ -380,21 +385,65 @@ export function solveDayMacros(params: {
     }
   }
 
+  // Агрессивный обмен жир→углеводы при сильном дисбалансе
+  if (enableFinishing) {
+    const d0 = macroDiff(totals, targets);
+    if (d0.fat_g.toNumber() > 8 && d0.carbs_g.toNumber() < -15) {
+      const levers = collectLevers(items, ctx);
+      const fatLevers = levers.filter(
+        (l) => l.perG.fat_g >= 0.3 || isOil(l.slug) || l.slug === "hard-cheese" || l.slug === "avocado",
+      );
+      const carbLevers = levers.filter(
+        (l) =>
+          l.perG.carbs_g >= 0.4 ||
+          (l.slug?.includes("-dry") ?? false) ||
+          l.slug === "crispbread" ||
+          l.slug === "lavash" ||
+          l.slug === "banana",
+      );
+      for (let pass = 0; pass < 60; pass++) {
+        if (withinTolerance(totals, targets, tolerance)) break;
+        const diffNow = macroDiff(totals, targets);
+        if (diffNow.fat_g.toNumber() <= 1 && diffNow.carbs_g.toNumber() >= -1) break;
+        let improved = false;
+        for (const fl of fatLevers) {
+          for (const cl of carbLevers) {
+            const gf = d(items[fl.itemIdx]!.ingredients[fl.ingIdx]!.grams).toNumber();
+            const gc = d(items[cl.itemIdx]!.ingredients[cl.ingIdx]!.grams).toNumber();
+            let trial = applyGrams(items, ctx, fl, snapToStep(gf - 5, 1, fl.minG, fl.maxG));
+            if (!trial) continue;
+            trial = applyGrams(trial, ctx, cl, snapToStep(gc + 8, 1, cl.minG, cl.maxG));
+            if (!trial) continue;
+            const newTotals = totalsFromItems(trial);
+            if (deviationScore(newTotals, targets) < deviationScore(totals, targets)) {
+              items = trial;
+              totals = newTotals;
+              improved = true;
+              break;
+            }
+          }
+          if (improved) break;
+        }
+        if (!improved) break;
+      }
+    }
+  }
+
   if (!withinTolerance(totals, targets, tolerance) && enableFinishing) {
-    const diff = macroDiff(totals, targets);
+    const diff2 = macroDiff(totals, targets);
     const maxDiff = Math.max(
-      diff.kcal.abs().toNumber(),
-      diff.protein_g.abs().toNumber(),
-      diff.fat_g.abs().toNumber(),
-      diff.carbs_g.abs().toNumber(),
+      diff2.kcal.abs().toNumber() / 5,
+      diff2.protein_g.abs().toNumber(),
+      diff2.fat_g.abs().toNumber(),
+      diff2.carbs_g.abs().toNumber(),
     );
-    if (maxDiff <= 4) {
-      const levers = collectLevers(items, ctx).slice(0, 14);
-      for (let pass = 0; pass < 80; pass++) {
+    if (maxDiff <= 8) {
+      const levers = collectLevers(items, ctx).slice(0, 18);
+      for (let pass = 0; pass < 120; pass++) {
         if (withinTolerance(totals, targets, tolerance)) break;
         let improved = false;
         for (const li of levers) {
-          for (const di of [-2, -1, 1, 2]) {
+          for (const di of [-4, -2, -1, 1, 2, 4]) {
             const gi = d(items[li.itemIdx]!.ingredients[li.ingIdx]!.grams).toNumber();
             const trial = applyGrams(items, ctx, li, snapToStep(gi + di, 1, li.minG, li.maxG));
             if (!trial) continue;

@@ -49,9 +49,9 @@ export type ComboSearchResult = {
 const MAIN_SHORTLIST = 8;
 const SNACK_SHORTLIST = 6;
 const maxCombinationsFor = (priorities: MacroPriorities, mode: MealScheduleMode) => {
-  if (!priorities.strictHighProtein) return 800;
-  if (mode === "three_mains_only" || mode === "two_main_two_snacks") return 600;
-  return 350;
+  if (!priorities.proteinFocused) return 500;
+  if (mode === "three_mains_only" || mode === "two_main_two_snacks") return 400;
+  return priorities.strictHighProtein ? 350 : 450;
 };
 const DAY_SEARCH_TIMEOUT_MS = 28_000;
 
@@ -265,7 +265,7 @@ export function searchValidDayCombo(params: {
     return { valid: false as const };
   };
 
-  const mainPoolBase = priorities.strictHighProtein
+  const mainPoolBase = priorities.proteinFocused
     ? mains.filter((r) => isProteinRichRecipe(ctx, r))
     : mains;
   const mainPool = filterRecentMains(
@@ -291,8 +291,43 @@ export function searchValidDayCombo(params: {
   const snackPoolForMode =
     priorities.strictHighProtein && strictProteinSnacks.length >= 2
       ? strictProteinSnacks
-      : priorities.proteinFocused && proteinSnackPool.length >= 2
-        ? proteinSnackPool
+        : priorities.proteinFocused
+        ? (() => {
+            const ids = new Set<string>();
+            const mixed: Recipe[] = [];
+            const preferCarbs = !priorities.lowCarb && !priorities.strictHighProtein;
+            const pool = preferCarbs
+              ? snacks.filter(
+                  (r) =>
+                    !r.slug.includes("avocado") &&
+                    !r.slug.includes("walnut") &&
+                    !r.slug.includes("almond") &&
+                    !r.slug.includes("cheese"),
+                )
+              : snacks;
+            const proteinFirst = preferCarbs
+              ? [
+                  ...strictProteinSnacks.filter((r) => !r.slug.includes("avocado")),
+                  ...proteinSnackPool.filter((r) => pool.some((p) => p.id === r.id)),
+                  ...pool.filter(
+                    (r) =>
+                      r.slug.includes("banana") ||
+                      r.slug.includes("crispbread") ||
+                      r.slug.includes("lavash") ||
+                      r.slug.includes("corn") ||
+                      r.slug.includes("apple"),
+                  ),
+                  ...pool,
+                ]
+              : [...strictProteinSnacks, ...proteinSnackPool, ...snacks];
+            for (const r of proteinFirst) {
+              if (ids.has(r.id)) continue;
+              ids.add(r.id);
+              mixed.push(r);
+              if (mixed.length >= 10) break;
+            }
+            return mixed.length >= 2 ? mixed : snacks;
+          })()
         : snacks;
   const snackShort = rankedSnacks(
     ctx,
@@ -347,20 +382,38 @@ export function searchValidDayCombo(params: {
         priorities,
         mealType,
       );
-      if (
-        priorities.proteinFocused &&
-        mealType === "snack" &&
-        (recipe.slug.includes("tuna") || recipe.slug.includes("cheese") || recipe.contains_protein_source)
-      ) {
-        score -= 12;
+      if (priorities.proteinFocused && mealType === "snack") {
+        if (priorities.strictHighProtein || priorities.lowCarb) {
+          if (recipe.slug.includes("tuna")) score -= 20;
+          else if (recipe.slug.includes("cheese")) score -= 8;
+          else if (recipe.contains_protein_source) score -= 6;
+        } else {
+          if (recipe.slug.includes("crispbread") || recipe.slug.includes("lavash") || recipe.slug.includes("banana")) {
+            score -= 10;
+          }
+          if (recipe.slug.includes("tuna") || recipe.contains_protein_source) score -= 8;
+        }
       }
     }
     return score;
   };
 
-  const mainsForCombo = priorities.strictHighProtein ? mainPool : mainShort;
-  const snacksForCombo =
-    priorities.strictHighProtein ? snackPoolForMode : snackShort;
+  const mainsForCombo = priorities.proteinFocused
+    ? rankedMains(
+        ctx,
+        mainPool,
+        "main1",
+        targets,
+        shares,
+        excluded,
+        priorities,
+        dayIndex,
+        mode === "three_main_two_snacks" ? 7 : mode === "three_mains_only" ? 10 : 8,
+      )
+    : mainShort;
+  const snacksForCombo = priorities.proteinFocused
+    ? snackPoolForMode.slice(0, mode === "one_main_three_snacks" ? 8 : 6)
+    : snackShort;
 
   if (mode === "three_mains_only") {
     for (const trio of combinations(mainsForCombo, 3)) {
@@ -372,28 +425,27 @@ export function searchValidDayCombo(params: {
   } else if (mode === "three_main_two_snacks") {
     const s1 = snacksForCombo;
     const s2pool = snacksForCombo;
+    const preferMixedCarbs = priorities.proteinFocused && !priorities.strictHighProtein && !priorities.lowCarb;
     for (const trio of combinations(mainsForCombo, 3)) {
       for (const snack1 of s1) {
         for (const snack2 of s2pool) {
           if (snack1.id === snack2.id) continue;
           if (priorities.strictHighProtein) {
             if (!isStrictProteinSnack(snack1) || !isStrictProteinSnack(snack2)) continue;
-          } else if (
-            priorities.proteinFocused &&
-            !isStrictProteinSnack(snack1) &&
-            !snack1.contains_protein_source &&
-            !snack1.slug.includes("tuna") &&
-            !snack1.slug.includes("cheese")
-          ) {
-            continue;
-          } else if (
-            priorities.proteinFocused &&
-            !isStrictProteinSnack(snack2) &&
-            !snack2.contains_protein_source &&
-            !snack2.slug.includes("tuna") &&
-            !snack2.slug.includes("cheese")
-          ) {
-            continue;
+          } else if (priorities.proteinFocused) {
+            const s1ok = isStrictProteinSnack(snack1) || snack1.contains_protein_source;
+            const s2ok = isStrictProteinSnack(snack2) || snack2.contains_protein_source;
+            if (!s1ok && !s2ok) continue;
+            if (preferMixedCarbs) {
+              const carbish = (r: Recipe) =>
+                r.slug.includes("crispbread") ||
+                r.slug.includes("lavash") ||
+                r.slug.includes("banana") ||
+                r.slug.includes("apple") ||
+                r.slug.includes("corn");
+              // Один белковый + один с углеводами (или оба с хлебцами/фруктом).
+              if (!carbish(snack1) && !carbish(snack2) && !s1ok) continue;
+            }
           }
           const slotRecipes = {
             main1: trio[0],
@@ -415,6 +467,10 @@ export function searchValidDayCombo(params: {
           if (snack1.id === snack2.id) continue;
           if (priorities.strictHighProtein) {
             if (!isStrictProteinSnack(snack1) || !isStrictProteinSnack(snack2)) continue;
+          } else if (priorities.proteinFocused) {
+            const s1ok = isStrictProteinSnack(snack1) || snack1.contains_protein_source;
+            const s2ok = isStrictProteinSnack(snack2) || snack2.contains_protein_source;
+            if (!s1ok && !s2ok) continue;
           }
           const slotRecipes = { main1: pair[0], main2: pair[1], snack1, snack2 };
           scoredCombos.push({ slotRecipes, score: comboScore(slotRecipes) });
@@ -444,13 +500,16 @@ export function searchValidDayCombo(params: {
     }
   }
 
-  if (!(priorities.strictHighProtein)) {
+  if (!(priorities.proteinFocused)) {
     scoredCombos.sort((a, b) => a.score - b.score);
   }
 
   const nearCandidates: Array<{ slotRecipes: Partial<Record<PlanSlot, Recipe>>; score: number }> = [];
 
-  if (mode === "three_mains_only" && priorities.strictHighProtein) {
+  if (
+    (mode === "three_mains_only" || mode === "two_main_two_snacks") &&
+    priorities.proteinFocused
+  ) {
     scoredCombos.sort((a, b) => a.score - b.score);
     for (const { slotRecipes } of scoredCombos) {
       if (timedOut() || diagnostics.combinations_checked >= comboLimit) break;
@@ -471,17 +530,18 @@ export function searchValidDayCombo(params: {
     return { day: best?.day ?? null, slotRecipes: best?.slotRecipes ?? null, diagnostics };
   }
 
-  if (priorities.strictHighProtein) {
+  if (priorities.proteinFocused) {
     for (const { slotRecipes } of scoredCombos) {
       if (timedOut() || diagnostics.combinations_checked >= comboLimit) break;
       diagnostics.combinations_checked++;
       const quickDay = assemble(slotRecipes, { searchPhase: true });
       if (!quickDay) continue;
+      const carbWeight = priorities.lowCarb || priorities.strictHighProtein ? 1 : 2.5;
       const score =
         Math.abs(quickDay.kcal - targets.kcal.toNumber()) +
         Math.abs(quickDay.protein_g - targets.protein_g.toNumber()) * 3 +
         Math.abs(quickDay.fat_g - targets.fat_g.toNumber()) * 2 +
-        Math.abs(quickDay.carbs_g - targets.carbs_g.toNumber());
+        Math.abs(quickDay.carbs_g - targets.carbs_g.toNumber()) * carbWeight;
       nearCandidates.push({ slotRecipes, score });
       nearCandidates.sort((a, b) => a.score - b.score);
       if (nearCandidates.length > 40) nearCandidates.pop();
@@ -500,7 +560,7 @@ export function searchValidDayCombo(params: {
     }
   } else {
     for (const { slotRecipes } of scoredCombos) {
-      const status = tryCombo(slotRecipes, !priorities.strictHighProtein);
+      const status = tryCombo(slotRecipes, true);
       if (status === "found") {
         const day = assemble(slotRecipes, { searchPhase: false });
         return { day, slotRecipes, diagnostics };
