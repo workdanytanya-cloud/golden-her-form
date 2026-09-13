@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: panovapro-selfhost-postgres
+    environment:
+      POSTGRES_USER: panovapro
+      POSTGRES_PASSWORD: panovapro_local
+      POSTGRES_DB: panovapro
+    ports:
+      - "54332:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U panovapro -d panovapro"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - panovapro_selfhost_pg:/var/lib/postgresql/data
+
+volumes:
+  panovapro_selfhost_pg:

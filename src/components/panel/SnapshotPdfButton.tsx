@@ -3,6 +3,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { downloadPublishedPdfFn } from "@/lib/pdf/pdf.functions";
 import { useAuth } from "@/lib/auth";
+import { loadRuntimeConfig, selfhostDownloadPdf } from "@/lib/selfhost/client-api";
 
 export function SnapshotPdfButton({
   kind,
@@ -20,13 +21,16 @@ export function SnapshotPdfButton({
   const onClick = async () => {
     setBusy(true);
     try {
-      const result = await downloadPublishedPdfFn({
-        data: {
-          kind,
-          courseId: courseId ?? null,
-          clientId: impersonation?.userId ?? null,
-        },
-      });
+      const runtime = await loadRuntimeConfig();
+      const payload = {
+        kind,
+        courseId: courseId ?? null,
+        clientId: impersonation?.userId ?? null,
+      };
+      const result =
+        runtime.authBackend === "local" && runtime.dataBackend === "postgres"
+          ? await selfhostDownloadPdf(payload)
+          : await downloadPublishedPdfFn({ data: payload });
       const bytes = Uint8Array.from(atob(result.pdfBase64), (c) => c.charCodeAt(0));
       const blob = new Blob([bytes], { type: result.contentType || "application/pdf" });
       const href = URL.createObjectURL(blob);

@@ -35,6 +35,10 @@ function isMissingColumn(error: { message?: string; code?: string } | null): boo
 }
 
 export async function listClientCourses(clientId: string): Promise<ClientCourse[]> {
+  const { usesLocalPostgresCircuit, selfhostCourses } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    return selfhostCourses(clientId);
+  }
   const { data, error } = await supabase
     .from("client_courses" as never)
     .select("*")
@@ -312,6 +316,10 @@ export async function createClientCourse(params: {
 
 /** Клиент запрашивает продление: новый 4-недельный блок с прогрессией от прошлого курса. */
 export async function renewClientCourse(clientId: string): Promise<ClientCourse> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    throw new Error("Продление курса в self-hosted клиентском контуре пока недоступно");
+  }
   return createClientCourse({
     clientId,
     startDate: toISODate(new Date()),

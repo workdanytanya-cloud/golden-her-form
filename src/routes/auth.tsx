@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { loadRuntimeConfig, selfhostLogin, selfhostMe } from "@/lib/selfhost/client-api";
 import { redeemPromoCode } from "@/lib/promo.functions";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -18,6 +19,15 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   validateSearch: searchSchema,
   beforeLoad: async ({ search }) => {
+    const runtime = await loadRuntimeConfig();
+    if (runtime.authBackend === "local") {
+      const me = await selfhostMe();
+      if (me.session) {
+        if (search.redirect) throw redirect({ to: search.redirect });
+        throw redirect({ to: "/dashboard" });
+      }
+      return;
+    }
     const { data } = await supabase.auth.getSession();
     if (data.session && search.mode === "promo") {
       return;
@@ -120,6 +130,10 @@ function AuthPage() {
     }
     setSubmitting(true);
     try {
+      const runtime = await loadRuntimeConfig();
+      if (runtime.authBackend === "local" && mode === "promo") {
+        throw new Error("Регистрация по промокоду в self-hosted контуре пока недоступна");
+      }
       if (mode === "promo") {
         if (user) {
           await activatePromo();
@@ -170,6 +184,13 @@ function AuthPage() {
 
       const parsedEmail = emailSchema.parse(email);
       const parsedPassword = passwordSchema.parse(password);
+      if (runtime.authBackend === "local") {
+        await selfhostLogin(parsedEmail, parsedPassword);
+        toast.success("С возвращением!");
+        await refreshAccess();
+        await navigate({ to: search.redirect ?? "/dashboard" });
+        return;
+      }
       const { error } = await supabase.auth.signInWithPassword({
         email: parsedEmail,
         password: parsedPassword,

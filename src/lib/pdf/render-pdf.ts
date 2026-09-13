@@ -71,8 +71,9 @@ export async function buildNutritionPdf(
 export async function buildTrainingPdf(
   snapshot: TrainingSnapshot,
   meta: PdfClientMeta,
+  mediaOverlay?: Map<string, import("@/lib/exercise-video").ExerciseVideo>,
 ): Promise<Buffer> {
-  return renderPdfFromLines("Тренировки", trainingPdfLines(snapshot, meta));
+  return renderPdfFromLines("Тренировки", trainingPdfLines(snapshot, meta, mediaOverlay));
 }
 
 export function pdfDownloadHeaders(kind: PdfKind, issuedAt: string): Record<string, string> {

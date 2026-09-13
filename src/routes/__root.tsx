@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../lib/auth";
 import { ThemeProvider, THEME_BOOT_SCRIPT } from "../lib/theme";
 import { supabase } from "../integrations/supabase/client";
+import { loadRuntimeConfig } from "../lib/selfhost/client-api";
 import { Toaster } from "../components/ui/sonner";
 import { ScrollToTop } from "../components/ui/ScrollToTop";
 import { InstallAppPrompt } from "../components/ui/InstallAppPrompt";
@@ -147,12 +148,17 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-      router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+    let unsubscribe: (() => void) | undefined;
+    void loadRuntimeConfig().then((runtime) => {
+      if (runtime.authBackend === "local") return;
+      const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+        if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+        router.invalidate();
+        if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      });
+      unsubscribe = () => sub.subscription.unsubscribe();
     });
-    return () => sub.subscription.unsubscribe();
+    return () => unsubscribe?.();
   }, [router, queryClient]);
 
   return (

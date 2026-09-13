@@ -89,6 +89,10 @@ export async function loadPublishedNutritionFor(
   clientId: string,
   courseId?: string | null,
 ): Promise<PublishedNutritionView | null> {
+  const { usesLocalPostgresCircuit, selfhostNutrition } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    return selfhostNutrition(clientId, courseId);
+  }
   const { resolveCourseId } = await import("@/lib/client-courses/repo");
   const resolvedCourseId = courseId ?? (await resolveCourseId(clientId));
 
@@ -194,6 +198,10 @@ export async function loadPublishedTrainingFor(
   clientId: string,
   courseId?: string | null,
 ): Promise<PublishedTrainingView | null> {
+  const { usesLocalPostgresCircuit, selfhostTraining } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    return selfhostTraining(clientId, courseId);
+  }
   const { resolveCourseId } = await import("@/lib/client-courses/repo");
   const resolvedCourseId = courseId ?? (await resolveCourseId(clientId));
 

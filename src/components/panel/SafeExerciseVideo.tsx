@@ -95,7 +95,8 @@ export function SafeExerciseVideo({ video, url, title, fallbackText, className, 
       className={className || "h-full w-full border-0"}
       allow="clipboard-write; autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
       allowFullScreen
-      referrerPolicy="strict-origin-when-cross-origin"
+      referrerPolicy="no-referrer"
+      sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
       onError={() => setFailed(true)}
     />
   );

@@ -358,6 +358,8 @@ function mapFoodProductRow(row: {
 }
 
 export async function loadFoodProductsFromDb(): Promise<FoodProduct[]> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) return [];
   const { data, error } = await supabase.from("food_products").select("*").eq("is_active", true);
   if (error) {
     if (/schema cache|could not find|PGRST204/i.test(error.message)) {

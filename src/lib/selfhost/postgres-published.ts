@@ -1,0 +1,336 @@
+import type { Pool, PoolClient } from "pg";
+import { formatRuDate, parseISODate } from "@/lib/client-courses/format";
+import type { ClientCourse } from "@/lib/client-courses/repo";
+import {
+  applyMediaOverlayToExercises,
+  bindingToVideo,
+  overlayVideosForSnapshot,
+  type ExerciseMediaBinding,
+  type SnapshotExerciseMediaBinding,
+} from "@/lib/selfhost/media";
+import type {
+  PdfAccessMeta,
+  PublishedNutritionRecord,
+  PublishedProgramRepository,
+  PublishedTrainingRecord,
+} from "@/lib/platform/types";
+import type { Exercise } from "@/lib/training";
+import type { DayRow as TrainingDayRow, ProgramRow } from "@/lib/training-repo";
+import {
+  exercisesFromTrainingSnapshot,
+  programDaysFromSnapshot,
+} from "@/lib/published-programs/training-snapshot";
+import type { NutritionSnapshot, TrainingSnapshot, VersionMeta } from "@/lib/published-programs/types";
+import type { PublishedNutritionView, PublishedTrainingView } from "@/lib/published-programs/repo";
+
+type Queryable = Pool | PoolClient;
+
+function mapVersion(row: Record<string, unknown>): VersionMeta {
+  return {
+    id: String(row.id),
+    client_id: String(row.client_id),
+    version: Number(row.version),
+    status: row.status as VersionMeta["status"],
+    content_hash: String(row.content_hash),
+    parent_version_id: (row.parent_version_id as string | null) ?? null,
+    created_at: new Date(row.created_at as string | Date).toISOString(),
+    created_by: (row.created_by as string | null) ?? null,
+    published_at: row.published_at ? new Date(row.published_at as string | Date).toISOString() : null,
+    published_by: (row.published_by as string | null) ?? null,
+  };
+}
+
+export async function loadMediaBindings(
+  db: Queryable,
+  exerciseIds: string[],
+): Promise<Map<string, ExerciseMediaBinding>> {
+  const map = new Map<string, ExerciseMediaBinding>();
+  if (exerciseIds.length === 0) return map;
+  const { rows } = await db.query(
+    `SELECT exercise_id, provider, source_url, embed_url, title, status, fallback_text
+     FROM public.exercise_media_bindings WHERE exercise_id = ANY($1::uuid[])`,
+    [exerciseIds],
+  );
+  for (const row of rows as ExerciseMediaBinding[]) {
+    map.set(row.exercise_id, row);
+  }
+  return map;
+}
+
+export async function loadSnapshotMediaBindings(
+  db: Queryable,
+  versionId: string,
+): Promise<SnapshotExerciseMediaBinding[]> {
+  const { rows } = await db.query(
+    `SELECT version_id, snapshot_exercise_key, exercise_id, confirmed_by_trainer
+     FROM public.snapshot_exercise_media_bindings WHERE version_id = $1`,
+    [versionId],
+  );
+  return rows as SnapshotExerciseMediaBinding[];
+}
+
+async function loadAssignmentVersionId(
+  db: Queryable,
+  clientId: string,
+  kind: "nutrition" | "training",
+  courseId?: string | null,
+): Promise<string | null> {
+  if (courseId) {
+    const { rows } = await db.query(
+      `SELECT active_version_id FROM public.client_program_assignments
+       WHERE client_id = $1 AND kind = $2 AND course_id = $3`,
+      [clientId, kind, courseId],
+    );
+    return (rows[0] as { active_version_id: string } | undefined)?.active_version_id ?? null;
+  }
+  const { rows } = await db.query(
+    `SELECT a.active_version_id
+     FROM public.client_program_assignments a
+     LEFT JOIN public.client_courses c ON c.id = a.course_id
+     WHERE a.client_id = $1 AND a.kind = $2
+     ORDER BY CASE WHEN c.status = 'active' THEN 0 ELSE 1 END, c.start_date DESC NULLS LAST, a.updated_at DESC
+     LIMIT 1`,
+    [clientId, kind],
+  );
+  return (rows[0] as { active_version_id: string } | undefined)?.active_version_id ?? null;
+}
+
+export async function getActivePublishedNutritionPg(
+  db: Queryable,
+  clientId: string,
+  courseId?: string | null,
+): Promise<PublishedNutritionRecord | null> {
+  const versionId = await loadAssignmentVersionId(db, clientId, "nutrition", courseId);
+  if (!versionId) return null;
+  const { rows } = await db.query(
+    `SELECT * FROM public.nutrition_plan_versions WHERE id = $1 AND status = 'published' AND client_id = $2`,
+    [versionId, clientId],
+  );
+  const row = rows[0] as Record<string, unknown> | undefined;
+  if (!row) return null;
+  return {
+    source: "published",
+    snapshot: row.snapshot as NutritionSnapshot,
+    version: mapVersion(row),
+  };
+}
+
+export async function getActivePublishedTrainingPg(
+  db: Queryable,
+  clientId: string,
+  courseId?: string | null,
+): Promise<PublishedTrainingRecord | null> {
+  const versionId = await loadAssignmentVersionId(db, clientId, "training", courseId);
+  if (!versionId) return null;
+  const { rows } = await db.query(
+    `SELECT * FROM public.training_program_versions WHERE id = $1 AND status = 'published' AND client_id = $2`,
+    [versionId, clientId],
+  );
+  const row = rows[0] as Record<string, unknown> | undefined;
+  if (!row) return null;
+  return {
+    source: "published",
+    snapshot: row.snapshot as TrainingSnapshot,
+    version: mapVersion(row),
+  };
+}
+
+export async function toPublishedNutritionView(
+  record: PublishedNutritionRecord | null,
+): Promise<PublishedNutritionView | null> {
+  if (!record) return null;
+  return { version: record.version, snapshot: record.snapshot, source: "published" };
+}
+
+export async function toPublishedTrainingView(
+  db: Queryable,
+  record: PublishedTrainingRecord | null,
+): Promise<PublishedTrainingView | null> {
+  if (!record) return null;
+  const snapshot = record.snapshot;
+  const exerciseIds = [
+    ...new Set(
+      snapshot.days.flatMap((day) =>
+        [...day.warmup, ...day.exercises, ...day.cooldown]
+          .map((s) => s.exercise_id || s.exercise?.id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ),
+  ];
+  const [byExerciseId, snapshotBindings] = await Promise.all([
+    loadMediaBindings(db, exerciseIds),
+    loadSnapshotMediaBindings(db, record.version.id),
+  ]);
+  const overlay = overlayVideosForSnapshot({ snapshot, byExerciseId, snapshotBindings });
+  const exercises: Exercise[] = applyMediaOverlayToExercises(
+    snapshot,
+    exercisesFromTrainingSnapshot(snapshot),
+    overlay,
+  );
+  const daysRaw = programDaysFromSnapshot(snapshot);
+  const program: ProgramRow = {
+    id: record.version.id,
+    user_id: record.version.client_id,
+    sessions_per_week: snapshot.sessions_per_week,
+    goal: snapshot.goal,
+    level: snapshot.level,
+    has_injuries: snapshot.has_injuries,
+    injuries_details: snapshot.injuries_details,
+    equipment: snapshot.equipment,
+    location: snapshot.location,
+    notes: snapshot.notes,
+    faq: (snapshot.faq as ProgramRow["faq"]) ?? [],
+    targets_manual: true,
+    program_weeks: snapshot.program_weeks,
+  };
+  const days: TrainingDayRow[] = daysRaw.map((d, i) => ({
+    id: `${record.version.id}-${i}`,
+    program_id: record.version.id,
+    week_index: d.week_index ?? 0,
+    day_index: d.day_index,
+    is_rest: d.is_rest,
+    title: d.title,
+    focus: d.focus,
+    description: d.description,
+    warmup: d.warmup,
+    exercises: d.exercises,
+    cooldown: d.cooldown,
+    day_note: d.day_note,
+  }));
+  return {
+    version: record.version,
+    snapshot,
+    program,
+    days,
+    exercises,
+    source: "published",
+  };
+}
+
+export async function getPdfAccessMetaPg(
+  db: Queryable,
+  clientId: string,
+  courseId?: string | null,
+): Promise<PdfAccessMeta> {
+  const profile = await db.query(`SELECT full_name FROM public.profiles WHERE id = $1`, [clientId]);
+  const clientName =
+    ((profile.rows[0] as { full_name?: string } | undefined)?.full_name ?? "").trim() || "Клиент";
+
+  const course = courseId
+    ? await db.query(
+        `SELECT title, start_date, end_date FROM public.client_courses WHERE id = $1 AND client_id = $2`,
+        [courseId, clientId],
+      )
+    : await db.query(
+        `SELECT title, start_date, end_date FROM public.client_courses
+         WHERE client_id = $1 ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, start_date DESC LIMIT 1`,
+        [clientId],
+      );
+  const row = course.rows[0] as { title?: string; start_date?: string; end_date?: string } | undefined;
+  const start = row?.start_date ? formatRuDate(parseISODate(String(row.start_date).slice(0, 10))) : "—";
+  const end = row?.end_date ? formatRuDate(parseISODate(String(row.end_date).slice(0, 10))) : "—";
+  return {
+    clientName,
+    courseTitle: row?.title?.trim() || "Курс",
+    courseStart: start,
+    courseEnd: end,
+  };
+}
+
+export async function listClientCoursesPg(db: Queryable, clientId: string): Promise<ClientCourse[]> {
+  const { rows } = await db.query(
+    `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes
+     FROM public.client_courses WHERE client_id = $1 ORDER BY start_date DESC`,
+    [clientId],
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    client_id: row.client_id,
+    title: row.title,
+    start_date: String(row.start_date).slice(0, 10),
+    end_date: String(row.end_date).slice(0, 10),
+    status: row.status,
+    created_at: new Date(row.created_at).toISOString(),
+    created_by: row.created_by,
+    notes: row.notes,
+  }));
+}
+
+export async function getClientAccessPg(db: Queryable, userId: string) {
+  const { rows } = await db.query(
+    `SELECT status, unlock_source FROM public.client_access WHERE user_id = $1`,
+    [userId],
+  );
+  return (rows[0] as { status: string; unlock_source: string | null } | undefined) ?? null;
+}
+
+export async function getProfilePg(db: Queryable, userId: string) {
+  const { rows } = await db.query(`SELECT id, full_name FROM public.profiles WHERE id = $1`, [userId]);
+  return (rows[0] as { id: string; full_name: string | null } | undefined) ?? null;
+}
+
+export async function upsertExerciseMediaBinding(
+  db: Queryable,
+  binding: ExerciseMediaBinding,
+  changedBy: string | null,
+): Promise<void> {
+  const existing = await db.query(
+    `SELECT source_url FROM public.exercise_media_bindings WHERE exercise_id = $1`,
+    [binding.exercise_id],
+  );
+  const oldUrl = (existing.rows[0] as { source_url?: string } | undefined)?.source_url ?? null;
+  await db.query(
+    `INSERT INTO public.exercise_media_bindings
+      (exercise_id, provider, source_url, embed_url, title, status, fallback_text, updated_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     ON CONFLICT (exercise_id) DO UPDATE SET
+       provider = EXCLUDED.provider,
+       source_url = EXCLUDED.source_url,
+       embed_url = EXCLUDED.embed_url,
+       title = EXCLUDED.title,
+       status = EXCLUDED.status,
+       fallback_text = EXCLUDED.fallback_text,
+       updated_by = EXCLUDED.updated_by`,
+    [
+      binding.exercise_id,
+      binding.provider,
+      binding.source_url,
+      binding.embed_url,
+      binding.title,
+      binding.status,
+      binding.fallback_text,
+      changedBy,
+    ],
+  );
+  if (oldUrl !== binding.source_url) {
+    await db.query(
+      `INSERT INTO public.exercise_media_change_log (exercise_id, old_url, new_url, changed_by)
+       VALUES ($1,$2,$3,$4)`,
+      [binding.exercise_id, oldUrl, binding.source_url, changedBy],
+    );
+  }
+}
+
+export function videoOverlayFromBindings(
+  snapshot: TrainingSnapshot,
+  byExerciseId: Map<string, ExerciseMediaBinding>,
+  snapshotBindings: SnapshotExerciseMediaBinding[],
+): Map<string, ReturnType<typeof bindingToVideo>> {
+  return overlayVideosForSnapshot({ snapshot, byExerciseId, snapshotBindings });
+}
+
+export class PostgresPublishedProgramRepository implements PublishedProgramRepository {
+  constructor(private readonly db: Queryable) {}
+
+  getActivePublishedNutrition(clientId: string, courseId?: string | null) {
+    return getActivePublishedNutritionPg(this.db, clientId, courseId);
+  }
+
+  getActivePublishedTraining(clientId: string, courseId?: string | null) {
+    return getActivePublishedTrainingPg(this.db, clientId, courseId);
+  }
+
+  getPdfAccessMeta(clientId: string, courseId?: string | null) {
+    return getPdfAccessMetaPg(this.db, clientId, courseId);
+  }
+}

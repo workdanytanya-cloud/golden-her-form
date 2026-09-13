@@ -111,30 +111,48 @@ export function nutritionPdfLines(snapshot: NutritionSnapshot, meta: PdfClientMe
   return lines;
 }
 
-function sectionSets(title: string, sets: TrainingSnapshot["days"][number]["warmup"]): string[] {
+function sectionSets(
+  title: string,
+  sets: TrainingSnapshot["days"][number]["warmup"],
+  overlay?: Map<string, import("@/lib/exercise-video").ExerciseVideo>,
+  weekIndex?: number,
+  dayIndex?: number,
+  section?: "warmup" | "exercises" | "cooldown",
+): string[] {
   const lines = [`${title}:`];
   if (sets.length === 0) {
     lines.push("  нет");
     return lines;
   }
-  for (const set of sets) {
+  for (const [index, set] of sets.entries()) {
     const ex = set.exercise;
     const name = ex?.name ?? "Упражнение";
     lines.push(
       `  ${name}: ${set.sets}×${set.reps}, отдых ${set.rest_seconds} с${set.tempo ? `, темп ${set.tempo}` : ""}`,
     );
     if (ex?.cues?.length) lines.push(`    Подсказки: ${ex.cues.join("; ")}`);
-    if (ex) {
-      const video = videoFromFrozenExercise(ex);
-      if (video.url) lines.push(`    Видео: ${video.title ? `${video.title} — ` : ""}${video.url}`);
-      else if (video.fallback_text) lines.push(`    ${video.fallback_text}`);
-      else lines.push("    Видео недоступно — выполняйте по подсказкам");
-    }
+    const key =
+      weekIndex != null && dayIndex != null && section
+        ? `${weekIndex}:${dayIndex}:${section}:${index}`
+        : null;
+    const overlayVideo =
+      (set.exercise_id && overlay?.get(set.exercise_id)) ||
+      (ex?.id && overlay?.get(ex.id)) ||
+      (key && overlay?.get(key)) ||
+      null;
+    const video = overlayVideo ?? (ex ? videoFromFrozenExercise(ex) : null);
+    if (video?.url) lines.push(`    Видео: ${video.title ? `${video.title} — ` : ""}${video.url}`);
+    else if (video?.fallback_text) lines.push(`    ${video.fallback_text}`);
+    else if (ex || overlayVideo) lines.push("    Видео недоступно — выполняйте по подсказкам");
   }
   return lines;
 }
 
-export function trainingPdfLines(snapshot: TrainingSnapshot, meta: PdfClientMeta): string[] {
+export function trainingPdfLines(
+  snapshot: TrainingSnapshot,
+  meta: PdfClientMeta,
+  mediaOverlay?: Map<string, import("@/lib/exercise-video").ExerciseVideo>,
+): string[] {
   const lines: string[] = [
     "PanovaPRO — тренировки",
     `Клиент: ${meta.clientName}`,
@@ -158,9 +176,19 @@ export function trainingPdfLines(snapshot: TrainingSnapshot, meta: PdfClientMeta
         `День ${day.day_index + 1}: ${day.title}${day.is_rest ? " (отдых)" : ""}${day.focus ? ` — ${day.focus}` : ""}`,
       );
       if (day.is_rest) continue;
-      lines.push(...sectionSets("Разминка", day.warmup));
-      lines.push(...sectionSets("Основные упражнения", day.exercises));
-      lines.push(...sectionSets("Заминка", day.cooldown));
+      const week = day.week_index ?? 0;
+      lines.push(...sectionSets("Разминка", day.warmup, mediaOverlay, week, day.day_index, "warmup"));
+      lines.push(
+        ...sectionSets(
+          "Основные упражнения",
+          day.exercises,
+          mediaOverlay,
+          week,
+          day.day_index,
+          "exercises",
+        ),
+      );
+      lines.push(...sectionSets("Заминка", day.cooldown, mediaOverlay, week, day.day_index, "cooldown"));
     }
   }
   return lines;

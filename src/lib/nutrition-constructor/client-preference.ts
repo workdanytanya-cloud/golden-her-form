@@ -6,6 +6,8 @@ export async function loadClientMealSchedulePreference(params: {
   userId: string;
   courseId?: string | null;
 }): Promise<{ mode: MealScheduleMode; primarySlot: PrimaryMealSlot } | null> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) return null;
   const courseId = await resolveCourseId(params.userId, params.courseId);
 
   let query = supabase

@@ -57,6 +57,7 @@ export default defineConfig(({ mode, command }) => {
     ssr: {
       // Не externalize ws: иначе serverFn не находит native WebSocket в Node 20.
       noExternal: ["ws"],
+      external: ["pg", "argon2", "bcryptjs"],
     },
     plugins: [
       tailwindcss(),

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { loadRuntimeConfig, selfhostLogout, selfhostMe } from "@/lib/selfhost/client-api";
 
 export type AppRole = "admin" | "client";
 export type AccessStatus = "pending_onboarding" | "awaiting_approval" | "active" | "suspended";
@@ -14,7 +15,12 @@ export function isTrainerEmail(email?: string | null): boolean {
   return (TRAINER_EMAILS as readonly string[]).includes(email.trim().toLowerCase());
 }
 
-export function isAdminRole(role: AppRole | null, email?: string | null): boolean {
+export function isAdminRole(
+  role: AppRole | null,
+  email?: string | null,
+  localAuth = false,
+): boolean {
+  if (localAuth) return role === "admin";
   return role === "admin" || isTrainerEmail(email);
 }
 
@@ -77,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessStatus, setAccessStatus] = useState<AccessStatus | null>(null);
   const [unlockSource, setUnlockSource] = useState<UnlockSource>(null);
   const [loading, setLoading] = useState(true);
+  const [localAuth, setLocalAuth] = useState(false);
   const [impersonation, setImpersonation] = useState<Impersonation>(() => readStoredImpersonation());
   const [impersonatedAccess, setImpersonatedAccess] = useState<AccessInfo | null>(null);
 
@@ -86,45 +93,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshAccess = useCallback(async () => {
+    if (localAuth) {
+      const me = await selfhostMe();
+      if (!me.session) return;
+      applyAccess({
+        status: (me.session.accessStatus as AccessStatus) ?? "pending_onboarding",
+        unlockSource: (me.session.unlockSource as UnlockSource) ?? null,
+      });
+      return;
+    }
     if (!session) return;
     const info = await fetchAccess(session.user.id);
     applyAccess(info);
     if (impersonation) {
       setImpersonatedAccess(await fetchAccess(impersonation.userId));
     }
-  }, [session, impersonation, applyAccess]);
+  }, [session, impersonation, applyAccess, localAuth]);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      if (!s) {
-        setRole(null);
-        setAccessStatus(null);
-        setUnlockSource(null);
-        setImpersonation(null);
-        setImpersonatedAccess(null);
-        if (typeof window !== "undefined") window.localStorage.removeItem(IMPERSONATION_KEY);
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+    void (async () => {
+      const runtime = await loadRuntimeConfig();
+      if (cancelled) return;
+      const useLocal = runtime.authBackend === "local";
+      setLocalAuth(useLocal);
+      if (useLocal) {
+        const me = await selfhostMe();
+        if (cancelled) return;
+        if (me.session) {
+          setSession(localSessionShim(me.session));
+          setRole(me.session.role);
+          applyAccess({
+            status: (me.session.accessStatus as AccessStatus) ?? "pending_onboarding",
+            unlockSource: (me.session.unlockSource as UnlockSource) ?? null,
+          });
+        }
+        setLoading(false);
         return;
       }
-      setTimeout(() => {
-        void fetchRole(s.user.id, s.user.email).then(setRole);
-        void fetchAccess(s.user.id).then(applyAccess);
-      }, 0);
-    });
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (data.session) {
-        void Promise.all([
-          fetchRole(data.session.user.id, data.session.user.email).then(setRole),
-          fetchAccess(data.session.user.id).then(applyAccess),
-        ]).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    });
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+        setSession(s);
+        if (!s) {
+          setRole(null);
+          setAccessStatus(null);
+          setUnlockSource(null);
+          setImpersonation(null);
+          setImpersonatedAccess(null);
+          if (typeof window !== "undefined") window.localStorage.removeItem(IMPERSONATION_KEY);
+          return;
+        }
+        setTimeout(() => {
+          void fetchRole(s.user.id, s.user.email).then(setRole);
+          void fetchAccess(s.user.id).then(applyAccess);
+        }, 0);
+      });
+      unsubscribe = () => sub.subscription.unsubscribe();
 
-    return () => sub.subscription.unsubscribe();
+      supabase.auth.getSession().then(({ data }) => {
+        setSession(data.session);
+        if (data.session) {
+          void Promise.all([
+            fetchRole(data.session.user.id, data.session.user.email).then(setRole),
+            fetchAccess(data.session.user.id).then(applyAccess),
+          ]).finally(() => setLoading(false));
+        } else {
+          setLoading(false);
+        }
+      });
+    })();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, [applyAccess]);
 
   useEffect(() => {
@@ -151,10 +193,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     stopImpersonation();
+    if (localAuth) {
+      await selfhostLogout();
+      setSession(null);
+      setRole(null);
+      setAccessStatus(null);
+      setUnlockSource(null);
+      return;
+    }
     await supabase.auth.signOut();
   };
 
-  const trainer = isAdminRole(role, session?.user?.email);
+  const trainer = isAdminRole(role, session?.user?.email, localAuth);
   const activeImpersonation = trainer ? impersonation : null;
 
   const effectiveUserId = activeImpersonation?.userId ?? session?.user?.id ?? null;
@@ -197,6 +247,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+function localSessionShim(me: {
+  userId: string;
+  email: string | null;
+}): Session {
+  return {
+    access_token: "cookie",
+    refresh_token: "",
+    expires_in: 0,
+    expires_at: 0,
+    token_type: "bearer",
+    user: {
+      id: me.userId,
+      email: me.email ?? undefined,
+      app_metadata: {},
+      user_metadata: {},
+      aud: "local",
+      created_at: "",
+    },
+  } as Session;
 }
 
 async function fetchRole(
