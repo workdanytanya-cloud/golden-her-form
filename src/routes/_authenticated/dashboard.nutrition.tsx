@@ -7,6 +7,7 @@ import { MealSchedulePicker } from "@/components/panel/MealSchedulePicker";
 import { NutritionView } from "@/components/panel/NutritionView";
 import { ConstructorNutritionView } from "@/components/panel/ConstructorNutritionView";
 import { FoodSwapGuide } from "@/components/panel/FoodSwapGuide";
+import { SnapshotPdfButton } from "@/components/panel/SnapshotPdfButton";
 import { useAuth } from "@/lib/auth";
 import { useClientCourses } from "@/lib/client-course-context";
 import { type DayEntry } from "@/lib/nutrition";
@@ -92,9 +93,14 @@ function NutritionInner() {
 
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем меню…</div>;
 
+  const pdfButton = (
+    <SnapshotPdfButton kind="nutrition" courseId={selectedCourseId} disabled={!snapshot} />
+  );
+
   if (!snapshot) {
     return (
       <div className="space-y-6">
+        {pdfButton}
         {effectiveUserId ? (
           <MealSchedulePicker
             userId={effectiveUserId}
@@ -136,6 +142,7 @@ function NutritionInner() {
 
     return (
       <div className="space-y-6">
+        {pdfButton}
         {effectiveUserId ? (
           <MealSchedulePicker
             userId={effectiveUserId}
@@ -207,6 +214,7 @@ function NutritionInner() {
 
   return (
     <div className="space-y-6">
+      {pdfButton}
       <FoodSwapGuide />
       <p className="text-sm text-warm-gray">
         Целевые <b className="text-ivory">{snapshot.targets.kcal}</b> ккал. Меню зафиксировано

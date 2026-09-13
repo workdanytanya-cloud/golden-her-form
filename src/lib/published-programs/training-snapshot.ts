@@ -7,8 +7,15 @@ import type {
   TrainingSnapshot,
 } from "@/lib/published-programs/types";
 import { contentHash } from "@/lib/published-programs/hash";
+import { normalizeExerciseVideo, type ExerciseVideo } from "@/lib/exercise-video";
 
 export function freezeExercise(ex: Exercise): FrozenExercise {
+  const video = normalizeExerciseVideo({
+    video_url: ex.video_url,
+    video: ex.video,
+    title: ex.video?.title,
+    fallback_text: ex.video?.fallback_text,
+  });
   return {
     id: ex.id,
     slug: ex.slug,
@@ -22,12 +29,24 @@ export function freezeExercise(ex: Exercise): FrozenExercise {
     cues: [...ex.cues],
     common_mistakes: [...ex.common_mistakes],
     gif_url: ex.gif_url,
-    video_url: ex.video_url,
+    video_url: video.url ?? ex.video_url,
+    video,
     default_sets: ex.default_sets,
     default_reps: ex.default_reps,
     tempo: ex.tempo,
     rest_seconds: ex.rest_seconds,
   };
+}
+
+export function videoFromFrozenExercise(
+  ex: Pick<FrozenExercise, "video_url" | "video">,
+): ExerciseVideo {
+  return normalizeExerciseVideo({
+    video_url: ex.video_url,
+    video: ex.video,
+    title: ex.video?.title,
+    fallback_text: ex.video?.fallback_text,
+  });
 }
 
 function freezeSet(set: ExerciseSet, byId: Map<string, Exercise>): FrozenExerciseSet {
@@ -112,7 +131,8 @@ export function exercisesFromTrainingSnapshot(snapshot: TrainingSnapshot): Exerc
         cues: e.cues,
         common_mistakes: e.common_mistakes,
         gif_url: e.gif_url,
-        video_url: e.video_url,
+        video_url: videoFromFrozenExercise(e).url ?? e.video_url,
+        video: videoFromFrozenExercise(e),
         default_sets: e.default_sets,
         default_reps: e.default_reps,
         tempo: e.tempo,

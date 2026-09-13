@@ -3,8 +3,12 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertAdmin } from "@/lib/server/assert-admin";
 import { buildClientProfile } from "@/lib/personalization/client-profile";
-import { suggestExerciseSubstitutes, type SubstituteReason } from "@/lib/personalization/substitute-engine";
+import {
+  suggestExerciseSubstitutes,
+  type SubstituteReason,
+} from "@/lib/personalization/substitute-engine";
 import type { Exercise, ExerciseSet } from "@/lib/training";
+import { normalizeExerciseVideo } from "@/lib/exercise-video";
 
 const reasonSchema = z.enum(["too_hard", "discomfort", "equipment", "preference"]);
 
@@ -48,6 +52,7 @@ function mapExercise(row: Record<string, unknown>): Exercise {
     common_mistakes: (row.common_mistakes as string[]) ?? [],
     gif_url: (row.gif_url as string) ?? null,
     video_url: (row.video_url as string) ?? null,
+    video: normalizeExerciseVideo(row),
     default_sets: Number(row.default_sets ?? 3),
     default_reps: String(row.default_reps ?? "10-12"),
     tempo: (row.tempo as string) ?? null,

@@ -15,6 +15,7 @@ import {
   summarizeTrainingPlan,
 } from "@/lib/coach-sheet-program";
 import { persistProgramWithDaysForClient } from "@/lib/training-persist";
+import { normalizeExerciseVideo } from "@/lib/exercise-video";
 
 const programInputSchema = z.object({
   sessions_per_week: z.union([z.literal(3), z.literal(4)]),
@@ -53,9 +54,8 @@ async function resolveTrainingPlanAdmin(
 ) {
   if (mode === "continuation") {
     try {
-      const { resolveTrainingPlanForCourse } = await import(
-        "@/lib/client-courses/seed-training-continuation"
-      );
+      const { resolveTrainingPlanForCourse } =
+        await import("@/lib/client-courses/seed-training-continuation");
       return await resolveTrainingPlanForCourse({
         clientId: _clientId,
         courseId: _courseId,
@@ -90,6 +90,10 @@ export const adminRegenerateTrainingProgram = createServerFn({ method: "POST" })
 
     const { data: exercises, error: exErr } = await supabaseAdmin.from("exercises").select("*");
     if (exErr) throw exErr;
+    const catalog = (exercises ?? []).map((row) => {
+      const video = normalizeExerciseVideo(row as Record<string, unknown>);
+      return { ...(row as Exercise), video_url: video.url, video };
+    });
 
     let resolvedCourseId = data.courseId ?? null;
     if (!resolvedCourseId) {
@@ -106,7 +110,7 @@ export const adminRegenerateTrainingProgram = createServerFn({ method: "POST" })
       supabaseAdmin,
       data.userId,
       resolvedCourseId,
-      (exercises ?? []) as Exercise[],
+      catalog,
       input,
       data.mode ?? "fresh",
     );

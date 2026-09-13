@@ -1,3 +1,5 @@
+import type { ExerciseVideo } from "@/lib/exercise-video";
+
 /**
  * Неизменяемые опубликованные версии меню и тренировок.
  * Черновик живёт в nutrition_plans / training_programs.
@@ -123,6 +125,8 @@ export type FrozenExercise = {
   common_mistakes: string[];
   gif_url: string | null;
   video_url: string | null;
+  /** Присутствует только в новых публикациях. Старые snapshots читаются через адаптер. */
+  video?: ExerciseVideo;
   default_sets: number;
   default_reps: string;
   tempo: string | null;

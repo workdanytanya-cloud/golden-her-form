@@ -16,6 +16,7 @@ import {
 } from "@/lib/training";
 import { COACH_PROGRAM_WEEKS, resolveDefaultTrainingProgram } from "@/lib/coach-sheet-program";
 import { persistProgramWithDaysForClient } from "@/lib/training-persist";
+import { normalizeExerciseVideo } from "@/lib/exercise-video";
 
 async function loadLatestWeightKg(userId: string): Promise<number | null> {
   const { data } = await supabase
@@ -74,16 +75,21 @@ export async function loadExercises(): Promise<Exercise[]> {
     rows.push(...(data ?? []));
     if (!data || data.length < pageSize) break;
   }
-  return rows.map((e) => ({
-    ...e,
-    cues: (e.cues ?? []) as string[],
-    common_mistakes: (e.common_mistakes ?? []) as string[],
-    muscle_groups: (e.muscle_groups as string[]) ?? [],
-    equipment: (e.equipment as string[]) ?? [],
-    tags: (e.tags as string[]) ?? [],
-    category: e.category as ExerciseCategory,
-    difficulty: e.difficulty as Exercise["difficulty"],
-  })) as Exercise[];
+  return rows.map((e) => {
+    const video = normalizeExerciseVideo(e);
+    return {
+      ...e,
+      cues: (e.cues ?? []) as string[],
+      common_mistakes: (e.common_mistakes ?? []) as string[],
+      muscle_groups: (e.muscle_groups as string[]) ?? [],
+      equipment: (e.equipment as string[]) ?? [],
+      tags: (e.tags as string[]) ?? [],
+      category: e.category as ExerciseCategory,
+      difficulty: e.difficulty as Exercise["difficulty"],
+      video_url: video.url ?? (e.video_url as string | null) ?? null,
+      video,
+    };
+  }) as Exercise[];
 }
 
 function asWeekIndex(value: unknown): number {
@@ -94,8 +100,7 @@ function asWeekIndex(value: unknown): number {
 function isMissingSchemaColumn(error: { message?: string }, column: string): boolean {
   const msg = error.message ?? "";
   return (
-    new RegExp(column, "i").test(msg) &&
-    /schema cache|could not find|PGRST204|column/i.test(msg)
+    new RegExp(column, "i").test(msg) && /schema cache|could not find|PGRST204|column/i.test(msg)
   );
 }
 
@@ -175,13 +180,10 @@ async function replaceProgramDays(
 
   // Атомарная замена через RPC (если миграция применена)
   if (needsMultiWeek) {
-    const { data: rpcCount, error: rpcErr } = await supabase.rpc(
-      "replace_training_program_days",
-      {
-        p_program_id: programId,
-        p_rows: rows as unknown as never,
-      },
-    );
+    const { data: rpcCount, error: rpcErr } = await supabase.rpc("replace_training_program_days", {
+      p_program_id: programId,
+      p_rows: rows as unknown as never,
+    });
     if (!rpcErr && typeof rpcCount === "number") {
       return { multiWeek: true };
     }
@@ -266,10 +268,7 @@ export async function loadProgramFor(
       ...program,
       faq: (program.faq ?? []) as FaqItem[],
       equipment: program.equipment ?? [],
-      program_weeks: Math.max(
-        Number.isFinite(dbWeeks) && dbWeeks > 0 ? dbWeeks : 1,
-        inferred,
-      ),
+      program_weeks: Math.max(Number.isFinite(dbWeeks) && dbWeeks > 0 ? dbWeeks : 1, inferred),
     } as ProgramRow,
     days: mappedDays,
   };
@@ -315,8 +314,16 @@ export async function createOrReplaceProgram(params: {
   /** Если дни уже сгенерированы и провалидированы снаружи. */
   preGeneratedDays?: ProgramDay[];
 }): Promise<{ program: ProgramRow; days: DayRow[]; multiWeek: boolean }> {
-  const { userId, courseId, input, exercises, preserveNotes, preserveFaq, targetsManual, preGeneratedDays } =
-    params;
+  const {
+    userId,
+    courseId,
+    input,
+    exercises,
+    preserveNotes,
+    preserveFaq,
+    targetsManual,
+    preGeneratedDays,
+  } = params;
   const { resolveCourseId } = await import("@/lib/client-courses/repo");
   const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
 

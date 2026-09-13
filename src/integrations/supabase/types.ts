@@ -284,6 +284,11 @@ export type Database = {
           tempo: string | null;
           updated_at: string;
           video_url: string | null;
+          video_provider: string | null;
+          video_embed_url: string | null;
+          video_title: string | null;
+          video_status: string | null;
+          video_fallback_text: string | null;
         };
         Insert: {
           category: string;
@@ -305,6 +310,11 @@ export type Database = {
           tempo?: string | null;
           updated_at?: string;
           video_url?: string | null;
+          video_provider?: string | null;
+          video_embed_url?: string | null;
+          video_title?: string | null;
+          video_status?: string | null;
+          video_fallback_text?: string | null;
         };
         Update: {
           category?: string;
@@ -326,6 +336,11 @@ export type Database = {
           tempo?: string | null;
           updated_at?: string;
           video_url?: string | null;
+          video_provider?: string | null;
+          video_embed_url?: string | null;
+          video_title?: string | null;
+          video_status?: string | null;
+          video_fallback_text?: string | null;
         };
         Relationships: [];
       };

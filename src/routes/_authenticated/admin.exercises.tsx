@@ -6,6 +6,8 @@ import { MediaUpload } from "@/components/panel/MediaUpload";
 import { ExerciseMedia } from "@/components/panel/ExerciseMedia";
 import { Search, Save, Trash2, Plus, X, Download } from "lucide-react";
 import { CATEGORY_LABEL } from "@/lib/training";
+import { adminUpsertExerciseFn } from "@/lib/exercise.functions";
+import { normalizeExerciseVideo } from "@/lib/exercise-video";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/exercises")({
@@ -27,6 +29,8 @@ type Exercise = {
   description: string | null;
   gif_url: string | null;
   video_url: string | null;
+  video_title: string | null;
+  video_fallback_text: string | null;
 };
 
 const emptyExercise: Omit<Exercise, "id"> = {
@@ -43,6 +47,8 @@ const emptyExercise: Omit<Exercise, "id"> = {
   description: null,
   gif_url: null,
   video_url: null,
+  video_title: null,
+  video_fallback_text: null,
 };
 
 const CATEGORIES = [
@@ -81,13 +87,14 @@ async function downloadMedia(url: string, slug: string) {
   }
 }
 
-
 function AdminExercises() {
   const [items, setItems] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
-  const [editing, setEditing] = useState<Exercise | (Omit<Exercise, "id"> & { id?: string }) | null>(null);
+  const [editing, setEditing] = useState<
+    Exercise | (Omit<Exercise, "id"> & { id?: string }) | null
+  >(null);
 
   const load = () => {
     setLoading(true);
@@ -98,16 +105,45 @@ function AdminExercises() {
         const { data, error } = await supabase
           .from("exercises")
           .select(
-            "id, slug, name, category, difficulty, muscle_groups, equipment, default_sets, default_reps, rest_seconds, tempo, description, gif_url, video_url",
+            "id, slug, name, category, difficulty, muscle_groups, equipment, default_sets, default_reps, rest_seconds, tempo, description, gif_url, video_url, video_title, video_fallback_text",
           )
           .order("category")
           .order("name")
           .range(from, from + pageSize - 1);
+        if (error && /video_title|video_fallback_text|PGRST204|schema cache/i.test(error.message)) {
+          const retry = await supabase
+            .from("exercises")
+            .select(
+              "id, slug, name, category, difficulty, muscle_groups, equipment, default_sets, default_reps, rest_seconds, tempo, description, gif_url, video_url",
+            )
+            .order("category")
+            .order("name")
+            .range(from, from + pageSize - 1);
+          if (retry.error) {
+            toast.error(retry.error.message);
+            break;
+          }
+          all.push(
+            ...((retry.data ?? []) as Exercise[]).map((row) => ({
+              ...row,
+              video_title: row.video_title ?? null,
+              video_fallback_text: row.video_fallback_text ?? null,
+            })),
+          );
+          if (!retry.data || retry.data.length < pageSize) break;
+          continue;
+        }
         if (error) {
           toast.error(error.message);
           break;
         }
-        all.push(...((data ?? []) as Exercise[]));
+        all.push(
+          ...((data ?? []) as Record<string, unknown>[]).map((row) => ({
+            ...(row as unknown as Exercise),
+            video_title: (row.video_title as string | null) ?? null,
+            video_fallback_text: (row.video_fallback_text as string | null) ?? null,
+          })),
+        );
         if (!data || data.length < pageSize) break;
       }
       setItems(all);
@@ -146,15 +182,18 @@ function AdminExercises() {
       description: editing.description,
       gif_url: editing.gif_url,
       video_url: editing.video_url,
+      video_title: editing.video_title,
+      video_fallback_text: editing.video_fallback_text,
+      ...("id" in editing && editing.id ? { id: editing.id } : {}),
     };
-    const q = "id" in editing && editing.id
-      ? supabase.from("exercises").update(payload).eq("id", editing.id)
-      : supabase.from("exercises").insert(payload);
-    const { error } = await q;
-    if (error) return toast.error(error.message);
-    toast.success("Сохранено");
-    setEditing(null);
-    load();
+    try {
+      await adminUpsertExerciseFn({ data: payload });
+      toast.success("Сохранено");
+      setEditing(null);
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось сохранить");
+    }
   };
 
   const remove = async (id: string) => {
@@ -219,8 +258,10 @@ function AdminExercises() {
               <div className="aspect-video w-full overflow-hidden bg-background/40">
                 {e.gif_url || e.video_url ? (
                   <ExerciseMedia
-                    url={(e.gif_url || e.video_url)!}
+                    url={e.gif_url || e.video_url}
+                    video={normalizeExerciseVideo(e)}
                     alt={e.name}
+                    fallbackText={e.video_fallback_text}
                     className="h-full w-full object-contain"
                   />
                 ) : (
@@ -234,7 +275,8 @@ function AdminExercises() {
                   <div>
                     <div className="font-display text-lg text-ivory">{e.name}</div>
                     <div className="text-[11px] uppercase tracking-widest text-warm-gray">
-                      {CATEGORY_LABEL[e.category as keyof typeof CATEGORY_LABEL] ?? e.category} · {DIFFICULTY_LABEL[e.difficulty] ?? e.difficulty}
+                      {CATEGORY_LABEL[e.category as keyof typeof CATEGORY_LABEL] ?? e.category} ·{" "}
+                      {DIFFICULTY_LABEL[e.difficulty] ?? e.difficulty}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
@@ -406,14 +448,45 @@ function AdminExercises() {
               folder="exercises/gifs"
               preview="image"
             />
-            <MediaUpload
-              label="Видео с лицом тренера"
-              value={editing.video_url}
-              onChange={(url) => setEditing({ ...editing, video_url: url })}
-              accept="video/mp4,video/webm,video/quicktime"
-              folder="exercises/videos"
-              preview="video"
-            />
+            <Field label="Ссылка на видео (YouTube, Rutube или https)" span="md:col-span-2">
+              <div className="flex gap-2">
+                <input
+                  value={editing.video_url ?? ""}
+                  onChange={(e) => setEditing({ ...editing, video_url: e.target.value || null })}
+                  placeholder="https://youtu.be/… или https://rutube.ru/video/…"
+                  className={inp}
+                />
+                <button
+                  type="button"
+                  onClick={() => setEditing({ ...editing, video_url: null })}
+                  className="rounded-xl border border-gold/20 px-3 text-xs uppercase tracking-widest text-warm-gray hover:text-ivory"
+                >
+                  Удалить
+                </button>
+              </div>
+              {editing.video_url ? (
+                <p className="mt-1 text-[11px] text-warm-gray">
+                  Провайдер после сохранения:{" "}
+                  {normalizeExerciseVideo({ url: editing.video_url }).provider}
+                </p>
+              ) : null}
+            </Field>
+            <Field label="Название видео">
+              <input
+                value={editing.video_title ?? ""}
+                onChange={(e) => setEditing({ ...editing, video_title: e.target.value || null })}
+                className={inp}
+              />
+            </Field>
+            <Field label="Текст, если видео недоступно" span="md:col-span-2">
+              <textarea
+                value={editing.video_fallback_text ?? ""}
+                onChange={(e) =>
+                  setEditing({ ...editing, video_fallback_text: e.target.value || null })
+                }
+                className={`${inp} min-h-[80px]`}
+              />
+            </Field>
           </div>
           <div className="mt-6 flex justify-end gap-2">
             <button

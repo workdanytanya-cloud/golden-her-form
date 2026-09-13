@@ -4,6 +4,7 @@ import { PanelHeader } from "@/components/panel/PanelShell";
 import { AccessGate } from "@/components/panel/AccessGate";
 import { ClientCoursePicker } from "@/components/panel/ClientCoursePicker";
 import { TrainingView } from "@/components/panel/TrainingView";
+import { SnapshotPdfButton } from "@/components/panel/SnapshotPdfButton";
 import { useAuth } from "@/lib/auth";
 import { useClientCourses } from "@/lib/client-course-context";
 import { loadPublishedTrainingFor } from "@/lib/published-programs/repo";
@@ -68,10 +69,20 @@ function TrainingInner() {
   }, [effectiveUserId, selectedCourseId]);
 
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем программу…</div>;
+  const pdfButton = (
+    <SnapshotPdfButton
+      kind="training"
+      courseId={selectedCourseId}
+      disabled={!program || days.length === 0}
+    />
+  );
   if (!program || days.length === 0)
     return (
-      <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center text-warm-gray">
-        Программа пока не назначена. Тренер опубликует для вас фиксированный блок на 4 недели.
+      <div className="space-y-6">
+        {pdfButton}
+        <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center text-warm-gray">
+          Программа пока не назначена. Тренер опубликует для вас фиксированный блок на 4 недели.
+        </div>
       </div>
     );
 
@@ -89,19 +100,22 @@ function TrainingInner() {
   }));
 
   return (
-    <TrainingView
-      exercises={exercises}
-      days={programDays}
-      goal={(program.goal as ProgramGoal) ?? "tone"}
-      level={(program.level as ProgramLevel) ?? "beginner"}
-      sessionsPerWeek={program.sessions_per_week}
-      programWeeks={program.program_weeks}
-      notes={program.notes}
-      faq={program.faq}
-      editable={false}
-      userId={effectiveUserId ?? undefined}
-      programId={program.id}
-      enableWorkoutFeedback
-    />
+    <div className="space-y-6">
+      {pdfButton}
+      <TrainingView
+        exercises={exercises}
+        days={programDays}
+        goal={(program.goal as ProgramGoal) ?? "tone"}
+        level={(program.level as ProgramLevel) ?? "beginner"}
+        sessionsPerWeek={program.sessions_per_week}
+        programWeeks={program.program_weeks}
+        notes={program.notes}
+        faq={program.faq}
+        editable={false}
+        userId={effectiveUserId ?? undefined}
+        programId={program.id}
+        enableWorkoutFeedback
+      />
+    </div>
   );
 }
