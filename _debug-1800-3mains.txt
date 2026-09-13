@@ -1,0 +1,56 @@
+valid true
+message 
+reason недобор белка (-1.3 г); недобор жиров (-2.5 г); недобор углеводов (-2.4 г)
+checked 3
+elapsed 4357
+timed_out false
+best slugs undefined
+priorities {"proteinFocused":true,"lowCarb":false,"strictHighProtein":false}
+
+MAINS in catalog:
+  - oats-milk-banana grain=true fatFwd=false leanCarb=false
+  - omelette-tomato-pepper-cheese grain=false fatFwd=true leanCarb=false
+  - chicken-buckwheat-salad grain=true fatFwd=false leanCarb=true
+  - chicken-rice-zucchini grain=true fatFwd=false leanCarb=true
+  - beef-buckwheat-veg grain=true fatFwd=true leanCarb=false
+  - pollock-rice-zucchini grain=true fatFwd=false leanCarb=true
+  - egg-chicken-buckwheat grain=true fatFwd=false leanCarb=false
+  - oats-banana-apple grain=true fatFwd=false leanCarb=false
+  - oats-pancake-egg-banana grain=true fatFwd=false leanCarb=false
+  - omelette-tomato-pepper grain=false fatFwd=true leanCarb=false
+  - omelette-napa-tomato grain=false fatFwd=true leanCarb=false
+  - chicken-eggplant-tomato grain=false fatFwd=false leanCarb=false
+  - beef-rice-vegetables grain=true fatFwd=true leanCarb=false
+  - beef-eggplant-tomato grain=false fatFwd=true leanCarb=false
+  - pollock-buckwheat-cabbage grain=true fatFwd=false leanCarb=true
+  - pollock-veg-rice grain=true fatFwd=false leanCarb=true
+  - rice-chicken-vegetables grain=true fatFwd=false leanCarb=true
+  - baked-oats-apple-egg grain=true fatFwd=false leanCarb=false
+  - chicken-buckwheat-carrot grain=true fatFwd=false leanCarb=true
+  - beef-rice-zucchini-pepper grain=true fatFwd=true leanCarb=false
+  - pollock-cucumber-tomato grain=false fatFwd=false leanCarb=true
+  - oats-cherry-apple grain=true fatFwd=false leanCarb=false
+
+DAY kcal=1799.9000 P=134.1881 F=59.6271 C=179.2132 valid=true
+
+== main1 Курица с гречкой и морковью slug=chicken-buckwheat-carrot
+   meal 578.7900 / P56.6303 F13.0992 C61.1418
+   - Курица (chicken-breast-raw) 204g [120-280]  P45.9000 F5.3448 C0.0000
+   - Гречка (buckwheat-dry) 76g [50-140]  P10.0700 F2.5840 C54.3400
+   - Морковь (carrot) 71g [60-120]  P0.6603 F0.1704 C6.8018
+   - Оливковое масло (olive-oil) 5g [0-15]  P0.0000 F5.0000 C0.0000
+
+== main2 Курица с рисом, кабачком и перцем slug=chicken-rice-zucchini
+   meal 759.7600 / P51.8138 F13.2744 C103.6684
+   - Курица (chicken-breast-raw) 181g [120-280]  P40.7250 F4.7422 C0.0000
+   - Рис (rice-white-dry) 117g [50-140]  P8.3421 F0.7722 C93.5415
+   - Кабачки (zucchini) 155g [100-200]  P1.8755 F0.4960 C4.8205
+   - Перец (bell-pepper) 88g [60-120]  P0.8712 F0.2640 C5.3064
+   - Оливковое масло (olive-oil) 7g [0-15]  P0.0000 F7.0000 C0.0000
+
+== main3 Омлет с помидорами, перцем и сыром slug=omelette-tomato-pepper-cheese
+   meal 461.3500 / P25.7440 F33.2535 C14.4030
+   - Яйца (egg-whole) 185g [100-200]  P23.2360 F17.5935 C1.3320
+   - Помидоры (tomato) 150g [80-150] MAX  P1.3200 F0.3000 C5.8350
+   - Перец (bell-pepper) 120g [60-120] MAX  P1.1880 F0.3600 C7.2360
+   - Оливковое масло (olive-oil) 15g [0-15] MAX  P0.0000 F15.0000 C0.0000

@@ -1,0 +1,242 @@
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useState, type ReactNode } from "react";
+import { Menu, X, LogOut, Eye } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
+import { NotificationsBell } from "./NotificationsBell";
+import { ClientNotificationsBell } from "./ClientNotificationsBell";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { BUILD_SHA } from "@/lib/build-info";
+
+
+export type PanelNavItem = {
+  to: string;
+  label: string;
+  icon: ReactNode;
+  exact?: boolean;
+};
+
+export function PanelShell({
+  brandSuffix,
+  nav,
+  children,
+}: {
+  brandSuffix?: string;
+  nav: PanelNavItem[];
+  children: ReactNode;
+}) {
+  const { signOut, user, role, impersonation, stopImpersonation } = useAuth();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Вы вышли из аккаунта");
+    await navigate({ to: "/" });
+  };
+
+  const isActive = (item: PanelNavItem) =>
+    item.exact ? pathname === item.to : pathname === item.to || pathname.startsWith(item.to + "/");
+
+  const handleExitImpersonation = () => {
+    stopImpersonation();
+    toast.success("Вы вышли из режима просмотра");
+    void navigate({ to: "/admin" });
+  };
+
+  return (
+    <div className="min-h-screen overflow-x-hidden bg-background text-ivory">
+      {impersonation && (
+        <div className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-2 border-b border-gold/30 bg-gradient-to-r from-coral/25 via-background/80 to-gold/25 px-4 py-2 text-xs text-ivory backdrop-blur">
+          <div className="flex items-center gap-2 min-w-0">
+            <Eye className="h-4 w-4 shrink-0 text-gold" />
+            <span className="truncate">
+              Просмотр как клиент: <b className="text-gold">{impersonation.name}</b>
+            </span>
+          </div>
+          <button
+            onClick={handleExitImpersonation}
+            className="shrink-0 rounded-full border border-gold/40 px-3 py-1 text-[11px] uppercase tracking-widest text-ivory hover:bg-gold/15"
+          >
+            Выйти из режима
+          </button>
+        </div>
+      )}
+      {/* Mobile top bar */}
+
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-gold/10 bg-background/80 px-4 py-3 backdrop-blur md:hidden">
+        <Link to="/" className="font-display text-lg">
+          Panova<span className="text-coral">PRO</span>
+          {brandSuffix && (
+            <span className="ml-2 text-[10px] uppercase tracking-widest text-gold">{brandSuffix}</span>
+          )}
+        </Link>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {role === "admin" ? <NotificationsBell /> : <ClientNotificationsBell />}
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="rounded-full border border-gold/25 p-2 text-ivory"
+            aria-label="Меню"
+          >
+            {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+
+
+      <div className="mx-auto flex w-full min-w-0 max-w-7xl">
+        {/* Sidebar */}
+        <aside
+          className={[
+            "fixed inset-y-0 left-0 z-40 w-72 shrink-0 transform border-r border-gold/10 bg-surface/60 backdrop-blur transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0",
+            open ? "translate-x-0" : "-translate-x-full",
+          ].join(" ")}
+        >
+          <div className="flex h-full flex-col p-6">
+            <Link
+              to="/"
+              className="hidden font-display text-2xl md:block"
+              onClick={() => setOpen(false)}
+            >
+              Panova<span className="text-coral">PRO</span>
+              {brandSuffix && (
+                <span className="ml-2 text-[10px] uppercase tracking-widest text-gold">
+                  {brandSuffix}
+                </span>
+              )}
+            </Link>
+
+            <div className="mt-6 flex items-start gap-3 rounded-2xl border border-gold/15 bg-background/40 p-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] uppercase tracking-widest text-warm-gray">
+                  {role === "admin" ? "Тренер" : "Клиент"}
+                </p>
+                <p className="mt-1 truncate font-display text-sm text-ivory">{user?.email}</p>
+              </div>
+              <div className="hidden items-center gap-2 md:flex">
+                <ThemeToggle />
+                {role === "admin" ? <NotificationsBell /> : <ClientNotificationsBell />}
+              </div>
+            </div>
+
+            <nav className="mt-8 flex flex-1 flex-col gap-1">
+              {nav.map((item, idx) => {
+                const active = isActive(item);
+                return (
+                  <Link
+                    key={`${item.to}-${item.label}-${idx}`}
+                    to={item.to as unknown as "/"}
+                    onClick={() => setOpen(false)}
+                    className={[
+                      "flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-colors",
+                      active
+                        ? "bg-gradient-to-r from-coral/20 to-gold/15 text-ivory ring-1 ring-gold/40"
+                        : "text-warm-gray hover:bg-gold/5 hover:text-ivory",
+                    ].join(" ")}
+                  >
+                    <span
+                      className={[
+                        "flex h-8 w-8 items-center justify-center rounded-lg",
+                        active ? "bg-gold/25 text-ivory" : "bg-background/50 text-gold",
+                      ].join(" ")}
+                    >
+                      {item.icon}
+                    </span>
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="mt-6 flex flex-col gap-2">
+              <p className="px-1 text-[10px] text-warm-gray/70" title="Версия сборки на сервере">
+                Сборка {BUILD_SHA}
+              </p>
+              <div className="flex items-center justify-between rounded-2xl border border-gold/15 bg-background/40 px-4 py-3 md:hidden">
+                <span className="text-xs text-warm-gray">Тема оформления</span>
+                <ThemeToggle />
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center justify-center gap-2 rounded-full border border-gold/30 px-4 py-3 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-coral/15"
+              >
+                <LogOut className="h-4 w-4" /> Выйти
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Backdrop on mobile */}
+        {open && (
+          <button
+            aria-label="Закрыть меню"
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-30 bg-background/70 md:hidden"
+          />
+        )}
+
+        {/* Main */}
+        <main className="min-h-screen w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 py-6 sm:px-6 md:px-10 md:py-12">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export function PanelHeader({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
+  const normalizedDescription = description?.replace(/\s+/g, " ").trim();
+
+  return (
+    <div className="space-y-4 border-b border-gold/10 pb-6">
+      <div className="min-w-0">
+        <p className="eyebrow">{eyebrow}</p>
+        <h1 className="mt-2 break-words font-display text-2xl sm:text-3xl md:text-4xl">{title}</h1>
+        {normalizedDescription ? (
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-warm-gray">{normalizedDescription}</p>
+        ) : null}
+      </div>
+      {action ? <div className="flex flex-wrap gap-2">{action}</div> : null}
+    </div>
+  );
+}
+
+export function StatCard({
+  label,
+  value,
+  hint,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "default" | "gold" | "coral";
+}) {
+  const toneCls =
+    tone === "gold"
+      ? "from-gold/20 to-transparent ring-gold/40"
+      : tone === "coral"
+        ? "from-coral/20 to-transparent ring-coral/40"
+        : "from-surface/60 to-transparent ring-gold/15";
+  return (
+    <div
+      className={`rounded-2xl bg-gradient-to-br ${toneCls} p-5 ring-1 backdrop-blur`}
+    >
+      <p className="text-[11px] uppercase tracking-widest text-warm-gray">{label}</p>
+      <p className="mt-2 font-display text-2xl text-ivory">{value}</p>
+      {hint && <p className="mt-1 text-xs text-warm-gray">{hint}</p>}
+    </div>
+  );
+}

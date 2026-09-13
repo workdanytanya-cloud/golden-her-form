@@ -1,0 +1,63 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+.output
+.vinxi
+.tanstack/**
+.nitro
+*.local
+
+# Env secrets (never commit real keys)
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+*.pfx
+credentials.json
+service-account.json
+supabase/.temp/
+
+# Caches / build
+coverage/
+.turbo/
+.vite/
+.cache/
+build/
+
+# ExerciseDB import caches (large)
+scripts/data/
+
+# Raw Google Sheet tab dumps (regenerate: npm run exercises:fetch-sheet)
+scripts/_sheet_tabs/
+scripts/_tmp-*
+scripts/_video_downloads/
+scripts/_video_mirror_map.json
+
+# Lovable CDN media (download with: npm run assets:fetch) — ~400MB
+public/__l5e/
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

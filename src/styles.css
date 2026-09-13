@@ -1,0 +1,452 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Luxury fitness palette — black / warm gray / ivory / gold (cabinet & auth) */
+
+@theme inline {
+  --font-display: "Unbounded", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Onest", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-coral: var(--coral);
+  --color-coral-soft: var(--coral-soft);
+  --color-ivory: var(--ivory);
+  --color-warm-gray: var(--warm-gray);
+  --color-surface: var(--surface);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 1rem;
+  color-scheme: light;
+
+  /* Более тёмные акценты — читаемость на светлом фоне (WCAG ~AA) */
+  --gold: oklch(0.48 0.12 62);
+  --gold-soft: oklch(0.58 0.1 68);
+  --coral: oklch(0.5 0.18 28);
+  --coral-soft: oklch(0.62 0.14 32);
+  /* text-ivory / accents on light canvas → dark ink */
+  --ivory: oklch(0.2 0.03 45);
+  --warm-gray: oklch(0.38 0.025 50);
+  --surface: oklch(0.965 0.01 72);
+
+  --background: oklch(0.985 0.008 78);
+  --foreground: oklch(0.2 0.03 45);
+  --card: oklch(0.995 0.005 80);
+  --card-foreground: oklch(0.22 0.028 45);
+  --popover: oklch(0.995 0.005 80);
+  --popover-foreground: oklch(0.22 0.028 45);
+  --primary: oklch(0.52 0.19 28);
+  --primary-foreground: oklch(0.99 0.005 80);
+  --secondary: oklch(0.94 0.012 72);
+  --secondary-foreground: oklch(0.22 0.028 45);
+  --muted: oklch(0.94 0.01 75);
+  --muted-foreground: oklch(0.4 0.025 50);
+  --accent: oklch(0.48 0.12 62);
+  --accent-foreground: oklch(0.99 0.005 80);
+  --destructive: oklch(0.5 0.2 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.86 0.02 70);
+  --input: oklch(0.86 0.02 70);
+  --ring: oklch(0.52 0.19 28);
+
+  --chart-1: oklch(0.48 0.12 62);
+  --chart-2: oklch(0.5 0.18 28);
+  --chart-3: oklch(0.58 0.08 78);
+  --chart-4: oklch(0.4 0.025 50);
+  --chart-5: oklch(0.32 0.03 45);
+
+  --sidebar: oklch(0.97 0.008 75);
+  --sidebar-foreground: oklch(0.22 0.028 45);
+  --sidebar-primary: oklch(0.52 0.19 28);
+  --sidebar-primary-foreground: oklch(0.99 0.005 80);
+  --sidebar-accent: oklch(0.93 0.012 72);
+  --sidebar-accent-foreground: oklch(0.22 0.028 45);
+  --sidebar-border: oklch(0.86 0.02 70);
+  --sidebar-ring: oklch(0.52 0.19 28);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --gold: oklch(0.78 0.15 78);
+  --gold-soft: oklch(0.86 0.11 80);
+  --coral: oklch(0.68 0.21 25);
+  --coral-soft: oklch(0.78 0.16 30);
+  --ivory: oklch(0.97 0.014 82);
+  --warm-gray: oklch(0.66 0.02 70);
+  --surface: oklch(0.19 0.012 60);
+
+  --background: oklch(0.14 0.008 55);
+  --foreground: oklch(0.97 0.014 82);
+  --card: oklch(0.17 0.006 70);
+  --card-foreground: oklch(0.96 0.012 80);
+  --popover: oklch(0.17 0.006 70);
+  --popover-foreground: oklch(0.96 0.012 80);
+  --primary: oklch(0.72 0.11 75);
+  --primary-foreground: oklch(0.13 0.005 70);
+  --secondary: oklch(0.22 0.006 70);
+  --secondary-foreground: oklch(0.96 0.012 80);
+  --muted: oklch(0.22 0.006 70);
+  --muted-foreground: oklch(0.72 0.012 70);
+  --accent: oklch(0.72 0.11 75);
+  --accent-foreground: oklch(0.13 0.005 70);
+  --destructive: oklch(0.6 0.22 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.28 0.006 70);
+  --input: oklch(0.28 0.006 70);
+  --ring: oklch(0.72 0.11 75);
+
+  --chart-1: oklch(0.72 0.11 75);
+  --chart-2: oklch(0.62 0.012 70);
+  --chart-3: oklch(0.82 0.07 78);
+  --chart-4: oklch(0.35 0.006 70);
+  --chart-5: oklch(0.96 0.012 80);
+
+  --sidebar: oklch(0.17 0.006 70);
+  --sidebar-foreground: oklch(0.96 0.012 80);
+  --sidebar-primary: oklch(0.72 0.11 75);
+  --sidebar-primary-foreground: oklch(0.13 0.005 70);
+  --sidebar-accent: oklch(0.22 0.006 70);
+  --sidebar-accent-foreground: oklch(0.96 0.012 80);
+  --sidebar-border: oklch(0.28 0.006 70);
+  --sidebar-ring: oklch(0.72 0.11 75);
+}
+
+/* Gold/coral CTAs on light theme: dark ink on accent fills (not all coral-tinted text) */
+:root:not(.dark) :is(a, button).bg-gold,
+:root:not(.dark) :is(a, button).bg-coral {
+  color: oklch(0.16 0.02 55);
+}
+
+/* Кабинет: тёмные полупрозрачные подложки на светлой теме → светлые карточки */
+:root:not(.dark) .bg-black\/20,
+:root:not(.dark) .bg-black\/25,
+:root:not(.dark) .bg-black\/30,
+:root:not(.dark) .bg-black\/40 {
+  background-color: color-mix(in oklab, var(--surface) 92%, var(--foreground) 8%);
+}
+
+/* Градиентный «золотой» текст на светлом фоне плохо читается — сплошной цвет */
+:root:not(.dark) .gold-text {
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: var(--gold);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    min-width: 0;
+  }
+
+  img,
+  video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  a[href^="mailto:"],
+  .break-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* iOS: avoid zoom + focus glitches on small text */
+    touch-action: manipulation;
+  }
+
+  @media (width >= 640px) {
+    input,
+    textarea,
+    select {
+      font-size: inherit;
+    }
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--gold) 40%, transparent);
+    color: var(--ivory);
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+/* Light marketing surface — pearl / peach / blush, coral accent */
+.landing {
+  color-scheme: light;
+  --gold: oklch(0.48 0.12 62);
+  --gold-soft: oklch(0.58 0.1 68);
+  --coral: oklch(0.5 0.18 28);
+  --coral-soft: oklch(0.62 0.14 32);
+  --ivory: oklch(0.2 0.03 45);
+  --warm-gray: oklch(0.36 0.025 50);
+  --surface: oklch(0.965 0.01 72);
+  --background: oklch(0.985 0.008 78);
+  --foreground: oklch(0.2 0.03 45);
+  --card: oklch(0.995 0.005 80);
+  --card-foreground: oklch(0.22 0.028 45);
+  --border: oklch(0.86 0.02 70);
+  --input: oklch(0.86 0.02 70);
+  --muted: oklch(0.94 0.01 75);
+  --muted-foreground: oklch(0.4 0.025 50);
+  --primary: oklch(0.52 0.19 28);
+  --primary-foreground: oklch(0.99 0.005 80);
+  --secondary: oklch(0.94 0.012 72);
+  --secondary-foreground: oklch(0.22 0.028 45);
+  --ring: oklch(0.52 0.19 28);
+
+  background-color: var(--background);
+  background-image:
+    radial-gradient(90% 55% at 0% -5%, oklch(0.9 0.045 45 / 0.55), transparent 58%),
+    radial-gradient(75% 45% at 100% 0%, oklch(0.92 0.04 25 / 0.4), transparent 52%),
+    radial-gradient(70% 50% at 70% 100%, oklch(0.93 0.035 85 / 0.35), transparent 55%),
+    linear-gradient(180deg, oklch(0.992 0.006 80) 0%, oklch(0.978 0.012 72) 100%);
+}
+
+.landing .glass {
+  background: color-mix(in oklab, white 78%, transparent);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid color-mix(in oklab, var(--coral) 14%, transparent);
+}
+
+.landing .eyebrow {
+  color: var(--coral);
+  letter-spacing: 0.18em;
+  font-weight: 600;
+}
+
+.landing .gold-text {
+  color: var(--coral);
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  font-style: normal;
+}
+
+.landing .card-interactive:hover {
+  border-color: color-mix(in oklab, var(--coral) 32%, transparent);
+  box-shadow: 0 18px 44px -16px oklch(0.55 0.12 40 / 0.22);
+}
+
+.landing ::selection {
+  background: color-mix(in oklab, var(--coral) 35%, transparent);
+  color: oklch(0.22 0.03 45);
+}
+
+@utility hairline {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--gold) 55%, transparent),
+    transparent
+  );
+  height: 1px;
+  width: 100%;
+}
+
+@utility glass {
+  background: color-mix(in oklab, var(--surface) 60%, transparent);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid color-mix(in oklab, var(--gold) 18%, transparent);
+}
+
+@utility gold-text {
+  background: linear-gradient(180deg, oklch(0.86 0.08 80) 0%, var(--gold) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+@utility gold-underline {
+  position: relative;
+}
+@utility gold-underline {
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 1px;
+    background: var(--gold);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  &:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@utility animate-reveal {
+  animation: reveal-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+@utility section-pad {
+  padding-top: 3.25rem;
+  padding-bottom: 3.25rem;
+  @media (width >= 640px) {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+  @media (width >= 1024px) {
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+  }
+}
+
+@utility section-y {
+  padding-top: 3.25rem;
+  padding-bottom: 3.25rem;
+  @media (width >= 640px) {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+  @media (width >= 1024px) {
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+  }
+}
+
+@utility card-interactive {
+  transition:
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.4s ease,
+    box-shadow 0.4s ease;
+  &:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in oklab, var(--gold) 38%, transparent);
+    box-shadow: 0 16px 40px -14px oklch(0.78 0.15 78 / 0.22);
+  }
+}
+
+@keyframes stat-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.78 0.15 78 / 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 1px oklch(0.78 0.15 78 / 0.12);
+  }
+}
+
+@utility stat-pulse {
+  animation: stat-pulse 3.5s ease-in-out infinite;
+}
+
+@utility safe-px {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}

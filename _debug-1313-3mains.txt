@@ -1,0 +1,33 @@
+valid true
+message 
+reason недобор белка (-1.9 г); недобор жиров (-4.4 г); избыток углеводов (+7.4 г)
+checked 141
+elapsed 14919
+timed_out false
+best slugs undefined
+best score undefined
+
+LIVE DAY kcal=1312.7800 P=111.8725 F=57.0170 C=90.0639 valid=true
+
+== main1 Говядина с баклажанами и помидорами slug=beef-eggplant-tomato
+   meal 368.9500 / P35.1938 F19.4838 C11.7918
+   - Говядина (beef-lean-raw) 127g [120-200]  P33.0200 F19.0500 C0.0000
+   - Баклажаны (eggplant) 141g [100-200]  P1.3818 F0.2538 C8.2908
+   - Помидоры (tomato) 90g [80-150]  P0.7920 F0.1800 C3.5010
+   - Оливковое масло (olive-oil) 0g [0-15] MIN  P0.0000 F0.0000 C0.0000
+
+== main2 Омлет с помидорами, перцем и сыром slug=omelette-tomato-pepper-cheese
+   meal 427.2700 / P25.2231 F29.9332 C13.6948
+   - Яйца (egg-whole) 182g [100-200]  P22.8592 F17.3082 C1.3104
+   - Помидоры (tomato) 137g [80-150]  P1.2056 F0.2740 C5.3293
+   - Перец (bell-pepper) 117g [60-120]  P1.1583 F0.3510 C7.0551
+   - Оливковое масло (olive-oil) 12g [0-15]  P0.0000 F12.0000 C0.0000
+
+== main3 Курица с гречкой и овощным салатом slug=chicken-buckwheat-salad
+   meal 516.5600 / P51.4556 F7.6000 C64.5773
+   - Курица (chicken-breast-raw) 175g [120-280]  P39.3750 F4.5850 C0.0000
+   - Гречка (buckwheat-dry) 80g [50-140]  P10.6000 F2.7200 C57.2000
+   - Огурцы (cucumber) 110g [80-200]  P0.7150 F0.1210 C3.9930
+   - Помидоры (tomato) 87g [80-150]  P0.7656 F0.1740 C3.3843
+   - Оливковое масло (olive-oil) 0g [0-15] MIN  P0.0000 F0.0000 C0.0000
+priorities {"proteinFocused":true,"lowCarb":true,"strictHighProtein":true}
