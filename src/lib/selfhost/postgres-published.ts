@@ -4,6 +4,7 @@ import type { ClientCourse } from "@/lib/client-courses/repo";
 import {
   applyMediaOverlayToExercises,
   bindingToVideo,
+  mediaExerciseIdsFromBindings,
   overlayVideosForSnapshot,
   type ExerciseMediaBinding,
   type SnapshotExerciseMediaBinding,
@@ -148,19 +149,11 @@ export async function toPublishedTrainingView(
 ): Promise<PublishedTrainingView | null> {
   if (!record) return null;
   const snapshot = record.snapshot;
-  const exerciseIds = [
-    ...new Set(
-      snapshot.days.flatMap((day) =>
-        [...day.warmup, ...day.exercises, ...day.cooldown]
-          .map((s) => s.exercise_id || s.exercise?.id)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    ),
-  ];
-  const [byExerciseId, snapshotBindings] = await Promise.all([
-    loadMediaBindings(db, exerciseIds),
-    loadSnapshotMediaBindings(db, record.version.id),
-  ]);
+  const snapshotBindings = await loadSnapshotMediaBindings(db, record.version.id);
+  const byExerciseId = await loadMediaBindings(
+    db,
+    mediaExerciseIdsFromBindings(snapshot, snapshotBindings),
+  );
   const overlay = overlayVideosForSnapshot({ snapshot, byExerciseId, snapshotBindings });
   const exercises: Exercise[] = applyMediaOverlayToExercises(
     snapshot,

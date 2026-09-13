@@ -33,6 +33,7 @@ import {
   toPublishedTrainingView,
   videoOverlayFromBindings,
 } from "@/lib/selfhost/postgres-published";
+import { mediaExerciseIdsFromBindings } from "@/lib/selfhost/media";
 
 function json(data: unknown, status = 200, extraHeaders?: Record<string, string>): Response {
   return new Response(JSON.stringify(data), {
@@ -238,19 +239,14 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       if (!record || record.version.status !== "published") {
         return errorJson("Опубликованная программа ещё не выдана", 404);
       }
-      const exerciseIds = [
-        ...new Set(
-          record.snapshot.days.flatMap((day) =>
-            [...day.warmup, ...day.exercises, ...day.cooldown]
-              .map((s) => s.exercise_id || s.exercise?.id)
-              .filter((id): id is string => Boolean(id)),
-          ),
-        ),
-      ];
+      const snapshotBindings = await loadSnapshotMediaBindings(getPostgresPool(), record.version.id);
       const overlay = videoOverlayFromBindings(
         record.snapshot,
-        await loadMediaBindings(getPostgresPool(), exerciseIds),
-        await loadSnapshotMediaBindings(getPostgresPool(), record.version.id),
+        await loadMediaBindings(
+          getPostgresPool(),
+          mediaExerciseIdsFromBindings(record.snapshot, snapshotBindings),
+        ),
+        snapshotBindings,
       );
       const issuedAt = record.version.published_at?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
       const buffer = await buildTrainingPdf(record.snapshot, { ...meta, issuedAt }, overlay);

@@ -1,7 +1,7 @@
 import process from "node:process";
-import { loadSelfhostEnvFiles } from "../src/lib/selfhost/load-env";
-import { closePostgresPool, getPostgresPool } from "../src/lib/selfhost/db";
-import { hashPasswordArgon2id } from "../src/lib/selfhost/passwords";
+import { loadSelfhostEnvFiles } from "../../src/lib/selfhost/load-env";
+import { closePostgresPool, getPostgresPool } from "../../src/lib/selfhost/db";
+import { hashPasswordArgon2id } from "../../src/lib/selfhost/passwords";
 
 loadSelfhostEnvFiles();
 

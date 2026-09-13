@@ -1,7 +1,7 @@
-import { loadSelfhostEnvFiles } from "../src/lib/selfhost/load-env";
-import { applyMigrations } from "../src/lib/selfhost/migrate";
-import { closePostgresPool, getPostgresPool } from "../src/lib/selfhost/db";
-import { isProduction } from "../src/lib/selfhost/config";
+import { loadSelfhostEnvFiles } from "../../src/lib/selfhost/load-env";
+import { applyMigrations } from "../../src/lib/selfhost/migrate";
+import { closePostgresPool, getPostgresPool } from "../../src/lib/selfhost/db";
+import { isProduction } from "../../src/lib/selfhost/config";
 
 loadSelfhostEnvFiles();
 

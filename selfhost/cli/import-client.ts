@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import { loadSelfhostEnvFiles } from "../src/lib/selfhost/load-env";
-import { closePostgresPool, getPostgresPool } from "../src/lib/selfhost/db";
+import { loadSelfhostEnvFiles } from "../../src/lib/selfhost/load-env";
+import { closePostgresPool, getPostgresPool } from "../../src/lib/selfhost/db";
 import {
   importClients,
   printImportReport,
   type ImportRunReport,
-} from "../src/lib/selfhost/import-client";
+} from "../../src/lib/selfhost/import-client";
 
 loadSelfhostEnvFiles();
 

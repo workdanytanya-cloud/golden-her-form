@@ -702,6 +702,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
        WHERE client_id = $2 AND kind = 'training' AND course_id = $3`,
       [legacyId, CLIENT_A, COURSE_A1],
     );
+    try {
     const jar = new CookieJar();
     await req("/api/selfhost/csrf", { jar });
     await req("/api/selfhost/login", {
@@ -723,12 +724,13 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     expect(afterBind.training.exercises[0].video.url).toContain("youtube.com");
     const hash = await pool.query("SELECT content_hash FROM training_program_versions WHERE id = $1", [legacyId]);
     expect(hash.rows[0].content_hash).toBe("hash-legacy");
-
+    } finally {
     await pool.query(
       `UPDATE client_program_assignments SET active_version_id = $1
        WHERE client_id = $2 AND kind = 'training' AND course_id = $3`,
       [TR_A, CLIENT_A, COURSE_A1],
     );
+    }
   });
 
   it("строит PDF питания и тренировок из published snapshot, без PII, с кликабельной ссылкой", async () => {
@@ -741,7 +743,14 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     const extra = withLink.filter((line) => !without.includes(line));
     expect(extra.join("\n")).toMatch(/Видео:/);
     expect(extra.join("\n")).toContain("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-    expect(without.filter((line) => !withLink.includes(line))).toHaveLength(0);
+    const programOnly = (lines: string[]) =>
+      lines.filter(
+        (line) =>
+          !line.includes("Видео:") &&
+          !line.includes("Видео недоступно") &&
+          !line.includes("https://"),
+      );
+    expect(programOnly(withLink)).toEqual(programOnly(without));
 
     const nutPdf = await buildNutritionPdf(nutritionSnapshot(), meta);
     const trainPdf = await buildTrainingPdf(snap, meta, overlay);

@@ -123,6 +123,25 @@ export function resolveDisplayVideo(params: {
   return null;
 }
 
+export function snapshotExerciseIds(snapshot: TrainingSnapshot): string[] {
+  const ids = new Set<string>();
+  for (const ref of listSnapshotExercises(snapshot)) {
+    if (ref.exerciseId) ids.add(ref.exerciseId);
+  }
+  return [...ids];
+}
+
+export function mediaExerciseIdsFromBindings(
+  snapshot: TrainingSnapshot,
+  snapshotBindings: SnapshotExerciseMediaBinding[],
+): string[] {
+  const ids = new Set(snapshotExerciseIds(snapshot));
+  for (const row of snapshotBindings) {
+    if (row.confirmed_by_trainer && isUuid(row.exercise_id)) ids.add(row.exercise_id);
+  }
+  return [...ids];
+}
+
 export function overlayVideosForSnapshot(params: {
   snapshot: TrainingSnapshot;
   byExerciseId: Map<string, ExerciseMediaBinding>;
