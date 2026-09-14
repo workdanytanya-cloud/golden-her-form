@@ -26,11 +26,13 @@ import {
 import {
   assertCsrf,
   assertLoginRateLimit,
+  clearLoginRateLimit,
   clearSessionCookieHeader,
   csrfCookieHeader,
   loadSession,
   loginWithPassword,
   readSessionToken,
+  recordFailedLoginAttempt,
   revokeSessionByToken,
   sessionCookieHeader,
   type LocalSession,
@@ -277,7 +279,15 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       const body = await readJson(request);
       const email = String(body.email ?? "");
       const password = String(body.password ?? "");
-      const result = await loginWithPassword(getPostgresPool(), email, password);
+      let result: Awaited<ReturnType<typeof loginWithPassword>>;
+      try {
+        result = await loginWithPassword(getPostgresPool(), email, password);
+      } catch (error) {
+        const status = (error as { statusCode?: number }).statusCode;
+        if (status === 401) recordFailedLoginAttempt(request);
+        throw error;
+      }
+      clearLoginRateLimit(request);
       const csrf = issueCsrf();
       const headers = new Headers({ "content-type": "application/json; charset=utf-8" });
       headers.append("set-cookie", sessionCookieHeader(result.token));
@@ -303,7 +313,15 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       assertLoginRateLimit(request);
       const body = await readJson(request);
       const parsed = signupPromoSchema.parse(body);
-      const result = await signupOrLoginWithPromoPg(getPostgresPool(), parsed);
+      let result: Awaited<ReturnType<typeof signupOrLoginWithPromoPg>>;
+      try {
+        result = await signupOrLoginWithPromoPg(getPostgresPool(), parsed);
+      } catch (error) {
+        const status = (error as { statusCode?: number }).statusCode;
+        if (status === 401) recordFailedLoginAttempt(request);
+        throw error;
+      }
+      clearLoginRateLimit(request);
       const csrf = issueCsrf();
       const headers = new Headers({ "content-type": "application/json; charset=utf-8" });
       headers.append("set-cookie", sessionCookieHeader(result.token));

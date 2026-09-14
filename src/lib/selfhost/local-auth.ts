@@ -33,7 +33,20 @@ function clientKey(request: Request): string {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
 }
 
+/** Block only after too many *failed* auth attempts in the window. */
 export function assertLoginRateLimit(request: Request): void {
+  const key = clientKey(request);
+  const now = Date.now();
+  const current = loginAttempts.get(key);
+  if (current && current.resetAt >= now && current.count >= LOGIN_MAX) {
+    throw Object.assign(new Error("Слишком много попыток входа. Подождите несколько минут."), {
+      statusCode: 429,
+    });
+  }
+}
+
+/** Count a failed login/signup-auth attempt toward the rate limit. */
+export function recordFailedLoginAttempt(request: Request): void {
   const key = clientKey(request);
   const now = Date.now();
   const current = loginAttempts.get(key);
@@ -42,11 +55,11 @@ export function assertLoginRateLimit(request: Request): void {
     return;
   }
   current.count += 1;
-  if (current.count > LOGIN_MAX) {
-    throw Object.assign(new Error("Слишком много попыток входа. Подождите несколько минут."), {
-      statusCode: 429,
-    });
-  }
+}
+
+/** Successful auth clears the failure window for this client. */
+export function clearLoginRateLimit(request: Request): void {
+  loginAttempts.delete(clientKey(request));
 }
 
 function parseCookies(request: Request): Record<string, string> {

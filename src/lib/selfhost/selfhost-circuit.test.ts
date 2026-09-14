@@ -3307,9 +3307,13 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     }
     expect(limited).toBeGreaterThan(0);
 
-    // Restore client-a password for later tests if any still expect Passw0rd!
+    // Restore passwords for later tests that still expect Passw0rd!
+    const restoredHash = await hashPasswordArgon2id("Passw0rd!");
     await pool.query(`UPDATE users SET password_hash = $1 WHERE email = 'client-a@example.test'`, [
-      await hashPasswordArgon2id("Passw0rd!"),
+      restoredHash,
+    ]);
+    await pool.query(`UPDATE users SET password_hash = $1 WHERE email = 'client-b@example.test'`, [
+      restoredHash,
     ]);
   });
 
@@ -3433,6 +3437,12 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
 
   it("продление курса: draft без activate, idempotency, права и неизменность published", async () => {
     await ensureAdminUser(pool);
+    // Earlier tests may archive COURSE_A1 when activating another course (one-active).
+    await pool.query(
+      `UPDATE client_courses SET status = 'archived' WHERE client_id = $1 AND id <> $2`,
+      [CLIENT_A, COURSE_A1],
+    );
+    await pool.query(`UPDATE client_courses SET status = 'active' WHERE id = $1`, [COURSE_A1]);
     const EX_RENEW = "88888888-8888-4888-8888-8888888888aa";
     await pool.query(
       `INSERT INTO exercises (id, slug, name, category, difficulty, is_active)
