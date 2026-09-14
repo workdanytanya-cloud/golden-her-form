@@ -253,6 +253,7 @@ CREATE TABLE IF NOT EXISTS public.client_notifications (
   type text NOT NULL,
   message text NOT NULL,
   link text,
+  is_read boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
 );
 
@@ -262,5 +263,6 @@ CREATE TABLE IF NOT EXISTS public.admin_notifications (
   client_id uuid REFERENCES public.users(id) ON DELETE CASCADE,
   message text NOT NULL,
   link text,
+  is_read boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
 );

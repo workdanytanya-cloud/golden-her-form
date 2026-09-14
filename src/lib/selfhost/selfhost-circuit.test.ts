@@ -280,6 +280,154 @@ class CookieJar {
   }
 }
 
+/** Базовый сид клиентов/программ — в beforeAll, чтобы фильтрованный прогон не ломался на 401 от пустой БД. */
+async function buildBaseClientsPayload() {
+  const nut = nutritionSnapshot();
+  const trainA = trainingSnapshot();
+  const trainB = trainingSnapshot({ name: "Программа B" });
+  return {
+    clients: [
+      {
+        user: {
+          id: CLIENT_A,
+          email: "client-a@example.test",
+          password_hash: await bcrypt.hash("Passw0rd!", 10),
+        },
+        roles: ["client"],
+        profile: { full_name: "Клиент А" },
+        access: { status: "active", unlock_source: "promo" },
+        courses: [
+          {
+            id: COURSE_A1,
+            title: "Курс 1",
+            start_date: "2026-01-01",
+            end_date: "2026-01-28",
+            status: "active",
+          },
+          {
+            id: COURSE_A2,
+            title: "Курс 2",
+            start_date: "2026-02-01",
+            end_date: "2026-02-28",
+            status: "completed",
+          },
+        ],
+        nutrition_versions: [
+          {
+            id: NUT_A,
+            client_id: CLIENT_A,
+            course_id: COURSE_A1,
+            version: 1,
+            status: "published",
+            snapshot: nut,
+            content_hash: "hash-nut-a1",
+            published_at: "2026-01-02T00:00:00Z",
+          },
+          {
+            id: NUT_A2,
+            client_id: CLIENT_A,
+            course_id: COURSE_A2,
+            version: 2,
+            status: "published",
+            snapshot: nut,
+            content_hash: "hash-nut-a2",
+            published_at: "2026-02-02T00:00:00Z",
+          },
+        ],
+        training_versions: [
+          {
+            id: TR_A,
+            client_id: CLIENT_A,
+            course_id: COURSE_A1,
+            version: 1,
+            status: "published",
+            snapshot: trainA,
+            content_hash: "hash-tr-a",
+            published_at: "2026-01-02T00:00:00Z",
+          },
+        ],
+        assignments: [
+          {
+            id: ASSIGN_N_A,
+            client_id: CLIENT_A,
+            kind: "nutrition",
+            course_id: COURSE_A1,
+            active_version_id: NUT_A,
+          },
+          {
+            client_id: CLIENT_A,
+            kind: "nutrition",
+            course_id: COURSE_A2,
+            active_version_id: NUT_A2,
+          },
+          {
+            id: ASSIGN_T_A,
+            client_id: CLIENT_A,
+            kind: "training",
+            course_id: COURSE_A1,
+            active_version_id: TR_A,
+          },
+        ],
+      },
+      {
+        user: {
+          id: CLIENT_B,
+          email: "client-b@example.test",
+          password_hash: await hashPasswordArgon2id("Passw0rd!"),
+        },
+        roles: ["client"],
+        profile: { full_name: "Клиент B" },
+        access: { status: "active" },
+        courses: [
+          {
+            id: COURSE_B1,
+            title: "Курс B",
+            start_date: "2026-03-01",
+            end_date: "2026-03-28",
+            status: "active",
+          },
+        ],
+        training_versions: [
+          {
+            id: TR_B,
+            client_id: CLIENT_B,
+            course_id: COURSE_B1,
+            version: 1,
+            status: "published",
+            snapshot: trainB,
+            content_hash: "hash-tr-b",
+            published_at: "2026-03-02T00:00:00Z",
+          },
+        ],
+        assignments: [
+          {
+            client_id: CLIENT_B,
+            kind: "training",
+            course_id: COURSE_B1,
+            active_version_id: TR_B,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+async function ensureAdminUser(pool: pg.Pool) {
+  await pool.query(
+    `INSERT INTO users (id, email, password_hash) VALUES ($1,$2,$3)
+     ON CONFLICT (id) DO NOTHING`,
+    [ADMIN_ID, "trainer-admin@example.test", await hashPasswordArgon2id("Passw0rd!")],
+  );
+  await pool.query(
+    `INSERT INTO user_roles (user_id, role) VALUES ($1,'admin') ON CONFLICT DO NOTHING`,
+    [ADMIN_ID],
+  );
+  await pool.query(
+    `INSERT INTO client_access (user_id, status) VALUES ($1,'active') ON CONFLICT DO NOTHING`,
+    [ADMIN_ID],
+  );
+}
+
 async function req(path: string, init: RequestInit & { jar?: CookieJar } = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.jar) {
@@ -411,6 +559,10 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     const second = await applyMigrations(pool);
     expect(second.applied).toEqual([]);
     expect(second.skipped.length).toBe(first.applied.length);
+    // Сид до любых it(): иначе фильтр -t пропускает импорт-тест и логин даёт 401 вместо 403/200.
+    const seeded = await importClients(() => pool.connect(), await buildBaseClientsPayload());
+    expect(seeded.clients).toHaveLength(2);
+    await ensureAdminUser(pool);
     fetchCalls = [];
     const original = globalThis.fetch;
     globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -438,143 +590,13 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
   });
 
   it("импортирует нескольких клиентов изолированно и повторно", async () => {
-    const nut = nutritionSnapshot();
-    const trainA = trainingSnapshot();
-    const trainB = trainingSnapshot({ name: "Программа B" });
-    const payload = {
-      clients: [
-        {
-          user: {
-            id: CLIENT_A,
-            email: "client-a@example.test",
-            password_hash: await bcrypt.hash("Passw0rd!", 10),
-          },
-          roles: ["client"],
-          profile: { full_name: "Клиент А" },
-          access: { status: "active", unlock_source: "promo" },
-          courses: [
-            {
-              id: COURSE_A1,
-              title: "Курс 1",
-              start_date: "2026-01-01",
-              end_date: "2026-01-28",
-              status: "active",
-            },
-            {
-              id: COURSE_A2,
-              title: "Курс 2",
-              start_date: "2026-02-01",
-              end_date: "2026-02-28",
-              status: "completed",
-            },
-          ],
-          nutrition_versions: [
-            {
-              id: NUT_A,
-              client_id: CLIENT_A,
-              course_id: COURSE_A1,
-              version: 1,
-              status: "published",
-              snapshot: nut,
-              content_hash: "hash-nut-a1",
-              published_at: "2026-01-02T00:00:00Z",
-            },
-            {
-              id: NUT_A2,
-              client_id: CLIENT_A,
-              course_id: COURSE_A2,
-              version: 2,
-              status: "published",
-              snapshot: nut,
-              content_hash: "hash-nut-a2",
-              published_at: "2026-02-02T00:00:00Z",
-            },
-          ],
-          training_versions: [
-            {
-              id: TR_A,
-              client_id: CLIENT_A,
-              course_id: COURSE_A1,
-              version: 1,
-              status: "published",
-              snapshot: trainA,
-              content_hash: "hash-tr-a",
-              published_at: "2026-01-02T00:00:00Z",
-            },
-          ],
-          assignments: [
-            {
-              id: ASSIGN_N_A,
-              client_id: CLIENT_A,
-              kind: "nutrition",
-              course_id: COURSE_A1,
-              active_version_id: NUT_A,
-            },
-            {
-              client_id: CLIENT_A,
-              kind: "nutrition",
-              course_id: COURSE_A2,
-              active_version_id: NUT_A2,
-            },
-            {
-              id: ASSIGN_T_A,
-              client_id: CLIENT_A,
-              kind: "training",
-              course_id: COURSE_A1,
-              active_version_id: TR_A,
-            },
-          ],
-        },
-        {
-          user: {
-            id: CLIENT_B,
-            email: "client-b@example.test",
-            password_hash: await hashPasswordArgon2id("Passw0rd!"),
-          },
-          roles: ["client"],
-          profile: { full_name: "Клиент B" },
-          access: { status: "active" },
-          courses: [
-            {
-              id: COURSE_B1,
-              title: "Курс B",
-              start_date: "2026-03-01",
-              end_date: "2026-03-28",
-              status: "active",
-            },
-          ],
-          training_versions: [
-            {
-              id: TR_B,
-              client_id: CLIENT_B,
-              course_id: COURSE_B1,
-              version: 1,
-              status: "published",
-              snapshot: trainB,
-              content_hash: "hash-tr-b",
-              published_at: "2026-03-02T00:00:00Z",
-            },
-          ],
-          assignments: [
-            {
-              client_id: CLIENT_B,
-              kind: "training",
-              course_id: COURSE_B1,
-              active_version_id: TR_B,
-            },
-          ],
-        },
-      ],
-    };
-
-    const first = await importClients(() => pool.connect(), payload);
-    expect(first.clients).toHaveLength(2);
-    expect(first.clients[0].userId).toBe(CLIENT_A);
-    expect(first.clients[1].userId).toBe(CLIENT_B);
-    expect(first.clients[0].contentHashes).toContain("hash-nut-a1");
-
+    const payload = await buildBaseClientsPayload();
     const again = await importClients(() => pool.connect(), payload);
+    expect(again.clients).toHaveLength(2);
+    expect(again.clients[0].userId).toBe(CLIENT_A);
+    expect(again.clients[1].userId).toBe(CLIENT_B);
     expect(again.clients[0].skippedPublishedSnapshots).toBeGreaterThan(0);
+    expect(again.clients[0].contentHashes).toContain("hash-nut-a1");
 
     const mixed = await pool.query(
       "SELECT client_id FROM training_program_versions WHERE id = $1",
@@ -707,19 +729,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
   });
 
   it("изолирует клиентов и пускает admin ко всем published", async () => {
-    await pool.query(
-      `INSERT INTO users (id, email, password_hash) VALUES ($1,$2,$3)
-       ON CONFLICT (id) DO NOTHING`,
-      [ADMIN_ID, "trainer-admin@example.test", await hashPasswordArgon2id("Passw0rd!")],
-    );
-    await pool.query(
-      `INSERT INTO user_roles (user_id, role) VALUES ($1,'admin') ON CONFLICT DO NOTHING`,
-      [ADMIN_ID],
-    );
-    await pool.query(
-      `INSERT INTO client_access (user_id, status) VALUES ($1,'active') ON CONFLICT DO NOTHING`,
-      [ADMIN_ID],
-    );
+    await ensureAdminUser(pool);
 
     const clientJar = new CookieJar();
     await req("/api/selfhost/csrf", { jar: clientJar });
@@ -753,6 +763,45 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     const asB = await req(`/api/selfhost/training?clientId=${CLIENT_B}`, { jar: adminJar });
     expect(asA.status).toBe(200);
     expect(asB.status).toBe(200);
+  });
+
+  it("отдаёт dashboard overview из postgres и помечает access_granted через is_read", async () => {
+    const notifId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1";
+    await pool.query(`DELETE FROM client_notifications WHERE user_id = $1`, [CLIENT_A]);
+    await pool.query(
+      `INSERT INTO client_notifications (id, user_id, type, message, link, is_read)
+       VALUES ($1, $2, 'access_granted', 'Доступ открыт', '/dashboard', false)`,
+      [notifId, CLIENT_A],
+    );
+
+    const jar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar });
+    const login = await req("/api/selfhost/login", {
+      method: "POST",
+      jar,
+      body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+    });
+    expect(login.status).toBe(200);
+
+    const overview = await req("/api/selfhost/dashboard", { jar });
+    expect(overview.status).toBe(200);
+    const body = await overview.json();
+    expect(body.accessNotif?.id).toBe(notifId);
+    expect(body.access?.status).toBe("active");
+
+    const marked = await req("/api/selfhost/notifications/read", {
+      method: "POST",
+      jar,
+      body: JSON.stringify({ id: notifId }),
+    });
+    expect(marked.status).toBe(200);
+
+    const after = await req("/api/selfhost/dashboard", { jar });
+    expect((await after.json()).accessNotif).toBeNull();
+    const row = await pool.query(`SELECT is_read FROM client_notifications WHERE id = $1`, [
+      notifId,
+    ]);
+    expect(row.rows[0].is_read).toBe(true);
   });
 
   it("закрывает программу при inactive access", async () => {
