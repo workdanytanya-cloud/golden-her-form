@@ -503,6 +503,89 @@ export async function selfhostMarkNotificationRead(id: string, clientId?: string
   await readSelfhostJson(res);
 }
 
+export async function selfhostClientNotifications(clientId?: string | null) {
+  const params = new URLSearchParams();
+  if (clientId) params.set("clientId", clientId);
+  const qs = params.toString();
+  const res = await fetch(`/api/selfhost/notifications${qs ? `?${qs}` : ""}`, {
+    credentials: "include",
+  });
+  return readSelfhostJson(res) as Promise<{
+    items: Array<{
+      id: string;
+      type: string;
+      message: string;
+      link: string | null;
+      is_read: boolean;
+      created_at: string;
+    }>;
+    unreadCount: number;
+  }>;
+}
+
+export async function selfhostMarkAllClientNotificationsRead(clientId?: string | null) {
+  const params = new URLSearchParams();
+  if (clientId) params.set("clientId", clientId);
+  const qs = params.toString();
+  const res = await selfhostFetch(`/api/selfhost/notifications/read-all${qs ? `?${qs}` : ""}`, {
+    method: "POST",
+    body: "{}",
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true; updated: number }>;
+}
+
+export async function selfhostDeleteClientNotification(id: string, clientId?: string | null) {
+  const params = new URLSearchParams();
+  if (clientId) params.set("clientId", clientId);
+  const qs = params.toString();
+  const res = await selfhostFetch(`/api/selfhost/notifications/${encodeURIComponent(id)}${qs ? `?${qs}` : ""}`, {
+    method: "DELETE",
+    body: "{}",
+  });
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminNotifications() {
+  const res = await fetch("/api/selfhost/admin/notifications", { credentials: "include" });
+  return readSelfhostJson(res) as Promise<{
+    items: Array<{
+      id: string;
+      type: string;
+      client_id: string | null;
+      measurement_id: string | null;
+      message: string;
+      link: string | null;
+      is_read: boolean;
+      created_at: string;
+    }>;
+    unreadCount: number;
+  }>;
+}
+
+export async function selfhostAdminMarkNotificationRead(id: string) {
+  const res = await selfhostFetch("/api/selfhost/admin/notifications/read", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminMarkAllNotificationsRead() {
+  const res = await selfhostFetch("/api/selfhost/admin/notifications/read-all", {
+    method: "POST",
+    body: "{}",
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true; updated: number }>;
+}
+
+export async function selfhostAdminDeleteNotification(id: string) {
+  const res = await selfhostFetch(`/api/selfhost/admin/notifications/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    body: "{}",
+  });
+  await readSelfhostJson(res);
+}
+
 export async function selfhostUnmatchedExercises() {
   const res = await fetch("/api/selfhost/admin/unmatched-exercises", { credentials: "include" });
   return readSelfhostJson(res) as Promise<{

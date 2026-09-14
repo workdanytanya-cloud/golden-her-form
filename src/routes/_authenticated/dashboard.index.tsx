@@ -121,15 +121,28 @@ function DashboardOverview() {
   const dismissAccessNotif = async () => {
     if (!accessNotif) return;
     const id = accessNotif.id;
+    const previous = accessNotif;
     setAccessNotif(null);
-    const { usesLocalPostgresCircuit, selfhostMarkNotificationRead } = await import(
-      "@/lib/selfhost/client-api"
-    );
-    if (await usesLocalPostgresCircuit()) {
-      await selfhostMarkNotificationRead(id, effectiveUserId);
-      return;
+    try {
+      const { usesLocalPostgresCircuit, selfhostMarkNotificationRead } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (await usesLocalPostgresCircuit()) {
+        await selfhostMarkNotificationRead(id, effectiveUserId);
+        const { emitSelfhostNotificationsChanged } = await import(
+          "@/lib/selfhost/notifications-sync"
+        );
+        emitSelfhostNotificationsChanged("client");
+        return;
+      }
+      const { error } = await supabase
+        .from("client_notifications")
+        .update({ is_read: true })
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+    } catch {
+      setAccessNotif(previous);
     }
-    await supabase.from("client_notifications").update({ is_read: true }).eq("id", id);
   };
 
 

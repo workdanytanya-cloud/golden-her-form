@@ -3610,6 +3610,169 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     expect(secondBody.course.status).toBe("draft");
   });
 
+  it("уведомления: список, права, read/delete и без дубля при idempotent measurement", async () => {
+    await ensureAdminUser(pool);
+    await pool.query(`DELETE FROM client_notifications WHERE user_id IN ($1,$2)`, [
+      CLIENT_A,
+      CLIENT_B,
+    ]);
+    await pool.query(`DELETE FROM admin_notifications WHERE client_id = $1`, [CLIENT_A]);
+
+    const clientNotif = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
+    const otherNotif = "cccccccc-cccc-4ccc-8ccc-ccccccccccc2";
+    await pool.query(
+      `INSERT INTO client_notifications (id, user_id, type, message, link, is_read)
+       VALUES
+         ($1, $2, 'training_published', 'Тренер обновил программу', '/dashboard/training', false),
+         ($3, $4, 'training_published', 'Чужое', '/dashboard/training', false)`,
+      [clientNotif, CLIENT_A, otherNotif, CLIENT_B],
+    );
+
+    const guest = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: guest });
+    expect((await req("/api/selfhost/notifications", { jar: guest })).status).toBe(401);
+    expect((await req("/api/selfhost/admin/notifications", { jar: guest })).status).toBe(401);
+
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+    });
+
+    expect((await req("/api/selfhost/admin/notifications", { jar: clientJar })).status).toBe(403);
+
+    const list = await req("/api/selfhost/notifications", { jar: clientJar });
+    expect(list.status).toBe(200);
+    const listBody = await list.json();
+    expect(listBody.unreadCount).toBe(1);
+    expect(listBody.items).toHaveLength(1);
+    expect(listBody.items[0].id).toBe(clientNotif);
+
+    expect(
+      (
+        await req("/api/selfhost/notifications/read", {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({ id: otherNotif }),
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await req(`/api/selfhost/notifications/${otherNotif}`, {
+          method: "DELETE",
+          jar: clientJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(404);
+
+    expect(
+      (
+        await req("/api/selfhost/notifications/read", {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({ id: clientNotif }),
+        })
+      ).status,
+    ).toBe(200);
+    const afterMark = await (await req("/api/selfhost/notifications", { jar: clientJar })).json();
+    expect(afterMark.unreadCount).toBe(0);
+    expect(afterMark.items[0].is_read).toBe(true);
+    expect(
+      (
+        await req("/api/selfhost/notifications/read", {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({ id: clientNotif }),
+        })
+      ).status,
+    ).toBe(200);
+
+    expect(
+      (
+        await req(`/api/selfhost/notifications/${clientNotif}`, {
+          method: "DELETE",
+          jar: clientJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(200);
+    const empty = await (await req("/api/selfhost/notifications", { jar: clientJar })).json();
+    expect(empty.items).toHaveLength(0);
+    expect(empty.unreadCount).toBe(0);
+
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+
+    const meas = await req("/api/selfhost/measurements", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({
+        measured_on: "2026-09-20",
+        weight_kg: 70.5,
+        idempotencyKey: "notif-meas-01xxxxxxxx",
+      }),
+    });
+    expect(meas.status).toBe(200);
+    const againMeas = await req("/api/selfhost/measurements", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({
+        measured_on: "2026-09-20",
+        weight_kg: 70.5,
+        idempotencyKey: "notif-meas-01xxxxxxxx",
+      }),
+    });
+    expect(againMeas.status).toBe(200);
+    expect((await againMeas.json()).idempotent).toBe(true);
+
+    const adminList = await req("/api/selfhost/admin/notifications", { jar: adminJar });
+    expect(adminList.status).toBe(200);
+    const adminBody = await adminList.json();
+    const measNotifs = adminBody.items.filter(
+      (n: { type: string; client_id: string }) =>
+        n.type === "nutrition_recommendation" && n.client_id === CLIENT_A,
+    );
+    expect(measNotifs.length).toBe(1);
+
+    const adminId = measNotifs[0].id as string;
+    expect(
+      (
+        await req("/api/selfhost/admin/notifications/read", {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({ id: adminId }),
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await req("/api/selfhost/admin/notifications/read", {
+          method: "POST",
+          jar: adminJar,
+          body: JSON.stringify({ id: adminId }),
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await req(`/api/selfhost/admin/notifications/${adminId}`, {
+          method: "DELETE",
+          jar: adminJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(200);
+  });
+
   it("не обращается к Supabase в local/postgres", () => {
     expect(fetchCalls.some((url) => url.includes("supabase"))).toBe(false);
   });

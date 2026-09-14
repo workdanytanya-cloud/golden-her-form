@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, Check, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import {
+  emitSelfhostNotificationsChanged,
+  SELFHOST_NOTIFICATIONS_EVENT,
+  type SelfhostNotificationsChangedDetail,
+} from "@/lib/selfhost/notifications-sync";
 
 type Notification = {
   id: string;
@@ -32,7 +37,16 @@ export function ClientNotificationsBell() {
   const userId = user?.id;
   const [items, setItems] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const [localMode, setLocalMode] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const lastFetchAt = useRef(0);
+
+  const loadLocal = useCallback(async () => {
+    const { selfhostClientNotifications } = await import("@/lib/selfhost/client-api");
+    const res = await selfhostClientNotifications(userId);
+    setItems(res.items as Notification[]);
+    lastFetchAt.current = Date.now();
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -40,8 +54,18 @@ export function ClientNotificationsBell() {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     void (async () => {
       const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
-      if (await usesLocalPostgresCircuit()) return;
+      if (await usesLocalPostgresCircuit()) {
+        if (!mounted) return;
+        setLocalMode(true);
+        try {
+          await loadLocal();
+        } catch (e) {
+          if (mounted) toast.error(e instanceof Error ? e.message : "Не удалось загрузить уведомления");
+        }
+        return;
+      }
       if (!mounted) return;
+      setLocalMode(false);
       const { data, error } = await supabase
         .from("client_notifications")
         .select("id, type, message, link, is_read, created_at")
@@ -75,7 +99,33 @@ export function ClientNotificationsBell() {
       mounted = false;
       if (channel) supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, loadLocal]);
+
+  useEffect(() => {
+    if (!localMode || !userId) return;
+    const onFocusOrVisible = () => {
+      if (document.visibilityState && document.visibilityState !== "visible") return;
+      if (Date.now() - lastFetchAt.current < 15_000) return;
+      void loadLocal().catch(() => undefined);
+    };
+    const onSync = (ev: Event) => {
+      const detail = (ev as CustomEvent<SelfhostNotificationsChangedDetail>).detail;
+      if (detail?.scope === "client") void loadLocal().catch(() => undefined);
+    };
+    window.addEventListener("focus", onFocusOrVisible);
+    document.addEventListener("visibilitychange", onFocusOrVisible);
+    window.addEventListener(SELFHOST_NOTIFICATIONS_EVENT, onSync);
+    return () => {
+      window.removeEventListener("focus", onFocusOrVisible);
+      document.removeEventListener("visibilitychange", onFocusOrVisible);
+      window.removeEventListener(SELFHOST_NOTIFICATIONS_EVENT, onSync);
+    };
+  }, [localMode, userId, loadLocal]);
+
+  useEffect(() => {
+    if (!open || !localMode) return;
+    void loadLocal().catch(() => undefined);
+  }, [open, localMode, loadLocal]);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -90,17 +140,43 @@ export function ClientNotificationsBell() {
 
   const markAllRead = async () => {
     if (unread === 0 || !userId) return;
-    const ids = items.filter((n) => !n.is_read).map((n) => n.id);
-    setItems((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    await supabase
-      .from("client_notifications")
-      .update({ is_read: true })
-      .in("id", ids);
+    try {
+      if (localMode) {
+        const { selfhostMarkAllClientNotificationsRead } = await import("@/lib/selfhost/client-api");
+        await selfhostMarkAllClientNotificationsRead(userId);
+        setItems((prev) => prev.map((n) => ({ ...n, is_read: true })));
+        emitSelfhostNotificationsChanged("client");
+        return;
+      }
+      const ids = items.filter((n) => !n.is_read).map((n) => n.id);
+      const { error } = await supabase
+        .from("client_notifications")
+        .update({ is_read: true })
+        .in("id", ids);
+      if (error) throw new Error(error.message);
+      setItems((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось обновить");
+    }
   };
 
   const removeOne = async (id: string) => {
-    setItems((prev) => prev.filter((n) => n.id !== id));
-    await supabase.from("client_notifications").delete().eq("id", id);
+    const prev = items;
+    try {
+      if (localMode) {
+        const { selfhostDeleteClientNotification } = await import("@/lib/selfhost/client-api");
+        await selfhostDeleteClientNotification(id, userId);
+        setItems((p) => p.filter((n) => n.id !== id));
+        emitSelfhostNotificationsChanged("client");
+        return;
+      }
+      const { error } = await supabase.from("client_notifications").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      setItems((p) => p.filter((n) => n.id !== id));
+    } catch (e) {
+      setItems(prev);
+      toast.error(e instanceof Error ? e.message : "Не удалось удалить");
+    }
   };
 
   if (!userId) return null;
@@ -161,7 +237,7 @@ export function ClientNotificationsBell() {
                     </div>
                   </div>
                   <button
-                    onClick={() => removeOne(n.id)}
+                    onClick={() => void removeOne(n.id)}
                     className="opacity-0 transition-opacity group-hover:opacity-100"
                     aria-label="Удалить"
                   >

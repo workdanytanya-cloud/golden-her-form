@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, Check, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  emitSelfhostNotificationsChanged,
+  SELFHOST_NOTIFICATIONS_EVENT,
+  type SelfhostNotificationsChangedDetail,
+} from "@/lib/selfhost/notifications-sync";
 
 type Notification = {
   id: string;
@@ -30,25 +35,49 @@ function timeAgo(iso: string) {
 export function NotificationsBell() {
   const [items, setItems] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const [localMode, setLocalMode] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const lastFetchAt = useRef(0);
 
-  const load = async () => {
+  const loadLocal = useCallback(async () => {
+    const { selfhostAdminNotifications } = await import("@/lib/selfhost/client-api");
+    const res = await selfhostAdminNotifications();
+    setItems(
+      (res.items as Notification[]).map((n) => ({
+        ...n,
+        client_id: n.client_id ?? "",
+      })),
+    );
+    lastFetchAt.current = Date.now();
+  }, []);
+
+  const loadSupabase = useCallback(async () => {
     const { data, error } = await supabase
       .from("admin_notifications")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(30);
     if (!error && data) setItems(data as Notification[]);
-  };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
     void (async () => {
       const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
-      if (await usesLocalPostgresCircuit()) return;
+      if (await usesLocalPostgresCircuit()) {
+        if (cancelled) return;
+        setLocalMode(true);
+        try {
+          await loadLocal();
+        } catch (e) {
+          if (!cancelled) toast.error(e instanceof Error ? e.message : "Не удалось загрузить уведомления");
+        }
+        return;
+      }
       if (cancelled) return;
-      await load();
+      setLocalMode(false);
+      await loadSupabase();
       if (cancelled) return;
       const channelName = `admin_notifications_changes_${
         typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -72,7 +101,33 @@ export function NotificationsBell() {
       cancelled = true;
       if (channel) supabase.removeChannel(channel);
     };
-  }, []);
+  }, [loadLocal, loadSupabase]);
+
+  useEffect(() => {
+    if (!localMode) return;
+    const onFocusOrVisible = () => {
+      if (document.visibilityState && document.visibilityState !== "visible") return;
+      if (Date.now() - lastFetchAt.current < 15_000) return;
+      void loadLocal().catch(() => undefined);
+    };
+    const onSync = (ev: Event) => {
+      const detail = (ev as CustomEvent<SelfhostNotificationsChangedDetail>).detail;
+      if (detail?.scope === "admin") void loadLocal().catch(() => undefined);
+    };
+    window.addEventListener("focus", onFocusOrVisible);
+    document.addEventListener("visibilitychange", onFocusOrVisible);
+    window.addEventListener(SELFHOST_NOTIFICATIONS_EVENT, onSync);
+    return () => {
+      window.removeEventListener("focus", onFocusOrVisible);
+      document.removeEventListener("visibilitychange", onFocusOrVisible);
+      window.removeEventListener(SELFHOST_NOTIFICATIONS_EVENT, onSync);
+    };
+  }, [localMode, loadLocal]);
+
+  useEffect(() => {
+    if (!open || !localMode) return;
+    void loadLocal().catch(() => undefined);
+  }, [open, localMode, loadLocal]);
 
   useEffect(() => {
     if (!open) return;
@@ -86,24 +141,64 @@ export function NotificationsBell() {
   const unread = items.filter((i) => !i.is_read).length;
 
   const markAllRead = async () => {
-    const ids = items.filter((i) => !i.is_read).map((i) => i.id);
-    if (ids.length === 0) return;
-    const { error } = await supabase
-      .from("admin_notifications")
-      .update({ is_read: true })
-      .in("id", ids);
-    if (error) return toast.error("Не удалось обновить");
-    setItems((prev) => prev.map((i) => ({ ...i, is_read: true })));
+    if (unread === 0) return;
+    try {
+      if (localMode) {
+        const { selfhostAdminMarkAllNotificationsRead } = await import("@/lib/selfhost/client-api");
+        await selfhostAdminMarkAllNotificationsRead();
+        setItems((prev) => prev.map((i) => ({ ...i, is_read: true })));
+        emitSelfhostNotificationsChanged("admin");
+        return;
+      }
+      const ids = items.filter((i) => !i.is_read).map((i) => i.id);
+      const { error } = await supabase
+        .from("admin_notifications")
+        .update({ is_read: true })
+        .in("id", ids);
+      if (error) throw new Error(error.message);
+      setItems((prev) => prev.map((i) => ({ ...i, is_read: true })));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось обновить");
+    }
   };
 
   const markRead = async (id: string) => {
-    await supabase.from("admin_notifications").update({ is_read: true }).eq("id", id);
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, is_read: true } : i)));
+    try {
+      if (localMode) {
+        const { selfhostAdminMarkNotificationRead } = await import("@/lib/selfhost/client-api");
+        await selfhostAdminMarkNotificationRead(id);
+        setItems((prev) => prev.map((i) => (i.id === id ? { ...i, is_read: true } : i)));
+        emitSelfhostNotificationsChanged("admin");
+        return;
+      }
+      const { error } = await supabase
+        .from("admin_notifications")
+        .update({ is_read: true })
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, is_read: true } : i)));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось обновить");
+    }
   };
 
   const remove = async (id: string) => {
-    await supabase.from("admin_notifications").delete().eq("id", id);
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    const prev = items;
+    try {
+      if (localMode) {
+        const { selfhostAdminDeleteNotification } = await import("@/lib/selfhost/client-api");
+        await selfhostAdminDeleteNotification(id);
+        setItems((p) => p.filter((i) => i.id !== id));
+        emitSelfhostNotificationsChanged("admin");
+        return;
+      }
+      const { error } = await supabase.from("admin_notifications").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      setItems((p) => p.filter((i) => i.id !== id));
+    } catch (e) {
+      setItems(prev);
+      toast.error(e instanceof Error ? e.message : "Не удалось удалить");
+    }
   };
 
   return (
@@ -126,7 +221,7 @@ export function NotificationsBell() {
           <div className="flex items-center justify-between border-b border-gold/10 px-4 py-3">
             <p className="font-display text-sm text-ivory">Уведомления</p>
             <button
-              onClick={markAllRead}
+              onClick={() => void markAllRead()}
               disabled={unread === 0}
               className="flex items-center gap-1 text-[11px] uppercase tracking-widest text-gold transition-colors hover:text-ivory disabled:opacity-40"
             >
@@ -152,21 +247,25 @@ export function NotificationsBell() {
                     ].join(" ")}
                   />
                   <div className="min-w-0 flex-1">
-                    <Link
-                      to="/admin/clients/$id"
-                      params={{ id: n.client_id }}
-                      onClick={() => {
-                        markRead(n.id);
-                        setOpen(false);
-                      }}
-                      className="block text-ivory hover:text-gold"
-                    >
-                      {n.message}
-                    </Link>
+                    {n.client_id ? (
+                      <Link
+                        to="/admin/clients/$id"
+                        params={{ id: n.client_id }}
+                        onClick={() => {
+                          void markRead(n.id);
+                          setOpen(false);
+                        }}
+                        className="block text-ivory hover:text-gold"
+                      >
+                        {n.message}
+                      </Link>
+                    ) : (
+                      <p className="text-ivory">{n.message}</p>
+                    )}
                     <p className="mt-1 text-[11px] text-warm-gray">{timeAgo(n.created_at)}</p>
                   </div>
                   <button
-                    onClick={() => remove(n.id)}
+                    onClick={() => void remove(n.id)}
                     className="opacity-0 transition-opacity hover:text-coral group-hover:opacity-100"
                     aria-label="Удалить"
                   >

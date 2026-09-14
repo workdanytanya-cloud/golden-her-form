@@ -14,6 +14,16 @@ import {
 } from "@/lib/selfhost/postgres-exercises";
 import { checkPostgresHealth, getPostgresPool, withTransaction } from "@/lib/selfhost/db";
 import {
+  listAdminNotificationsPg,
+  listClientNotificationsPg,
+  markAllAdminNotificationsReadPg,
+  markAllClientNotificationsReadPg,
+  markAdminNotificationReadPg,
+  markClientNotificationReadPg,
+  deleteAdminNotificationPg,
+  deleteClientNotificationPg,
+} from "@/lib/selfhost/postgres-notifications";
+import {
   assertCsrf,
   assertLoginRateLimit,
   clearSessionCookieHeader,
@@ -560,19 +570,38 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       return json(overview);
     }
 
+    if (url.pathname === "/api/selfhost/notifications" && request.method === "GET") {
+      const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+      const data = await listClientNotificationsPg(getPostgresPool(), clientId);
+      return json(data);
+    }
+
     if (url.pathname === "/api/selfhost/notifications/read" && request.method === "POST") {
       assertCsrf(request);
       const body = await readJson(request);
       const id = String(body.id ?? "");
       if (!id) return errorJson("Не указан id уведомления", 400);
       const clientId = scopedClientId(session, url.searchParams.get("clientId"));
-      await getPostgresPool().query(
-        `UPDATE public.client_notifications
-            SET is_read = true
-          WHERE id = $1 AND user_id = $2`,
-        [id, clientId],
-      );
+      const result = await markClientNotificationReadPg(getPostgresPool(), clientId, id);
+      if (!result.found) return errorJson("Уведомление не найдено", 404);
       return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/selfhost/notifications/read-all" && request.method === "POST") {
+      assertCsrf(request);
+      const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+      const result = await markAllClientNotificationsReadPg(getPostgresPool(), clientId);
+      return json(result);
+    }
+
+    {
+      const delMatch = url.pathname.match(/^\/api\/selfhost\/notifications\/([^/]+)$/);
+      if (delMatch && request.method === "DELETE") {
+        assertCsrf(request);
+        const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+        await deleteClientNotificationPg(getPostgresPool(), clientId, delMatch[1]);
+        return json({ ok: true });
+      }
     }
 
     if (url.pathname === "/api/selfhost/courses" && request.method === "GET") {
@@ -974,6 +1003,40 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       requireAdmin(session);
       const items = await listLeadsPg(getPostgresPool());
       return json({ items });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/notifications" && request.method === "GET") {
+      requireAdmin(session);
+      const data = await listAdminNotificationsPg(getPostgresPool());
+      return json(data);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/notifications/read" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = await readJson(request);
+      const id = typeof body.id === "string" ? body.id : "";
+      if (!id) return errorJson("Не указан id уведомления", 400);
+      const result = await markAdminNotificationReadPg(getPostgresPool(), id);
+      if (!result.found) return errorJson("Уведомление не найдено", 404);
+      return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/notifications/read-all" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const result = await markAllAdminNotificationsReadPg(getPostgresPool());
+      return json(result);
+    }
+
+    {
+      const delAdminNotif = url.pathname.match(/^\/api\/selfhost\/admin\/notifications\/([^/]+)$/);
+      if (delAdminNotif && request.method === "DELETE") {
+        requireAdmin(session);
+        assertCsrf(request);
+        await deleteAdminNotificationPg(getPostgresPool(), delAdminNotif[1]);
+        return json({ ok: true });
+      }
     }
 
     {
