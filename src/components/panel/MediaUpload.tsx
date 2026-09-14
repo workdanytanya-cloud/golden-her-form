@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { Upload, X, Loader2, Download, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getVideoEmbedUrl, isDirectVideoFile } from "@/lib/video-embed";
 
@@ -13,6 +12,7 @@ export function MediaUpload({
   accept,
   folder,
   preview = "image",
+  disableStorage = false,
 }: {
   label: string;
   value: string | null;
@@ -20,12 +20,15 @@ export function MediaUpload({
   accept: string;
   folder: string;
   preview?: "image" | "video";
+  disableStorage?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
 
   const handle = async (file: File) => {
+    if (disableStorage) return;
     setBusy(true);
+    const { supabase } = await import("@/integrations/supabase/client");
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
     const path = `${folder}/${crypto.randomUUID()}.${ext}`;
     const { error: upErr } = await supabase.storage
@@ -35,9 +38,7 @@ export function MediaUpload({
       setBusy(false);
       return toast.error(upErr.message);
     }
-    const { data, error } = await supabase.storage
-      .from("media")
-      .createSignedUrl(path, TEN_YEARS);
+    const { data, error } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
     setBusy(false);
     if (error || !data) return toast.error(error?.message ?? "Не удалось получить ссылку");
     onChange(data.signedUrl);
@@ -50,6 +51,16 @@ export function MediaUpload({
   return (
     <div className="space-y-2">
       <div className="text-[11px] uppercase tracking-widest text-warm-gray">{label}</div>
+      {disableStorage && preview === "video" ? (
+        <p className="rounded-xl border border-gold/20 bg-background/40 px-4 py-4 text-sm text-warm-gray">
+          Добавьте ссылку YouTube или Rutube
+        </p>
+      ) : null}
+      {disableStorage && preview !== "video" ? (
+        <p className="text-xs text-warm-gray">
+          Загрузка файлов в облако отключена. GIF можно оставить пустым (legacy).
+        </p>
+      ) : null}
       {value ? (
         <div className="relative overflow-hidden rounded-xl border border-gold/20 bg-background/40">
           {preview === "video" ? (
@@ -77,7 +88,6 @@ export function MediaUpload({
               </div>
             )
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={value} alt="" className="max-h-56 w-full object-cover" />
           )}
           <button
@@ -102,7 +112,7 @@ export function MediaUpload({
             </a>
           )}
         </div>
-      ) : (
+      ) : disableStorage ? null : (
         <button
           type="button"
           onClick={() => ref.current?.click()}
@@ -113,28 +123,32 @@ export function MediaUpload({
           {busy ? "Загрузка…" : "Загрузить файл"}
         </button>
       )}
-      <input
-        ref={ref}
-        type="file"
-        accept={accept}
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void handle(f);
-          e.target.value = "";
-        }}
-      />
-      <input
-        type="text"
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value || null)}
-        placeholder={
-          preview === "video"
-            ? "или вставьте ссылку YouTube / Rutube / mp4"
-            : "или вставьте ссылку"
-        }
-        className="w-full rounded-xl border border-gold/20 bg-background/40 px-3 py-2 text-xs text-ivory placeholder:text-warm-gray/60 outline-none focus:border-gold/60"
-      />
+      {disableStorage ? null : (
+        <>
+          <input
+            ref={ref}
+            type="file"
+            accept={accept}
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handle(f);
+              e.target.value = "";
+            }}
+          />
+          <input
+            type="text"
+            value={value ?? ""}
+            onChange={(e) => onChange(e.target.value || null)}
+            placeholder={
+              preview === "video"
+                ? "или вставьте ссылку YouTube / Rutube / mp4"
+                : "или вставьте ссылку"
+            }
+            className="w-full rounded-xl border border-gold/20 bg-background/40 px-3 py-2 text-xs text-ivory placeholder:text-warm-gray/60 outline-none focus:border-gold/60"
+          />
+        </>
+      )}
     </div>
   );
 }

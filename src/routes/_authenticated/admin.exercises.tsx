@@ -1,13 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { MediaUpload } from "@/components/panel/MediaUpload";
 import { ExerciseMedia } from "@/components/panel/ExerciseMedia";
 import { Search, Save, Trash2, Plus, X, Download } from "lucide-react";
 import { CATEGORY_LABEL } from "@/lib/training";
-import { adminUpsertExerciseFn } from "@/lib/exercise.functions";
 import { normalizeExerciseVideo } from "@/lib/exercise-video";
+import type { ExerciseVideoProvider, ExerciseVideoStatus } from "@/lib/exercise-video";
+import {
+  loadRuntimeConfig,
+  selfhostAdminDeleteExerciseMedia,
+  selfhostAdminExercises,
+  selfhostAdminRemoveExercise,
+  selfhostAdminSaveExerciseMedia,
+  selfhostAdminUpsertExercise,
+} from "@/lib/selfhost/client-api";
+import type { AdminExerciseReport, MediaFilter } from "@/lib/selfhost/exercise-admin-types";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/exercises")({
@@ -31,6 +39,11 @@ type Exercise = {
   video_url: string | null;
   video_title: string | null;
   video_fallback_text: string | null;
+  video_provider?: ExerciseVideoProvider | string | null;
+  video_status?: ExerciseVideoStatus | string | null;
+  video_embed_url?: string | null;
+  publishedUseCount?: number;
+  needsManualCheck?: boolean;
 };
 
 const emptyExercise: Omit<Exercise, "id"> = {
@@ -49,6 +62,11 @@ const emptyExercise: Omit<Exercise, "id"> = {
   video_url: null,
   video_title: null,
   video_fallback_text: null,
+  video_provider: "none",
+  video_status: "unchecked",
+  video_embed_url: null,
+  publishedUseCount: 0,
+  needsManualCheck: true,
 };
 
 const CATEGORIES = [
@@ -68,6 +86,25 @@ const DIFFICULTY_LABEL: Record<string, string> = {
   advanced: "Продвинутый",
 };
 const DIFFICULTIES = ["beginner", "intermediate", "advanced"];
+const MEDIA_FILTER_CHIPS: { id: MediaFilter; label: string }[] = [
+  { id: "all", label: "Все" },
+  { id: "ok", label: "Есть рабочая ссылка" },
+  { id: "none", label: "Нет ссылки" },
+  { id: "unchecked", label: "Не проверено" },
+  { id: "unavailable", label: "Недоступно" },
+  { id: "used", label: "Используется в опубликованных программах" },
+];
+const STATUS_LABEL: Record<string, string> = {
+  ok: "рабочая",
+  unchecked: "не проверено",
+  unavailable: "недоступно",
+};
+const PROVIDER_LABEL: Record<string, string> = {
+  youtube: "YouTube",
+  rutube: "Rutube",
+  none: "нет",
+  external: "внешняя",
+};
 
 async function downloadMedia(url: string, slug: string) {
   try {
@@ -87,11 +124,36 @@ async function downloadMedia(url: string, slug: string) {
   }
 }
 
+function matchesMedia(e: Exercise, media: MediaFilter): boolean {
+  const provider = e.video_provider ?? "none";
+  const status = e.video_status ?? (e.video_url ? "ok" : "unchecked");
+  const hasWorking =
+    status === "ok" && (provider === "youtube" || provider === "rutube" || Boolean(e.video_url));
+  switch (media) {
+    case "ok":
+      return hasWorking;
+    case "none":
+      return !e.video_url;
+    case "unchecked":
+      return Boolean(e.video_url) && status === "unchecked";
+    case "unavailable":
+      return status === "unavailable";
+    case "used":
+      return (e.publishedUseCount ?? 0) > 0;
+    default:
+      return true;
+  }
+}
+
 function AdminExercises() {
   const [items, setItems] = useState<Exercise[]>([]);
+  const [report, setReport] = useState<AdminExerciseReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
+  const [media, setMedia] = useState<MediaFilter>("all");
+  const [localCircuit, setLocalCircuit] = useState(false);
+  const [localLinks, setLocalLinks] = useState(false);
   const [editing, setEditing] = useState<
     Exercise | (Omit<Exercise, "id"> & { id?: string }) | null
   >(null);
@@ -99,55 +161,76 @@ function AdminExercises() {
   const load = () => {
     setLoading(true);
     void (async () => {
-      const pageSize = 1000;
-      const all: Exercise[] = [];
-      for (let from = 0; ; from += pageSize) {
-        const { data, error } = await supabase
-          .from("exercises")
-          .select(
-            "id, slug, name, category, difficulty, muscle_groups, equipment, default_sets, default_reps, rest_seconds, tempo, description, gif_url, video_url, video_title, video_fallback_text",
-          )
-          .order("category")
-          .order("name")
-          .range(from, from + pageSize - 1);
-        if (error && /video_title|video_fallback_text|PGRST204|schema cache/i.test(error.message)) {
-          const retry = await supabase
+      try {
+        const runtime = await loadRuntimeConfig();
+        const local = runtime.authBackend === "local" && runtime.dataBackend === "postgres";
+        setLocalCircuit(local);
+        setLocalLinks(local && runtime.mediaBackend === "local-links");
+        if (local) {
+          const result = await selfhostAdminExercises();
+          setItems(result.items);
+          setReport(result.report);
+          setLoading(false);
+          return;
+        }
+        const { supabase } = await import("@/integrations/supabase/client");
+        const pageSize = 1000;
+        const all: Exercise[] = [];
+        for (let from = 0; ; from += pageSize) {
+          const { data, error } = await supabase
             .from("exercises")
             .select(
-              "id, slug, name, category, difficulty, muscle_groups, equipment, default_sets, default_reps, rest_seconds, tempo, description, gif_url, video_url",
+              "id, slug, name, category, difficulty, muscle_groups, equipment, default_sets, default_reps, rest_seconds, tempo, description, gif_url, video_url, video_title, video_fallback_text",
             )
             .order("category")
             .order("name")
             .range(from, from + pageSize - 1);
-          if (retry.error) {
-            toast.error(retry.error.message);
+          if (
+            error &&
+            /video_title|video_fallback_text|PGRST204|schema cache/i.test(error.message)
+          ) {
+            const retry = await supabase
+              .from("exercises")
+              .select(
+                "id, slug, name, category, difficulty, muscle_groups, equipment, default_sets, default_reps, rest_seconds, tempo, description, gif_url, video_url",
+              )
+              .order("category")
+              .order("name")
+              .range(from, from + pageSize - 1);
+            if (retry.error) {
+              toast.error(retry.error.message);
+              break;
+            }
+            all.push(
+              ...((retry.data ?? []) as Exercise[]).map((row) => ({
+                ...row,
+                video_title: row.video_title ?? null,
+                video_fallback_text: row.video_fallback_text ?? null,
+              })),
+            );
+            if (!retry.data || retry.data.length < pageSize) break;
+            continue;
+          }
+          if (error) {
+            toast.error(error.message);
             break;
           }
           all.push(
-            ...((retry.data ?? []) as Exercise[]).map((row) => ({
-              ...row,
-              video_title: row.video_title ?? null,
-              video_fallback_text: row.video_fallback_text ?? null,
+            ...((data ?? []) as Record<string, unknown>[]).map((row) => ({
+              ...(row as unknown as Exercise),
+              video_title: (row.video_title as string | null) ?? null,
+              video_fallback_text: (row.video_fallback_text as string | null) ?? null,
             })),
           );
-          if (!retry.data || retry.data.length < pageSize) break;
-          continue;
+          if (!data || data.length < pageSize) break;
         }
-        if (error) {
-          toast.error(error.message);
-          break;
-        }
-        all.push(
-          ...((data ?? []) as Record<string, unknown>[]).map((row) => ({
-            ...(row as unknown as Exercise),
-            video_title: (row.video_title as string | null) ?? null,
-            video_fallback_text: (row.video_fallback_text as string | null) ?? null,
-          })),
-        );
-        if (!data || data.length < pageSize) break;
+        setItems(all);
+        setReport(null);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Не удалось загрузить упражнения");
+      } finally {
+        setLoading(false);
       }
-      setItems(all);
-      setLoading(false);
     })();
   };
   useEffect(load, []);
@@ -157,12 +240,13 @@ function AdminExercises() {
     return items.filter(
       (e) =>
         (cat === "all" || e.category === cat) &&
+        matchesMedia(e, media) &&
         (!t ||
           e.name.toLowerCase().includes(t) ||
           e.slug.toLowerCase().includes(t) ||
           e.muscle_groups.some((m) => m.toLowerCase().includes(t))),
     );
-  }, [items, q, cat]);
+  }, [items, q, cat, media]);
 
   const save = async () => {
     if (!editing) return;
@@ -184,10 +268,16 @@ function AdminExercises() {
       video_url: editing.video_url,
       video_title: editing.video_title,
       video_fallback_text: editing.video_fallback_text,
+      video_status: editing.video_status ?? null,
       ...("id" in editing && editing.id ? { id: editing.id } : {}),
     };
     try {
-      await adminUpsertExerciseFn({ data: payload });
+      if (localCircuit) {
+        await selfhostAdminUpsertExercise(payload);
+      } else {
+        const { adminUpsertExerciseFn } = await import("@/lib/exercise.functions");
+        await adminUpsertExerciseFn({ data: payload });
+      }
       toast.success("Сохранено");
       setEditing(null);
       load();
@@ -196,13 +286,67 @@ function AdminExercises() {
     }
   };
 
+  const saveVideo = async () => {
+    if (!editing || !("id" in editing) || !editing.id) {
+      return toast.error("Сначала сохраните упражнение");
+    }
+    try {
+      if (localCircuit) {
+        await selfhostAdminSaveExerciseMedia({
+          exercise_id: editing.id,
+          video_url: editing.video_url,
+          video_title: editing.video_title,
+          video_fallback_text: editing.video_fallback_text,
+          video_status: editing.video_status ?? null,
+        });
+      } else {
+        await save();
+        return;
+      }
+      toast.success("Видео сохранено");
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось сохранить видео");
+    }
+  };
+
+  const clearVideo = async () => {
+    if (!editing) return;
+    setEditing({ ...editing, video_url: null, video_embed_url: null, video_provider: "none" });
+    if (localCircuit && "id" in editing && editing.id) {
+      try {
+        await selfhostAdminDeleteExerciseMedia(editing.id);
+        toast.success("Ссылка удалена");
+        load();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Не удалось удалить ссылку");
+      }
+    }
+  };
+
   const remove = async (id: string) => {
     if (!confirm("Удалить упражнение?")) return;
-    const { error } = await supabase.from("exercises").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Удалено");
-    load();
+    try {
+      if (localCircuit) {
+        await selfhostAdminRemoveExercise(id);
+      } else {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { error } = await supabase.from("exercises").delete().eq("id", id);
+        if (error) return toast.error(error.message);
+      }
+      toast.success("Удалено");
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось удалить");
+    }
   };
+
+  const countFor = (id: MediaFilter) => {
+    if (report) return report[id];
+    return items.filter((e) => matchesMedia(e, id)).length;
+  };
+
+  const previewVideo = editing ? normalizeExerciseVideo(editing) : null;
 
   return (
     <div className="space-y-8">
@@ -242,6 +386,26 @@ function AdminExercises() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {MEDIA_FILTER_CHIPS.map((chip) => (
+          <button
+            key={chip.id}
+            type="button"
+            onClick={() => setMedia(chip.id)}
+            className={`rounded-full border px-3 py-1.5 text-[11px] uppercase tracking-widest ${
+              media === chip.id
+                ? "border-gold bg-gold/15 text-gold"
+                : "border-gold/20 text-warm-gray hover:border-gold/50 hover:text-ivory"
+            }`}
+          >
+            {chip.label}
+            <span className="ml-1 text-ivory/70">
+              {chip.id === "all" ? (report?.all ?? items.length) : countFor(chip.id)}
+            </span>
+          </button>
+        ))}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -301,6 +465,12 @@ function AdminExercises() {
                 </div>
                 <div className="text-xs text-warm-gray">
                   {e.default_sets}×{e.default_reps} · отдых {e.rest_seconds}с
+                </div>
+                <div className="text-[11px] text-warm-gray">
+                  {PROVIDER_LABEL[String(e.video_provider ?? "none")] ?? e.video_provider} ·{" "}
+                  {STATUS_LABEL[String(e.video_status ?? "unchecked")] ?? e.video_status} · в
+                  опубликованных: {e.publishedUseCount ?? 0}
+                  {e.needsManualCheck ? " · нужна проверка" : ""}
                 </div>
                 {e.muscle_groups.length > 0 && (
                   <div className="flex flex-wrap gap-1">
@@ -447,46 +617,90 @@ function AdminExercises() {
               accept="image/gif,image/webp,image/jpeg,image/png"
               folder="exercises/gifs"
               preview="image"
+              disableStorage={localLinks}
             />
-            <Field label="Ссылка на видео (YouTube, Rutube или https)" span="md:col-span-2">
-              <div className="flex gap-2">
+            <div className="md:col-span-2 space-y-4 rounded-2xl border border-gold/15 p-4">
+              <div className="text-[11px] uppercase tracking-widest text-gold">
+                Видео упражнения
+              </div>
+              <Field label="Ссылка на видео (YouTube, Rutube или https)">
+                <div className="flex gap-2">
+                  <input
+                    value={editing.video_url ?? ""}
+                    onChange={(e) => setEditing({ ...editing, video_url: e.target.value || null })}
+                    placeholder="https://youtu.be/… или https://rutube.ru/video/…"
+                    className={inp}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void clearVideo()}
+                    className="rounded-xl border border-gold/20 px-3 text-xs uppercase tracking-widest text-warm-gray hover:text-ivory"
+                  >
+                    Удалить ссылку
+                  </button>
+                </div>
+                {editing.video_url ? (
+                  <p className="mt-1 text-[11px] text-warm-gray">
+                    Провайдер после сохранения:{" "}
+                    {normalizeExerciseVideo({ url: editing.video_url }).provider}
+                  </p>
+                ) : null}
+              </Field>
+              <Field label="Название">
                 <input
-                  value={editing.video_url ?? ""}
-                  onChange={(e) => setEditing({ ...editing, video_url: e.target.value || null })}
-                  placeholder="https://youtu.be/… или https://rutube.ru/video/…"
+                  value={editing.video_title ?? ""}
+                  onChange={(e) => setEditing({ ...editing, video_title: e.target.value || null })}
                   className={inp}
                 />
-                <button
-                  type="button"
-                  onClick={() => setEditing({ ...editing, video_url: null })}
-                  className="rounded-xl border border-gold/20 px-3 text-xs uppercase tracking-widest text-warm-gray hover:text-ivory"
+              </Field>
+              <Field label="Fallback-текст">
+                <textarea
+                  value={editing.video_fallback_text ?? ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, video_fallback_text: e.target.value || null })
+                  }
+                  className={`${inp} min-h-[80px]`}
+                />
+              </Field>
+              <Field label="Статус">
+                <select
+                  value={editing.video_status ?? "unchecked"}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      video_status: e.target.value as ExerciseVideoStatus,
+                    })
+                  }
+                  className={inp}
                 >
-                  Удалить
-                </button>
-              </div>
-              {editing.video_url ? (
-                <p className="mt-1 text-[11px] text-warm-gray">
-                  Провайдер после сохранения:{" "}
-                  {normalizeExerciseVideo({ url: editing.video_url }).provider}
+                  <option value="ok">Рабочая ссылка</option>
+                  <option value="unchecked">Не проверено</option>
+                  <option value="unavailable">Недоступно</option>
+                </select>
+              </Field>
+              {previewVideo?.url || editing.gif_url ? (
+                <div className="overflow-hidden rounded-xl border border-gold/20 bg-background/40">
+                  <ExerciseMedia
+                    url={editing.gif_url || editing.video_url}
+                    video={previewVideo ?? undefined}
+                    alt={editing.name}
+                    fallbackText={editing.video_fallback_text}
+                    className="aspect-video w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <p className="text-xs text-warm-gray">
+                  Предпросмотр появится после ссылки. Сохранение упражнения без видео разрешено.
                 </p>
-              ) : null}
-            </Field>
-            <Field label="Название видео">
-              <input
-                value={editing.video_title ?? ""}
-                onChange={(e) => setEditing({ ...editing, video_title: e.target.value || null })}
-                className={inp}
-              />
-            </Field>
-            <Field label="Текст, если видео недоступно" span="md:col-span-2">
-              <textarea
-                value={editing.video_fallback_text ?? ""}
-                onChange={(e) =>
-                  setEditing({ ...editing, video_fallback_text: e.target.value || null })
-                }
-                className={`${inp} min-h-[80px]`}
-              />
-            </Field>
+              )}
+              <button
+                type="button"
+                onClick={() => void saveVideo()}
+                className="rounded-full border border-gold/30 px-4 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
+              >
+                Сохранить
+              </button>
+            </div>
           </div>
           <div className="mt-6 flex justify-end gap-2">
             <button

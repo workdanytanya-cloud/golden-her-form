@@ -5,6 +5,7 @@ import path from "node:path";
 const SELFHOST_KEYS = new Set([
   "AUTH_BACKEND",
   "DATA_BACKEND",
+  "MEDIA_BACKEND",
   "DATABASE_URL",
   "SESSION_COOKIE_SECURE",
 ]);

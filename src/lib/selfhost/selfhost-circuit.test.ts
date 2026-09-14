@@ -184,7 +184,8 @@ class CookieJar {
     return [...this.map.entries()].map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("; ");
   }
   absorb(res: Response) {
-    const cookies = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
+    const cookies =
+      typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
     for (const cookie of cookies) {
       const pair = cookie.split(";")[0];
       const idx = pair.indexOf("=");
@@ -197,10 +198,7 @@ class CookieJar {
   }
 }
 
-async function req(
-  path: string,
-  init: RequestInit & { jar?: CookieJar } = {},
-): Promise<Response> {
+async function req(path: string, init: RequestInit & { jar?: CookieJar } = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.jar) {
     headers.set("cookie", init.jar.header());
@@ -250,7 +248,9 @@ async function ensureTestDatabase(): Promise<string> {
     }
   }
   if (!(await tryConnect(base))) {
-    throw new Error("Нет локального PostgreSQL для self-hosted тестов (порт 54332 или SELFHOST_TEST_DATABASE_URL)");
+    throw new Error(
+      "Нет локального PostgreSQL для self-hosted тестов (порт 54332 или SELFHOST_TEST_DATABASE_URL)",
+    );
   }
   const admin = new pg.Client({ connectionString: base });
   await admin.connect();
@@ -286,9 +286,9 @@ if (resolvedTestDatabaseUrl) process.env.SELFHOST_TEST_DATABASE_READY = "1";
 
 describe("selfhost import validation (без БД)", () => {
   it("отклоняет plaintext-пароль", () => {
-    expect(() =>
-      normalizeExportPayload({ user: { email: "a@b.c", password: "secret" } }),
-    ).toThrow(/plaintext/);
+    expect(() => normalizeExportPayload({ user: { email: "a@b.c", password: "secret" } })).toThrow(
+      /plaintext/,
+    );
   });
 
   it("считает упражнения без id как ручное сопоставление", () => {
@@ -308,6 +308,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     if (!url) throw new Error("PostgreSQL недоступен");
     process.env.AUTH_BACKEND = "local";
     process.env.DATA_BACKEND = "postgres";
+    process.env.MEDIA_BACKEND = "local-links";
     process.env.DATABASE_URL = url;
     process.env.SESSION_COOKIE_SECURE = "0";
     process.env.NODE_ENV = "test";
@@ -321,7 +322,8 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     fetchCalls = [];
     const original = globalThis.fetch;
     globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      const href = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      const href =
+        typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
       fetchCalls.push(href);
       if (href.includes("supabase")) {
         throw new Error("Supabase request in local/postgres mode");
@@ -346,7 +348,11 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     const payload = {
       clients: [
         {
-          user: { id: CLIENT_A, email: "client-a@example.test", password_hash: await bcrypt.hash("Passw0rd!", 10) },
+          user: {
+            id: CLIENT_A,
+            email: "client-a@example.test",
+            password_hash: await bcrypt.hash("Passw0rd!", 10),
+          },
           roles: ["client"],
           profile: { full_name: "Клиент А" },
           access: { status: "active", unlock_source: "promo" },
@@ -424,7 +430,11 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
           ],
         },
         {
-          user: { id: CLIENT_B, email: "client-b@example.test", password_hash: await hashPasswordArgon2id("Passw0rd!") },
+          user: {
+            id: CLIENT_B,
+            email: "client-b@example.test",
+            password_hash: await hashPasswordArgon2id("Passw0rd!"),
+          },
           roles: ["client"],
           profile: { full_name: "Клиент B" },
           access: { status: "active" },
@@ -470,42 +480,50 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     const again = await importClients(() => pool.connect(), payload);
     expect(again.clients[0].skippedPublishedSnapshots).toBeGreaterThan(0);
 
-    const mixed = await pool.query("SELECT client_id FROM training_program_versions WHERE id = $1", [TR_B]);
+    const mixed = await pool.query(
+      "SELECT client_id FROM training_program_versions WHERE id = $1",
+      [TR_B],
+    );
     expect(mixed.rows[0].client_id).toBe(CLIENT_B);
   });
 
   it("останавливается при неверном content_hash и не мутирует snapshot", async () => {
-    const before = await pool.query("SELECT snapshot, content_hash FROM nutrition_plan_versions WHERE id = $1", [
-      NUT_A,
-    ]);
+    const before = await pool.query(
+      "SELECT snapshot, content_hash FROM nutrition_plan_versions WHERE id = $1",
+      [NUT_A],
+    );
     await expect(
-      importClients(
-        () => pool.connect(),
-        {
-          user: { id: CLIENT_A, email: "client-a@example.test" },
-          nutrition_versions: [
-            {
-              id: NUT_A,
-              snapshot: nutritionSnapshot(),
-              content_hash: "other-hash",
-              status: "published",
-              version: 1,
-              course_id: COURSE_A1,
-            },
-          ],
-        },
-      ),
+      importClients(() => pool.connect(), {
+        user: { id: CLIENT_A, email: "client-a@example.test" },
+        nutrition_versions: [
+          {
+            id: NUT_A,
+            snapshot: nutritionSnapshot(),
+            content_hash: "other-hash",
+            status: "published",
+            version: 1,
+            course_id: COURSE_A1,
+          },
+        ],
+      }),
     ).rejects.toThrow(/content_hash/);
-    const after = await pool.query("SELECT snapshot, content_hash FROM nutrition_plan_versions WHERE id = $1", [NUT_A]);
+    const after = await pool.query(
+      "SELECT snapshot, content_hash FROM nutrition_plan_versions WHERE id = $1",
+      [NUT_A],
+    );
     expect(after.rows[0].content_hash).toBe(before.rows[0].content_hash);
     expect(JSON.stringify(after.rows[0].snapshot)).toBe(JSON.stringify(before.rows[0].snapshot));
   });
 
   it("запрещает UPDATE/DELETE published snapshot", async () => {
     await expect(
-      pool.query("UPDATE nutrition_plan_versions SET snapshot = '{}'::jsonb WHERE id = $1", [NUT_A]),
+      pool.query("UPDATE nutrition_plan_versions SET snapshot = '{}'::jsonb WHERE id = $1", [
+        NUT_A,
+      ]),
     ).rejects.toThrow();
-    await expect(pool.query("DELETE FROM nutrition_plan_versions WHERE id = $1", [NUT_A])).rejects.toThrow();
+    await expect(
+      pool.query("DELETE FROM nutrition_plan_versions WHERE id = $1", [NUT_A]),
+    ).rejects.toThrow();
   });
 
   it("логинит bcrypt, перехеширует в Argon2id, выдаёт httpOnly cookie и logout", async () => {
@@ -598,9 +616,10 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
        ON CONFLICT (id) DO NOTHING`,
       [ADMIN_ID, "trainer-admin@example.test", await hashPasswordArgon2id("Passw0rd!")],
     );
-    await pool.query(`INSERT INTO user_roles (user_id, role) VALUES ($1,'admin') ON CONFLICT DO NOTHING`, [
-      ADMIN_ID,
-    ]);
+    await pool.query(
+      `INSERT INTO user_roles (user_id, role) VALUES ($1,'admin') ON CONFLICT DO NOTHING`,
+      [ADMIN_ID],
+    );
     await pool.query(
       `INSERT INTO client_access (user_id, status) VALUES ($1,'active') ON CONFLICT DO NOTHING`,
       [ADMIN_ID],
@@ -618,7 +637,9 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
 
     const own = await req(`/api/selfhost/nutrition?courseId=${COURSE_A1}`, { jar: clientJar });
     expect(own.status).toBe(200);
-    const otherCourse = await req(`/api/selfhost/nutrition?courseId=${COURSE_A2}`, { jar: clientJar });
+    const otherCourse = await req(`/api/selfhost/nutrition?courseId=${COURSE_A2}`, {
+      jar: clientJar,
+    });
     const a1 = await own.json();
     const a2 = await otherCourse.json();
     expect(a1.nutrition.version.id).toBe(NUT_A);
@@ -639,7 +660,9 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
   });
 
   it("закрывает программу при inactive access", async () => {
-    await pool.query(`UPDATE client_access SET status = 'suspended' WHERE user_id = $1`, [CLIENT_B]);
+    await pool.query(`UPDATE client_access SET status = 'suspended' WHERE user_id = $1`, [
+      CLIENT_B,
+    ]);
     const jar = new CookieJar();
     await req("/api/selfhost/csrf", { jar });
     await req("/api/selfhost/login", {
@@ -653,9 +676,10 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
   });
 
   it("не меняет snapshot/content_hash при смене video binding и шарит его по exercise_id", async () => {
-    const before = await pool.query("SELECT snapshot, content_hash FROM training_program_versions WHERE id = $1", [
-      TR_A,
-    ]);
+    const before = await pool.query(
+      "SELECT snapshot, content_hash FROM training_program_versions WHERE id = $1",
+      [TR_A],
+    );
     await upsertExerciseMediaBinding(
       pool,
       {
@@ -669,9 +693,10 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       },
       ADMIN_ID,
     );
-    const after = await pool.query("SELECT snapshot, content_hash FROM training_program_versions WHERE id = $1", [
-      TR_A,
-    ]);
+    const after = await pool.query(
+      "SELECT snapshot, content_hash FROM training_program_versions WHERE id = $1",
+      [TR_A],
+    );
     expect(after.rows[0].content_hash).toBe(before.rows[0].content_hash);
     expect(JSON.stringify(after.rows[0].snapshot)).toBe(JSON.stringify(before.rows[0].snapshot));
 
@@ -682,7 +707,9 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       jar,
       body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
     });
-    const training = await (await req(`/api/selfhost/training?courseId=${COURSE_A1}`, { jar })).json();
+    const training = await (
+      await req(`/api/selfhost/training?courseId=${COURSE_A1}`, { jar })
+    ).json();
     expect(training.training.exercises[0].video.url).toContain("youtube.com");
     expect(training.training.version.content_hash).toBe("hash-tr-a");
   });
@@ -703,39 +730,52 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       [legacyId, CLIENT_A, COURSE_A1],
     );
     try {
-    const jar = new CookieJar();
-    await req("/api/selfhost/csrf", { jar });
-    await req("/api/selfhost/login", {
-      method: "POST",
-      jar,
-      body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
-    });
-    const beforeBind = await (await req(`/api/selfhost/training?courseId=${COURSE_A1}`, { jar })).json();
-    const video = beforeBind.training.exercises[0]?.video;
-    expect(video?.url ?? null).toBeFalsy();
+      const jar = new CookieJar();
+      await req("/api/selfhost/csrf", { jar });
+      await req("/api/selfhost/login", {
+        method: "POST",
+        jar,
+        body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+      });
+      const beforeBind = await (
+        await req(`/api/selfhost/training?courseId=${COURSE_A1}`, { jar })
+      ).json();
+      const video = beforeBind.training.exercises[0]?.video;
+      expect(video?.url ?? null).toBeFalsy();
 
-    await pool.query(
-      `INSERT INTO snapshot_exercise_media_bindings
+      await pool.query(
+        `INSERT INTO snapshot_exercise_media_bindings
         (version_id, snapshot_exercise_key, exercise_id, confirmed_by_trainer)
        VALUES ($1,'0:0:exercises:0',$2,true)`,
-      [legacyId, EX_ID],
-    );
-    const afterBind = await (await req(`/api/selfhost/training?courseId=${COURSE_A1}`, { jar })).json();
-    expect(afterBind.training.exercises[0].video.url).toContain("youtube.com");
-    const hash = await pool.query("SELECT content_hash FROM training_program_versions WHERE id = $1", [legacyId]);
-    expect(hash.rows[0].content_hash).toBe("hash-legacy");
+        [legacyId, EX_ID],
+      );
+      const afterBind = await (
+        await req(`/api/selfhost/training?courseId=${COURSE_A1}`, { jar })
+      ).json();
+      expect(afterBind.training.exercises[0].video.url).toContain("youtube.com");
+      const hash = await pool.query(
+        "SELECT content_hash FROM training_program_versions WHERE id = $1",
+        [legacyId],
+      );
+      expect(hash.rows[0].content_hash).toBe("hash-legacy");
     } finally {
-    await pool.query(
-      `UPDATE client_program_assignments SET active_version_id = $1
+      await pool.query(
+        `UPDATE client_program_assignments SET active_version_id = $1
        WHERE client_id = $2 AND kind = 'training' AND course_id = $3`,
-      [TR_A, CLIENT_A, COURSE_A1],
-    );
+        [TR_A, CLIENT_A, COURSE_A1],
+      );
     }
   });
 
   it("строит PDF питания и тренировок из published snapshot, без PII, с кликабельной ссылкой", async () => {
     const overlay = new Map([
-      [EX_ID, normalizeExerciseVideo({ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", title: "Видео" })],
+      [
+        EX_ID,
+        normalizeExerciseVideo({
+          url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+          title: "Видео",
+        }),
+      ],
     ]);
     const snap = trainingSnapshot();
     const without = trainingPdfLines(snap, meta);
@@ -784,6 +824,312 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     expect(other.status).toBe(403);
   });
 
+  it("админка упражнений работает на postgres без Supabase и не трогает snapshot", async () => {
+    await pool.query(
+      `INSERT INTO users (id, email, password_hash) VALUES ($1,$2,$3)
+       ON CONFLICT (id) DO NOTHING`,
+      [ADMIN_ID, "trainer-admin@example.test", await hashPasswordArgon2id("Passw0rd!")],
+    );
+    await pool.query(
+      `INSERT INTO user_roles (user_id, role) VALUES ($1,'admin') ON CONFLICT DO NOTHING`,
+      [ADMIN_ID],
+    );
+
+    const snapABefore = await pool.query(
+      "SELECT snapshot, content_hash FROM training_program_versions WHERE id = $1",
+      [TR_A],
+    );
+    const snapBBefore = await pool.query(
+      "SELECT snapshot, content_hash FROM training_program_versions WHERE id = $1",
+      [TR_B],
+    );
+    const assignBefore = await pool.query(
+      "SELECT id, client_id, kind, course_id, active_version_id FROM client_program_assignments ORDER BY client_id, kind, course_id",
+    );
+    const snapshotA = JSON.stringify(snapABefore.rows[0].snapshot);
+    const snapshotB = JSON.stringify(snapBBefore.rows[0].snapshot);
+
+    const anon = await req("/api/selfhost/admin/exercises");
+    expect(anon.status).toBe(401);
+
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+    });
+    expect((await req("/api/selfhost/admin/exercises", { jar: clientJar })).status).toBe(403);
+    const clientWrite = await req("/api/selfhost/admin/exercises", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({
+        slug: "client-hack",
+        name: "Hack",
+        category: "strength_lower",
+        difficulty: "beginner",
+        muscle_groups: [],
+        equipment: [],
+        default_sets: 3,
+        default_reps: "10",
+        rest_seconds: 60,
+        tempo: null,
+        description: null,
+        gif_url: null,
+        video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        role: "admin",
+      }),
+    });
+    expect(clientWrite.status).toBe(403);
+
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+
+    const noCsrf = await handleSelfhostRequest(
+      new Request("http://selfhost.local/api/selfhost/admin/exercises", {
+        method: "POST",
+        headers: { cookie: adminJar.header(), "content-type": "application/json" },
+        body: JSON.stringify({
+          slug: "no-csrf",
+          name: "No CSRF",
+          category: "strength_lower",
+          difficulty: "beginner",
+          muscle_groups: [],
+          equipment: [],
+          default_sets: 3,
+          default_reps: "10",
+          rest_seconds: 60,
+          tempo: null,
+          description: null,
+          gif_url: null,
+          video_url: null,
+        }),
+      }),
+    );
+    expect(noCsrf!.status).toBe(403);
+
+    const zodFail = await req("/api/selfhost/admin/exercises", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        slug: "",
+        name: "",
+        category: "strength_lower",
+        difficulty: "beginner",
+        muscle_groups: [],
+        equipment: [],
+        default_sets: 3,
+        default_reps: "10",
+        rest_seconds: 60,
+        tempo: null,
+        description: null,
+        gif_url: null,
+        video_url: null,
+      }),
+    });
+    expect(zodFail.status).toBe(400);
+
+    const created = await req("/api/selfhost/admin/exercises", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        slug: "admin-glute-bridge",
+        name: "Ягодичный мост",
+        category: "strength_lower",
+        difficulty: "beginner",
+        muscle_groups: ["glutes"],
+        equipment: ["bodyweight"],
+        default_sets: 3,
+        default_reps: "12",
+        rest_seconds: 45,
+        tempo: "2-0-2",
+        description: "Таз вверх",
+        gif_url: null,
+        video_url: null,
+      }),
+    });
+    expect(created.status).toBe(200);
+    const newId = (await created.json()).id as string;
+
+    const listed = await (
+      await req("/api/selfhost/admin/exercises?q=мост", { jar: adminJar })
+    ).json();
+    expect(listed.items.some((row: { id: string }) => row.id === newId)).toBe(true);
+
+    const youtube = await req("/api/selfhost/admin/exercises", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        id: newId,
+        slug: "admin-glute-bridge",
+        name: "Ягодичный мост",
+        category: "strength_lower",
+        difficulty: "beginner",
+        muscle_groups: ["glutes"],
+        equipment: ["bodyweight"],
+        default_sets: 3,
+        default_reps: "12",
+        rest_seconds: 45,
+        tempo: "2-0-2",
+        description: "Таз вверх",
+        gif_url: null,
+        video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        video_title: "Мост",
+        embed_url: "javascript:alert(1)",
+        video_embed_url: "https://evil.test/embed",
+      }),
+    });
+    expect(youtube.status).toBe(200);
+    const youtubeJson = await youtube.json();
+    expect(youtubeJson.video.provider).toBe("youtube");
+    expect(youtubeJson.video.embed_url).toBe("https://www.youtube.com/embed/dQw4w9WgXcQ");
+
+    const youtuBe = await req("/api/selfhost/admin/exercises/media", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ exercise_id: newId, video_url: "https://youtu.be/dQw4w9WgXcQ" }),
+    });
+    expect(youtuBe.status).toBe(200);
+
+    const rutube = await req("/api/selfhost/admin/exercises/media", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        exercise_id: newId,
+        video_url: `https://rutube.ru/video/${"c".repeat(32)}/`,
+      }),
+    });
+    expect(rutube.status).toBe(200);
+    expect((await rutube.json()).video.provider).toBe("rutube");
+
+    const badUrl = await req("/api/selfhost/admin/exercises/media", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ exercise_id: newId, video_url: "https://example.com/not-allowed" }),
+    });
+    expect(badUrl.status).toBe(400);
+
+    const logBefore = await pool.query(
+      "SELECT count(*)::int AS n FROM exercise_media_change_log WHERE exercise_id = $1",
+      [newId],
+    );
+    expect(
+      (
+        await req(`/api/selfhost/admin/exercises/media?id=${newId}`, {
+          method: "DELETE",
+          jar: adminJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(200);
+    const logAfter = await pool.query(
+      "SELECT old_url, new_url FROM exercise_media_change_log WHERE exercise_id = $1 ORDER BY changed_at",
+      [newId],
+    );
+    expect(Number(logAfter.rowCount)).toBeGreaterThan(Number(logBefore.rows[0].n));
+    expect(logAfter.rows.at(-1)?.new_url).toBeNull();
+
+    const shared = await req("/api/selfhost/admin/exercises", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        id: EX_ID,
+        slug: "shared-squat",
+        name: "Приседания",
+        category: "strength_lower",
+        difficulty: "beginner",
+        muscle_groups: ["quads"],
+        equipment: [],
+        default_sets: 3,
+        default_reps: "10",
+        rest_seconds: 60,
+        tempo: null,
+        description: null,
+        gif_url: null,
+        video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        video_status: "ok",
+      }),
+    });
+    expect(shared.status).toBe(200);
+
+    const used = await (
+      await req("/api/selfhost/admin/exercises?media=used", { jar: adminJar })
+    ).json();
+    const usedRow = used.items.find(
+      (row: { id: string; publishedUseCount: number }) => row.id === EX_ID,
+    );
+    expect(usedRow?.publishedUseCount).toBeGreaterThanOrEqual(2);
+
+    const clientBJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientBJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientBJar,
+      body: JSON.stringify({ email: "client-b@example.test", password: "Passw0rd!" }),
+    });
+    const trainA = await (
+      await req(`/api/selfhost/training?courseId=${COURSE_A1}`, { jar: clientJar })
+    ).json();
+    const trainB = await (
+      await req(`/api/selfhost/training?courseId=${COURSE_B1}`, { jar: clientBJar })
+    ).json();
+    expect(trainA.training.exercises[0].video.url).toContain("youtube.com");
+    expect(trainB.training.exercises[0].video.url).toContain("youtube.com");
+    expect(trainA.training.snapshot.days[0].exercises[0].reps).toBe("10");
+
+    await req(`/api/selfhost/admin/exercises/media?id=${EX_ID}`, {
+      method: "DELETE",
+      jar: adminJar,
+      body: "{}",
+    });
+    const afterUnbind = await (
+      await req(`/api/selfhost/training?courseId=${COURSE_A1}`, { jar: clientJar })
+    ).json();
+    expect(afterUnbind.training.exercises[0].video?.url ?? null).toBeFalsy();
+    expect(afterUnbind.training.snapshot.days[0].exercises[0].exercise.name).toBe("Приседания");
+
+    await req(`/api/selfhost/admin/exercises?id=${newId}`, {
+      method: "DELETE",
+      jar: adminJar,
+      body: "{}",
+    });
+
+    const snapAAfter = await pool.query(
+      "SELECT snapshot, content_hash FROM training_program_versions WHERE id = $1",
+      [TR_A],
+    );
+    const snapBAfter = await pool.query(
+      "SELECT snapshot, content_hash FROM training_program_versions WHERE id = $1",
+      [TR_B],
+    );
+    const assignAfter = await pool.query(
+      "SELECT id, client_id, kind, course_id, active_version_id FROM client_program_assignments ORDER BY client_id, kind, course_id",
+    );
+    expect(JSON.stringify(snapAAfter.rows[0].snapshot)).toBe(snapshotA);
+    expect(JSON.stringify(snapBAfter.rows[0].snapshot)).toBe(snapshotB);
+    expect(snapAAfter.rows[0].content_hash).toBe(snapABefore.rows[0].content_hash);
+    expect(snapBAfter.rows[0].content_hash).toBe(snapBBefore.rows[0].content_hash);
+    expect(JSON.stringify(assignAfter.rows)).toBe(JSON.stringify(assignBefore.rows));
+
+    const again = await applyMigrations(pool);
+    expect(again.applied).toEqual([]);
+    expect(again.skipped).toContain("008_exercises.sql");
+
+    const prevUrl = process.env.DATABASE_URL;
+    process.env.DATABASE_URL = "postgres://panovapro:x@127.0.0.1:1/none";
+    await closePostgresPool();
+    const down = await req("/api/selfhost/admin/exercises", { jar: adminJar });
+    expect(down.status).toBe(503);
+    expect((await down.json()).error).toMatch(/PostgreSQL/);
+    process.env.DATABASE_URL = prevUrl;
+    await closePostgresPool();
+  });
+
   it("отсутствие видео не ломает программу и PDF", async () => {
     await pool.query("DELETE FROM exercise_media_bindings WHERE exercise_id = $1", [EX_ID]);
     const jar = new CookieJar();
@@ -793,7 +1139,9 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       jar,
       body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
     });
-    const training = await (await req(`/api/selfhost/training?courseId=${COURSE_A1}`, { jar })).json();
+    const training = await (
+      await req(`/api/selfhost/training?courseId=${COURSE_A1}`, { jar })
+    ).json();
     expect(training.training.snapshot.name).toBe("Силовая");
     const pdf = await req("/api/selfhost/pdf", {
       method: "POST",
@@ -801,7 +1149,10 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       body: JSON.stringify({ kind: "training", courseId: COURSE_A1 }),
     });
     expect(pdf.status).toBe(200);
-    const hash = await pool.query("SELECT content_hash FROM training_program_versions WHERE id = $1", [TR_A]);
+    const hash = await pool.query(
+      "SELECT content_hash FROM training_program_versions WHERE id = $1",
+      [TR_A],
+    );
     expect(hash.rows[0].content_hash).toBe("hash-tr-a");
   });
 

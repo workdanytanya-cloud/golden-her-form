@@ -1,14 +1,24 @@
 import type { RuntimePublicConfig } from "@/lib/selfhost/config";
-import { getAuthBackend, getDataBackend } from "@/lib/selfhost/config";
+import { getAuthBackend, getDataBackend, getMediaBackend } from "@/lib/selfhost/config";
 import type { ClientCourse } from "@/lib/client-courses/repo";
 import type { PublishedNutritionView, PublishedTrainingView } from "@/lib/published-programs/repo";
+import type {
+  AdminExerciseReport,
+  AdminExerciseRow,
+  MediaFilter,
+} from "@/lib/selfhost/exercise-admin-types";
+import type { ExerciseVideo } from "@/lib/exercise-video";
 
 let cached: RuntimePublicConfig | null = null;
 let csrfToken: string | null = null;
 
 export async function loadRuntimeConfig(): Promise<RuntimePublicConfig> {
   if (typeof window === "undefined") {
-    return { authBackend: getAuthBackend(), dataBackend: getDataBackend() };
+    return {
+      authBackend: getAuthBackend(),
+      dataBackend: getDataBackend(),
+      mediaBackend: getMediaBackend(),
+    };
   }
   if (cached) return cached;
   const res = await fetch("/api/selfhost/runtime");
@@ -26,6 +36,80 @@ export function peekRuntimeConfig(): RuntimePublicConfig | null {
 export async function usesLocalPostgresCircuit(): Promise<boolean> {
   const cfg = await loadRuntimeConfig();
   return cfg.authBackend === "local" && cfg.dataBackend === "postgres";
+}
+
+export async function usesLocalLinksMedia(): Promise<boolean> {
+  const cfg = await loadRuntimeConfig();
+  return (
+    cfg.authBackend === "local" &&
+    cfg.dataBackend === "postgres" &&
+    cfg.mediaBackend === "local-links"
+  );
+}
+
+async function readSelfhostJson(res: Response): Promise<Record<string, unknown>> {
+  const data = (await res.json()) as Record<string, unknown>;
+  if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Ошибка сервера");
+  return data;
+}
+
+export async function selfhostAdminExercises(
+  input: {
+    q?: string;
+    category?: string;
+    media?: MediaFilter;
+  } = {},
+): Promise<{ items: AdminExerciseRow[]; report: AdminExerciseReport }> {
+  const params = new URLSearchParams();
+  if (input.q) params.set("q", input.q);
+  if (input.category) params.set("category", input.category);
+  if (input.media) params.set("media", input.media);
+  const qs = params.toString();
+  const res = await fetch(`/api/selfhost/admin/exercises${qs ? `?${qs}` : ""}`, {
+    credentials: "include",
+  });
+  return (await readSelfhostJson(res)) as {
+    items: AdminExerciseRow[];
+    report: AdminExerciseReport;
+  };
+}
+
+export async function selfhostAdminUpsertExercise(payload: Record<string, unknown>): Promise<{
+  id: string;
+  video: ExerciseVideo;
+}> {
+  const res = await selfhostFetch("/api/selfhost/admin/exercises", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return (await readSelfhostJson(res)) as { id: string; video: ExerciseVideo };
+}
+
+export async function selfhostAdminRemoveExercise(id: string): Promise<void> {
+  const res = await selfhostFetch(`/api/selfhost/admin/exercises?id=${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    body: "{}",
+  });
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminSaveExerciseMedia(payload: Record<string, unknown>): Promise<{
+  id: string;
+  video: ExerciseVideo;
+}> {
+  const res = await selfhostFetch("/api/selfhost/admin/exercises/media", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return (await readSelfhostJson(res)) as { id: string; video: ExerciseVideo };
+}
+
+export async function selfhostAdminDeleteExerciseMedia(exerciseId: string): Promise<void> {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/exercises/media?id=${encodeURIComponent(exerciseId)}`,
+    { method: "DELETE", body: "{}" },
+  );
+  await readSelfhostJson(res);
 }
 
 export async function ensureCsrfToken(): Promise<string> {

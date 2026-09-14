@@ -7,6 +7,7 @@ import type {
 import { getAuthBackend, getDataBackend } from "@/lib/selfhost/config";
 import { getPostgresPool } from "@/lib/selfhost/db";
 import { LocalAuthProvider } from "@/lib/selfhost/local-auth";
+import { PostgresExerciseRepository } from "@/lib/selfhost/postgres-exercises";
 import { PostgresPublishedProgramRepository } from "@/lib/selfhost/postgres-published";
 import { SupabaseAuthProvider } from "@/lib/platform/supabase-auth-provider";
 import { SupabaseDatabaseProvider } from "@/lib/platform/supabase-database-provider";
@@ -54,9 +55,8 @@ export function getPublishedProgramRepository(): PublishedProgramRepository {
 
 export function getExerciseRepository(): ExerciseRepository {
   if (getDataBackend() === "postgres") {
-    throw new Error(
-      "DATA_BACKEND=postgres: каталог упражнений тренера пока не перенесён. Supabase не используется как запасной вариант.",
-    );
+    exercises ??= new PostgresExerciseRepository(getPostgresPool());
+    return exercises;
   }
   exercises ??= new SupabaseExerciseRepository();
   return exercises;

@@ -1,5 +1,6 @@
 export type AuthBackend = "supabase" | "local";
 export type DataBackend = "supabase" | "postgres";
+export type MediaBackend = "supabase" | "local-links";
 
 function readEnv(name: string): string | undefined {
   if (typeof process === "undefined" || !process.env) return undefined;
@@ -15,8 +16,18 @@ export function getDataBackend(): DataBackend {
   return readEnv("DATA_BACKEND") === "postgres" ? "postgres" : "supabase";
 }
 
+export function getMediaBackend(): MediaBackend {
+  const explicit = readEnv("MEDIA_BACKEND");
+  if (explicit === "local-links" || explicit === "supabase") return explicit;
+  return getDataBackend() === "postgres" ? "local-links" : "supabase";
+}
+
 export function isLocalClientCircuit(): boolean {
   return getAuthBackend() === "local" && getDataBackend() === "postgres";
+}
+
+export function isLocalLinksMedia(): boolean {
+  return isLocalClientCircuit() && getMediaBackend() === "local-links";
 }
 
 export function requireDatabaseUrl(): string {
@@ -55,11 +66,13 @@ export function sessionCookieSecure(): boolean {
 export type RuntimePublicConfig = {
   authBackend: AuthBackend;
   dataBackend: DataBackend;
+  mediaBackend: MediaBackend;
 };
 
 export function publicRuntimeConfig(): RuntimePublicConfig {
   return {
     authBackend: getAuthBackend(),
     dataBackend: getDataBackend(),
+    mediaBackend: getMediaBackend(),
   };
 }

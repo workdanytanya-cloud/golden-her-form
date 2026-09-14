@@ -22,7 +22,13 @@ export default defineConfig(({ mode, command }) => {
   // SSR / server functions читают SUPABASE_* из process.env.
   // AUTH/DATA/DATABASE из .env.selfhost уже выставлены и не должны быть затёрты .env.
   for (const [key, value] of Object.entries(env)) {
-    if (key === "AUTH_BACKEND" || key === "DATA_BACKEND" || key === "DATABASE_URL" || key === "SESSION_COOKIE_SECURE") {
+    if (
+      key === "AUTH_BACKEND" ||
+      key === "DATA_BACKEND" ||
+      key === "MEDIA_BACKEND" ||
+      key === "DATABASE_URL" ||
+      key === "SESSION_COOKIE_SECURE"
+    ) {
       continue;
     }
     if (process.env[key] === undefined) process.env[key] = value;

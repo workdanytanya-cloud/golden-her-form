@@ -3,6 +3,7 @@ import {
   isAllowedEmbedUrl,
   normalizeExerciseVideo,
   parseHttpsUrl,
+  requireYoutubeOrRutubeUrl,
   videoFromLegacyFields,
 } from "@/lib/exercise-video";
 import {
@@ -79,6 +80,8 @@ describe("exercise video links", () => {
     });
     expect(sneaky.embed_url).not.toContain("evil.test");
     expect(isAllowedEmbedUrl("https://evil.test/embed")).toBe(false);
+    expect(() => requireYoutubeOrRutubeUrl("https://example.com/video")).toThrow(/YouTube|Rutube/);
+    expect(() => requireYoutubeOrRutubeUrl("javascript:alert(1)")).toThrow(/YouTube|Rutube/);
   });
 
   it("отсутствующее видео не ломает нормализацию", () => {

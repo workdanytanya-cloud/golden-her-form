@@ -216,6 +216,20 @@ export function normalizeExerciseVideo(input: VideoInput | null | undefined): Ex
   };
 }
 
+export function requireYoutubeOrRutubeUrl(raw: string | null | undefined): ExerciseVideo {
+  if (!raw || !String(raw).trim()) {
+    return { ...EMPTY_EXERCISE_VIDEO };
+  }
+  const video = normalizeExerciseVideo({ url: raw });
+  if (video.provider !== "youtube" && video.provider !== "rutube") {
+    throw Object.assign(
+      new Error("Нужна ссылка https на YouTube (youtube.com / youtu.be) или Rutube"),
+      { statusCode: 400 },
+    );
+  }
+  return video;
+}
+
 /** Адаптер для каталога и legacy snapshots: video_url + опциональный объект video. */
 export function videoFromLegacyFields(input: VideoInput | null | undefined): ExerciseVideo {
   return normalizeExerciseVideo(input);

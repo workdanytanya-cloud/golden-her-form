@@ -1,9 +1,17 @@
+import { ZodError } from "zod";
 import {
   getAuthBackend,
   getDataBackend,
+  getMediaBackend,
   isLocalClientCircuit,
   publicRuntimeConfig,
 } from "@/lib/selfhost/config";
+import {
+  PostgresExerciseRepository,
+  adminExerciseListQuerySchema,
+  adminExerciseMediaSchema,
+  adminExerciseUpsertSchema,
+} from "@/lib/selfhost/postgres-exercises";
 import { checkPostgresHealth, getPostgresPool } from "@/lib/selfhost/db";
 import {
   assertCsrf,
@@ -46,10 +54,6 @@ function errorJson(message: string, status: number): Response {
   return json({ error: message }, status);
 }
 
-function cookiesFrom(responseHeaders: Headers, setCookies: string[]): void {
-  for (const cookie of setCookies) responseHeaders.append("set-cookie", cookie);
-}
-
 async function readJson(request: Request): Promise<Record<string, unknown>> {
   try {
     return (await request.json()) as Record<string, unknown>;
@@ -71,6 +75,16 @@ async function requireSession(request: Request): Promise<LocalSession> {
     throw Object.assign(new Error("Нужно войти в кабинет"), { statusCode: 401 });
   }
   return session;
+}
+
+function requireAdmin(session: LocalSession): void {
+  if (session.role !== "admin") {
+    throw Object.assign(new Error("Недостаточно прав"), { statusCode: 403 });
+  }
+}
+
+function exerciseRepo(): PostgresExerciseRepository {
+  return new PostgresExerciseRepository(getPostgresPool());
 }
 
 function scopedClientId(session: LocalSession, requested?: string | null): string {
@@ -104,13 +118,20 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
             ok: postgres.status === "up",
             authBackend,
             dataBackend,
+            mediaBackend: getMediaBackend(),
             postgres: postgres.status,
             reason: postgres.reason ?? null,
           },
           postgres.status === "up" ? 200 : 503,
         );
       }
-      return json({ ok: true, authBackend, dataBackend, postgres: "skipped" });
+      return json({
+        ok: true,
+        authBackend,
+        dataBackend,
+        mediaBackend: getMediaBackend(),
+        postgres: "skipped",
+      });
     }
 
     if (url.pathname === "/api/selfhost/csrf" && request.method === "GET") {
@@ -220,11 +241,73 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       return json({ training: view });
     }
 
+    if (url.pathname === "/api/selfhost/admin/exercises" && request.method === "GET") {
+      requireAdmin(session);
+      const query = adminExerciseListQuerySchema.parse({
+        q: url.searchParams.get("q") ?? "",
+        category: url.searchParams.get("category") ?? "all",
+        media: url.searchParams.get("media") ?? "all",
+      });
+      const result = await exerciseRepo().search(query);
+      return json(result);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/exercises" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = await readJson(request);
+      const saved = await exerciseRepo().save(
+        adminExerciseUpsertSchema.parse(body),
+        session.userId,
+      );
+      return json({ ok: true, id: saved.id, video: saved.video });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/exercises" && request.method === "DELETE") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = await readJson(request);
+      const id = url.searchParams.get("id") ?? (typeof body.id === "string" ? body.id : "");
+      if (!id) return errorJson("Не указан id упражнения", 400);
+      await exerciseRepo().remove(id, session.userId);
+      return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/exercises/media" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = await readJson(request);
+      const saved = await exerciseRepo().setMedia(
+        adminExerciseMediaSchema.parse(body),
+        session.userId,
+      );
+      return json({ ok: true, id: saved.id, video: saved.video });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/exercises/media" && request.method === "DELETE") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = await readJson(request);
+      const id =
+        url.searchParams.get("id") ??
+        (typeof body.exercise_id === "string"
+          ? body.exercise_id
+          : typeof body.id === "string"
+            ? body.id
+            : "");
+      if (!id) return errorJson("Не указан id упражнения", 400);
+      await exerciseRepo().deleteBinding(id, session.userId);
+      return json({ ok: true });
+    }
+
     if (url.pathname === "/api/selfhost/pdf" && request.method === "POST") {
       assertCsrf(request);
       const body = await readJson(request);
       const kind = body.kind === "training" ? "training" : "nutrition";
-      const clientId = scopedClientId(session, typeof body.clientId === "string" ? body.clientId : null);
+      const clientId = scopedClientId(
+        session,
+        typeof body.clientId === "string" ? body.clientId : null,
+      );
       const courseId = typeof body.courseId === "string" ? body.courseId : null;
       const meta = await getPdfAccessMetaPg(getPostgresPool(), clientId, courseId);
       if (kind === "nutrition") {
@@ -232,7 +315,8 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         if (!record || record.version.status !== "published") {
           return errorJson("Опубликованная программа ещё не выдана", 404);
         }
-        const issuedAt = record.version.published_at?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+        const issuedAt =
+          record.version.published_at?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
         const buffer = await buildNutritionPdf(record.snapshot, { ...meta, issuedAt });
         const headers = pdfDownloadHeaders(kind, issuedAt);
         return json({
@@ -245,7 +329,10 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       if (!record || record.version.status !== "published") {
         return errorJson("Опубликованная программа ещё не выдана", 404);
       }
-      const snapshotBindings = await loadSnapshotMediaBindings(getPostgresPool(), record.version.id);
+      const snapshotBindings = await loadSnapshotMediaBindings(
+        getPostgresPool(),
+        record.version.id,
+      );
       const overlay = videoOverlayFromBindings(
         record.snapshot,
         await loadMediaBindings(
@@ -254,7 +341,8 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         ),
         snapshotBindings,
       );
-      const issuedAt = record.version.published_at?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+      const issuedAt =
+        record.version.published_at?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
       const buffer = await buildTrainingPdf(record.snapshot, { ...meta, issuedAt }, overlay);
       const headers = pdfDownloadHeaders(kind, issuedAt);
       return json({
@@ -266,7 +354,21 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
 
     return errorJson("Не найден маршрут", 404);
   } catch (error) {
-    const status = (error as { statusCode?: number }).statusCode ?? 500;
+    if (error instanceof ZodError) {
+      return errorJson(error.issues[0]?.message ?? "Некорректные данные", 400);
+    }
+    const pg = error as { code?: string; message?: string; statusCode?: number };
+    if (
+      !pg.statusCode &&
+      (pg.code === "ECONNREFUSED" ||
+        pg.code === "ENOTFOUND" ||
+        pg.code === "ETIMEDOUT" ||
+        pg.code === "ECONNRESET" ||
+        /ECONNREFUSED|timeout expired|connect/i.test(String(pg.message ?? "")))
+    ) {
+      return errorJson("PostgreSQL недоступен", 503);
+    }
+    const status = pg.statusCode ?? 500;
     const message = error instanceof Error ? error.message : "Ошибка сервера";
     if (status >= 500) console.error("[selfhost]", message);
     return errorJson(message, status);
