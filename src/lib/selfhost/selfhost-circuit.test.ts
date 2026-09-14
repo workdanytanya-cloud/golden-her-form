@@ -2127,6 +2127,204 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     expect(concBodies[0].versionId).toBeTruthy();
   });
 
+  it("полный цикл training draft → publish → client без мутации snapshot", async () => {
+    await ensureAdminUser(pool);
+    await pool.query(
+      `INSERT INTO exercises (id, slug, name, category, difficulty, is_active)
+       VALUES ($1,'circ-squat','Присед circuit','strength_lower','beginner', true)
+       ON CONFLICT (id) DO UPDATE SET is_active = true, archived_at = NULL`,
+      [EX_ID],
+    );
+    const day = {
+      week_index: 0,
+      day_index: 0,
+      is_rest: false,
+      title: "День A",
+      focus: "ноги",
+      description: "черновик",
+      warmup: [],
+      exercises: [
+        {
+          exercise_id: EX_ID,
+          sets: 3,
+          reps: "10",
+          rest_seconds: 60,
+          tempo: null,
+          note: null,
+        },
+      ],
+      cooldown: [],
+      day_note: null,
+    };
+
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+
+    expect(
+      (await req("/api/selfhost/admin/training/draft", { method: "POST", body: "{}" })).status,
+    ).toBe(401);
+
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-b@example.test", password: "Passw0rd!" }),
+    });
+    expect(
+      (
+        await req("/api/selfhost/admin/training/draft", {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({
+            clientId: CLIENT_B,
+            sessions_per_week: 3,
+            level: "beginner",
+            days: [day],
+          }),
+        })
+      ).status,
+    ).toBe(403);
+
+    const saved = await req("/api/selfhost/admin/training/draft", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_B,
+        courseId: COURSE_B1,
+        sessions_per_week: 3,
+        goal: "tone",
+        level: "beginner",
+        has_injuries: false,
+        equipment: ["dumbbells"],
+        location: "home",
+        notes: "draft-v1",
+        faq: [],
+        targets_manual: true,
+        program_weeks: 1,
+        days: [day],
+      }),
+    });
+    expect(saved.status).toBe(200);
+    const savedBody = await saved.json();
+    expect(savedBody.program.notes).toBe("draft-v1");
+    expect(savedBody.days).toHaveLength(1);
+
+    const reopened = await (
+      await req(`/api/selfhost/admin/training/draft?clientId=${CLIENT_B}&courseId=${COURSE_B1}`, {
+        jar: adminJar,
+      })
+    ).json();
+    expect(reopened.program.id).toBe(savedBody.program.id);
+    expect(reopened.days[0].title).toBe("День A");
+
+    const patched = await req("/api/selfhost/admin/training/day", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_B,
+        courseId: COURSE_B1,
+        programId: savedBody.program.id,
+        weekIndex: 0,
+        dayIndex: 0,
+        patch: { title: "День A (edit)" },
+      }),
+    });
+    expect(patched.status).toBe(200);
+
+    const published = await req("/api/selfhost/admin/training/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_B,
+        courseId: COURSE_B1,
+        idempotencyKey: "train-idem-01",
+      }),
+    });
+    expect(published.status).toBe(200);
+    const pub1 = await published.json();
+    expect(pub1.versionId).toBeTruthy();
+    expect(pub1.idempotent).toBe(false);
+
+    const again = await req("/api/selfhost/admin/training/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_B,
+        courseId: COURSE_B1,
+        idempotencyKey: "train-idem-01",
+      }),
+    });
+    expect(again.status).toBe(200);
+    const pubAgain = await again.json();
+    expect(pubAgain.versionId).toBe(pub1.versionId);
+    expect(pubAgain.idempotent).toBe(true);
+
+    const clientView = await (
+      await req(`/api/selfhost/training?courseId=${COURSE_B1}`, { jar: clientJar })
+    ).json();
+    expect(clientView.training.version.id).toBe(pub1.versionId);
+    expect(clientView.training.version.content_hash).toBe(pub1.contentHash);
+    expect(clientView.training.days[0].title).toBe("День A (edit)");
+    const publishedSnap = JSON.stringify(clientView.training.snapshot);
+
+    await req("/api/selfhost/admin/training/day", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_B,
+        courseId: COURSE_B1,
+        programId: savedBody.program.id,
+        weekIndex: 0,
+        dayIndex: 0,
+        patch: { title: "День A (после publish)" },
+      }),
+    });
+    await pool.query(`UPDATE exercises SET name = 'Присед CHANGED' WHERE id = $1`, [EX_ID]);
+
+    const afterEdit = await (
+      await req(`/api/selfhost/training?courseId=${COURSE_B1}`, { jar: clientJar })
+    ).json();
+    expect(afterEdit.training.version.content_hash).toBe(pub1.contentHash);
+    expect(afterEdit.training.days[0].title).toBe("День A (edit)");
+    expect(JSON.stringify(afterEdit.training.snapshot)).toBe(publishedSnap);
+
+    await req("/api/selfhost/admin/training/draft", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_B,
+        courseId: COURSE_B1,
+        sessions_per_week: 3,
+        goal: "tone",
+        level: "beginner",
+        has_injuries: false,
+        equipment: ["dumbbells"],
+        location: "home",
+        notes: "draft-v2",
+        faq: [],
+        targets_manual: true,
+        program_weeks: 1,
+        days: [{ ...day, title: "День B" }],
+      }),
+    });
+    const conflict2 = await req("/api/selfhost/admin/training/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_B,
+        courseId: COURSE_B1,
+        idempotencyKey: "train-idem-01",
+      }),
+    });
+    expect(conflict2.status).toBe(409);
+  });
+
   it("не обращается к Supabase в local/postgres", () => {
     expect(fetchCalls.some((url) => url.includes("supabase"))).toBe(false);
   });

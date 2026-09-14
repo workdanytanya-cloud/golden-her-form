@@ -67,6 +67,19 @@ import {
   saveConstructorPlanPg,
   saveMealPreferencePg,
 } from "@/lib/selfhost/postgres-nutrition";
+import {
+  listTrainingExercisesPg,
+  loadTrainingDraftPg,
+  loadTrainingProfilePg,
+  patchTrainingDayPg,
+  patchTrainingProgramPg,
+  publishTrainingVersionPg,
+  saveTrainingDraftPg,
+  trainingDayPatchSchema,
+  trainingDraftSaveSchema,
+  trainingProgramPatchSchema,
+  trainingPublishSchema,
+} from "@/lib/selfhost/postgres-training";
 import { generateAndValidateConstructorPlan } from "@/lib/nutrition-constructor/repo";
 
 function json(data: unknown, status = 200, extraHeaders?: Record<string, string>): Response {
@@ -541,6 +554,70 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         idempotencyKey: body.idempotencyKey ?? request.headers.get("idempotency-key"),
         days: loaded.days,
         plan: loaded.plan,
+      });
+      return json(published);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/exercises" && request.method === "GET") {
+      requireAdmin(session);
+      const items = await listTrainingExercisesPg(getPostgresPool());
+      return json({ items });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/profile" && request.method === "GET") {
+      requireAdmin(session);
+      const clientId = url.searchParams.get("clientId");
+      if (!clientId) return errorJson("Не указан clientId", 400);
+      const profile = await loadTrainingProfilePg(getPostgresPool(), clientId);
+      return json({ profile });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/draft" && request.method === "GET") {
+      requireAdmin(session);
+      const clientId = url.searchParams.get("clientId");
+      if (!clientId) return errorJson("Не указан clientId", 400);
+      const loaded = await loadTrainingDraftPg(
+        getPostgresPool(),
+        clientId,
+        url.searchParams.get("courseId"),
+      );
+      return json(loaded);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/draft" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = trainingDraftSaveSchema.parse(await readJson(request));
+      const saved = await saveTrainingDraftPg(getPostgresPool(), body);
+      return json(saved);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/day" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = trainingDayPatchSchema.parse(await readJson(request));
+      const result = await patchTrainingDayPg(getPostgresPool(), body);
+      return json(result);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/program" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = trainingProgramPatchSchema.parse(await readJson(request));
+      const result = await patchTrainingProgramPg(getPostgresPool(), body);
+      return json(result);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/publish" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = trainingPublishSchema.parse(await readJson(request));
+      const published = await publishTrainingVersionPg(getPostgresPool(), {
+        clientId: body.clientId,
+        courseId: body.courseId,
+        actorId: session.userId,
+        reason: body.reason ?? null,
+        idempotencyKey: body.idempotencyKey ?? request.headers.get("idempotency-key"),
       });
       return json(published);
     }

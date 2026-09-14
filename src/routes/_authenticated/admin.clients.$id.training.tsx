@@ -70,13 +70,30 @@ function AdminTrainingPage() {
 
   const reload = async () => {
     setLoading(true);
-    const [ex, p, prof, profRow, published] = await Promise.all([
+    const { usesLocalPostgresCircuit, selfhostAdminClient } = await import(
+      "@/lib/selfhost/client-api"
+    );
+    const local = await usesLocalPostgresCircuit();
+    const [ex, p, prof, published] = await Promise.all([
       loadExercises(),
       loadProgramFor(id, courseId),
       loadProgramProfile(id),
-      supabase.from("profiles").select("full_name").eq("id", id).maybeSingle(),
       loadPublishedTrainingFor(id, courseId),
     ]);
+    let fullName = "Клиент";
+    if (local) {
+      try {
+        const { client } = await selfhostAdminClient(id);
+        if (typeof client.full_name === "string" && client.full_name.trim()) {
+          fullName = client.full_name;
+        }
+      } catch {
+        /* имя опционально */
+      }
+    } else {
+      const profRow = await supabase.from("profiles").select("full_name").eq("id", id).maybeSingle();
+      fullName = profRow.data?.full_name ?? "Клиент";
+    }
     setExercises(ex);
     setProgram(p.program);
     setDays(p.days);
@@ -93,7 +110,7 @@ function AdminTrainingPage() {
       weight_kg: prof.weight_kg,
       gender: prof.gender,
     });
-    setProfileName(profRow.data?.full_name ?? "Клиент");
+    setProfileName(fullName);
     setLoading(false);
   };
 
@@ -122,6 +139,28 @@ function AdminTrainingPage() {
       ...overrides,
     };
     try {
+      const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+      if (await usesLocalPostgresCircuit()) {
+        const { createOrReplaceProgram } = await import("@/lib/training-repo");
+        const built = await createOrReplaceProgram({
+          userId: id,
+          courseId: courseId ?? null,
+          input,
+          exercises,
+          preserveNotes: program?.notes ?? null,
+          preserveFaq: program?.faq ?? null,
+          targetsManual: true,
+        });
+        await reload();
+        toast.success(
+          `Черновик пересобран: ${built.program.sessions_per_week} трен./нед.${built.multiWeek ? " (несколько недель)" : ""}`,
+          {
+            description:
+              "Клиент увидит изменения только после «Опубликовать клиенту».",
+          },
+        );
+        return;
+      }
       const result = await regenerateTraining({
         data: {
           userId: id,
@@ -240,8 +279,13 @@ function AdminTrainingPage() {
       const key = dayKey(weekIndex, dayIndex);
       setSavingDayKey(key);
       try {
-        await patchTrainingDay({
-          data: {
+        const { usesLocalPostgresCircuit, selfhostPatchTrainingDay } = await import(
+          "@/lib/selfhost/client-api"
+        );
+        if (await usesLocalPostgresCircuit()) {
+          await selfhostPatchTrainingDay({
+            clientId: id,
+            courseId: courseId ?? null,
             programId: program.id,
             weekIndex,
             dayIndex,
@@ -255,15 +299,33 @@ function AdminTrainingPage() {
               cooldown: day.cooldown,
               day_note: day.day_note,
             },
-          },
-        });
+          });
+        } else {
+          await patchTrainingDay({
+            data: {
+              programId: program.id,
+              weekIndex,
+              dayIndex,
+              patch: {
+                title: day.title,
+                focus: day.focus,
+                description: day.description,
+                is_rest: day.is_rest,
+                warmup: day.warmup,
+                exercises: day.exercises,
+                cooldown: day.cooldown,
+                day_note: day.day_note,
+              },
+            },
+          });
+        }
         setProgram((p) => (p ? { ...p, targets_manual: true } : p));
         setDirtyDays((cur) => {
           const next = new Set(cur);
           next.delete(key);
           return next;
         });
-        toast.success("День сохранён — клиент увидит изменения");
+        toast.success("День сохранён в черновике");
       } catch (e) {
         toast.error((e as Error).message || "Не удалось сохранить день");
         throw e;
@@ -271,7 +333,7 @@ function AdminTrainingPage() {
         setSavingDayKey(null);
       }
     },
-    [program, days, patchTrainingDay],
+    [program, days, patchTrainingDay, id, courseId],
   );
 
   const handleDayPatch = async (
@@ -282,17 +344,40 @@ function AdminTrainingPage() {
     await handleDayPatchLocal(weekIndex, dayIndex, patch);
   };
 
-  const handleProgramPatch = async (patch: { notes?: string | null; faq?: FaqItem[] }) => {
+  const handleProgramPatch = async (patch: {
+    notes?: string | null;
+    faq?: FaqItem[];
+    targets_manual?: boolean;
+  }) => {
     if (!program) return;
     try {
-      await patchTrainingProgram({
-        data: {
+      const { usesLocalPostgresCircuit, selfhostPatchTrainingProgram } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (await usesLocalPostgresCircuit()) {
+        await selfhostPatchTrainingProgram({
+          clientId: id,
+          courseId: courseId ?? null,
           programId: program.id,
-          patch: { ...patch, targets_manual: true },
-        },
-      });
+          patch: { ...patch, targets_manual: patch.targets_manual ?? true },
+        });
+      } else {
+        await patchTrainingProgram({
+          data: {
+            programId: program.id,
+            patch: { ...patch, targets_manual: patch.targets_manual ?? true },
+          },
+        });
+      }
       setProgram((p) =>
-        p ? { ...p, ...patch, faq: patch.faq ?? p.faq, targets_manual: true } : p,
+        p
+          ? {
+              ...p,
+              ...patch,
+              faq: patch.faq ?? p.faq,
+              targets_manual: patch.targets_manual ?? true,
+            }
+          : p,
       );
     } catch (e) {
       toast.error((e as Error).message || "Не удалось сохранить");
@@ -372,14 +457,8 @@ function AdminTrainingPage() {
               await handleRegenerate({ sessions_per_week: sessions, goal, level });
             }}
             onLock={async () => {
-              await patchTrainingProgram({
-                data: {
-                  programId: program.id,
-                  patch: { targets_manual: true },
-                },
-              });
-              setProgram((p) => (p ? { ...p, targets_manual: true } : p));
-              toast.success("Программа зафиксирована для клиента");
+              await handleProgramPatch({ targets_manual: true });
+              toast.success("Черновик зафиксирован (клиент увидит после публикации)");
             }}
             onSaveNotes={async (notes) => {
               await handleProgramPatch({ notes });

@@ -64,6 +64,11 @@ export type DayRow = {
 };
 
 export async function loadExercises(): Promise<Exercise[]> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    const { selfhostTrainingExercises } = await import("@/lib/selfhost/client-api");
+    return selfhostTrainingExercises();
+  }
   const pageSize = 1000;
   const rows: Record<string, unknown>[] = [];
   for (let from = 0; ; from += pageSize) {
@@ -232,6 +237,11 @@ export async function loadProgramFor(
   userId: string,
   courseId?: string | null,
 ): Promise<{ program: ProgramRow | null; days: DayRow[] }> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    const { selfhostTrainingDraft } = await import("@/lib/selfhost/client-api");
+    return selfhostTrainingDraft(userId, courseId);
+  }
   const { resolveCourseId } = await import("@/lib/client-courses/repo");
   const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
 
@@ -276,6 +286,11 @@ export async function loadProgramFor(
 }
 
 export async function loadProgramProfile(userId: string) {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    const { selfhostTrainingProfile } = await import("@/lib/selfhost/client-api");
+    return selfhostTrainingProfile(userId);
+  }
   const [onbRes, accessRes, weight_kg, profileRes] = await Promise.all([
     supabase
       .from("onboarding_responses")
@@ -325,8 +340,6 @@ export async function createOrReplaceProgram(params: {
     targetsManual,
     preGeneratedDays,
   } = params;
-  const { resolveCourseId } = await import("@/lib/client-courses/repo");
-  const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
 
   let generatedDays: ProgramDay[];
   let programWeeks: number;
@@ -343,6 +356,23 @@ export async function createOrReplaceProgram(params: {
   }
 
   const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
+
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    return createOrReplaceCustomProgram({
+      userId,
+      courseId,
+      input,
+      days: generatedDays,
+      programWeeks,
+      preserveFaq: faq,
+      notes,
+      targetsManual: targetsManual ?? false,
+    });
+  }
+
+  const { resolveCourseId } = await import("@/lib/client-courses/repo");
+  const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
 
   const basePayload = {
     user_id: userId,
@@ -400,9 +430,47 @@ export async function createOrReplaceCustomProgram(params: {
   targetsManual?: boolean;
 }): Promise<{ program: ProgramRow; days: DayRow[]; multiWeek: boolean }> {
   const { userId, courseId, input, days, programWeeks, preserveFaq, notes, targetsManual } = params;
+  const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
+
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    const { selfhostSaveTrainingDraft } = await import("@/lib/selfhost/client-api");
+    const saved = await selfhostSaveTrainingDraft({
+      clientId: userId,
+      courseId: courseId ?? null,
+      sessions_per_week: input.sessions_per_week,
+      goal: input.goal,
+      level: input.level,
+      has_injuries: input.has_injuries,
+      injuries_details: input.injuries_details ?? null,
+      equipment: input.equipment ?? [],
+      location: input.location ?? null,
+      notes: notes ?? null,
+      faq,
+      targets_manual: targetsManual ?? true,
+      program_weeks: programWeeks,
+      days: days.map((d) => ({
+        week_index: d.week_index ?? 0,
+        day_index: d.day_index,
+        is_rest: d.is_rest,
+        title: d.title,
+        focus: d.focus,
+        description: d.description,
+        warmup: d.warmup,
+        exercises: d.exercises,
+        cooldown: d.cooldown,
+        day_note: d.day_note,
+      })),
+    });
+    return {
+      program: saved.program,
+      days: saved.days,
+      multiWeek: saved.program.program_weeks > 1,
+    };
+  }
+
   const { resolveCourseId } = await import("@/lib/client-courses/repo");
   const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
-  const faq = preserveFaq && preserveFaq.length > 0 ? preserveFaq : defaultFaq(input);
 
   const basePayload = {
     user_id: userId,

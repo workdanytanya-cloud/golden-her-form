@@ -386,6 +386,77 @@ export async function selfhostPublishNutrition(payload: {
   }>;
 }
 
+export async function selfhostTrainingDraft(clientId: string, courseId?: string | null) {
+  const params = new URLSearchParams({ clientId });
+  if (courseId) params.set("courseId", courseId);
+  const res = await fetch(`/api/selfhost/admin/training/draft?${params}`, {
+    credentials: "include",
+  });
+  return readSelfhostJson(res) as Promise<{
+    program: import("@/lib/training-repo").ProgramRow | null;
+    days: import("@/lib/training-repo").DayRow[];
+  }>;
+}
+
+export async function selfhostSaveTrainingDraft(payload: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/admin/training/draft", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res) as Promise<{
+    program: import("@/lib/training-repo").ProgramRow;
+    days: import("@/lib/training-repo").DayRow[];
+  }>;
+}
+
+export async function selfhostPatchTrainingDay(payload: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/admin/training/day", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true }>;
+}
+
+export async function selfhostPatchTrainingProgram(payload: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/admin/training/program", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true }>;
+}
+
+export async function selfhostPublishTraining(payload: {
+  clientId: string;
+  courseId?: string | null;
+  reason?: string | null;
+  idempotencyKey?: string;
+}) {
+  const res = await selfhostFetch("/api/selfhost/admin/training/publish", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res) as Promise<{
+    versionId: string;
+    contentHash: string;
+    idempotent: boolean;
+  }>;
+}
+
+export async function selfhostTrainingExercises() {
+  const res = await fetch("/api/selfhost/admin/training/exercises", { credentials: "include" });
+  const data = await readSelfhostJson(res);
+  return (data.items ?? []) as import("@/lib/training").Exercise[];
+}
+
+export async function selfhostTrainingProfile(clientId: string) {
+  const res = await fetch(
+    `/api/selfhost/admin/training/profile?clientId=${encodeURIComponent(clientId)}`,
+    { credentials: "include" },
+  );
+  const data = await readSelfhostJson(res);
+  return data.profile as Awaited<ReturnType<typeof import("@/lib/training-repo").loadProgramProfile>>;
+}
+
 export async function selfhostDashboardOverview(clientId?: string | null) {
   const params = new URLSearchParams();
   if (clientId) params.set("clientId", clientId);

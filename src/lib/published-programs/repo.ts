@@ -495,7 +495,23 @@ export async function publishTrainingProgram(params: {
     programWeeks: params.programWeeks,
     notes: params.notes,
     targetsManual: true,
+    preserveFaq: (params.faq as never) ?? null,
   });
+
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    const { selfhostPublishTraining } = await import("@/lib/selfhost/client-api");
+    const published = await selfhostPublishTraining({
+      clientId: params.userId,
+      courseId: params.courseId,
+      reason: "trainer_publish",
+      idempotencyKey:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `train-publish-${params.userId}-${Date.now()}`,
+    });
+    return { versionId: published.versionId, usedRpc: true };
+  }
 
   const snapshot = buildTrainingSnapshot({
     name: params.name,
