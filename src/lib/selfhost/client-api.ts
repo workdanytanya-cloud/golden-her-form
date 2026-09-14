@@ -49,7 +49,19 @@ export async function usesLocalLinksMedia(): Promise<boolean> {
 
 async function readSelfhostJson(res: Response): Promise<Record<string, unknown>> {
   const data = (await res.json()) as Record<string, unknown>;
-  if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Ошибка сервера");
+  if (!res.ok) {
+    const message = typeof data.error === "string" ? data.error : "Ошибка сервера";
+    // 401: сессия отсутствует/истекла (часто после смены пользователя в той же вкладке).
+    // 403 CSRF: in-memory токен рассинхронизирован с cookie — сбрасываем кэш.
+    if (res.status === 401 || (res.status === 403 && /csrf/i.test(message))) {
+      csrfToken = null;
+    }
+    const err = new Error(
+      res.status === 401 ? `${message}. Войдите снова в кабинет.` : message,
+    ) as Error & { statusCode?: number };
+    err.statusCode = res.status;
+    throw err;
+  }
   return data;
 }
 
@@ -219,8 +231,8 @@ export async function selfhostAdminUpdateCourse(
   return data.course as ClientCourse;
 }
 
-export async function ensureCsrfToken(): Promise<string> {
-  if (csrfToken) return csrfToken;
+export async function ensureCsrfToken(force = false): Promise<string> {
+  if (csrfToken && !force) return csrfToken;
   const res = await fetch("/api/selfhost/csrf", { credentials: "include" });
   const data = (await res.json()) as { csrf?: string };
   csrfToken = data.csrf ?? "";
@@ -229,11 +241,32 @@ export async function ensureCsrfToken(): Promise<string> {
 
 async function selfhostFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
-  if (init.method && init.method !== "GET" && init.method !== "HEAD") {
-    headers.set("x-csrf-token", await ensureCsrfToken());
+  const mutating = Boolean(init.method && init.method !== "GET" && init.method !== "HEAD");
+  const alreadyRetried = Boolean((init as RequestInit & { __csrfRetried?: boolean }).__csrfRetried);
+  if (mutating) {
+    headers.set("x-csrf-token", await ensureCsrfToken(alreadyRetried));
     if (!headers.has("content-type")) headers.set("content-type", "application/json");
   }
-  return fetch(path, { ...init, headers, credentials: "include" });
+  const res = await fetch(path, { ...init, headers, credentials: "include" });
+  // Ровно один повтор при CSRF mismatch. Тело запроса то же — publish не дублируется,
+  // если первая попытка не прошла assertCsrf до мутации.
+  if (mutating && !alreadyRetried && res.status === 403) {
+    const clone = res.clone();
+    try {
+      const body = (await clone.json()) as { error?: string };
+      if (typeof body.error === "string" && /csrf/i.test(body.error)) {
+        csrfToken = null;
+        return selfhostFetch(path, {
+          ...init,
+          headers,
+          __csrfRetried: true,
+        } as RequestInit & { __csrfRetried?: boolean });
+      }
+    } catch {
+      /* оставляем исходный ответ */
+    }
+  }
+  return res;
 }
 
 export async function selfhostLogin(email: string, password: string) {
@@ -351,6 +384,43 @@ export async function selfhostPublishNutrition(payload: {
     contentHash: string;
     idempotent: boolean;
   }>;
+}
+
+export async function selfhostDashboardOverview(clientId?: string | null) {
+  const params = new URLSearchParams();
+  if (clientId) params.set("clientId", clientId);
+  const qs = params.toString();
+  const res = await fetch(`/api/selfhost/dashboard${qs ? `?${qs}` : ""}`, {
+    credentials: "include",
+  });
+  return readSelfhostJson(res) as Promise<{
+    profile: {
+      id: string;
+      full_name: string | null;
+      goal: string | null;
+      height_cm: number | null;
+    } | null;
+    access: { status: string; unlock_source: string | null } | null;
+    onboardingDone: boolean;
+    measurements: Array<{
+      id: string;
+      measured_on: string;
+      weight_kg: number | null;
+      waist_cm: number | null;
+    }>;
+    accessNotif: { id: string; message: string } | null;
+  }>;
+}
+
+export async function selfhostMarkNotificationRead(id: string, clientId?: string | null) {
+  const params = new URLSearchParams();
+  if (clientId) params.set("clientId", clientId);
+  const qs = params.toString();
+  const res = await selfhostFetch(`/api/selfhost/notifications/read${qs ? `?${qs}` : ""}`, {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });
+  await readSelfhostJson(res);
 }
 
 export async function selfhostUnmatchedExercises() {

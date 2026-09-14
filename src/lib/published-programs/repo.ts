@@ -382,6 +382,10 @@ export async function publishConstructorNutrition(params: {
       clientId: params.userId,
       courseId: params.courseId,
       reason: params.reason ?? "trainer_publish",
+      idempotencyKey:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `publish-${params.userId}-${Date.now()}`,
     });
     return { versionId: published.versionId, usedRpc: true };
   }

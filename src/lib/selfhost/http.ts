@@ -33,6 +33,7 @@ import {
   getActivePublishedNutritionPg,
   getActivePublishedTrainingPg,
   getClientAccessPg,
+  getDashboardOverviewPg,
   getPdfAccessMetaPg,
   getProfilePg,
   listClientCoursesPg,
@@ -250,6 +251,27 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         getClientAccessPg(getPostgresPool(), clientId),
       ]);
       return json({ profile, access });
+    }
+
+    if (url.pathname === "/api/selfhost/dashboard" && request.method === "GET") {
+      const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+      const overview = await getDashboardOverviewPg(getPostgresPool(), clientId);
+      return json(overview);
+    }
+
+    if (url.pathname === "/api/selfhost/notifications/read" && request.method === "POST") {
+      assertCsrf(request);
+      const body = await readJson(request);
+      const id = String(body.id ?? "");
+      if (!id) return errorJson("Не указан id уведомления", 400);
+      const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+      await getPostgresPool().query(
+        `UPDATE public.client_notifications
+            SET is_read = true
+          WHERE id = $1 AND user_id = $2`,
+        [id, clientId],
+      );
+      return json({ ok: true });
     }
 
     if (url.pathname === "/api/selfhost/courses" && request.method === "GET") {

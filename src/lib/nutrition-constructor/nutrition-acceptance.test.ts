@@ -60,9 +60,12 @@ describe("acceptance: control KBJU profiles (test catalog)", () => {
 
   for (const profile of [PROFILE_1313, PROFILE_1800]) {
     for (const mode of MODES_ALL) {
+      // two_main_two_snacks на 1800 стабильно ~40s; в полном suite под нагрузкой
+      // упирался в 45s (49084ms) — таймаут, не ослабление допусков KBJU.
+      const profileTimeoutMs = 90_000;
       if (mode === "one_main_three_snacks") {
         for (const primary of PRIMARY_SLOTS) {
-          it(`${profile.name} · ${mode} · ${primary}`, { timeout: 45_000 }, () => {
+          it(`${profile.name} · ${mode} · ${primary}`, { timeout: profileTimeoutMs }, () => {
             const gen = generateConstructorPlan(ctx, {
               targets: profile.targets,
               days_count: 1,
@@ -87,7 +90,7 @@ describe("acceptance: control KBJU profiles (test catalog)", () => {
           });
         }
       } else {
-        it(`${profile.name} · ${mode}`, { timeout: 45_000 }, () => {
+        it(`${profile.name} · ${mode}`, { timeout: profileTimeoutMs }, () => {
           const gen = generateConstructorPlan(ctx, {
             targets: profile.targets,
             days_count: 1,

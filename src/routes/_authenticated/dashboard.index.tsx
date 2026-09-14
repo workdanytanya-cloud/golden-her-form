@@ -46,46 +46,89 @@ function DashboardOverview() {
 
   useEffect(() => {
     if (!effectiveUserId) return;
-    void supabase
-      .from("profiles")
-      .select("full_name, goal, height_cm")
-      .eq("id", effectiveUserId)
-      .maybeSingle()
-      .then(({ data }) => setProfile(data as Profile | null));
+    let cancelled = false;
+    void (async () => {
+      const { usesLocalPostgresCircuit, selfhostDashboardOverview } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (await usesLocalPostgresCircuit()) {
+        const overview = await selfhostDashboardOverview(effectiveUserId);
+        if (cancelled) return;
+        setProfile(
+          overview.profile
+            ? {
+                full_name: overview.profile.full_name,
+                goal: overview.profile.goal,
+                height_cm: overview.profile.height_cm,
+              }
+            : null,
+        );
+        setMeasurements(overview.measurements);
+        setOnboardingDone(overview.onboardingDone);
+        setAccessNotif(overview.accessNotif);
+        return;
+      }
+      void supabase
+        .from("profiles")
+        .select("full_name, goal, height_cm")
+        .eq("id", effectiveUserId)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (!cancelled) setProfile(data as Profile | null);
+        });
 
-    void supabase
-      .from("measurements")
-      .select("id, measured_on, weight_kg, waist_cm")
-      .eq("user_id", effectiveUserId)
-      .order("measured_on", { ascending: false })
-      .limit(5)
-      .then(({ data }) => setMeasurements((data ?? []) as Measurement[]));
+      void supabase
+        .from("measurements")
+        .select("id, measured_on, weight_kg, waist_cm")
+        .eq("user_id", effectiveUserId)
+        .order("measured_on", { ascending: false })
+        .limit(5)
+        .then(({ data }) => {
+          if (!cancelled) setMeasurements((data ?? []) as Measurement[]);
+        });
 
-    void supabase
-      .from("onboarding_responses")
-      .select("completed_at")
-      .eq("user_id", effectiveUserId)
-      .maybeSingle()
-      .then(({ data }) => setOnboardingDone(Boolean((data as { completed_at?: string } | null)?.completed_at)));
+      void supabase
+        .from("onboarding_responses")
+        .select("completed_at")
+        .eq("user_id", effectiveUserId)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (!cancelled) {
+            setOnboardingDone(
+              Boolean((data as { completed_at?: string } | null)?.completed_at),
+            );
+          }
+        });
 
-    void supabase
-      .from("client_notifications")
-      .select("id, message")
-      .eq("user_id", effectiveUserId)
-      .eq("type", "access_granted")
-      .eq("is_read", false)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setAccessNotif(data as { id: string; message: string });
-      });
+      void supabase
+        .from("client_notifications")
+        .select("id, message")
+        .eq("user_id", effectiveUserId)
+        .eq("type", "access_granted")
+        .eq("is_read", false)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (!cancelled && data) setAccessNotif(data as { id: string; message: string });
+        });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [effectiveUserId]);
 
   const dismissAccessNotif = async () => {
     if (!accessNotif) return;
     const id = accessNotif.id;
     setAccessNotif(null);
+    const { usesLocalPostgresCircuit, selfhostMarkNotificationRead } = await import(
+      "@/lib/selfhost/client-api"
+    );
+    if (await usesLocalPostgresCircuit()) {
+      await selfhostMarkNotificationRead(id, effectiveUserId);
+      return;
+    }
     await supabase.from("client_notifications").update({ is_read: true }).eq("id", id);
   };
 

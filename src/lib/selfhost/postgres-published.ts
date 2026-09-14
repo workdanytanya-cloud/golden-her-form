@@ -315,10 +315,63 @@ export async function getClientAccessPg(db: Queryable, userId: string) {
 }
 
 export async function getProfilePg(db: Queryable, userId: string) {
-  const { rows } = await db.query(`SELECT id, full_name FROM public.profiles WHERE id = $1`, [
-    userId,
+  const { rows } = await db.query(
+    `SELECT id, full_name, goal, height_cm FROM public.profiles WHERE id = $1`,
+    [userId],
+  );
+  return (
+    (rows[0] as
+      | { id: string; full_name: string | null; goal: string | null; height_cm: number | null }
+      | undefined) ?? null
+  );
+}
+
+export async function getDashboardOverviewPg(db: Queryable, userId: string) {
+  const [profile, access, onboarding, measurements, notif] = await Promise.all([
+    getProfilePg(db, userId),
+    getClientAccessPg(db, userId),
+    db.query(`SELECT completed_at FROM public.onboarding_responses WHERE user_id = $1`, [userId]),
+    db.query(
+      `SELECT id, measured_on, weight_kg, waist_cm
+         FROM public.measurements
+        WHERE user_id = $1
+        ORDER BY measured_on DESC, created_at DESC
+        LIMIT 5`,
+      [userId],
+    ),
+    db.query(
+      `SELECT id, message
+         FROM public.client_notifications
+        WHERE user_id = $1 AND type = 'access_granted' AND is_read = false
+        ORDER BY created_at DESC
+        LIMIT 1`,
+      [userId],
+    ),
   ]);
-  return (rows[0] as { id: string; full_name: string | null } | undefined) ?? null;
+  const onboardingRow = onboarding.rows[0] as { completed_at?: string | Date | null } | undefined;
+  return {
+    profile,
+    access,
+    onboardingDone: Boolean(onboardingRow?.completed_at),
+    measurements: measurements.rows.map((row) => {
+      const r = row as {
+        id: string;
+        measured_on: string | Date;
+        weight_kg: number | string | null;
+        waist_cm: number | string | null;
+      };
+      return {
+        id: r.id,
+        measured_on:
+          r.measured_on instanceof Date
+            ? r.measured_on.toISOString().slice(0, 10)
+            : String(r.measured_on).slice(0, 10),
+        weight_kg: r.weight_kg == null ? null : Number(r.weight_kg),
+        waist_cm: r.waist_cm == null ? null : Number(r.waist_cm),
+      };
+    }),
+    accessNotif: (notif.rows[0] as { id: string; message: string } | undefined) ?? null,
+  };
 }
 
 export async function upsertExerciseMediaBinding(
