@@ -1,18 +1,35 @@
 import type { PoolClient } from "pg";
-import { summarizeSnapshotExerciseIds } from "@/lib/selfhost/media";
-import type { TrainingSnapshot } from "@/lib/published-programs/types";
+import { resolveSetExerciseId, summarizeSnapshotExerciseIds } from "@/lib/selfhost/media";
+import { normalizeExerciseVideo } from "@/lib/exercise-video";
+import type { FrozenExerciseSet, TrainingSnapshot } from "@/lib/published-programs/types";
+import {
+  ImportAbortError,
+  assignmentRowSchema,
+  canonicalClientExportSchema,
+  courseRowSchema,
+  emergencyClientExportSchema,
+  isEmergencyExport,
+  stripActorFields,
+  versionRowSchema,
+} from "@/lib/selfhost/export-schema";
+
+export { ImportAbortError };
 
 const PLACEHOLDER_HASH =
   "$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
-export class ImportAbortError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ImportAbortError";
-  }
-}
+const PROFILE_COLUMNS = [
+  "full_name",
+  "avatar_url",
+  "phone",
+  "birth_date",
+  "gender",
+  "goal",
+  "height_cm",
+] as const;
 
 export type ClientExport = {
+  matchCount?: number;
   user: {
     id?: string;
     email: string;
@@ -42,18 +59,28 @@ export type ImportClientSummary = {
   assignments: number;
   contentHashes: string[];
   trainingExerciseStats: Array<{
-    versionId: string;
     total: number;
     withExerciseId: number;
     needingManualMatch: number;
+    uniqueTotal: number;
+    uniqueWithExerciseId: number;
+    uniqueNeedingManualMatch: number;
+    confirmedExternalVideos: number;
   }>;
   skippedPublishedSnapshots: number;
+  emailMissing: boolean;
 };
 
 export type ImportRunReport = {
   dryRun: boolean;
+  matchCount: number;
   clients: ImportClientSummary[];
-  failed: Array<{ email?: string; error: string }>;
+  failed: Array<{ error: string }>;
+};
+
+export type ImportOptions = {
+  dryRun?: boolean;
+  email?: string;
 };
 
 function rejectPlaintextPassword(input: unknown, label: string): void {
@@ -64,40 +91,189 @@ function rejectPlaintextPassword(input: unknown, label: string): void {
       throw new ImportAbortError(`${label}: plaintext-пароль в экспорте запрещён`);
     }
   }
+  if (obj.user && typeof obj.user === "object") {
+    rejectPlaintextPassword(obj.user, `${label}.user`);
+  }
 }
 
 function asUuid(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ? value
+    : null;
 }
 
-export function normalizeExportPayload(raw: unknown): ClientExport[] {
+function coerceSnapshot(row: Record<string, unknown>): Record<string, unknown> {
+  const copy = { ...row };
+  if (typeof copy.snapshot === "string") {
+    try {
+      copy.snapshot = JSON.parse(copy.snapshot) as unknown;
+    } catch {
+      throw new ImportAbortError("snapshot не является JSON");
+    }
+  }
+  return copy;
+}
+
+function uniqueExerciseStats(snapshot: TrainingSnapshot): {
+  uniqueTotal: number;
+  uniqueWithExerciseId: number;
+  uniqueNeedingManualMatch: number;
+} {
+  const seen = new Set<string>();
+  let uniqueWithExerciseId = 0;
+  const walk = (sets: FrozenExerciseSet[]) => {
+    for (const set of sets) {
+      const ex = set.exercise;
+      const key = resolveSetExerciseId(set) ?? (ex ? `${ex.slug}:${ex.name}` : JSON.stringify(set));
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (resolveSetExerciseId(set)) uniqueWithExerciseId += 1;
+    }
+  };
+  for (const day of snapshot.days ?? []) {
+    walk(day.warmup);
+    walk(day.exercises);
+    walk(day.cooldown);
+  }
+  return {
+    uniqueTotal: seen.size,
+    uniqueWithExerciseId,
+    uniqueNeedingManualMatch: seen.size - uniqueWithExerciseId,
+  };
+}
+
+function countConfirmedExternalVideos(snapshot: TrainingSnapshot): number {
+  const seen = new Set<string>();
+  let count = 0;
+  const walk = (sets: FrozenExerciseSet[]) => {
+    for (const set of sets) {
+      const ex = set.exercise;
+      if (!ex) continue;
+      const key = ex.id || `${ex.slug}:${ex.name}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const video = normalizeExerciseVideo({
+        video_url: ex.video_url,
+        video: ex.video,
+      });
+      if (
+        video.status === "ok" &&
+        video.url &&
+        (video.provider === "youtube" || video.provider === "rutube")
+      ) {
+        count += 1;
+      }
+    }
+  };
+  for (const day of snapshot.days ?? []) {
+    walk(day.warmup);
+    walk(day.exercises);
+    walk(day.cooldown);
+  }
+  return count;
+}
+
+function trainingStats(row: Record<string, unknown>) {
+  const snapshot = row.snapshot as TrainingSnapshot;
+  const summary = snapshot?.days
+    ? summarizeSnapshotExerciseIds(snapshot)
+    : { total: 0, withExerciseId: 0, needingManualMatch: 0 };
+  const unique = snapshot?.days
+    ? uniqueExerciseStats(snapshot)
+    : { uniqueTotal: 0, uniqueWithExerciseId: 0, uniqueNeedingManualMatch: 0 };
+  return {
+    ...summary,
+    ...unique,
+    confirmedExternalVideos: snapshot?.days ? countConfirmedExternalVideos(snapshot) : 0,
+  };
+}
+
+export function normalizeExportPayload(raw: unknown, options: ImportOptions = {}): ClientExport[] {
+  if (Array.isArray(raw)) {
+    return raw.map((item, i) => normalizeOne(item, `clients[${i}]`, options));
+  }
   if (!raw || typeof raw !== "object") {
     throw new ImportAbortError("Экспорт должен быть JSON-объектом или массивом");
   }
   const root = raw as Record<string, unknown>;
   rejectPlaintextPassword(root, "корень экспорта");
-
-  if (Array.isArray(raw)) {
-    return raw.map((item, i) => normalizeOne(item, `clients[${i}]`));
-  }
   if (Array.isArray(root.clients)) {
-    return root.clients.map((item, i) => normalizeOne(item, `clients[${i}]`));
+    return root.clients.map((item, i) => normalizeOne(item, `clients[${i}]`, options));
   }
-  if (root.user || root.email) {
-    return [normalizeOne(raw, "client")];
-  }
-  throw new ImportAbortError("Не найден список клиентов или объект user");
+  return [normalizeOne(raw, "client", options)];
 }
 
-function normalizeOne(raw: unknown, label: string): ClientExport {
+function fromEmergency(raw: unknown, label: string, options: ImportOptions): ClientExport {
+  const parsed = emergencyClientExportSchema.parse(raw);
+  const nutrition = parsed.published_nutrition
+    ? coerceSnapshot(stripActorFields(versionRowSchema.parse(parsed.published_nutrition) as Record<string, unknown>))
+    : null;
+  const training = parsed.published_training
+    ? coerceSnapshot(stripActorFields(versionRowSchema.parse(parsed.published_training) as Record<string, unknown>))
+    : null;
+  const course = parsed.active_course
+    ? stripActorFields(courseRowSchema.parse(parsed.active_course) as Record<string, unknown>)
+    : null;
+  const clientId =
+    asUuid(course?.client_id) ??
+    asUuid(nutrition?.client_id) ??
+    asUuid(training?.client_id);
+  if (!clientId) throw new ImportAbortError(`${label}: нет client_id`);
+  const assignments: Record<string, unknown>[] = [];
+  if (parsed.assignments?.nutrition) {
+    assignments.push(
+      stripActorFields(assignmentRowSchema.parse(parsed.assignments.nutrition) as Record<string, unknown>),
+    );
+  }
+  if (parsed.assignments?.training) {
+    assignments.push(
+      stripActorFields(assignmentRowSchema.parse(parsed.assignments.training) as Record<string, unknown>),
+    );
+  }
+  const email = options.email?.trim().toLowerCase() ?? "";
+  return {
+    matchCount: parsed.match_count ?? 1,
+    user: {
+      id: clientId,
+      email,
+      password_hash: null,
+      status: "active",
+    },
+    roles: ["client"],
+    profile: parsed.profile ? stripActorFields({ ...parsed.profile }) : null,
+    access: parsed.client_access ? stripActorFields({ ...parsed.client_access }) : null,
+    courses: course ? [course] : [],
+    nutrition_versions: nutrition ? [nutrition] : [],
+    training_versions: training ? [training] : [],
+    assignments,
+  };
+}
+
+function normalizeOne(raw: unknown, label: string, options: ImportOptions = {}): ClientExport {
   if (!raw || typeof raw !== "object") throw new ImportAbortError(`${label}: ожидался объект`);
   rejectPlaintextPassword(raw, label);
-  const obj = raw as Record<string, unknown>;
-  const userRaw = (obj.user && typeof obj.user === "object" ? obj.user : obj) as Record<string, unknown>;
+  if (isEmergencyExport(raw)) {
+    return fromEmergency(raw, label, options);
+  }
+  const parsed = canonicalClientExportSchema.parse(raw);
+  const obj = parsed as Record<string, unknown>;
+  const userRaw = (parsed.user && typeof parsed.user === "object" ? parsed.user : obj) as Record<string, unknown>;
   rejectPlaintextPassword(userRaw, `${label}.user`);
-  const email = String(userRaw.email ?? obj.email ?? "").trim();
-  if (!email) throw new ImportAbortError(`${label}: нет email`);
+  const email = (options.email ?? String(userRaw.email ?? parsed.email ?? "")).trim().toLowerCase();
+  const nutrition = (parsed.nutrition_versions ?? parsed.nutrition_plan_versions ?? []).map((row) =>
+    coerceSnapshot(stripActorFields(row as Record<string, unknown>)),
+  );
+  const training = (parsed.training_versions ?? parsed.training_program_versions ?? []).map((row) =>
+    coerceSnapshot(stripActorFields(row as Record<string, unknown>)),
+  );
+  const courses = (parsed.courses ?? parsed.client_courses ?? []).map((row) =>
+    stripActorFields(row as Record<string, unknown>),
+  );
+  const assignments = (parsed.assignments ?? parsed.client_program_assignments ?? []).map((row) =>
+    stripActorFields(row as Record<string, unknown>),
+  );
   return {
+    matchCount: 1,
     user: {
       id: asUuid(userRaw.id) ?? undefined,
       email,
@@ -105,25 +281,19 @@ function normalizeOne(raw: unknown, label: string): ClientExport {
       email_verified_at: (userRaw.email_verified_at as string | null) ?? null,
       status: typeof userRaw.status === "string" ? userRaw.status : "active",
     },
-    roles: (obj.roles as ClientExport["roles"]) ?? ["client"],
-    profile: (obj.profile as Record<string, unknown>) ?? null,
-    access: (obj.access as Record<string, unknown>) ?? obj.client_access ?? null,
-    courses: (obj.courses as Array<Record<string, unknown>>) ?? (obj.client_courses as Array<Record<string, unknown>>) ?? [],
-    nutrition_versions:
-      (obj.nutrition_versions as Array<Record<string, unknown>>) ??
-      (obj.nutrition_plan_versions as Array<Record<string, unknown>>) ??
-      [],
-    training_versions:
-      (obj.training_versions as Array<Record<string, unknown>>) ??
-      (obj.training_program_versions as Array<Record<string, unknown>>) ??
-      [],
-    assignments:
-      (obj.assignments as Array<Record<string, unknown>>) ??
-      (obj.client_program_assignments as Array<Record<string, unknown>>) ??
-      [],
-    exercise_media_bindings: (obj.exercise_media_bindings as Array<Record<string, unknown>>) ?? [],
-    snapshot_exercise_media_bindings:
-      (obj.snapshot_exercise_media_bindings as Array<Record<string, unknown>>) ?? [],
+    roles: parsed.roles ?? ["client"],
+    profile: parsed.profile ? stripActorFields({ ...parsed.profile }) : null,
+    access: parsed.access
+      ? stripActorFields({ ...parsed.access })
+      : parsed.client_access
+        ? stripActorFields({ ...parsed.client_access })
+        : null,
+    courses,
+    nutrition_versions: nutrition,
+    training_versions: training,
+    assignments,
+    exercise_media_bindings: parsed.exercise_media_bindings,
+    snapshot_exercise_media_bindings: parsed.snapshot_exercise_media_bindings,
   };
 }
 
@@ -167,6 +337,11 @@ async function upsertVersion(
   const version = Number(row.version ?? 1);
   const courseId = asUuid(row.course_id);
   const snapshotJson = JSON.stringify(row.snapshot);
+  let parentVersionId = asUuid(row.parent_version_id);
+  if (parentVersionId) {
+    const parent = await client.query(`SELECT id FROM public.${table} WHERE id = $1`, [parentVersionId]);
+    if (!parent.rowCount) parentVersionId = null;
+  }
 
   const existing = await client.query(
     `SELECT content_hash, status FROM public.${table} WHERE id = $1`,
@@ -184,8 +359,8 @@ async function upsertVersion(
 
   await client.query(
     `INSERT INTO public.${table}
-      (id, client_id, course_id, version, status, snapshot, content_hash, parent_version_id, created_by, published_at, published_by)
-     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10,$11)`,
+      (id, client_id, course_id, version, status, snapshot, content_hash, parent_version_id, published_at)
+     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9)`,
     [
       id,
       asUuid(row.client_id) ?? userId,
@@ -194,46 +369,42 @@ async function upsertVersion(
       status,
       snapshotJson,
       contentHash,
-      asUuid(row.parent_version_id),
-      asUuid(row.created_by),
+      parentVersionId,
       row.published_at ?? null,
-      asUuid(row.published_by),
     ],
   );
   return { id, skipped: false, contentHash };
 }
 
 export async function importOneClient(
-  client: PoolClient,
+  client: PoolClient | null,
   data: ClientExport,
   dryRun: boolean,
 ): Promise<ImportClientSummary> {
   if (dryRun) {
-    const email = data.user.email;
     const hashes = [
       ...(data.nutrition_versions ?? []).map((v) => String(v.content_hash ?? "")),
       ...(data.training_versions ?? []).map((v) => String(v.content_hash ?? "")),
     ].filter(Boolean);
-    const stats = (data.training_versions ?? []).map((row) => {
-      const snapshot = row.snapshot as TrainingSnapshot;
-      const summary = snapshot?.days ? summarizeSnapshotExerciseIds(snapshot) : {
-        total: 0,
-        withExerciseId: 0,
-        needingManualMatch: 0,
-      };
-      return { versionId: String(row.id ?? "unknown"), ...summary };
-    });
     return {
-      email,
+      email: data.user.email,
       userId: data.user.id ?? "(dry-run)",
       courses: data.courses?.length ?? 0,
       nutritionVersions: data.nutrition_versions?.length ?? 0,
       trainingVersions: data.training_versions?.length ?? 0,
       assignments: data.assignments?.length ?? 0,
       contentHashes: hashes,
-      trainingExerciseStats: stats,
+      trainingExerciseStats: (data.training_versions ?? []).map((row) => trainingStats(row)),
       skippedPublishedSnapshots: 0,
+      emailMissing: !data.user.email,
     };
+  }
+
+  if (!data.user.email) {
+    throw new ImportAbortError("Для импорта нужен --email: в экспорте нет адреса");
+  }
+  if (!client) {
+    throw new ImportAbortError("Нет подключения к PostgreSQL");
   }
 
   const userId = await upsertUser(client, data.user);
@@ -268,8 +439,8 @@ export async function importOneClient(
 
   if (data.access) {
     await client.query(
-      `INSERT INTO public.client_access (user_id, status, unlock_source, notes, activated_at, activated_by)
-       VALUES ($1,$2,$3,$4,$5,$6)
+      `INSERT INTO public.client_access (user_id, status, unlock_source, notes, activated_at)
+       VALUES ($1,$2,$3,$4,$5)
        ON CONFLICT (user_id) DO UPDATE SET
          status = EXCLUDED.status,
          unlock_source = EXCLUDED.unlock_source`,
@@ -279,7 +450,6 @@ export async function importOneClient(
         data.access.unlock_source ?? null,
         data.access.notes ?? null,
         data.access.activated_at ?? null,
-        asUuid(data.access.activated_by),
       ],
     );
   }
@@ -288,8 +458,8 @@ export async function importOneClient(
     const id = asUuid(course.id);
     if (!id) throw new ImportAbortError("курс без UUID");
     await client.query(
-      `INSERT INTO public.client_courses (id, client_id, title, start_date, end_date, status, notes, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      `INSERT INTO public.client_courses (id, client_id, title, start_date, end_date, status, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
        ON CONFLICT (id) DO UPDATE SET
          title = EXCLUDED.title,
          start_date = EXCLUDED.start_date,
@@ -303,7 +473,6 @@ export async function importOneClient(
         course.end_date,
         course.status ?? "active",
         course.notes ?? null,
-        asUuid(course.created_by),
       ],
     );
   }
@@ -321,20 +490,14 @@ export async function importOneClient(
     const result = await upsertVersion(client, "training_program_versions", userId, row);
     hashes.push(result.contentHash);
     if (result.skipped) skippedPublishedSnapshots += 1;
-    const snapshot = row.snapshot as TrainingSnapshot;
-    stats.push({
-      versionId: result.id,
-      ...(snapshot?.days
-        ? summarizeSnapshotExerciseIds(snapshot)
-        : { total: 0, withExerciseId: 0, needingManualMatch: 0 }),
-    });
+    stats.push(trainingStats(row));
   }
 
   for (const row of data.assignments ?? []) {
     const id = asUuid(row.id);
     await client.query(
-      `INSERT INTO public.client_program_assignments (id, client_id, kind, course_id, active_version_id, updated_by)
-       VALUES (COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5, $6)
+      `INSERT INTO public.client_program_assignments (id, client_id, kind, course_id, active_version_id)
+       VALUES (COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5)
        ON CONFLICT (client_id, kind, course_id) DO UPDATE SET
          active_version_id = EXCLUDED.active_version_id`,
       [
@@ -343,7 +506,6 @@ export async function importOneClient(
         row.kind,
         asUuid(row.course_id),
         row.active_version_id,
-        asUuid(row.updated_by),
       ],
     );
   }
@@ -372,15 +534,14 @@ export async function importOneClient(
     if (!row.confirmed_by_trainer) continue;
     await client.query(
       `INSERT INTO public.snapshot_exercise_media_bindings
-        (version_id, snapshot_exercise_key, exercise_id, confirmed_by_trainer, created_by)
-       VALUES ($1,$2,$3,$4,$5)
+        (version_id, snapshot_exercise_key, exercise_id, confirmed_by_trainer)
+       VALUES ($1,$2,$3,$4)
        ON CONFLICT (version_id, snapshot_exercise_key) DO NOTHING`,
       [
         row.version_id,
         row.snapshot_exercise_key,
         asUuid(row.exercise_id),
         true,
-        asUuid(row.created_by),
       ],
     );
   }
@@ -395,17 +556,27 @@ export async function importOneClient(
     contentHashes: hashes,
     trainingExerciseStats: stats,
     skippedPublishedSnapshots,
+    emailMissing: false,
   };
 }
 
 export async function importClients(
   clientFactory: () => Promise<PoolClient>,
   payload: unknown,
-  options: { dryRun?: boolean } = {},
+  options: ImportOptions = {},
 ): Promise<ImportRunReport> {
-  const clients = normalizeExportPayload(payload);
-  const report: ImportRunReport = { dryRun: Boolean(options.dryRun), clients: [], failed: [] };
+  const clients = normalizeExportPayload(payload, options);
+  const report: ImportRunReport = {
+    dryRun: Boolean(options.dryRun),
+    matchCount: clients.reduce((sum, item) => sum + (item.matchCount ?? 1), 0),
+    clients: [],
+    failed: [],
+  };
   for (const item of clients) {
+    if (options.dryRun) {
+      report.clients.push(await importOneClient(null, item, true));
+      continue;
+    }
     const pg = await clientFactory();
     try {
       if (!options.dryRun) await pg.query("BEGIN");
@@ -421,7 +592,6 @@ export async function importClients(
         }
       }
       report.failed.push({
-        email: item.user.email,
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -437,10 +607,11 @@ export function printImportReport(report: ImportRunReport): void {
     JSON.stringify(
       {
         dryRun: report.dryRun,
+        match_count: report.matchCount,
         clientCount: report.clients.length,
         failedCount: report.failed.length,
         clients: report.clients.map((c) => ({
-          userId: c.userId,
+          emailMissing: c.emailMissing,
           courseCount: c.courses,
           nutritionVersionCount: c.nutritionVersions,
           trainingVersionCount: c.trainingVersions,
@@ -449,7 +620,7 @@ export function printImportReport(report: ImportRunReport): void {
           skippedPublishedSnapshots: c.skippedPublishedSnapshots,
           trainingExerciseStats: c.trainingExerciseStats,
         })),
-        failed: report.failed.map((f) => ({ error: f.error })),
+        failed: report.failed,
       },
       null,
       2,

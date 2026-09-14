@@ -13,8 +13,7 @@ export async function loadRuntimeConfig(): Promise<RuntimePublicConfig> {
   if (cached) return cached;
   const res = await fetch("/api/selfhost/runtime");
   if (!res.ok) {
-    cached = { authBackend: "supabase", dataBackend: "supabase" };
-    return cached;
+    throw new Error("Не удалось прочитать selfhost runtime; fallback на Supabase запрещён");
   }
   cached = (await res.json()) as RuntimePublicConfig;
   return cached;

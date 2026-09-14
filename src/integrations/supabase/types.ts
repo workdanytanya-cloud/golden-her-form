@@ -1784,6 +1784,16 @@ export type Database = {
         Args: { p_program_id: string; p_rows: Json };
         Returns: number;
       };
+      save_client_training_program_draft: {
+        Args: {
+          p_course_id?: string | null;
+          p_days: Json;
+          p_program: Json;
+          p_program_weeks: number;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
       resolve_client_course_id: {
         Args: { p_client_id: string; p_course_id?: string };
         Returns: string;

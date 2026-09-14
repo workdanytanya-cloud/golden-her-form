@@ -1,4 +1,7 @@
 import "./lib/error-capture";
+import { loadSelfhostEnvFiles } from "./lib/selfhost/load-env";
+
+loadSelfhostEnvFiles();
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";

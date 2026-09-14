@@ -16,6 +16,11 @@ dist-ssr
 .nitro
 *.local
 
+# Local DB dumps and real client exports (never commit)
+*.dump
+*.pgdump
+*emergency-export*
+
 # Env secrets (never commit real keys)
 .env
 .env.*

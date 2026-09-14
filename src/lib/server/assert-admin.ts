@@ -1,17 +1,11 @@
-type SupabaseLike = {
-  from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        eq: (column: string, value: string) => {
-          maybeSingle: () => Promise<{ data: unknown; error: { message: string } | null }>;
-        };
-      };
-    };
-  };
-};
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 /** Проверка admin через user_roles — без public.has_role RPC (revoked у authenticated). */
-export async function assertAdmin(ctx: { supabase: SupabaseLike; userId: string }) {
+export async function assertAdmin(ctx: {
+  supabase: SupabaseClient<Database>;
+  userId: string;
+}) {
   const { data, error } = await ctx.supabase
     .from("user_roles")
     .select("role")

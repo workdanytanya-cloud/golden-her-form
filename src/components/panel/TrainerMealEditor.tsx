@@ -6,6 +6,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { comparisonRows } from "@/lib/nutrition-constructor/calculator";
+import type { PlanSlot } from "@/lib/nutrition-constructor/config";
+import { d, displayMacro } from "@/lib/nutrition-constructor/decimal-math";
 import type { DeviationProposal } from "@/lib/nutrition-constructor/deviation-suggestions";
 import {
   allowedProductsForManualMeal,

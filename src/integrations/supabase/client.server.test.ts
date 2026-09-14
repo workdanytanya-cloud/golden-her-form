@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { resolveDefaultTrainingProgram } from "@/lib/coach-sheet-program";
 import { persistProgramWithDaysForClient } from "@/lib/training-persist";
-import { defaultFaq } from "@/lib/training";
+import { defaultFaq, type Exercise } from "@/lib/training";
+
+function asExerciseCatalog(rows: unknown): Exercise[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((row): row is Exercise => {
+    if (!row || typeof row !== "object") return false;
+    const item = row as Record<string, unknown>;
+    return typeof item.id === "string" && typeof item.slug === "string" && typeof item.name === "string";
+  });
+}
 
 describe("supabaseAdmin server client", () => {
   it("generates and persists Anna program", async () => {
@@ -24,7 +33,7 @@ describe("supabaseAdmin server client", () => {
       gender: "female" as const,
     };
 
-    const plan = resolveDefaultTrainingProgram(exercises ?? [], input);
+    const plan = resolveDefaultTrainingProgram(asExerciseCatalog(exercises), input);
     expect(plan.days.length).toBeGreaterThanOrEqual(21);
 
     const rows = plan.days.map((d) => ({

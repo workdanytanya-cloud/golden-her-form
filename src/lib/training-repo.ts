@@ -45,6 +45,7 @@ export type ProgramRow = {
   faq: FaqItem[];
   targets_manual: boolean;
   program_weeks: number;
+  generated_at?: string;
 };
 
 export type DayRow = {

@@ -100,8 +100,14 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       if (dataBackend === "postgres") {
         const postgres = await checkPostgresHealth();
         return json(
-          { ok: postgres === "up", authBackend, dataBackend, postgres },
-          postgres === "up" ? 200 : 503,
+          {
+            ok: postgres.status === "up",
+            authBackend,
+            dataBackend,
+            postgres: postgres.status,
+            reason: postgres.reason ?? null,
+          },
+          postgres.status === "up" ? 200 : 503,
         );
       }
       return json({ ok: true, authBackend, dataBackend, postgres: "skipped" });
