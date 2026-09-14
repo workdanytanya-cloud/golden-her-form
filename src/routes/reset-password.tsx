@@ -1,11 +1,17 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { loadRuntimeConfig } from "@/lib/selfhost/client-api";
 import { toast } from "sonner";
+
+const searchSchema = z.object({
+  token: z.string().optional(),
+});
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
+  validateSearch: searchSchema,
   component: ResetPasswordPage,
 });
 
@@ -16,24 +22,49 @@ const passwordSchema = z
 
 function ResetPasswordPage() {
   const navigate = useNavigate();
-  const [ready, setReady] = useState(false);
+  const search = useSearch({ from: "/reset-password" });
+  const [mode, setMode] = useState<"loading" | "local" | "supabase" | "missing">("loading");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Supabase parses the recovery link and emits PASSWORD_RECOVERY.
-    // If the user reloads with a live session, allow updating too.
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
-        setReady(true);
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    void (async () => {
+      const runtime = await loadRuntimeConfig();
+      if (cancelled) return;
+      if (runtime.authBackend === "local") {
+        setMode(search.token ? "local" : "missing");
+        return;
       }
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
+      const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+          setMode("supabase");
+        }
+      });
+      unsubscribe = () => sub.subscription.unsubscribe();
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (data.session) {
+        setMode("supabase");
+        return;
+      }
+      timer = setTimeout(() => {
+        void supabase.auth.getSession().then(({ data: again }) => {
+          if (!cancelled) setMode(again.session ? "supabase" : "missing");
+        });
+      }, 800);
+    })();
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+      if (timer) clearTimeout(timer);
+    };
+  }, [search.token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +73,15 @@ function ResetPasswordPage() {
       const parsed = passwordSchema.parse(password);
       if (parsed !== confirm) {
         throw new Error("Пароли не совпадают");
+      }
+      if (mode === "local") {
+        const token = search.token;
+        if (!token) throw new Error("В ссылке нет токена восстановления");
+        const { selfhostConfirmPasswordReset } = await import("@/lib/selfhost/client-api");
+        await selfhostConfirmPasswordReset(token, parsed);
+        toast.success("Пароль обновлён");
+        await navigate({ to: "/auth" });
+        return;
       }
       const { error } = await supabase.auth.updateUser({ password: parsed });
       if (error) throw error;
@@ -61,6 +101,8 @@ function ResetPasswordPage() {
     }
   };
 
+  const ready = mode === "local" || mode === "supabase";
+
   return (
     <div className="min-h-screen bg-background text-ivory">
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
@@ -71,9 +113,11 @@ function ResetPasswordPage() {
         <div className="glass rounded-3xl p-8">
           <h1 className="font-display text-3xl text-ivory">Новый пароль</h1>
           <p className="mt-2 text-sm text-warm-gray">
-            {ready
-              ? "Придумайте новый пароль для вашего аккаунта."
-              : "Проверяем ссылку восстановления..."}
+            {mode === "loading"
+              ? "Проверяем ссылку восстановления..."
+              : mode === "missing"
+                ? "Ссылка недействительна или устарела. Запросите новую с экрана восстановления пароля."
+                : "Придумайте новый пароль для вашего аккаунта."}
           </p>
 
           {ready && (
@@ -115,6 +159,15 @@ function ResetPasswordPage() {
                 {submitting ? "..." : "Сохранить пароль"}
               </button>
             </form>
+          )}
+
+          {mode === "missing" && (
+            <Link
+              to="/forgot-password"
+              className="mt-6 block text-center text-sm text-gold hover:underline"
+            >
+              Запросить новую ссылку
+            </Link>
           )}
         </div>
       </div>

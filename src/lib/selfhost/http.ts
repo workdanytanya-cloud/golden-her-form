@@ -72,6 +72,13 @@ import {
   signupPromoSchema,
 } from "@/lib/selfhost/postgres-promos";
 import {
+  confirmPasswordResetPg,
+  passwordResetConfirmSchema,
+  passwordResetRequestSchema,
+  requestPasswordResetPg,
+} from "@/lib/selfhost/postgres-password-reset";
+import { describeMailConfigForOps } from "@/lib/selfhost/mail";
+import {
   PostgresAdminClientRepository,
   adminClientAccessSchema,
   adminClientListQuerySchema,
@@ -188,6 +195,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       const dataBackend = getDataBackend();
       if (dataBackend === "postgres") {
         const postgres = await checkPostgresHealth();
+        const mail = authBackend === "local" ? describeMailConfigForOps() : null;
         return json(
           {
             ok: postgres.status === "up",
@@ -196,6 +204,14 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
             mediaBackend: getMediaBackend(),
             postgres: postgres.status,
             reason: postgres.reason ?? null,
+            passwordReset: mail
+              ? {
+                  transport: mail.transport,
+                  publicAppUrlConfigured: mail.publicAppUrlConfigured,
+                  productionReady: mail.productionReady,
+                  blocker: mail.blocker,
+                }
+              : null,
           },
           postgres.status === "up" ? 200 : 503,
         );
@@ -271,6 +287,31 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         }),
         { status: 200, headers },
       );
+    }
+
+    if (url.pathname === "/api/selfhost/password-reset/request" && request.method === "POST") {
+      if (getAuthBackend() !== "local") {
+        return errorJson("Локальная авторизация выключена", 503);
+      }
+      requirePostgres();
+      assertCsrf(request);
+      const body = await readJson(request);
+      const parsed = passwordResetRequestSchema.parse(body);
+      const result = await requestPasswordResetPg(getPostgresPool(), parsed, request);
+      // Uniform body — never include token, email existence, or mail internals.
+      return json({ ok: true, message: result.message });
+    }
+
+    if (url.pathname === "/api/selfhost/password-reset/confirm" && request.method === "POST") {
+      if (getAuthBackend() !== "local") {
+        return errorJson("Локальная авторизация выключена", 503);
+      }
+      requirePostgres();
+      assertCsrf(request);
+      const body = await readJson(request);
+      const parsed = passwordResetConfirmSchema.parse(body);
+      await confirmPasswordResetPg(getPostgresPool(), parsed);
+      return json({ ok: true });
     }
 
     if (url.pathname === "/api/selfhost/logout" && request.method === "POST") {

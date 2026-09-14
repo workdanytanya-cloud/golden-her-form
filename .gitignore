@@ -67,3 +67,6 @@ public/__l5e/
 *.njsproj
 *.sln
 *.sw?
+
+.selfhost-mail-catcher/
+

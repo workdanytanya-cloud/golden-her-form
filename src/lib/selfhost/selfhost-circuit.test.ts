@@ -14,6 +14,9 @@ import {
   ImportAbortError,
 } from "@/lib/selfhost/import-client";
 import { resetLoginRateLimitForTests } from "@/lib/selfhost/local-auth";
+import { resetPasswordResetRateLimitForTests } from "@/lib/selfhost/postgres-password-reset";
+import fs from "node:fs";
+import os from "node:os";
 import { hashPasswordArgon2id } from "@/lib/selfhost/passwords";
 import { upsertExerciseMediaBinding } from "@/lib/selfhost/postgres-published";
 import { publishNutritionVersionPg, seedNutritionCatalog } from "@/lib/selfhost/postgres-nutrition";
@@ -543,6 +546,9 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       "MEDIA_BACKEND",
       "DATABASE_URL",
       "SESSION_COOKIE_SECURE",
+      "SELFHOST_PUBLIC_URL",
+      "SELFHOST_MAIL_TRANSPORT",
+      "SELFHOST_MAIL_DIR",
     ]) {
       envBackup[key] = process.env[key];
     }
@@ -552,6 +558,9 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     process.env.DATABASE_URL = url;
     process.env.SESSION_COOKIE_SECURE = "0";
     process.env.NODE_ENV = "test";
+    process.env.SELFHOST_PUBLIC_URL = "http://selfhost.local";
+    process.env.SELFHOST_MAIL_TRANSPORT = "file";
+    process.env.SELFHOST_MAIL_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "panova-mail-"));
     pool = new pg.Pool({ connectionString: url });
     await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
     const first = await applyMigrations(pool);
@@ -578,6 +587,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
 
   beforeEach(() => {
     resetLoginRateLimitForTests();
+    resetPasswordResetRateLimitForTests();
   });
 
   afterAll(async () => {
@@ -3108,6 +3118,193 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     expect(clients.items.some((c: { email: string }) => c.email === "promo-new@example.test")).toBe(
       true,
     );
+  });
+
+  it("восстановление пароля: uniform reply, token hash, sessions, rate limit", async () => {
+    const mailDir = process.env.SELFHOST_MAIL_DIR!;
+    for (const f of fs.readdirSync(mailDir)) fs.unlinkSync(path.join(mailDir, f));
+
+    const guest = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: guest });
+
+    const unknown = await req("/api/selfhost/password-reset/request", {
+      method: "POST",
+      jar: guest,
+      body: JSON.stringify({ email: "nobody-reset@example.test" }),
+    });
+    expect(unknown.status).toBe(200);
+    const unknownBody = await unknown.json();
+    expect(unknownBody.message).toMatch(/если аккаунт/i);
+    expect(JSON.stringify(unknownBody)).not.toMatch(/token|password|argon2/i);
+    expect(fs.readdirSync(mailDir)).toHaveLength(0);
+
+    const known = await req("/api/selfhost/password-reset/request", {
+      method: "POST",
+      jar: guest,
+      body: JSON.stringify({ email: "client-a@example.test" }),
+    });
+    expect(known.status).toBe(200);
+    const knownBody = await known.json();
+    expect(knownBody.message).toBe(unknownBody.message);
+    expect(JSON.stringify(knownBody)).not.toMatch(/token=/i);
+
+    const files = fs.readdirSync(mailDir);
+    expect(files.length).toBe(1);
+    const captured = JSON.parse(fs.readFileSync(path.join(mailDir, files[0]), "utf8")) as {
+      to: string;
+      text: string;
+      note: string;
+    };
+    expect(captured.to).toBe("client-a@example.test");
+    expect(captured.note).toContain("LOCAL_MAIL_CATCHER");
+    const linkMatch = captured.text.match(/http:\/\/selfhost\.local\/reset-password\?token=([^\s]+)/);
+    expect(linkMatch).toBeTruthy();
+    const token = decodeURIComponent(linkMatch![1]);
+
+    const stored = await pool.query(
+      `SELECT token_hash, used_at FROM password_reset_tokens ORDER BY created_at DESC LIMIT 1`,
+    );
+    expect(stored.rows[0].used_at).toBeNull();
+    expect(String(stored.rows[0].token_hash)).not.toBe(token);
+    expect(String(stored.rows[0].token_hash).length).toBe(64);
+
+    // Login + session, then reset must revoke it
+    const sessionJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: sessionJar });
+    expect(
+      (
+        await req("/api/selfhost/login", {
+          method: "POST",
+          jar: sessionJar,
+          body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+        })
+      ).status,
+    ).toBe(200);
+    expect((await req("/api/selfhost/me", { jar: sessionJar })).status).toBe(200);
+    const meBefore = await (await req("/api/selfhost/me", { jar: sessionJar })).json();
+    expect(meBefore.session).toBeTruthy();
+
+    const confirmJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: confirmJar });
+    const confirm = await req("/api/selfhost/password-reset/confirm", {
+      method: "POST",
+      jar: confirmJar,
+      body: JSON.stringify({ token, password: "NewPassw0rd!" }),
+    });
+    expect(confirm.status).toBe(200);
+    expect(JSON.stringify(await confirm.json())).not.toMatch(/NewPassw0rd|token/i);
+
+    // Old password fails
+    const oldLogin = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: oldLogin });
+    expect(
+      (
+        await req("/api/selfhost/login", {
+          method: "POST",
+          jar: oldLogin,
+          body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+        })
+      ).status,
+    ).toBe(401);
+
+    // Previous session revoked
+    const meAfter = await (await req("/api/selfhost/me", { jar: sessionJar })).json();
+    expect(meAfter.session).toBeNull();
+
+    // New password works
+    expect(
+      (
+        await req("/api/selfhost/login", {
+          method: "POST",
+          jar: oldLogin,
+          body: JSON.stringify({ email: "client-a@example.test", password: "NewPassw0rd!" }),
+        })
+      ).status,
+    ).toBe(200);
+
+    // Reuse token
+    const reuse = await req("/api/selfhost/password-reset/confirm", {
+      method: "POST",
+      jar: confirmJar,
+      body: JSON.stringify({ token, password: "AnotherPass1!" }),
+    });
+    expect(reuse.status).toBe(400);
+
+    // Expired token
+    for (const f of fs.readdirSync(mailDir)) fs.unlinkSync(path.join(mailDir, f));
+    resetPasswordResetRateLimitForTests();
+    await req("/api/selfhost/password-reset/request", {
+      method: "POST",
+      jar: guest,
+      body: JSON.stringify({ email: "client-a@example.test" }),
+    });
+    const expFile = fs.readdirSync(mailDir)[0];
+    const expText = JSON.parse(fs.readFileSync(path.join(mailDir, expFile), "utf8")).text as string;
+    const expToken = decodeURIComponent(
+      expText.match(/reset-password\?token=([^\s]+)/)![1],
+    );
+    await pool.query(
+      `UPDATE password_reset_tokens SET expires_at = now() - interval '1 minute'
+        WHERE used_at IS NULL`,
+    );
+    const expired = await req("/api/selfhost/password-reset/confirm", {
+      method: "POST",
+      jar: confirmJar,
+      body: JSON.stringify({ token: expToken, password: "ExpiredPass1!" }),
+    });
+    expect(expired.status).toBe(400);
+
+    // Concurrent confirm of one fresh token
+    for (const f of fs.readdirSync(mailDir)) fs.unlinkSync(path.join(mailDir, f));
+    resetPasswordResetRateLimitForTests();
+    await req("/api/selfhost/password-reset/request", {
+      method: "POST",
+      jar: guest,
+      body: JSON.stringify({ email: "client-b@example.test" }),
+    });
+    const raceText = JSON.parse(
+      fs.readFileSync(path.join(mailDir, fs.readdirSync(mailDir)[0]), "utf8"),
+    ).text as string;
+    const raceToken = decodeURIComponent(
+      raceText.match(/reset-password\?token=([^\s]+)/)![1],
+    );
+    const c1 = new CookieJar();
+    const c2 = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: c1 });
+    await req("/api/selfhost/csrf", { jar: c2 });
+    const [a, b] = await Promise.all([
+      req("/api/selfhost/password-reset/confirm", {
+        method: "POST",
+        jar: c1,
+        body: JSON.stringify({ token: raceToken, password: "RacePass01!" }),
+      }),
+      req("/api/selfhost/password-reset/confirm", {
+        method: "POST",
+        jar: c2,
+        body: JSON.stringify({ token: raceToken, password: "RacePass02!" }),
+      }),
+    ]);
+    const st = [a.status, b.status].sort((x, y) => x - y);
+    expect(st[0]).toBe(200);
+    expect(st[1]).toBe(400);
+
+    // Rate limit
+    resetPasswordResetRateLimitForTests();
+    let limited = 0;
+    for (let i = 0; i < 8; i++) {
+      const r = await req("/api/selfhost/password-reset/request", {
+        method: "POST",
+        jar: guest,
+        body: JSON.stringify({ email: `rate-${i}@example.test` }),
+      });
+      if (r.status === 429) limited += 1;
+    }
+    expect(limited).toBeGreaterThan(0);
+
+    // Restore client-a password for later tests if any still expect Passw0rd!
+    await pool.query(`UPDATE users SET password_hash = $1 WHERE email = 'client-a@example.test'`, [
+      await hashPasswordArgon2id("Passw0rd!"),
+    ]);
   });
 
   it("не обращается к Supabase в local/postgres", () => {

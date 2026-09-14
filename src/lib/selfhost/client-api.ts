@@ -796,6 +796,22 @@ export async function selfhostAdminRevokePromo(id: string) {
   return readSelfhostJson(res) as Promise<{ ok: true }>;
 }
 
+export async function selfhostRequestPasswordReset(email: string) {
+  const res = await selfhostFetch("/api/selfhost/password-reset/request", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true; message: string }>;
+}
+
+export async function selfhostConfirmPasswordReset(token: string, password: string) {
+  const res = await selfhostFetch("/api/selfhost/password-reset/confirm", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true }>;
+}
+
 export function resetSelfhostClientCacheForTests() {
   cached = null;
   csrfToken = null;

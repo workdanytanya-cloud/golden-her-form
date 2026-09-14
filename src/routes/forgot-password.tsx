@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { loadRuntimeConfig } from "@/lib/selfhost/client-api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/forgot-password")({
@@ -21,6 +22,14 @@ function ForgotPasswordPage() {
     setSubmitting(true);
     try {
       const parsed = emailSchema.parse(email);
+      const runtime = await loadRuntimeConfig();
+      if (runtime.authBackend === "local") {
+        const { selfhostRequestPasswordReset } = await import("@/lib/selfhost/client-api");
+        const res = await selfhostRequestPasswordReset(parsed);
+        setSent(true);
+        toast.success(res.message || "Если аккаунт существует, письмо отправлено");
+        return;
+      }
       const { error } = await supabase.auth.resetPasswordForEmail(parsed, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
@@ -51,7 +60,7 @@ function ForgotPasswordPage() {
           <h1 className="font-display text-3xl text-ivory">Восстановление пароля</h1>
           <p className="mt-2 text-sm text-warm-gray">
             {sent
-              ? "Мы отправили ссылку на восстановление пароля. Проверьте почту."
+              ? "Если аккаунт с таким email существует, мы отправили ссылку. Проверьте почту."
               : "Введите email — мы отправим ссылку для смены пароля."}
           </p>
 
