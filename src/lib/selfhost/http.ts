@@ -205,6 +205,10 @@ function coursesRepo(): PostgresClientCourseRepository {
   return new PostgresClientCourseRepository(getPostgresPool());
 }
 
+function asClientIdParam(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
 function scopedClientId(session: LocalSession, requested?: string | null): string {
   const access = resolvePdfClientId({
     sessionUserId: session.userId,
@@ -464,7 +468,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         : decodeURIComponent(url.pathname.slice("/api/selfhost/media/".length));
       if (!relative) return errorJson("Не указан путь медиа", 400);
       const file = readMediaFile(relative);
-      return new Response(file.bytes, {
+      return new Response(new Uint8Array(file.bytes), {
         status: 200,
         headers: {
           "content-type": file.contentType,
@@ -501,7 +505,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
     if (url.pathname === "/api/selfhost/profile" && request.method === "POST") {
       assertCsrf(request);
       const body = await readJson(request);
-      const clientId = scopedClientId(session, body.clientId ?? null);
+      const clientId = scopedClientId(session, asClientIdParam(body.clientId));
       const hasProfilePatch =
         body.full_name !== undefined ||
         body.phone !== undefined ||
@@ -548,7 +552,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       const body = await readJson(request);
       const parsed = measurementCreateSchema.parse({
         ...body,
-        clientId: scopedClientId(session, body.clientId ?? null),
+        clientId: scopedClientId(session, asClientIdParam(body.clientId)),
         idempotencyKey: body.idempotencyKey ?? request.headers.get("idempotency-key"),
       });
       const result = await createMeasurementPg(getPostgresPool(), parsed);
@@ -583,7 +587,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       const body = await readJson(request);
       const parsed = onboardingSaveSchema.parse({
         ...body,
-        clientId: scopedClientId(session, body.clientId ?? null),
+        clientId: scopedClientId(session, asClientIdParam(body.clientId)),
       });
       const saved = await saveOnboardingPg(getPostgresPool(), parsed);
       return json(saved);
@@ -609,7 +613,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       const body = await readJson(request);
       const parsed = weeklyCheckInSaveSchema.parse({
         ...body,
-        clientId: scopedClientId(session, body.clientId ?? null),
+        clientId: scopedClientId(session, asClientIdParam(body.clientId)),
       });
       const saved = await saveWeeklyCheckInPg(getPostgresPool(), parsed);
       return json(saved);

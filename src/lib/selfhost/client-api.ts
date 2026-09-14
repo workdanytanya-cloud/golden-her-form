@@ -560,13 +560,15 @@ export async function selfhostTrainingExercises() {
   return (data.items ?? []) as import("@/lib/training").Exercise[];
 }
 
-export async function selfhostTrainingProfile(clientId: string) {
+export async function selfhostTrainingProfile(
+  clientId: string,
+): Promise<import("@/lib/training-repo").TrainingProgramProfile> {
   const res = await fetch(
     `/api/selfhost/admin/training/profile?clientId=${encodeURIComponent(clientId)}`,
     { credentials: "include" },
   );
   const data = await readSelfhostJson(res);
-  return data.profile as Awaited<ReturnType<typeof import("@/lib/training-repo").loadProgramProfile>>;
+  return data.profile as import("@/lib/training-repo").TrainingProgramProfile;
 }
 
 export async function selfhostDashboardOverview(clientId?: string | null) {

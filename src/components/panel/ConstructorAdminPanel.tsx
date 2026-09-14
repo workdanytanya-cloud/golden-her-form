@@ -379,12 +379,13 @@ export function ConstructorAdminPanel({
       setPreviewMode(scheduleMode);
       applyDays(result.days);
       setReviewReason(result.review_reason);
+      const targetsRaw = (result.targets ?? {}) as Record<string, unknown>;
       const targetMacro = {
-        kcal: d((result.targets as { kcal: unknown }).kcal),
-        protein_g: d((result.targets as { protein_g: unknown }).protein_g),
-        fat_g: d((result.targets as { fat_g: unknown }).fat_g),
-        carbs_g: d((result.targets as { carbs_g: unknown }).carbs_g),
-        fiber_g: d((result.targets as { fiber_g?: unknown }).fiber_g ?? 0),
+        kcal: d(toNum(targetsRaw.kcal)),
+        protein_g: d(toNum(targetsRaw.protein_g)),
+        fat_g: d(toNum(targetsRaw.fat_g)),
+        carbs_g: d(toNum(targetsRaw.carbs_g)),
+        fiber_g: d(toNum(targetsRaw.fiber_g ?? 0)),
       };
       const status = evaluatePlanKbjuStatus({
         days: result.days,

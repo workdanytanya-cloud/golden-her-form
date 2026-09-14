@@ -17,6 +17,7 @@ import {
   defaultFaq,
   type Exercise,
   type ExerciseSet,
+  type FaqItem,
   type ProgramDay,
   type ProgramInput,
 } from "@/lib/training";
@@ -146,10 +147,16 @@ function mapDayRow(row: Record<string, unknown>): DayRow {
   };
 }
 
-function collectExerciseIds(days: Array<{ warmup: ExerciseSet[]; exercises: ExerciseSet[]; cooldown: ExerciseSet[] }>) {
+function collectExerciseIds(
+  days: Array<{
+    warmup?: Array<{ exercise_id: string }>;
+    exercises?: Array<{ exercise_id: string }>;
+    cooldown?: Array<{ exercise_id: string }>;
+  }>,
+) {
   const ids = new Set<string>();
   for (const day of days) {
-    for (const set of [...day.warmup, ...day.exercises, ...day.cooldown]) {
+    for (const set of [...(day.warmup ?? []), ...(day.exercises ?? []), ...(day.cooldown ?? [])]) {
       if (set.exercise_id) ids.add(set.exercise_id);
     }
   }
@@ -174,15 +181,12 @@ export async function listTrainingExercisesPg(db: Queryable): Promise<Exercise[]
     const r = raw as Record<string, unknown>;
     const video = normalizeExerciseVideo({
       video_url: (r.bind_source_url as string | null) ?? (r.video_url as string | null),
-      video: {
-        provider: (r.bind_provider as string | null) ?? (r.video_provider as string | null),
-        url: (r.bind_source_url as string | null) ?? (r.video_url as string | null),
-        embed_url: (r.bind_embed_url as string | null) ?? (r.video_embed_url as string | null),
-        title: (r.bind_title as string | null) ?? (r.video_title as string | null),
-        status: (r.bind_status as string | null) ?? (r.video_status as string | null),
-        fallback_text:
-          (r.bind_fallback as string | null) ?? (r.video_fallback_text as string | null),
-      },
+      video_provider: (r.bind_provider as string | null) ?? (r.video_provider as string | null),
+      video_embed_url: (r.bind_embed_url as string | null) ?? (r.video_embed_url as string | null),
+      video_title: (r.bind_title as string | null) ?? (r.video_title as string | null),
+      video_status: (r.bind_status as string | null) ?? (r.video_status as string | null),
+      video_fallback_text:
+        (r.bind_fallback as string | null) ?? (r.video_fallback_text as string | null),
     });
     return {
       id: r.id as string,
@@ -773,12 +777,13 @@ export async function publishTrainingVersionPg(
     }
 
     const draft = await loadTrainingDraftPg(client, input.clientId, courseId);
-    if (!draft.program || draft.days.length === 0) {
+    const program = draft.program;
+    if (!program || draft.days.length === 0) {
       throw Object.assign(new Error("Нельзя опубликовать пустой черновик тренировок"), {
         statusCode: 400,
       });
     }
-    assertPublishableTrainingDraft(draft);
+    assertPublishableTrainingDraft({ program, days: draft.days });
     await assertExercisesExist(client, collectExerciseIds(draft.days));
 
     const exercises = await listTrainingExercisesPg(client);
@@ -800,16 +805,16 @@ export async function publishTrainingVersionPg(
     }));
 
     const snapshot = buildTrainingSnapshot({
-      sessions_per_week: draft.program.sessions_per_week,
-      goal: draft.program.goal,
-      level: draft.program.level,
-      has_injuries: draft.program.has_injuries,
-      injuries_details: draft.program.injuries_details,
-      equipment: draft.program.equipment,
-      location: draft.program.location,
-      notes: draft.program.notes,
-      faq: draft.program.faq,
-      program_weeks: draft.program.program_weeks,
+      sessions_per_week: program.sessions_per_week,
+      goal: program.goal,
+      level: program.level,
+      has_injuries: program.has_injuries,
+      injuries_details: program.injuries_details,
+      equipment: program.equipment,
+      location: program.location,
+      notes: program.notes,
+      faq: program.faq,
+      program_weeks: program.program_weeks,
       days: programDays,
       exercises: freezeList,
     });

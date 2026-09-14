@@ -4055,7 +4055,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     const upload = async (bytes: Buffer, type: string, folder = "dishes/images") => {
       const form = new FormData();
       form.set("folder", folder);
-      form.set("file", new File([bytes], "upload.bin", { type }));
+      form.set("file", new File([new Uint8Array(bytes)], "upload.bin", { type }));
       return req("/api/selfhost/admin/media/upload", {
         method: "POST",
         jar: adminJar,

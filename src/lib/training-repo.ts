@@ -285,7 +285,20 @@ export async function loadProgramFor(
   };
 }
 
-export async function loadProgramProfile(userId: string) {
+export type TrainingProgramProfile = {
+  sessions_per_week: 3 | 4;
+  goal: ProgramGoal;
+  level: ProgramLevel;
+  has_injuries: boolean;
+  injuries_details: string | null;
+  equipment: string[];
+  location: string | null;
+  weight_kg: number | null;
+  gender: "female" | "male" | null;
+  access_status: string | null;
+};
+
+export async function loadProgramProfile(userId: string): Promise<TrainingProgramProfile> {
   const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
   if (await usesLocalPostgresCircuit()) {
     const { selfhostTrainingProfile } = await import("@/lib/selfhost/client-api");
@@ -538,7 +551,7 @@ export async function updateDayPatch(
   const dbPatch: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(patch)) dbPatch[k] = v as unknown;
 
-  let query = supabase
+  const query = supabase
     .from("training_program_days")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .update(dbPatch as any)
