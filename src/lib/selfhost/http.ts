@@ -79,6 +79,14 @@ import {
 } from "@/lib/selfhost/postgres-password-reset";
 import { describeMailConfigForOps } from "@/lib/selfhost/mail";
 import {
+  assertLeadSubmitRateLimit,
+  createLeadPg,
+  leadCreateSchema,
+  leadStatusSchema,
+  listLeadsPg,
+  updateLeadStatusPg,
+} from "@/lib/selfhost/postgres-leads";
+import {
   PostgresAdminClientRepository,
   adminClientAccessSchema,
   adminClientListQuerySchema,
@@ -312,6 +320,60 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       const parsed = passwordResetConfirmSchema.parse(body);
       await confirmPasswordResetPg(getPostgresPool(), parsed);
       return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/selfhost/leads") {
+      // Public lead intake only — never expose a leads list on this path.
+      if (request.method !== "POST") {
+        return errorJson("Not found", 404);
+      }
+      if (!isLocalClientCircuit()) {
+        return errorJson("Клиентский PostgreSQL-контур выключен", 404);
+      }
+      assertCsrf(request);
+      assertLeadSubmitRateLimit(request);
+      const body = await readJson(request);
+      const parsed = leadCreateSchema.parse({
+        ...body,
+        idempotencyKey: body.idempotencyKey ?? request.headers.get("idempotency-key"),
+      });
+      const created = await createLeadPg(getPostgresPool(), parsed);
+      if (created.honeypot) {
+        return json({ ok: true, id: null, build: "selfhost-leads-v1", notified: false });
+      }
+      let notified = false;
+      let notify: Record<string, unknown> | undefined;
+      if (created.lead && !created.idempotent) {
+        try {
+          const { dispatchLeadNotifications } = await import("@/lib/leads.functions");
+          const dispatch = await dispatchLeadNotifications(
+            {
+              full_name: created.lead.full_name,
+              age: created.lead.age,
+              phone: created.lead.phone,
+              email: created.lead.email,
+              messenger: created.lead.messenger as "telegram" | "max" | "whatsapp" | "any",
+              source: created.lead.source as "general" | "program" | "question",
+              program_slug: created.lead.program_slug,
+              program_title: created.lead.program_title,
+              message: created.lead.message,
+            },
+            created.lead.id,
+          );
+          notified = dispatch.notified;
+          notify = dispatch.notify;
+        } catch {
+          notified = false;
+        }
+      }
+      return json({
+        ok: true,
+        id: created.lead?.id ?? null,
+        idempotent: created.idempotent,
+        build: "selfhost-leads-v1",
+        notified,
+        notify,
+      });
     }
 
     if (url.pathname === "/api/selfhost/logout" && request.method === "POST") {
@@ -892,6 +954,30 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       requireAdmin(session);
       const items = await listPromoCodesPg(getPostgresPool());
       return json({ items });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/leads" && request.method === "GET") {
+      requireAdmin(session);
+      const items = await listLeadsPg(getPostgresPool());
+      return json({ items });
+    }
+
+    {
+      const leadStatusMatch = url.pathname.match(
+        /^\/api\/selfhost\/admin\/leads\/([^/]+)\/status$/,
+      );
+      if (leadStatusMatch && request.method === "POST") {
+        requireAdmin(session);
+        assertCsrf(request);
+        const id = leadStatusMatch[1];
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+          return errorJson("Некорректный id заявки", 400);
+        }
+        const body = await readJson(request);
+        const status = leadStatusSchema.parse(body.status);
+        const lead = await updateLeadStatusPg(getPostgresPool(), id, status);
+        return json({ ok: true, lead });
+      }
     }
 
     if (url.pathname === "/api/selfhost/admin/promos" && request.method === "POST") {

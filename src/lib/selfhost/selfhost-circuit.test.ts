@@ -15,6 +15,7 @@ import {
 } from "@/lib/selfhost/import-client";
 import { resetLoginRateLimitForTests } from "@/lib/selfhost/local-auth";
 import { resetPasswordResetRateLimitForTests } from "@/lib/selfhost/postgres-password-reset";
+import { resetLeadSubmitRateLimitForTests } from "@/lib/selfhost/postgres-leads";
 import fs from "node:fs";
 import os from "node:os";
 import { hashPasswordArgon2id } from "@/lib/selfhost/passwords";
@@ -549,6 +550,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       "SELFHOST_PUBLIC_URL",
       "SELFHOST_MAIL_TRANSPORT",
       "SELFHOST_MAIL_DIR",
+      "SELFHOST_LEADS_NOTIFY",
     ]) {
       envBackup[key] = process.env[key];
     }
@@ -561,6 +563,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     process.env.SELFHOST_PUBLIC_URL = "http://selfhost.local";
     process.env.SELFHOST_MAIL_TRANSPORT = "file";
     process.env.SELFHOST_MAIL_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "panova-mail-"));
+    process.env.SELFHOST_LEADS_NOTIFY = "0";
     pool = new pg.Pool({ connectionString: url });
     await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
     const first = await applyMigrations(pool);
@@ -588,6 +591,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
   beforeEach(() => {
     resetLoginRateLimitForTests();
     resetPasswordResetRateLimitForTests();
+    resetLeadSubmitRateLimitForTests();
   });
 
   afterAll(async () => {
@@ -3305,6 +3309,124 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     await pool.query(`UPDATE users SET password_hash = $1 WHERE email = 'client-a@example.test'`, [
       await hashPasswordArgon2id("Passw0rd!"),
     ]);
+  });
+
+  it("заявки: публичная отправка, idempotency, права и статусы тренера", async () => {
+    await ensureAdminUser(pool);
+    const guest = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: guest });
+
+    expect((await req("/api/selfhost/admin/leads", { jar: guest })).status).toBe(401);
+    expect((await req("/api/selfhost/leads", { jar: guest })).status).toBe(404);
+
+    const bad = await req("/api/selfhost/leads", {
+      method: "POST",
+      jar: guest,
+      body: JSON.stringify({
+        full_name: "А",
+        age: 10,
+        phone: "123",
+        email: "bad",
+        messenger: "telegram",
+        source: "general",
+      }),
+    });
+    expect(bad.status).toBe(400);
+
+    const honey = await req("/api/selfhost/leads", {
+      method: "POST",
+      jar: guest,
+      body: JSON.stringify({
+        full_name: "Бот Бот",
+        age: 25,
+        phone: "+7 (999) 111-22-33",
+        email: "bot@example.test",
+        messenger: "telegram",
+        source: "general",
+        website: "http://spam.test",
+        idempotencyKey: "lead-honey-01xxxxxxxx",
+      }),
+    });
+    expect(honey.status).toBe(200);
+    expect((await honey.json()).id).toBeNull();
+    expect((await pool.query(`SELECT count(*)::int AS n FROM leads`)).rows[0].n).toBe(0);
+
+    const payload = {
+      full_name: "Мария Тест",
+      age: 28,
+      phone: "+7 (900) 123-45-67",
+      email: "maria-lead@example.test",
+      messenger: "telegram",
+      source: "program",
+      program_title: "Старт",
+      program_slug: "start",
+      idempotencyKey: "lead-resubmit-01xxxxxx",
+    };
+    const first = await req("/api/selfhost/leads", {
+      method: "POST",
+      jar: guest,
+      body: JSON.stringify(payload),
+    });
+    expect(first.status).toBe(200);
+    const firstBody = await first.json();
+    expect(firstBody.ok).toBe(true);
+    expect(firstBody.id).toBeTruthy();
+    expect(firstBody.idempotent).toBe(false);
+    expect(firstBody.notified).toBe(false);
+
+    const again = await req("/api/selfhost/leads", {
+      method: "POST",
+      jar: guest,
+      body: JSON.stringify(payload),
+    });
+    expect(again.status).toBe(200);
+    const againBody = await again.json();
+    expect(againBody.idempotent).toBe(true);
+    expect(againBody.id).toBe(firstBody.id);
+    expect((await pool.query(`SELECT count(*)::int AS n FROM leads`)).rows[0].n).toBe(1);
+
+    // Новое самостоятельное обращение того же человека — отдельная заявка
+    const second = await req("/api/selfhost/leads", {
+      method: "POST",
+      jar: guest,
+      body: JSON.stringify({
+        ...payload,
+        message: "второе обращение",
+        idempotencyKey: "lead-second-01xxxxxxx",
+      }),
+    });
+    expect(second.status).toBe(200);
+    expect((await second.json()).id).not.toBe(firstBody.id);
+    expect((await pool.query(`SELECT count(*)::int AS n FROM leads`)).rows[0].n).toBe(2);
+
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+    });
+    expect((await req("/api/selfhost/admin/leads", { jar: clientJar })).status).toBe(403);
+
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+    const list = await (await req("/api/selfhost/admin/leads", { jar: adminJar })).json();
+    expect(list.items.some((l: { email: string }) => l.email === "maria-lead@example.test")).toBe(
+      true,
+    );
+
+    const upd = await req(`/api/selfhost/admin/leads/${firstBody.id}/status`, {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ status: "contacted" }),
+    });
+    expect(upd.status).toBe(200);
+    expect((await upd.json()).lead.status).toBe("contacted");
   });
 
   it("не обращается к Supabase в local/postgres", () => {

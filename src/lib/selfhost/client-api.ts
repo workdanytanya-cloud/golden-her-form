@@ -812,6 +812,59 @@ export async function selfhostConfirmPasswordReset(token: string, password: stri
   return readSelfhostJson(res) as Promise<{ ok: true }>;
 }
 
+export async function selfhostSubmitLead(input: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/leads", {
+    method: "POST",
+    body: JSON.stringify(input),
+    headers:
+      typeof input.idempotencyKey === "string"
+        ? { "idempotency-key": input.idempotencyKey }
+        : undefined,
+  });
+  return readSelfhostJson(res) as Promise<{
+    ok: true;
+    id: string | null;
+    idempotent?: boolean;
+    build: string;
+    notified?: boolean;
+    notify?: {
+      webhook?: boolean;
+      telegram?: boolean;
+      email?: boolean;
+      webhookReason?: string | null;
+      telegramReason?: string | null;
+      emailReason?: string | null;
+    };
+  }>;
+}
+
+export async function selfhostAdminLeads() {
+  const res = await fetch("/api/selfhost/admin/leads", { credentials: "include" });
+  return readSelfhostJson(res) as Promise<{
+    items: Array<{
+      id: string;
+      created_at: string;
+      full_name: string;
+      age: number;
+      phone: string;
+      email: string;
+      messenger: string;
+      source: string;
+      program_title: string | null;
+      status: string;
+      notes: string | null;
+    }>;
+  }>;
+}
+
+export async function selfhostAdminUpdateLeadStatus(id: string, status: string) {
+  const res = await selfhostFetch(`/api/selfhost/admin/leads/${id}/status`, {
+    method: "POST",
+    body: JSON.stringify({ status }),
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true; lead: { id: string; status: string } }>;
+}
+
 export function resetSelfhostClientCacheForTests() {
   cached = null;
   csrfToken = null;

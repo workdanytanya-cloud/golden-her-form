@@ -344,6 +344,82 @@ function formatLeadMessage(data: z.infer<typeof leadInputSchema>) {
   return lines.join("\n");
 }
 
+/**
+ * Best-effort notify after lead is already persisted.
+ * Does not throw; never blocks persistence success.
+ * Skipped when SELFHOST_LEADS_NOTIFY=0 (tests / explicit mute).
+ */
+export async function dispatchLeadNotifications(
+  data: LeadInput,
+  leadId: string,
+): Promise<{
+  notified: boolean;
+  notify: {
+    webhook: boolean;
+    telegram: boolean;
+    email: boolean;
+    webhookReason: string | null;
+    telegramReason: string | null;
+    emailReason: string | null;
+  };
+}> {
+  if (envGet("SELFHOST_LEADS_NOTIFY") === "0") {
+    return {
+      notified: false,
+      notify: {
+        webhook: false,
+        telegram: false,
+        email: false,
+        webhookReason: "notify_muted",
+        telegramReason: "notify_muted",
+        emailReason: "notify_muted",
+      },
+    };
+  }
+
+  cachedFileEnv = null;
+  loadFileEnv();
+
+  const text = formatLeadMessage(data);
+  const subject = data.program_title
+    ? `Заявка: ${data.full_name} — ${data.program_title}`
+    : `Новая заявка: ${data.full_name}`;
+
+  const [hook, tg, mail] = await Promise.all([
+    withTimeout(notifyWebhook(text, data, leadId), 12000, {
+      ok: false as const,
+      reason: "webhook_timeout",
+    }),
+    withTimeout(notifyTelegram(text), 10000, {
+      ok: false as const,
+      reason: "telegram_timeout",
+    }),
+    withTimeout(notifyEmail(subject, text, data.email), 10000, {
+      ok: false as const,
+      reason: "email_timeout",
+    }),
+  ]);
+  const notified = hook.ok || tg.ok || mail.ok;
+  if (!notified) {
+    console.warn("[leads] Lead saved but notify failed", {
+      webhook: hook.reason,
+      telegram: tg.reason,
+      email: mail.reason,
+    });
+  }
+  return {
+    notified,
+    notify: {
+      webhook: hook.ok,
+      telegram: tg.ok,
+      email: mail.ok,
+      webhookReason: hook.ok ? null : hook.reason,
+      telegramReason: tg.ok ? null : tg.reason,
+      emailReason: mail.ok ? null : mail.reason,
+    },
+  };
+}
+
 export const submitLead = createServerFn({ method: "POST" })
   .validator((input: unknown) => leadInputSchema.parse(input))
   .handler(async ({ data }) => {
@@ -380,11 +456,6 @@ export const submitLead = createServerFn({ method: "POST" })
       throw new Error("Не удалось сохранить заявку. Попробуйте ещё раз.");
     }
 
-    const text = formatLeadMessage(data);
-    const subject = data.program_title
-      ? `Заявка: ${data.full_name} — ${data.program_title}`
-      : `Новая заявка: ${data.full_name}`;
-
     const envFlags = {
       webhook: Boolean(envGet("LEAD_WEBHOOK_URL")),
       telegramToken: Boolean(envGet("TELEGRAM_BOT_TOKEN")),
@@ -396,43 +467,15 @@ export const submitLead = createServerFn({ method: "POST" })
     };
     console.info(`[leads] NOTIFY_ENV_CHECK ${LEADS_BUILD}`, envFlags);
 
-    const [hook, tg, mail] = await Promise.all([
-      withTimeout(notifyWebhook(text, data, inserted.id as string), 12000, {
-        ok: false as const,
-        reason: "webhook_timeout",
-      }),
-      withTimeout(notifyTelegram(text), 10000, {
-        ok: false as const,
-        reason: "telegram_timeout",
-      }),
-      withTimeout(notifyEmail(subject, text, data.email), 10000, {
-        ok: false as const,
-        reason: "email_timeout",
-      }),
-    ]);
-    const notified = hook.ok || tg.ok || mail.ok;
-    if (!notified) {
-      console.warn("[leads] Lead saved but notify failed", {
-        webhook: hook.reason,
-        telegram: tg.reason,
-        email: mail.reason,
-      });
-    }
+    const dispatch = await dispatchLeadNotifications(data, inserted.id as string);
 
     return {
       ok: true,
       id: inserted.id as string,
       build: LEADS_BUILD,
-      notified,
+      notified: dispatch.notified,
       envFlags,
-      notify: {
-        webhook: hook.ok,
-        telegram: tg.ok,
-        email: mail.ok,
-        webhookReason: hook.ok ? null : hook.reason,
-        telegramReason: tg.ok ? null : tg.reason,
-        emailReason: mail.ok ? null : mail.reason,
-      },
+      notify: dispatch.notify,
     };
   });
 

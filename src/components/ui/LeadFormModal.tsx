@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -115,6 +116,7 @@ function LeadFormDialog({
   const [messenger, setMessenger] = useState<"telegram" | "max" | "whatsapp" | "any">("telegram");
   const [website, setWebsite] = useState("");
   const [sending, setSending] = useState(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   const title =
     opts.source === "question"
@@ -135,30 +137,56 @@ function LeadFormDialog({
       toast.error("Сервер не ответил вовремя. Проверьте заявку в админке «Заявки» или попробуйте снова.");
     }, 25000);
     try {
-      const result = await submit({
-        data: {
-          full_name: fullName,
-          age: Number(age),
-          phone,
-          email,
-          messenger,
-          source: opts.source ?? "general",
-          program_slug: opts.programSlug ?? null,
-          program_title: opts.programTitle ?? null,
-          website,
-        },
-      });
+      if (!idempotencyKeyRef.current) {
+        idempotencyKeyRef.current =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `lead-${Date.now()}`;
+      }
+      const payload = {
+        full_name: fullName,
+        age: Number(age),
+        phone,
+        email,
+        messenger,
+        source: opts.source ?? "general",
+        program_slug: opts.programSlug ?? null,
+        program_title: opts.programTitle ?? null,
+        website,
+        idempotencyKey: idempotencyKeyRef.current,
+      };
+
+      const { usesLocalPostgresCircuit, selfhostSubmitLead } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      const result = (await usesLocalPostgresCircuit())
+        ? await selfhostSubmitLead(payload)
+        : await submit({ data: payload });
+
       window.clearTimeout(watchdog);
+      if (!result.ok) {
+        throw new Error("Не удалось сохранить заявку");
+      }
+      idempotencyKeyRef.current = null;
       if (result.notified === false) {
         const reasons = [
           result.notify?.webhookReason,
           result.notify?.telegramReason,
           result.notify?.emailReason,
         ]
-          .filter((r) => r && r !== "webhook_not_configured" && r !== "smtp_skipped")
+          .filter(
+            (r) =>
+              r &&
+              r !== "webhook_not_configured" &&
+              r !== "smtp_skipped" &&
+              r !== "notify_muted" &&
+              r !== "email_not_configured",
+          )
           .join(", ");
         toast.success("Заявка сохранена в базе.", {
-          description: `Уведомление не ушло (${reasons || "настройте LEAD_WEBHOOK_URL"}). Сборка: ${result.build ?? "?"}`,
+          description: reasons
+            ? `Уведомление не ушло (${reasons}). Сборка: ${result.build ?? "?"}`
+            : `Сборка: ${result.build ?? "?"}. Уведомление тренеру — отдельный канал (если настроен).`,
           duration: 12000,
         });
       } else if (result.build) {

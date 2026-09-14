@@ -1,9 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
-import { adminUpdateLeadStatus } from "@/lib/leads.functions";
 import { toast } from "sonner";
 import { Inbox } from "lucide-react";
 
@@ -43,22 +40,22 @@ function AdminLeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "new" | "contacted" | "converted" | "archived">("all");
-  const updateStatus = useServerFn(adminUpdateLeadStatus);
 
   const load = async () => {
-    const { data, error } = await supabase
-      .from("leads")
-      .select(
-        "id, created_at, full_name, age, phone, email, messenger, source, program_title, status, notes",
-      )
-      .order("created_at", { ascending: false });
-    if (error) {
-      toast.error(error.message);
+    try {
+      const { usesLocalPostgresCircuit, selfhostAdminLeads } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (!(await usesLocalPostgresCircuit())) {
+        throw new Error("Список заявок доступен только в local/postgres контуре");
+      }
+      const res = await selfhostAdminLeads();
+      setLeads((res.items as Lead[]) ?? []);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Ошибка загрузки");
+    } finally {
       setLoading(false);
-      return;
     }
-    setLeads((data as Lead[]) ?? []);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -74,7 +71,13 @@ function AdminLeadsPage() {
 
   const setStatus = async (id: string, status: Lead["status"]) => {
     try {
-      await updateStatus({ data: { id, status } });
+      const { usesLocalPostgresCircuit, selfhostAdminUpdateLeadStatus } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (!(await usesLocalPostgresCircuit())) {
+        throw new Error("Смена статуса доступна только в local/postgres контуре");
+      }
+      await selfhostAdminUpdateLeadStatus(id, status);
       setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
       toast.success("Статус обновлён");
     } catch (e) {
