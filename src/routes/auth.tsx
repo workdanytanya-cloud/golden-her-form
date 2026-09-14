@@ -23,8 +23,10 @@ export const Route = createFileRoute("/auth")({
     if (runtime.authBackend === "local") {
       const me = await selfhostMe();
       if (me.session) {
+        // Как в cloud: вошедший пользователь может остаться на вкладке промокода.
+        if (search.mode === "promo") return;
         if (search.redirect) throw redirect({ to: search.redirect });
-        throw redirect({ to: "/dashboard" });
+        throw redirect({ to: me.session.role === "admin" ? "/admin" : "/dashboard" });
       }
       return;
     }
@@ -108,7 +110,14 @@ function AuthPage() {
 
   const activatePromo = async () => {
     const code = promoSchema.parse(promoCode);
-    const result = await redeem({ data: { code } });
+    const runtime = await loadRuntimeConfig();
+    let result: { already?: boolean; program_title?: string | null };
+    if (runtime.authBackend === "local") {
+      const { selfhostRedeemPromo } = await import("@/lib/selfhost/client-api");
+      result = await selfhostRedeemPromo(code);
+    } else {
+      result = await redeem({ data: { code } });
+    }
     await refreshAccess();
     if (result.already) {
       toast.success("Промокод уже привязан к аккаунту — можно заполнять анкету");
@@ -131,9 +140,6 @@ function AuthPage() {
     setSubmitting(true);
     try {
       const runtime = await loadRuntimeConfig();
-      if (runtime.authBackend === "local" && mode === "promo") {
-        throw new Error("Регистрация по промокоду в self-hosted контуре пока недоступна");
-      }
       if (mode === "promo") {
         if (user) {
           await activatePromo();
@@ -143,7 +149,29 @@ function AuthPage() {
         const parsedEmail = emailSchema.parse(email);
         const parsedPassword = passwordSchema.parse(password);
         const parsedName = nameSchema.parse(fullName);
-        promoSchema.parse(promoCode);
+        const parsedCode = promoSchema.parse(promoCode);
+
+        if (runtime.authBackend === "local") {
+          const { selfhostSignupPromo } = await import("@/lib/selfhost/client-api");
+          const result = await selfhostSignupPromo({
+            code: parsedCode,
+            email: parsedEmail,
+            password: parsedPassword,
+            full_name: parsedName,
+          });
+          await refreshAccess();
+          if (result.already) {
+            toast.success("Промокод уже привязан к аккаунту — можно заполнять анкету");
+          } else {
+            toast.success(
+              result.program_title
+                ? `Промокод принят (${result.program_title}). Заполните анкету.`
+                : "Промокод принят. Теперь заполните анкету — курс откроет тренер.",
+            );
+          }
+          await navigate({ to: search.redirect ?? "/dashboard/onboarding" });
+          return;
+        }
 
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: parsedEmail,

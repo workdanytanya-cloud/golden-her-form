@@ -62,6 +62,16 @@ import {
   weeklyCheckInSaveSchema,
 } from "@/lib/selfhost/postgres-checkins";
 import {
+  adminCreatePromosSchema,
+  createPromoCodesPg,
+  listPromoCodesPg,
+  redeemPromoForUserPg,
+  redeemPromoSchema,
+  revokePromoCodePg,
+  signupOrLoginWithPromoPg,
+  signupPromoSchema,
+} from "@/lib/selfhost/postgres-promos";
+import {
   PostgresAdminClientRepository,
   adminClientAccessSchema,
   adminClientListQuerySchema,
@@ -226,6 +236,37 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
           userId: result.session.userId,
           role: result.session.role,
           accessStatus: result.session.accessStatus,
+          unlockSource: result.session.unlockSource,
+          csrf,
+        }),
+        { status: 200, headers },
+      );
+    }
+
+    if (url.pathname === "/api/selfhost/signup-promo" && request.method === "POST") {
+      if (getAuthBackend() !== "local") {
+        return errorJson("Локальная авторизация выключена", 503);
+      }
+      requirePostgres();
+      assertCsrf(request);
+      assertLoginRateLimit(request);
+      const body = await readJson(request);
+      const parsed = signupPromoSchema.parse(body);
+      const result = await signupOrLoginWithPromoPg(getPostgresPool(), parsed);
+      const csrf = issueCsrf();
+      const headers = new Headers({ "content-type": "application/json; charset=utf-8" });
+      headers.append("set-cookie", sessionCookieHeader(result.token));
+      headers.append("set-cookie", csrfCookieHeader(csrf));
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          userId: result.session.userId,
+          role: result.session.role,
+          accessStatus: result.session.accessStatus,
+          unlockSource: result.session.unlockSource,
+          already: result.already,
+          createdUser: result.createdUser,
+          program_title: result.program_title,
           csrf,
         }),
         { status: 200, headers },
@@ -400,6 +441,14 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       });
       const saved = await saveWeeklyCheckInPg(getPostgresPool(), parsed);
       return json(saved);
+    }
+
+    if (url.pathname === "/api/selfhost/promo/redeem" && request.method === "POST") {
+      assertCsrf(request);
+      const body = await readJson(request);
+      const parsed = redeemPromoSchema.parse(body);
+      const result = await redeemPromoForUserPg(getPostgresPool(), session.userId, parsed.code);
+      return json({ ok: true, ...result });
     }
 
     if (url.pathname === "/api/selfhost/dashboard" && request.method === "GET") {
@@ -796,6 +845,35 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         );
       });
       return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/promos" && request.method === "GET") {
+      requireAdmin(session);
+      const items = await listPromoCodesPg(getPostgresPool());
+      return json({ items });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/promos" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = await readJson(request);
+      const parsed = adminCreatePromosSchema.parse(body);
+      const codes = await createPromoCodesPg(getPostgresPool(), parsed, session.userId);
+      return json({ ok: true, codes });
+    }
+
+    {
+      const revokeMatch = url.pathname.match(/^\/api\/selfhost\/admin\/promos\/([^/]+)\/revoke$/);
+      if (revokeMatch && request.method === "POST") {
+        requireAdmin(session);
+        assertCsrf(request);
+        const id = revokeMatch[1];
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+          return errorJson("Некорректный id промокода", 400);
+        }
+        await revokePromoCodePg(getPostgresPool(), id);
+        return json({ ok: true });
+      }
     }
 
     if (url.pathname === "/api/selfhost/admin/clients" && request.method === "GET") {

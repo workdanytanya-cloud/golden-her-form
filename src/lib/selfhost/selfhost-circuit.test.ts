@@ -2877,6 +2877,239 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     expect(assignAfter.rows).toEqual(assignBefore.rows);
   });
 
+  it("промокоды: CRUD, signup, права, конкуренция и без частичных аккаунтов", async () => {
+    await ensureAdminUser(pool);
+    const adminJar = new CookieJar();
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    expect(
+      (
+        await req("/api/selfhost/login", {
+          method: "POST",
+          jar: adminJar,
+          body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+        })
+      ).status,
+    ).toBe(200);
+
+    const forbidden = await req("/api/selfhost/admin/promos", { jar: clientJar });
+    expect(forbidden.status).toBe(401);
+
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+    });
+    expect((await req("/api/selfhost/admin/promos", { jar: clientJar })).status).toBe(403);
+
+    const created = await req("/api/selfhost/admin/promos", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        count: 2,
+        label: "наличные тест",
+        program_slug: "demo",
+        program_title: "Демо-программа",
+      }),
+    });
+    expect(created.status).toBe(200);
+    const createdBody = await created.json();
+    expect(createdBody.codes).toHaveLength(2);
+    const codeA = createdBody.codes[0].code as string;
+    const codeB = createdBody.codes[1].code as string;
+    const codeBId = createdBody.codes[1].id as string;
+
+    const listed = await (await req("/api/selfhost/admin/promos", { jar: adminJar })).json();
+    expect(listed.items.some((p: { code: string }) => p.code === codeA)).toBe(true);
+
+    // Просроченный
+    const expiredCode = "PP-EXPIRE1";
+    await pool.query(
+      `INSERT INTO promo_codes (code, status, expires_at, created_by)
+       VALUES ($1,'unused', now() - interval '1 day', $2)`,
+      [expiredCode, ADMIN_ID],
+    );
+    await req("/api/selfhost/csrf", { jar: new CookieJar() });
+    const guestExpired = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: guestExpired });
+    const expRes = await req("/api/selfhost/signup-promo", {
+      method: "POST",
+      jar: guestExpired,
+      body: JSON.stringify({
+        code: expiredCode,
+        email: "promo-expired@example.test",
+        password: "Passw0rd!",
+        full_name: "Expired",
+      }),
+    });
+    expect(expRes.status).toBe(400);
+    expect((await expRes.json()).error).toMatch(/истёк/i);
+    expect(
+      (await pool.query(`SELECT 1 FROM users WHERE email = 'promo-expired@example.test'`)).rowCount,
+    ).toBe(0);
+    expect(
+      (await pool.query(`SELECT status FROM promo_codes WHERE code = $1`, [expiredCode])).rows[0]
+        .status,
+    ).toBe("unused");
+
+    // Отозванный
+    const revoke = await req(`/api/selfhost/admin/promos/${codeBId}/revoke`, {
+      method: "POST",
+      jar: adminJar,
+      body: "{}",
+    });
+    expect(revoke.status).toBe(200);
+    const guestRevoked = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: guestRevoked });
+    const revRes = await req("/api/selfhost/signup-promo", {
+      method: "POST",
+      jar: guestRevoked,
+      body: JSON.stringify({
+        code: codeB,
+        email: "promo-revoked@example.test",
+        password: "Passw0rd!",
+        full_name: "Revoked",
+      }),
+    });
+    expect(revRes.status).toBe(400);
+    expect((await revRes.json()).error).toMatch(/отозван/i);
+    expect(
+      (await pool.query(`SELECT 1 FROM users WHERE email = 'promo-revoked@example.test'`)).rowCount,
+    ).toBe(0);
+
+    // Успешная регистрация
+    const guestOk = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: guestOk });
+    const signup = await req("/api/selfhost/signup-promo", {
+      method: "POST",
+      jar: guestOk,
+      body: JSON.stringify({
+        code: codeA,
+        email: "promo-new@example.test",
+        password: "Passw0rd!",
+        full_name: "Новый Клиент",
+      }),
+    });
+    expect(signup.status).toBe(200);
+    const signupBody = await signup.json();
+    expect(signupBody.createdUser).toBe(true);
+    expect(signupBody.already).toBe(false);
+    expect(signupBody.accessStatus).toBe("pending_onboarding");
+    expect(signupBody.unlockSource).toBe("promo");
+    expect(signupBody.password).toBeUndefined();
+    expect(JSON.stringify(signupBody)).not.toMatch(/argon2|password_hash|Passw0rd/i);
+
+    // Повторная отправка того же signup
+    const signupAgain = await req("/api/selfhost/signup-promo", {
+      method: "POST",
+      jar: guestOk,
+      body: JSON.stringify({
+        code: codeA,
+        email: "promo-new@example.test",
+        password: "Passw0rd!",
+        full_name: "Новый Клиент",
+      }),
+    });
+    expect(signupAgain.status).toBe(200);
+    expect((await signupAgain.json()).already).toBe(true);
+
+    // Существующий email + неверный пароль
+    const guestWrong = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: guestWrong });
+    const raceCode = "PP-RACE01";
+    await pool.query(
+      `INSERT INTO promo_codes (code, status, created_by) VALUES ($1,'unused',$2)`,
+      [raceCode, ADMIN_ID],
+    );
+    const wrongPw = await req("/api/selfhost/signup-promo", {
+      method: "POST",
+      jar: guestWrong,
+      body: JSON.stringify({
+        code: raceCode,
+        email: "promo-new@example.test",
+        password: "WrongPass1!",
+        full_name: "X",
+      }),
+    });
+    expect(wrongPw.status).toBe(401);
+    expect(
+      (await pool.query(`SELECT status FROM promo_codes WHERE code = $1`, [raceCode])).rows[0]
+        .status,
+    ).toBe("unused");
+
+    // Конкурентное использование последнего кода
+    resetLoginRateLimitForTests();
+    const lastCode = "PP-LAST01";
+    await pool.query(
+      `INSERT INTO promo_codes (code, status, created_by) VALUES ($1,'unused',$2)`,
+      [lastCode, ADMIN_ID],
+    );
+    const g1 = new CookieJar();
+    const g2 = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: g1 });
+    await req("/api/selfhost/csrf", { jar: g2 });
+    const [r1, r2] = await Promise.all([
+      req("/api/selfhost/signup-promo", {
+        method: "POST",
+        jar: g1,
+        body: JSON.stringify({
+          code: lastCode,
+          email: "promo-race-a@example.test",
+          password: "Passw0rd!",
+          full_name: "Race A",
+        }),
+      }),
+      req("/api/selfhost/signup-promo", {
+        method: "POST",
+        jar: g2,
+        body: JSON.stringify({
+          code: lastCode,
+          email: "promo-race-b@example.test",
+          password: "Passw0rd!",
+          full_name: "Race B",
+        }),
+      }),
+    ]);
+    const statuses = [r1.status, r2.status].sort((a, b) => a - b);
+    expect(statuses[0]).toBe(200);
+    expect([400, 429]).toContain(statuses[1]);
+    const usersRace = await pool.query(
+      `SELECT email::text AS email FROM users WHERE email IN ('promo-race-a@example.test','promo-race-b@example.test')`,
+    );
+    expect(usersRace.rowCount).toBe(1);
+    expect(
+      (await pool.query(`SELECT status, used_by FROM promo_codes WHERE code = $1`, [lastCode]))
+        .rows[0].status,
+    ).toBe("used");
+    // Onboarding draft + появление в списке тренера
+    const onb = await req("/api/selfhost/onboarding", {
+      method: "POST",
+      jar: guestOk,
+      body: JSON.stringify({
+        asCompleted: true,
+        height_cm: 165,
+        payload: {
+          goal_primary: "tone",
+          activity_level: "medium",
+          equipment: [],
+          focus_areas: [],
+          has_injuries: false,
+          smoking: false,
+          extra: {},
+        },
+      }),
+    });
+    expect(onb.status).toBe(200);
+    const onbBody = await onb.json();
+    expect(onbBody.autogenSkipped).toBe(true);
+
+    const clients = await (await req("/api/selfhost/admin/clients?q=Новый", { jar: adminJar })).json();
+    expect(clients.items.some((c: { email: string }) => c.email === "promo-new@example.test")).toBe(
+      true,
+    );
+  });
+
   it("не обращается к Supabase в local/postgres", () => {
     expect(fetchCalls.some((url) => url.includes("supabase"))).toBe(false);
   });

@@ -51,8 +51,16 @@ function AdminPromosPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await listFn();
-      setItems((res.items as Promo[]) ?? []);
+      const { usesLocalPostgresCircuit, selfhostAdminPromos } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (await usesLocalPostgresCircuit()) {
+        const res = await selfhostAdminPromos();
+        setItems((res.items as Promo[]) ?? []);
+      } else {
+        const res = await listFn();
+        setItems((res.items as Promo[]) ?? []);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Ошибка загрузки");
     } finally {
@@ -75,14 +83,18 @@ function AdminPromosPage() {
     setCreating(true);
     try {
       const program = programs.find((p) => p.slug === programSlug);
-      const res = await createFn({
-        data: {
-          count,
-          label: label.trim() || null,
-          program_slug: program?.slug ?? null,
-          program_title: program?.title ?? null,
-        },
-      });
+      const payload = {
+        count,
+        label: label.trim() || null,
+        program_slug: program?.slug ?? null,
+        program_title: program?.title ?? null,
+      };
+      const { usesLocalPostgresCircuit, selfhostAdminCreatePromos } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      const res = (await usesLocalPostgresCircuit())
+        ? await selfhostAdminCreatePromos(payload)
+        : await createFn({ data: payload });
       const codes = (res.codes ?? []).map((c: { code: string }) => c.code);
       setLastCreated(codes);
       toast.success(
@@ -101,7 +113,14 @@ function AdminPromosPage() {
 
   const revoke = async (id: string) => {
     try {
-      await revokeFn({ data: { id } });
+      const { usesLocalPostgresCircuit, selfhostAdminRevokePromo } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (await usesLocalPostgresCircuit()) {
+        await selfhostAdminRevokePromo(id);
+      } else {
+        await revokeFn({ data: { id } });
+      }
       toast.success("Промокод отозван");
       await load();
     } catch (e) {

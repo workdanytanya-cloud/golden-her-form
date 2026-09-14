@@ -713,6 +713,89 @@ export async function selfhostSaveWeeklyCheckIn(input: Record<string, unknown>) 
   }>;
 }
 
+export async function selfhostSignupPromo(input: {
+  code: string;
+  email: string;
+  password: string;
+  full_name: string;
+}) {
+  const res = await selfhostFetch("/api/selfhost/signup-promo", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Не удалось активировать промокод");
+  if (typeof data.csrf === "string") csrfToken = data.csrf;
+  return data as {
+    ok: true;
+    userId: string;
+    role: "admin" | "client";
+    accessStatus: string | null;
+    unlockSource: string | null;
+    already: boolean;
+    createdUser: boolean;
+    program_title: string | null;
+    csrf: string;
+  };
+}
+
+export async function selfhostRedeemPromo(code: string) {
+  const res = await selfhostFetch("/api/selfhost/promo/redeem", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
+  return readSelfhostJson(res) as Promise<{
+    ok: true;
+    already: boolean;
+    program_title: string | null;
+  }>;
+}
+
+export async function selfhostAdminPromos() {
+  const res = await fetch("/api/selfhost/admin/promos", { credentials: "include" });
+  return readSelfhostJson(res) as Promise<{
+    items: Array<{
+      id: string;
+      created_at: string;
+      code: string;
+      label: string | null;
+      program_slug: string | null;
+      program_title: string | null;
+      status: string;
+      used_by: string | null;
+      used_at: string | null;
+      expires_at: string | null;
+      notes: string | null;
+    }>;
+  }>;
+}
+
+export async function selfhostAdminCreatePromos(payload: {
+  count: number;
+  label?: string | null;
+  program_slug?: string | null;
+  program_title?: string | null;
+  notes?: string | null;
+  expires_at?: string | null;
+}) {
+  const res = await selfhostFetch("/api/selfhost/admin/promos", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res) as Promise<{
+    ok: true;
+    codes: Array<{ id: string; code: string; status: string; label: string | null; program_title: string | null; created_at: string; expires_at: string | null }>;
+  }>;
+}
+
+export async function selfhostAdminRevokePromo(id: string) {
+  const res = await selfhostFetch(`/api/selfhost/admin/promos/${id}/revoke`, {
+    method: "POST",
+    body: "{}",
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true }>;
+}
+
 export function resetSelfhostClientCacheForTests() {
   cached = null;
   csrfToken = null;
