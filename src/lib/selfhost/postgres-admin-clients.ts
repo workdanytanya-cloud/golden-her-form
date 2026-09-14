@@ -1,5 +1,7 @@
 import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
+import { revokeAllSessionsForUser } from "@/lib/selfhost/local-auth";
+import { hashPasswordArgon2id } from "@/lib/selfhost/passwords";
 
 export type Queryable = Pool | PoolClient;
 
@@ -31,6 +33,10 @@ export const adminClientAccessSchema = z.object({
   notes: z.string().max(2000).nullable().optional(),
 });
 
+export const adminClientPasswordSchema = z.object({
+  password: z.string().min(8).max(72),
+});
+
 export type AdminClientListItem = {
   id: string;
   email: string | null;
@@ -38,6 +44,8 @@ export type AdminClientListItem = {
   phone: string | null;
   goal: string | null;
   created_at: string;
+  /** Account login gate: active | disabled (архив) | pending */
+  account_status: string;
   access_status: string | null;
   onboarding_completed_at: string | null;
   course_count: number;
@@ -71,6 +79,7 @@ export type AdminMeasurement = {
 const LIST_SELECT = `
 SELECT u.id,
        u.email::text AS email,
+       u.status AS account_status,
        COALESCE(p.created_at, u.created_at) AS created_at,
        p.full_name, p.phone, p.goal, p.height_cm, p.birth_date, p.gender, p.avatar_url,
        ca.status AS access_status, ca.unlock_source, ca.activated_at, ca.notes AS access_notes,
@@ -101,6 +110,7 @@ function mapListRow(row: Record<string, unknown>): AdminClientListItem {
     phone: (row.phone as string | null) ?? null,
     goal: (row.goal as string | null) ?? null,
     created_at: new Date(row.created_at as string | Date).toISOString(),
+    account_status: String(row.account_status ?? "active"),
     access_status: (row.access_status as string | null) ?? null,
     onboarding_completed_at: row.onboarding_completed_at
       ? new Date(row.onboarding_completed_at as string | Date).toISOString()
@@ -149,7 +159,8 @@ export class PostgresAdminClientRepository {
         OR lower(u.email::text) LIKE $1
       )`;
     }
-    sql += ` ORDER BY CASE COALESCE(ca.status, 'pending_onboarding')
+    sql += ` ORDER BY CASE WHEN u.status = 'disabled' THEN 1 ELSE 0 END,
+      CASE COALESCE(ca.status, 'pending_onboarding')
       WHEN 'awaiting_approval' THEN 0
       WHEN 'pending_onboarding' THEN 2
       WHEN 'active' THEN 3
@@ -266,15 +277,97 @@ export class PostgresAdminClientRepository {
     );
   }
 
+  /**
+   * Trainer sets a new password for a client. Revokes all sessions.
+   * Never returns or logs the plaintext password.
+   */
+  async setPassword(
+    clientId: string,
+    input: z.infer<typeof adminClientPasswordSchema>,
+  ): Promise<void> {
+    const data = adminClientPasswordSchema.parse(input);
+    const existing = await this.get(clientId);
+    if (!existing) throw Object.assign(new Error("Клиент не найден"), { statusCode: 404 });
+    const passwordHash = await hashPasswordArgon2id(data.password);
+    const updated = await this.q(
+      `UPDATE public.users
+          SET password_hash = $2,
+              updated_at = (now() AT TIME ZONE 'utc')
+        WHERE id = $1
+        RETURNING id`,
+      [clientId, passwordHash],
+    );
+    if (!updated.rowCount) {
+      throw Object.assign(new Error("Клиент не найден"), { statusCode: 404 });
+    }
+    await revokeAllSessionsForUser(this.db, clientId);
+  }
+
+  /**
+   * Soft-archive: block login via users.status=disabled, revoke sessions.
+   * Does not delete measurements, courses, published programs, or access history.
+   */
+  async archive(clientId: string, actorId: string): Promise<void> {
+    if (clientId === actorId) {
+      throw Object.assign(new Error("Нельзя архивировать свой собственный аккаунт"), {
+        statusCode: 400,
+      });
+    }
+    const existing = await this.get(clientId);
+    if (!existing) throw Object.assign(new Error("Клиент не найден"), { statusCode: 404 });
+    if (existing.account_status === "disabled") {
+      await revokeAllSessionsForUser(this.db, clientId);
+      return;
+    }
+    const updated = await this.q(
+      `UPDATE public.users
+          SET status = 'disabled',
+              updated_at = (now() AT TIME ZONE 'utc')
+        WHERE id = $1 AND status <> 'disabled'
+        RETURNING id`,
+      [clientId],
+    );
+    if (!updated.rowCount) {
+      throw Object.assign(new Error("Клиент не найден"), { statusCode: 404 });
+    }
+    await this.q(
+      `UPDATE public.password_reset_tokens
+          SET used_at = COALESCE(used_at, (now() AT TIME ZONE 'utc'))
+        WHERE user_id = $1 AND used_at IS NULL`,
+      [clientId],
+    );
+    await revokeAllSessionsForUser(this.db, clientId);
+  }
+
+  /**
+   * Restore login after archive. Does not activate courses or change client_access.
+   */
+  async restore(clientId: string): Promise<void> {
+    const existing = await this.get(clientId);
+    if (!existing) throw Object.assign(new Error("Клиент не найден"), { statusCode: 404 });
+    if (existing.account_status !== "disabled") {
+      return;
+    }
+    await this.q(
+      `UPDATE public.users
+          SET status = 'active',
+              updated_at = (now() AT TIME ZONE 'utc')
+        WHERE id = $1 AND status = 'disabled'`,
+      [clientId],
+    );
+  }
+
   async exportContacts(): Promise<
     Array<{ full_name: string; phone: string; email: string; created_at: string }>
   > {
     const { items } = await this.list();
-    return items.map((item) => ({
-      full_name: item.full_name ?? "",
-      phone: item.phone ?? "",
-      email: item.email ?? "",
-      created_at: item.created_at,
-    }));
+    return items
+      .filter((item) => item.account_status !== "disabled")
+      .map((item) => ({
+        full_name: item.full_name ?? "",
+        phone: item.phone ?? "",
+        email: item.email ?? "",
+        created_at: item.created_at,
+      }));
   }
 }

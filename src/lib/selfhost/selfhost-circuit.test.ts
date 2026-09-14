@@ -3773,6 +3773,233 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     ).toBe(200);
   });
 
+  it("тренер: смена пароля клиента, архив/restore без потери данных и без обхода блокировки", async () => {
+    await ensureAdminUser(pool);
+    resetLoginRateLimitForTests();
+    resetPasswordResetRateLimitForTests();
+
+    await pool.query(`UPDATE users SET status = 'active', password_hash = $2 WHERE id = $1`, [
+      CLIENT_A,
+      await hashPasswordArgon2id("Passw0rd!"),
+    ]);
+    await pool.query(`UPDATE client_access SET status = 'active' WHERE user_id = $1`, [CLIENT_A]);
+
+    const hashesBefore = await pool.query(
+      `SELECT id, content_hash FROM nutrition_plan_versions WHERE client_id = $1
+       UNION ALL
+       SELECT id, content_hash FROM training_program_versions WHERE client_id = $1
+       ORDER BY id`,
+      [CLIENT_A],
+    );
+    const coursesBefore = await pool.query(
+      `SELECT id, status FROM client_courses WHERE client_id = $1 ORDER BY id`,
+      [CLIENT_A],
+    );
+    const measBefore = await pool.query(
+      `SELECT count(*)::int AS n FROM measurements WHERE user_id = $1`,
+      [CLIENT_A],
+    );
+    const accessBefore = await pool.query(
+      `SELECT status, unlock_source, activated_at FROM client_access WHERE user_id = $1`,
+      [CLIENT_A],
+    );
+
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    expect(
+      (
+        await req("/api/selfhost/login", {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+        })
+      ).status,
+    ).toBe(200);
+    expect((await req("/api/selfhost/me", { jar: clientJar })).status).toBe(200);
+
+    expect(
+      (
+        await req(`/api/selfhost/admin/clients/${CLIENT_A}/password`, {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({ password: "HackedPass1!" }),
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await req(`/api/selfhost/admin/clients/${CLIENT_A}/archive`, {
+          method: "POST",
+          jar: clientJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(403);
+
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+
+    const pwRes = await req(`/api/selfhost/admin/clients/${CLIENT_A}/password`, {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ password: "TempPassw0rd!" }),
+    });
+    expect(pwRes.status).toBe(200);
+    const pwBody = await pwRes.json();
+    expect(pwBody).toEqual({ ok: true });
+    expect(JSON.stringify(pwBody)).not.toMatch(/TempPassw0rd|argon2|password_hash/i);
+
+    expect((await (await req("/api/selfhost/me", { jar: clientJar })).json()).session).toBeNull();
+    expect(
+      (
+        await req("/api/selfhost/login", {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+        })
+      ).status,
+    ).toBe(401);
+
+    const newLogin = await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-a@example.test", password: "TempPassw0rd!" }),
+    });
+    expect(newLogin.status).toBe(200);
+    expect((await (await req("/api/selfhost/me", { jar: clientJar })).json()).session?.userId).toBe(
+      CLIENT_A,
+    );
+
+    const mailDir = process.env.SELFHOST_MAIL_DIR!;
+    for (const f of fs.readdirSync(mailDir)) fs.unlinkSync(path.join(mailDir, f));
+    const resetGuest = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: resetGuest });
+    const preReset = await req("/api/selfhost/password-reset/request", {
+      method: "POST",
+      jar: resetGuest,
+      body: JSON.stringify({ email: "client-a@example.test" }),
+    });
+    expect(preReset.status).toBe(200);
+    const preFiles = fs.readdirSync(mailDir);
+    expect(preFiles.length).toBe(1);
+    const preMail = JSON.parse(fs.readFileSync(path.join(mailDir, preFiles[0]), "utf8")) as {
+      text: string;
+    };
+    const preToken = decodeURIComponent(
+      preMail.text.match(/reset-password\?token=([^\s]+)/)![1],
+    );
+
+    const arch = await req(`/api/selfhost/admin/clients/${CLIENT_A}/archive`, {
+      method: "POST",
+      jar: adminJar,
+      body: "{}",
+    });
+    expect(arch.status).toBe(200);
+    expect(await arch.json()).toEqual({ ok: true });
+
+    expect((await (await req("/api/selfhost/me", { jar: clientJar })).json()).session).toBeNull();
+    expect(
+      (
+        await req("/api/selfhost/login", {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({ email: "client-a@example.test", password: "TempPassw0rd!" }),
+        })
+      ).status,
+    ).toBe(401);
+
+    for (const f of fs.readdirSync(mailDir)) fs.unlinkSync(path.join(mailDir, f));
+    const archivedReset = await req("/api/selfhost/password-reset/request", {
+      method: "POST",
+      jar: resetGuest,
+      body: JSON.stringify({ email: "client-a@example.test" }),
+    });
+    expect(archivedReset.status).toBe(200);
+    expect(fs.readdirSync(mailDir)).toHaveLength(0);
+
+    const confirmArchived = await req("/api/selfhost/password-reset/confirm", {
+      method: "POST",
+      jar: resetGuest,
+      body: JSON.stringify({ token: preToken, password: "BypassPass1!" }),
+    });
+    expect(confirmArchived.status).toBe(400);
+
+    const promo = await req("/api/selfhost/signup-promo", {
+      method: "POST",
+      jar: resetGuest,
+      body: JSON.stringify({
+        code: "ANYCODE1",
+        email: "client-a@example.test",
+        password: "TempPassw0rd!",
+        full_name: "Архив",
+      }),
+    });
+    expect([401, 404]).toContain(promo.status);
+
+    const cardArchived = await (
+      await req(`/api/selfhost/admin/clients/${CLIENT_A}`, { jar: adminJar })
+    ).json();
+    expect(cardArchived.client.account_status).toBe("disabled");
+    expect(cardArchived.client.access_status).toBe(accessBefore.rows[0].status);
+
+    const rest = await req(`/api/selfhost/admin/clients/${CLIENT_A}/restore`, {
+      method: "POST",
+      jar: adminJar,
+      body: "{}",
+    });
+    expect(rest.status).toBe(200);
+
+    const accessAfter = await pool.query(
+      `SELECT status, unlock_source, activated_at FROM client_access WHERE user_id = $1`,
+      [CLIENT_A],
+    );
+    expect(accessAfter.rows[0].status).toBe(accessBefore.rows[0].status);
+    expect(accessAfter.rows[0].unlock_source).toBe(accessBefore.rows[0].unlock_source);
+    expect(String(accessAfter.rows[0].activated_at)).toBe(String(accessBefore.rows[0].activated_at));
+
+    const hashesAfter = await pool.query(
+      `SELECT id, content_hash FROM nutrition_plan_versions WHERE client_id = $1
+       UNION ALL
+       SELECT id, content_hash FROM training_program_versions WHERE client_id = $1
+       ORDER BY id`,
+      [CLIENT_A],
+    );
+    expect(hashesAfter.rows).toEqual(hashesBefore.rows);
+    const coursesAfter = await pool.query(
+      `SELECT id, status FROM client_courses WHERE client_id = $1 ORDER BY id`,
+      [CLIENT_A],
+    );
+    expect(coursesAfter.rows).toEqual(coursesBefore.rows);
+    const measAfter = await pool.query(
+      `SELECT count(*)::int AS n FROM measurements WHERE user_id = $1`,
+      [CLIENT_A],
+    );
+    expect(measAfter.rows[0].n).toBe(measBefore.rows[0].n);
+
+    expect(
+      (
+        await req("/api/selfhost/login", {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({ email: "client-a@example.test", password: "TempPassw0rd!" }),
+        })
+      ).status,
+    ).toBe(200);
+
+    // Вернуть исходный пароль для остальных тестов / повторных прогонов.
+    await req(`/api/selfhost/admin/clients/${CLIENT_A}/password`, {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ password: "Passw0rd!" }),
+    });
+    await pool.query(`UPDATE users SET status = 'active' WHERE id = $1`, [CLIENT_A]);
+  });
+
   it("не обращается к Supabase в local/postgres", () => {
     expect(fetchCalls.some((url) => url.includes("supabase"))).toBe(false);
   });

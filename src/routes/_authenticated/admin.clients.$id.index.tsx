@@ -12,8 +12,10 @@ import {
   Lock,
   Plus,
   Save,
+  Archive,
   Trash2,
   Unlock,
+  RotateCcw,
   UserX,
   Utensils,
 } from "lucide-react";
@@ -76,6 +78,7 @@ function ClientDetail() {
   const [updatingAccess, setUpdatingAccess] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [localCircuit, setLocalCircuit] = useState(false);
+  const [accountStatus, setAccountStatus] = useState<string>("active");
 
   const load = () => {
     void (async () => {
@@ -101,6 +104,7 @@ function ClientDetail() {
           activated_at: (c.activated_at as string | null) ?? null,
           notes: (c.access_notes as string | null) ?? null,
         });
+        setAccountStatus(String(c.account_status ?? "active"));
         setOnboardingCompleted(Boolean(c.onboarding_completed_at));
         setItems((c.measurements as Measurement[]) ?? []);
         setLoading(false);
@@ -273,6 +277,11 @@ function ClientDetail() {
           <h1 className="mt-2 font-display text-2xl sm:text-3xl md:text-4xl">
             {profile?.full_name || "Без имени"}
           </h1>
+          {accountStatus === "disabled" ? (
+            <p className="mt-2 inline-flex rounded-full border border-coral/40 bg-coral/10 px-3 py-1 text-[11px] uppercase tracking-widest text-coral">
+              В архиве — вход заблокирован
+            </p>
+          ) : null}
         </div>
         <p className="max-w-3xl text-base leading-relaxed text-warm-gray">
           {profile?.goal?.replace(/\s+/g, " ").trim() || "Цель не задана"}
@@ -343,10 +352,8 @@ function ClientDetail() {
         clientId={id}
         clientName={profile?.full_name}
         localCircuit={localCircuit}
-        onDeleted={() => {
-          toast.success("Клиент удалён");
-          void navigate({ to: "/admin" });
-        }}
+        accountStatus={accountStatus}
+        onChanged={load}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -803,37 +810,40 @@ function ProfileEditor({
 function AdminActions({
   clientId,
   clientName,
-  onDeleted,
+  onChanged,
   localCircuit,
+  accountStatus,
 }: {
   clientId: string;
   clientName: string | null | undefined;
-  onDeleted: () => void;
+  onChanged: () => void;
   localCircuit: boolean;
+  accountStatus: string;
 }) {
   const updatePassword = useServerFn(adminUpdateClientPassword);
   const deleteClient = useServerFn(adminDeleteClient);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
-  const [delLoading, setDelLoading] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const archived = accountStatus === "disabled";
+  const navigate = useNavigate();
 
   const submitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (localCircuit) {
-      toast.error(
-        "Смена пароля будет в этапе локальной Auth. Сейчас действие отключено, облако не вызывается.",
-      );
-      return;
-    }
     if (password.length < 8) {
       toast.error("Минимум 8 символов");
       return;
     }
     setPwLoading(true);
     try {
-      await updatePassword({ data: { userId: clientId, password } });
-      toast.success("Пароль обновлён");
+      if (localCircuit) {
+        const { selfhostAdminSetClientPassword } = await import("@/lib/selfhost/client-api");
+        await selfhostAdminSetClientPassword(clientId, password);
+      } else {
+        await updatePassword({ data: { userId: clientId, password } });
+      }
+      toast.success("Пароль обновлён. Старые сессии клиента отозваны.");
       setPassword("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Ошибка");
@@ -842,25 +852,50 @@ function AdminActions({
     }
   };
 
-  const remove = async () => {
-    if (localCircuit) {
-      toast.error("Окончательное удаление клиента будет в этапе Auth. Сейчас действие отключено.");
-      return;
-    }
+  const archive = async () => {
     const label = clientName || "этого клиента";
     if (
       !window.confirm(
-        `Удалить ${label}? Все данные (замеры, программы, анкета) будут стёрты безвозвратно.`,
+        `Архивировать ${label}?\n\nВход будет заблокирован, активные сессии отозваны. Замеры, курсы, опубликованные программы и история сохранятся. Позже можно восстановить из архива.`,
       )
     )
       return;
-    setDelLoading(true);
+    setArchiveLoading(true);
     try {
-      await deleteClient({ data: { userId: clientId } });
-      onDeleted();
+      if (localCircuit) {
+        const { selfhostAdminArchiveClient } = await import("@/lib/selfhost/client-api");
+        await selfhostAdminArchiveClient(clientId);
+        toast.success("Клиент в архиве");
+        onChanged();
+      } else {
+        await deleteClient({ data: { userId: clientId } });
+        toast.success("Клиент удалён");
+        void navigate({ to: "/admin" });
+      }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Ошибка удаления");
-      setDelLoading(false);
+      toast.error(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setArchiveLoading(false);
+    }
+  };
+
+  const restore = async () => {
+    if (
+      !window.confirm(
+        "Восстановить клиента из архива?\n\nВход снова будет разрешён. Статус доступа и курсы не изменятся автоматически.",
+      )
+    )
+      return;
+    setArchiveLoading(true);
+    try {
+      const { selfhostAdminRestoreClient } = await import("@/lib/selfhost/client-api");
+      await selfhostAdminRestoreClient(clientId);
+      toast.success("Клиент восстановлен");
+      onChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setArchiveLoading(false);
     }
   };
 
@@ -872,7 +907,8 @@ function AdminActions({
           <h3 className="font-display text-lg">Сменить пароль</h3>
         </div>
         <p className="mt-1 text-xs text-warm-gray">
-          Задайте новый пароль. Сообщите его клиенту любым удобным способом.
+          Задайте новый пароль. Сообщите его клиенту любым удобным способом. Все сессии клиента будут
+          отозваны.
         </p>
         <form onSubmit={submitPassword} className="mt-4 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
@@ -884,6 +920,7 @@ function AdminActions({
               minLength={8}
               maxLength={72}
               className={`${inputCls} pr-12`}
+              autoComplete="new-password"
             />
             <button
               type="button"
@@ -894,7 +931,7 @@ function AdminActions({
             </button>
           </div>
           <button
-            disabled={pwLoading || password.length < 8 || localCircuit}
+            disabled={pwLoading || password.length < 8}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
           >
             <KeyRound className="h-4 w-4" /> Обновить
@@ -905,19 +942,54 @@ function AdminActions({
       <div className="rounded-3xl border border-coral/25 bg-coral/5 p-6">
         <div className="flex items-center gap-2 text-ivory">
           <UserX className="h-4 w-4 text-coral" />
-          <h3 className="font-display text-lg">Удалить клиента</h3>
+          <h3 className="font-display text-lg">
+            {localCircuit ? (archived ? "Архив" : "Архивировать клиента") : "Удалить клиента"}
+          </h3>
         </div>
-        <p className="mt-1 text-xs text-warm-gray">
-          Полное удаление аккаунта и всех связанных данных. Действие необратимо.
-        </p>
-        <button
-          type="button"
-          onClick={remove}
-          disabled={delLoading || localCircuit}
-          className="mt-4 inline-flex items-center gap-2 rounded-full border border-coral/40 px-5 py-3 text-sm text-coral transition-colors hover:bg-coral/15 disabled:opacity-60"
-        >
-          <Trash2 className="h-4 w-4" /> {delLoading ? "Удаляем…" : "Удалить безвозвратно"}
-        </button>
+        {localCircuit ? (
+          <>
+            <p className="mt-1 text-xs text-warm-gray">
+              {archived
+                ? "Аккаунт в архиве: вход запрещён. Данные сохранены. Восстановление не активирует курсы и не меняет доступ."
+                : "Блокирует вход и отзывает сессии. Замеры, курсы, published-программы и история не удаляются."}
+            </p>
+            {archived ? (
+              <button
+                type="button"
+                onClick={() => void restore()}
+                disabled={archiveLoading}
+                className="mt-4 inline-flex items-center gap-2 rounded-full border border-gold/40 px-5 py-3 text-sm text-gold transition-colors hover:bg-gold/15 disabled:opacity-60"
+              >
+                <RotateCcw className="h-4 w-4" />{" "}
+                {archiveLoading ? "Восстанавливаем…" : "Восстановить из архива"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void archive()}
+                disabled={archiveLoading}
+                className="mt-4 inline-flex items-center gap-2 rounded-full border border-coral/40 px-5 py-3 text-sm text-coral transition-colors hover:bg-coral/15 disabled:opacity-60"
+              >
+                <Archive className="h-4 w-4" /> {archiveLoading ? "Архивируем…" : "Архивировать"}
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <p className="mt-1 text-xs text-warm-gray">
+              Полное удаление аккаунта и всех связанных данных. Действие необратимо.
+            </p>
+            <button
+              type="button"
+              onClick={() => void archive()}
+              disabled={archiveLoading}
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-coral/40 px-5 py-3 text-sm text-coral transition-colors hover:bg-coral/15 disabled:opacity-60"
+            >
+              <Archive className="h-4 w-4" />{" "}
+              {archiveLoading ? "Удаляем…" : "Удалить безвозвратно"}
+            </button>
+          </>
+        )}
       </div>
     </section>
   );

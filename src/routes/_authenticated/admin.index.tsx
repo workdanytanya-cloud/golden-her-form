@@ -20,6 +20,7 @@ type Client = {
   goal: string | null;
   created_at: string;
   access_status: AccessStatus;
+  account_status?: string | null;
   onboarding_completed_at: string | null;
 };
 
@@ -50,6 +51,7 @@ function AdminClients() {
             goal: row.goal ?? null,
             created_at: String(row.created_at),
             access_status: (row.access_status as AccessStatus) ?? null,
+            account_status: (row as { account_status?: string }).account_status ?? "active",
             onboarding_completed_at: row.onboarding_completed_at ?? null,
           })),
         );
@@ -90,6 +92,9 @@ function AdminClients() {
 
   const sorted = useMemo(() => {
     return [...clients].sort((a, b) => {
+      const archivedA = a.account_status === "disabled" ? 1 : 0;
+      const archivedB = b.account_status === "disabled" ? 1 : 0;
+      if (archivedA !== archivedB) return archivedA - archivedB;
       const sa = STATUS_ORDER[a.access_status ?? "pending_onboarding"] ?? 5;
       const sb = STATUS_ORDER[b.access_status ?? "pending_onboarding"] ?? 5;
       if (sa !== sb) return sa - sb;
@@ -207,7 +212,14 @@ function AdminClients() {
                 <tr key={c.id} className="hover:bg-gold/5">
                   <td className="px-5 py-3 text-ivory">{c.full_name || "—"}</td>
                   <td className="px-5 py-3">
-                    <StatusBadge status={c.access_status} />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <StatusBadge status={c.access_status} />
+                      {c.account_status === "disabled" ? (
+                        <span className="inline-flex rounded-full border border-coral/40 bg-coral/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-coral">
+                          Архив
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-5 py-3 text-warm-gray">{c.phone || "—"}</td>
                   <td className="px-5 py-3 text-warm-gray">

@@ -190,11 +190,22 @@ export async function confirmPasswordResetPg(
       });
     }
 
+    const userRow = await client.query(
+      `SELECT status FROM public.users WHERE id = $1 FOR UPDATE`,
+      [row.user_id],
+    );
+    const userStatus = (userRow.rows[0] as { status: string } | undefined)?.status;
+    if (!userStatus || userStatus === "disabled") {
+      throw Object.assign(new Error("Ссылка восстановления недействительна или уже использована"), {
+        statusCode: 400,
+      });
+    }
+
     await client.query(
       `UPDATE public.users
           SET password_hash = $2,
               updated_at = (now() AT TIME ZONE 'utc')
-        WHERE id = $1`,
+        WHERE id = $1 AND status <> 'disabled'`,
       [row.user_id, passwordHash],
     );
 

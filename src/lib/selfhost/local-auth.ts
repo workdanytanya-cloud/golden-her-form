@@ -135,6 +135,14 @@ export async function revokeSessionByToken(db: DbClient, token: string | null): 
   );
 }
 
+export async function revokeAllSessionsForUser(db: DbClient, userId: string): Promise<void> {
+  await db.query(
+    `UPDATE public.sessions SET revoked_at = (now() AT TIME ZONE 'utc')
+     WHERE user_id = $1 AND revoked_at IS NULL`,
+    [userId],
+  );
+}
+
 export type LocalSession = AuthSession & { accessStatus: string | null; unlockSource: string | null };
 
 export async function loadSession(db: DbClient, token: string | null): Promise<LocalSession | null> {

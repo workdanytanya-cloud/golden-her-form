@@ -100,6 +100,7 @@ import {
   PostgresAdminClientRepository,
   adminClientAccessSchema,
   adminClientListQuerySchema,
+  adminClientPasswordSchema,
   adminClientProfileSchema,
 } from "@/lib/selfhost/postgres-admin-clients";
 import {
@@ -1138,6 +1139,25 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
           adminClientAccessSchema.parse(body),
           session.userId,
         );
+        return json({ ok: true });
+      }
+
+      if (action === "password" && request.method === "POST") {
+        assertCsrf(request);
+        const body = await readJson(request);
+        await adminClients().setPassword(clientId, adminClientPasswordSchema.parse(body));
+        return json({ ok: true });
+      }
+
+      if (action === "archive" && request.method === "POST") {
+        assertCsrf(request);
+        await adminClients().archive(clientId, session.userId);
+        return json({ ok: true });
+      }
+
+      if (action === "restore" && request.method === "POST") {
+        assertCsrf(request);
+        await adminClients().restore(clientId);
         return json({ ok: true });
       }
 

@@ -164,6 +164,39 @@ export async function selfhostAdminSetAccess(id: string, payload: Record<string,
   await readSelfhostJson(res);
 }
 
+export async function selfhostAdminSetClientPassword(id: string, password: string) {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/clients/${encodeURIComponent(id)}/password`,
+    {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    },
+  );
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminArchiveClient(id: string) {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/clients/${encodeURIComponent(id)}/archive`,
+    {
+      method: "POST",
+      body: "{}",
+    },
+  );
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminRestoreClient(id: string) {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/clients/${encodeURIComponent(id)}/restore`,
+    {
+      method: "POST",
+      body: "{}",
+    },
+  );
+  await readSelfhostJson(res);
+}
+
 export async function selfhostAdminExportContacts() {
   const res = await fetch("/api/selfhost/admin/clients/export", { credentials: "include" });
   return readSelfhostJson(res) as Promise<{
