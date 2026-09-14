@@ -348,9 +348,15 @@ export async function createClientCourse(params: {
 
 /** Клиент запрашивает продление: новый 4-недельный блок с прогрессией от прошлого курса. */
 export async function renewClientCourse(clientId: string): Promise<ClientCourse> {
-  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  const { usesLocalPostgresCircuit, selfhostRenewCourse, selfhostMe } = await import(
+    "@/lib/selfhost/client-api"
+  );
   if (await usesLocalPostgresCircuit()) {
-    throw new Error("Продление курса в self-hosted клиентском контуре пока недоступно");
+    const me = await selfhostMe();
+    if (!me.session?.userId || me.session.userId !== clientId) {
+      throw new Error("Можно продлить только свой курс");
+    }
+    return selfhostRenewCourse();
   }
   return createClientCourse({
     clientId,

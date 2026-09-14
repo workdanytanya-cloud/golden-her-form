@@ -194,6 +194,15 @@ export async function selfhostAdminCreateCourse(
   return data.course as ClientCourse;
 }
 
+export async function selfhostRenewCourse() {
+  const res = await selfhostFetch("/api/selfhost/courses/renew", {
+    method: "POST",
+    body: "{}",
+  });
+  const data = await readSelfhostJson(res);
+  return data.course as ClientCourse;
+}
+
 export async function selfhostAdminActivateCourse(clientId: string, courseId: string) {
   const res = await selfhostFetch(
     `/api/selfhost/admin/clients/${encodeURIComponent(clientId)}/courses/${encodeURIComponent(courseId)}`,

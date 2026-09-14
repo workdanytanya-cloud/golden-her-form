@@ -68,6 +68,66 @@ export async function resolveClientCourseIdPg(
   return (any.rows[0] as { id: string } | undefined)?.id ?? null;
 }
 
+async function courseHasLinkedContentPg(
+  db: Queryable,
+  courseId: string,
+  clientId: string,
+): Promise<boolean> {
+  const { rows } = await db.query(
+    `SELECT (
+       EXISTS (
+         SELECT 1 FROM public.training_programs
+          WHERE course_id = $1 AND user_id = $2
+       )
+       OR EXISTS (
+         SELECT 1 FROM public.nutrition_plans
+          WHERE course_id = $1 AND user_id = $2
+       )
+     ) AS ok`,
+    [courseId, clientId],
+  );
+  return Boolean((rows[0] as { ok: boolean } | undefined)?.ok);
+}
+
+async function resolveCloneSourceIdPg(
+  db: Queryable,
+  clientId: string,
+  excludeCourseId: string,
+  explicitSourceId?: string | null,
+): Promise<string | null> {
+  if (explicitSourceId) {
+    const { rows } = await db.query(
+      `SELECT id FROM public.client_courses
+        WHERE id = $1 AND client_id = $2 AND status <> 'draft'`,
+      [explicitSourceId, clientId],
+    );
+    return (rows[0] as { id: string } | undefined)?.id ?? null;
+  }
+  const fallback = await db.query(
+    `SELECT id FROM public.client_courses
+      WHERE client_id = $1 AND id <> $2 AND status <> 'draft'
+      ORDER BY start_date DESC LIMIT 1`,
+    [clientId, excludeCourseId],
+  );
+  return (fallback.rows[0] as { id: string } | undefined)?.id ?? null;
+}
+
+async function cloneCourseContentPg(
+  db: Queryable,
+  clientId: string,
+  sourceCourseId: string,
+  targetCourseId: string,
+): Promise<void> {
+  const { cloneNutritionPlanPg } = await import("@/lib/selfhost/postgres-nutrition");
+  const { seedTrainingContinuationForCoursePg } = await import("@/lib/selfhost/postgres-training");
+  await seedTrainingContinuationForCoursePg(db, {
+    clientId,
+    sourceCourseId,
+    targetCourseId,
+  });
+  await cloneNutritionPlanPg(db, sourceCourseId, targetCourseId, clientId);
+}
+
 export class PostgresClientCourseRepository {
   constructor(private readonly db: Pool) {}
 
@@ -101,10 +161,15 @@ export class PostgresClientCourseRepository {
     return Number((rows[0] as { n: number }).n ?? 0);
   }
 
+  /**
+   * Создание курса (admin) / основа продления.
+   * При activate=false: идемпотентность по (client_id, start_date) для draft —
+   * как findDraftForStart в cloud renew/create.
+   */
   async create(
     input: z.infer<typeof adminCourseCreateSchema>,
     actorId: string,
-  ): Promise<ClientCourse> {
+  ): Promise<ClientCourse & { idempotent?: boolean }> {
     const data = adminCourseCreateSchema.parse(input);
     const start = data.startDate ? parseISODate(data.startDate) : new Date();
     const startIso = toISODate(start);
@@ -113,6 +178,32 @@ export class PostgresClientCourseRepository {
     const status: ClientCourseStatus = data.activate ? "active" : "draft";
 
     return withTransaction(async (client) => {
+      if (!data.activate) {
+        await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
+          `course-draft:${data.clientId}:${startIso}`,
+        ]);
+        const existing = await client.query(
+          `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes
+             FROM public.client_courses
+            WHERE client_id = $1 AND status = 'draft' AND start_date = $2::date
+            ORDER BY created_at DESC LIMIT 1`,
+          [data.clientId, startIso],
+        );
+        if (existing.rows[0]) {
+          const draft = mapCourse(existing.rows[0] as Record<string, unknown>);
+          const sourceCourseId = await resolveCloneSourceIdPg(
+            client,
+            data.clientId,
+            draft.id,
+            data.cloneFromCourseId,
+          );
+          if (sourceCourseId && !(await courseHasLinkedContentPg(client, draft.id, data.clientId))) {
+            await cloneCourseContentPg(client, data.clientId, sourceCourseId, draft.id);
+          }
+          return { ...draft, idempotent: true };
+        }
+      }
+
       if (data.activate) {
         await client.query(
           `UPDATE public.client_courses SET status = 'completed'
@@ -127,28 +218,34 @@ export class PostgresClientCourseRepository {
         [data.clientId, title, startIso, endIso, status, data.notes ?? null, actorId],
       );
       const created = mapCourse(inserted.rows[0] as Record<string, unknown>);
-      const fallback = await client.query(
-        `SELECT id FROM public.client_courses
-          WHERE client_id = $1 AND id <> $2 AND status <> 'draft'
-          ORDER BY start_date DESC LIMIT 1`,
-        [data.clientId, created.id],
+      const sourceCourseId = await resolveCloneSourceIdPg(
+        client,
+        data.clientId,
+        created.id,
+        data.cloneFromCourseId,
       );
-      const sourceCourseId =
-        data.cloneFromCourseId ?? (fallback.rows[0] as { id: string } | undefined)?.id ?? null;
       if (sourceCourseId) {
-        const { cloneNutritionPlanPg } = await import("@/lib/selfhost/postgres-nutrition");
-        const { seedTrainingContinuationForCoursePg } = await import(
-          "@/lib/selfhost/postgres-training"
-        );
-        await seedTrainingContinuationForCoursePg(client, {
-          clientId: data.clientId,
-          sourceCourseId,
-          targetCourseId: created.id,
-        });
-        await cloneNutritionPlanPg(client, sourceCourseId, created.id, data.clientId);
+        await cloneCourseContentPg(client, data.clientId, sourceCourseId, created.id);
       }
-      return created;
+      return { ...created, idempotent: false };
     });
+  }
+
+  /**
+   * Клиент запрашивает продление: draft на сегодня, без activate/access,
+   * clone continuation от последнего не-draft курса. Не трогает published/assignments.
+   */
+  async renewForClient(clientId: string): Promise<ClientCourse & { idempotent: boolean }> {
+    const created = await this.create(
+      {
+        clientId,
+        startDate: toISODate(new Date()),
+        activate: false,
+        notes: "Запрос на продление от клиента",
+      },
+      clientId,
+    );
+    return { ...created, idempotent: Boolean(created.idempotent) };
   }
 
   async update(

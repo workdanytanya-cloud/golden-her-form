@@ -3429,6 +3429,187 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     expect((await upd.json()).lead.status).toBe("contacted");
   });
 
+  it("продление курса: draft без activate, idempotency, права и неизменность published", async () => {
+    await ensureAdminUser(pool);
+    const EX_RENEW = "88888888-8888-4888-8888-8888888888aa";
+    await pool.query(
+      `INSERT INTO exercises (id, slug, name, category, difficulty, is_active)
+       VALUES ($1,'renew-squat','Присед renew','strength_lower','beginner', true)
+       ON CONFLICT (id) DO UPDATE SET is_active = true, archived_at = NULL`,
+      [EX_RENEW],
+    );
+
+    const publishedBefore = await pool.query(
+      `SELECT id, content_hash, status, snapshot::text AS snap
+         FROM nutrition_plan_versions WHERE id IN ($1,$2)
+       UNION ALL
+       SELECT id, content_hash, status, snapshot::text AS snap
+         FROM training_program_versions WHERE id = $3
+       ORDER BY id`,
+      [NUT_A, NUT_A2, TR_A],
+    );
+    const assignBefore = await pool.query(
+      `SELECT id, client_id, course_id, kind, active_version_id
+         FROM client_program_assignments
+        WHERE client_id = $1 ORDER BY kind, course_id`,
+      [CLIENT_A],
+    );
+    const activeBefore = await pool.query(
+      `SELECT id, status FROM client_courses WHERE id = $1`,
+      [COURSE_A1],
+    );
+    expect(activeBefore.rows[0].status).toBe("active");
+
+    const guest = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: guest });
+    expect((await req("/api/selfhost/courses/renew", { method: "POST", jar: guest, body: "{}" }))
+      .status).toBe(401);
+
+    const otherJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: otherJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: otherJar,
+      body: JSON.stringify({ email: "client-b@example.test", password: "Passw0rd!" }),
+    });
+    expect(
+      (
+        await req("/api/selfhost/courses/renew", {
+          method: "POST",
+          jar: otherJar,
+          body: JSON.stringify({ clientId: CLIENT_A }),
+        })
+      ).status,
+    ).toBe(403);
+
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+    expect(
+      (await req("/api/selfhost/courses/renew", { method: "POST", jar: adminJar, body: "{}" })).status,
+    ).toBe(403);
+
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+    });
+
+    const first = await req("/api/selfhost/courses/renew", {
+      method: "POST",
+      jar: clientJar,
+      body: "{}",
+    });
+    expect(first.status).toBe(200);
+    const firstBody = await first.json();
+    expect(firstBody.course.status).toBe("draft");
+    expect(firstBody.course.notes).toBe("Запрос на продление от клиента");
+    expect(firstBody.course.client_id).toBe(CLIENT_A);
+    expect(firstBody.idempotent).toBe(false);
+    const draftId = firstBody.course.id as string;
+    expect(draftId).not.toBe(COURSE_A1);
+    expect(draftId).not.toBe(COURSE_A2);
+
+    const again = await req("/api/selfhost/courses/renew", {
+      method: "POST",
+      jar: clientJar,
+      body: "{}",
+    });
+    expect(again.status).toBe(200);
+    const againBody = await again.json();
+    expect(againBody.idempotent).toBe(true);
+    expect(againBody.course.id).toBe(draftId);
+
+    const [r1, r2] = await Promise.all([
+      req("/api/selfhost/courses/renew", { method: "POST", jar: clientJar, body: "{}" }),
+      req("/api/selfhost/courses/renew", { method: "POST", jar: clientJar, body: "{}" }),
+    ]);
+    expect([r1.status, r2.status].sort((a, b) => a - b)).toEqual([200, 200]);
+    const ids = [(await r1.json()).course.id, (await r2.json()).course.id];
+    expect(ids[0]).toBe(draftId);
+    expect(ids[1]).toBe(draftId);
+    const draftCount = await pool.query(
+      `SELECT count(*)::int AS n FROM client_courses
+        WHERE client_id = $1 AND status = 'draft' AND notes = 'Запрос на продление от клиента'`,
+      [CLIENT_A],
+    );
+    expect(draftCount.rows[0].n).toBe(1);
+
+    // Исходный active и published/assignments не тронуты
+    expect(
+      (await pool.query(`SELECT status FROM client_courses WHERE id = $1`, [COURSE_A1])).rows[0]
+        .status,
+    ).toBe("active");
+    const access = await pool.query(`SELECT status FROM client_access WHERE user_id = $1`, [
+      CLIENT_A,
+    ]);
+    expect(access.rows[0].status).toBe("active");
+
+    const publishedAfter = await pool.query(
+      `SELECT id, content_hash, status, snapshot::text AS snap
+         FROM nutrition_plan_versions WHERE id IN ($1,$2)
+       UNION ALL
+       SELECT id, content_hash, status, snapshot::text AS snap
+         FROM training_program_versions WHERE id = $3
+       ORDER BY id`,
+      [NUT_A, NUT_A2, TR_A],
+    );
+    expect(JSON.stringify(publishedAfter.rows)).toBe(JSON.stringify(publishedBefore.rows));
+    const assignAfter = await pool.query(
+      `SELECT id, client_id, course_id, kind, active_version_id
+         FROM client_program_assignments
+        WHERE client_id = $1 ORDER BY kind, course_id`,
+      [CLIENT_A],
+    );
+    expect(JSON.stringify(assignAfter.rows)).toBe(JSON.stringify(assignBefore.rows));
+    expect(
+      (
+        await pool.query(
+          `SELECT 1 FROM client_program_assignments WHERE course_id = $1`,
+          [draftId],
+        )
+      ).rowCount,
+    ).toBe(0);
+
+    // Тренер видит draft и активирует — после этого можно снова продлить
+    const adminCourses = await (
+      await req(`/api/selfhost/admin/clients/${CLIENT_A}/courses`, { jar: adminJar })
+    ).json();
+    expect(adminCourses.courses.some((c: { id: string }) => c.id === draftId)).toBe(true);
+
+    const act = await req(`/api/selfhost/admin/clients/${CLIENT_A}/courses/${draftId}`, {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ op: "activate" }),
+    });
+    expect(act.status).toBe(200);
+    expect(
+      (await pool.query(`SELECT status FROM client_courses WHERE id = $1`, [draftId])).rows[0]
+        .status,
+    ).toBe("active");
+    expect(
+      (await pool.query(`SELECT status FROM client_courses WHERE id = $1`, [COURSE_A1])).rows[0]
+        .status,
+    ).toBe("completed");
+
+    const secondWave = await req("/api/selfhost/courses/renew", {
+      method: "POST",
+      jar: clientJar,
+      body: "{}",
+    });
+    expect(secondWave.status).toBe(200);
+    const secondBody = await secondWave.json();
+    expect(secondBody.idempotent).toBe(false);
+    expect(secondBody.course.id).not.toBe(draftId);
+    expect(secondBody.course.status).toBe("draft");
+  });
+
   it("не обращается к Supabase в local/postgres", () => {
     expect(fetchCalls.some((url) => url.includes("supabase"))).toBe(false);
   });

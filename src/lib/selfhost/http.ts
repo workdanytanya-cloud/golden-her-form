@@ -581,6 +581,20 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       return json({ courses });
     }
 
+    if (url.pathname === "/api/selfhost/courses/renew" && request.method === "POST") {
+      // Client renew: only own course continuum. Never activate / expand access.
+      assertCsrf(request);
+      if (session.role === "admin") {
+        return errorJson("Продление курса доступно клиенту из кабинета", 403);
+      }
+      const body = await readJson(request);
+      if (body.clientId != null && String(body.clientId) !== session.userId) {
+        return errorJson("Можно продлить только свой курс", 403);
+      }
+      const result = await coursesRepo().renewForClient(session.userId);
+      return json({ course: result, idempotent: result.idempotent });
+    }
+
     if (url.pathname === "/api/selfhost/course" && request.method === "GET") {
       const id = url.searchParams.get("id");
       if (!id) return errorJson("Не указан id курса", 400);
