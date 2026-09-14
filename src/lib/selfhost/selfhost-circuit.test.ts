@@ -2325,6 +2325,239 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     expect(conflict2.status).toBe(409);
   });
 
+  it("training publish: 4xx без частичной публикации, concurrent, clone и media overlay", async () => {
+    await ensureAdminUser(pool);
+    await pool.query(
+      `INSERT INTO exercises (id, slug, name, category, difficulty, is_active)
+       VALUES ($1,'circ-squat-2','Присед overlay','strength_lower','beginner', true)
+       ON CONFLICT (id) DO UPDATE SET is_active = true, archived_at = NULL, name = EXCLUDED.name`,
+      [EX_ID],
+    );
+    await upsertExerciseMediaBinding(
+      pool,
+      {
+        exercise_id: EX_ID,
+        provider: "youtube",
+        source_url: "https://www.youtube.com/watch?v=trainOverlay1",
+        embed_url: null,
+        title: "Overlay",
+        status: "ok",
+        fallback_text: null,
+      },
+      ADMIN_ID,
+    );
+
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+
+    const beforeCount = await pool.query(
+      `SELECT count(*)::int AS n FROM training_program_versions WHERE client_id = $1`,
+      [CLIENT_A],
+    );
+
+    // empty publish → 4xx, no new version
+    const emptyPub = await req("/api/selfhost/admin/training/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ clientId: CLIENT_A, courseId: COURSE_A2 }),
+    });
+    expect([400, 403]).toContain(emptyPub.status);
+
+    // draft with unknown exercise via SQL bypass → publish 400, rollback
+    await req("/api/selfhost/admin/training/draft", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_A,
+        courseId: COURSE_A2,
+        sessions_per_week: 3,
+        level: "beginner",
+        goal: "tone",
+        equipment: [],
+        faq: [],
+        targets_manual: true,
+        program_weeks: 1,
+        days: [
+          {
+            week_index: 0,
+            day_index: 0,
+            is_rest: false,
+            title: "Valid first",
+            warmup: [],
+            exercises: [
+              {
+                exercise_id: EX_ID,
+                sets: 3,
+                reps: "10",
+                rest_seconds: 60,
+                tempo: null,
+                note: null,
+              },
+            ],
+            cooldown: [],
+            day_note: null,
+          },
+        ],
+      }),
+    });
+    const fakeEx = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    await pool.query(
+      `UPDATE training_program_days
+          SET exercises = $2::jsonb
+        WHERE program_id = (SELECT id FROM training_programs WHERE user_id = $1 AND course_id = $3)`,
+      [
+        CLIENT_A,
+        JSON.stringify([
+          {
+            exercise_id: fakeEx,
+            sets: 3,
+            reps: "10",
+            rest_seconds: 60,
+            tempo: null,
+            note: null,
+          },
+        ]),
+        COURSE_A2,
+      ],
+    );
+    const badPub = await req("/api/selfhost/admin/training/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_A,
+        courseId: COURSE_A2,
+        idempotencyKey: "train-bad-ex-01",
+      }),
+    });
+    expect(badPub.status).toBe(400);
+    const afterBad = await pool.query(
+      `SELECT count(*)::int AS n FROM training_program_versions WHERE client_id = $1`,
+      [CLIENT_A],
+    );
+    expect(Number(afterBad.rows[0].n)).toBe(Number(beforeCount.rows[0].n));
+    const badIdem = await pool.query(
+      `SELECT 1 FROM training_publish_idempotency WHERE idempotency_key = 'train-bad-ex-01'`,
+    );
+    expect(badIdem.rowCount).toBe(0);
+
+    // restore valid draft and publish (media overlay)
+    await req("/api/selfhost/admin/training/draft", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_A,
+        courseId: COURSE_A2,
+        sessions_per_week: 3,
+        level: "beginner",
+        goal: "tone",
+        equipment: [],
+        faq: [],
+        targets_manual: true,
+        program_weeks: 1,
+        days: [
+          {
+            week_index: 0,
+            day_index: 0,
+            is_rest: false,
+            title: "Overlay day",
+            warmup: [],
+            exercises: [
+              {
+                exercise_id: EX_ID,
+                sets: 3,
+                reps: "8",
+                rest_seconds: 60,
+                tempo: null,
+                note: null,
+              },
+            ],
+            cooldown: [],
+            day_note: null,
+          },
+        ],
+      }),
+    });
+    const pub = await req("/api/selfhost/admin/training/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ clientId: CLIENT_A, courseId: COURSE_A2, reason: "overlay" }),
+    });
+    expect(pub.status).toBe(200);
+    const pubBody = await pub.json();
+
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+    });
+    const view = await (
+      await req(`/api/selfhost/training?courseId=${COURSE_A2}`, { jar: clientJar })
+    ).json();
+    expect(view.training.version.id).toBe(pubBody.versionId);
+    const videoUrl = view.training.exercises?.[0]?.video?.url ?? view.training.exercises?.[0]?.video_url;
+    expect(String(videoUrl)).toContain("trainOverlay1");
+
+    // concurrent publish → one live published
+    const concurrent = await Promise.all([
+      req("/api/selfhost/admin/training/publish", {
+        method: "POST",
+        jar: adminJar,
+        body: JSON.stringify({ clientId: CLIENT_A, courseId: COURSE_A2, reason: "c1" }),
+      }),
+      req("/api/selfhost/admin/training/publish", {
+        method: "POST",
+        jar: adminJar,
+        body: JSON.stringify({ clientId: CLIENT_A, courseId: COURSE_A2, reason: "c2" }),
+      }),
+    ]);
+    expect(concurrent.every((r) => r.status === 200)).toBe(true);
+    const live = await pool.query(
+      `SELECT id, status FROM training_program_versions
+        WHERE client_id = $1 AND course_id = $2 AND status = 'published'`,
+      [CLIENT_A, COURSE_A2],
+    );
+    expect(live.rowCount).toBe(1);
+    const assign = await pool.query(
+      `SELECT active_version_id FROM client_program_assignments
+        WHERE client_id = $1 AND course_id = $2 AND kind = 'training'`,
+      [CLIENT_A, COURSE_A2],
+    );
+    expect(assign.rows[0].active_version_id).toBe(live.rows[0].id);
+
+    const hashBeforeClone = await pool.query(
+      `SELECT content_hash, snapshot FROM training_program_versions WHERE id = $1`,
+      [live.rows[0].id],
+    );
+    const cloned = await req(`/api/selfhost/admin/clients/${CLIENT_A}/courses`, {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ activate: false, cloneFromCourseId: COURSE_A2 }),
+    });
+    expect(cloned.status).toBe(200);
+    const newCourse = (await cloned.json()).course as { id: string };
+    const afterClone = await pool.query(
+      `SELECT content_hash, snapshot, status FROM training_program_versions WHERE id = $1`,
+      [live.rows[0].id],
+    );
+    expect(afterClone.rows[0].status).toBe("published");
+    expect(afterClone.rows[0].content_hash).toBe(hashBeforeClone.rows[0].content_hash);
+    expect(JSON.stringify(afterClone.rows[0].snapshot)).toBe(
+      JSON.stringify(hashBeforeClone.rows[0].snapshot),
+    );
+    const newAssign = await pool.query(
+      `SELECT 1 FROM client_program_assignments WHERE course_id = $1 AND kind = 'training'`,
+      [newCourse.id],
+    );
+    expect(newAssign.rowCount).toBe(0);
+  });
+
   it("не обращается к Supabase в local/postgres", () => {
     expect(fetchCalls.some((url) => url.includes("supabase"))).toBe(false);
   });

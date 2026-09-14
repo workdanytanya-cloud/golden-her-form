@@ -141,6 +141,8 @@ function AdminTrainingPage() {
     try {
       const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
       if (await usesLocalPostgresCircuit()) {
+        // Selfhost: всегда fresh-генерация в draft. mode=continuation в UI не доступен
+        // (ниже supabase-путь тоже вызывается только с mode: "fresh").
         const { createOrReplaceProgram } = await import("@/lib/training-repo");
         const built = await createOrReplaceProgram({
           userId: id,
@@ -169,6 +171,7 @@ function AdminTrainingPage() {
           notes: program?.notes ?? null,
           preserveFaq: program?.faq ?? null,
           targetsManual: true,
+          // UI не предлагает continuation-mode; только fresh.
           mode: "fresh",
         },
       });

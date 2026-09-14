@@ -69,7 +69,11 @@ async function resolveTrainingPlanAdmin(
   return resolveAdaptiveTrainingProgram(exercises, input);
 }
 
-/** Сгенерировать 4-недельный черновик на сервере (service role) и сохранить. */
+/** Сгенерировать 4-недельный черновик на сервере (service role) и сохранить.
+ *  mode="continuation" поддерживается API, но UI тренера всегда передаёт "fresh"
+ *  (admin.clients.$id.training.tsx → handleRegenerate). Continuation при создании курса —
+ *  seedTrainingContinuationForCourse (client-courses/repo), не кнопка regenerate.
+ */
 export const adminRegenerateTrainingProgram = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => {

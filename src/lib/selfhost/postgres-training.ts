@@ -12,6 +12,8 @@ import type { Exercise, ExerciseSet, FaqItem, ProgramDay, ProgramInput } from "@
 
 type Queryable = Pool | PoolClient;
 
+const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const exerciseSetSchema = z.object({
   exercise_id: z.string().uuid(),
   sets: z.number().int().min(0).max(50),
@@ -204,6 +206,81 @@ async function assertExercisesExist(db: Queryable, ids: string[]) {
       new Error(`В черновике есть неизвестные или архивные упражнения (${missing.length})`),
       { statusCode: 400 },
     );
+  }
+}
+
+/** Серверная проверка черновика перед publish (не доверяем клиентской генерации). */
+export function assertPublishableTrainingDraft(input: {
+  program: ProgramRow;
+  days: DayRow[];
+}): void {
+  const { program, days } = input;
+  if (![3, 4].includes(Number(program.sessions_per_week))) {
+    throw Object.assign(new Error("sessions_per_week должен быть 3 или 4"), { statusCode: 400 });
+  }
+  if (!Number.isFinite(program.program_weeks) || program.program_weeks < 1 || program.program_weeks > 12) {
+    throw Object.assign(new Error("program_weeks вне диапазона 1–12"), { statusCode: 400 });
+  }
+  if (!days.length) {
+    throw Object.assign(new Error("Нельзя опубликовать пустой черновик тренировок"), {
+      statusCode: 400,
+    });
+  }
+  const seen = new Set<string>();
+  let trainingBlocks = 0;
+  for (const day of days) {
+    if (day.week_index < 0 || day.week_index > 11 || day.day_index < 0 || day.day_index > 6) {
+      throw Object.assign(new Error("Некорректный week_index/day_index в черновике"), {
+        statusCode: 400,
+      });
+    }
+    const key = `${day.week_index}:${day.day_index}`;
+    if (seen.has(key)) {
+      throw Object.assign(new Error(`Дубликат дня ${key} в черновике`), { statusCode: 400 });
+    }
+    seen.add(key);
+    if (!day.is_rest && !String(day.title ?? "").trim()) {
+      throw Object.assign(new Error("У тренировочного дня должно быть название"), {
+        statusCode: 400,
+      });
+    }
+    const blocks = [
+      { name: "warmup", sets: day.warmup ?? [] },
+      { name: "exercises", sets: day.exercises ?? [] },
+      { name: "cooldown", sets: day.cooldown ?? [] },
+    ];
+    for (const block of blocks) {
+      for (const set of block.sets) {
+        if (!set?.exercise_id || !uuidRe.test(String(set.exercise_id))) {
+          throw Object.assign(
+            new Error(`Некорректный exercise_id в ${block.name} дня ${key}`),
+            { statusCode: 400 },
+          );
+        }
+        if (!Number.isFinite(Number(set.sets)) || Number(set.sets) < 0 || Number(set.sets) > 50) {
+          throw Object.assign(new Error(`Некорректное число подходов в ${block.name}`), {
+            statusCode: 400,
+          });
+        }
+        if (typeof set.reps !== "string" || !set.reps.trim() || set.reps.length > 80) {
+          throw Object.assign(new Error(`Некорректные reps в ${block.name}`), { statusCode: 400 });
+        }
+      }
+    }
+    if (!day.is_rest) {
+      if ((day.exercises ?? []).length === 0) {
+        throw Object.assign(
+          new Error(`Тренировочный день ${key} без упражнений в силовом блоке`),
+          { statusCode: 400 },
+        );
+      }
+      trainingBlocks += 1;
+    }
+  }
+  if (trainingBlocks === 0) {
+    throw Object.assign(new Error("В черновике нет ни одного тренировочного дня"), {
+      statusCode: 400,
+    });
   }
 }
 
@@ -566,6 +643,7 @@ export async function publishTrainingVersionPg(
         statusCode: 400,
       });
     }
+    assertPublishableTrainingDraft(draft);
     await assertExercisesExist(client, collectExerciseIds(draft.days));
 
     const exercises = await listTrainingExercisesPg(client);
