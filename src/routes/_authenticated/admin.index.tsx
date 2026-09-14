@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { PanelHeader, StatCard } from "@/components/panel/PanelShell";
 import { ArrowRight, Clock, Download, Search } from "lucide-react";
 import { adminExportContacts } from "@/lib/admin-clients.functions";
@@ -11,14 +10,8 @@ export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminClients,
 });
 
-
 type AccessStatus =
-  | "pending_onboarding"
-  | "awaiting_approval"
-  | "active"
-  | "suspended"
-  | "paused"
-  | null;
+  "pending_onboarding" | "awaiting_approval" | "active" | "suspended" | "paused" | null;
 
 type Client = {
   id: string;
@@ -45,14 +38,39 @@ function AdminClients() {
 
   useEffect(() => {
     void (async () => {
+      const { usesLocalPostgresCircuit, selfhostAdminClients } =
+        await import("@/lib/selfhost/client-api");
+      if (await usesLocalPostgresCircuit()) {
+        const result = await selfhostAdminClients();
+        setClients(
+          (result.items as Client[]).map((row) => ({
+            id: String(row.id),
+            full_name: row.full_name ?? null,
+            phone: row.phone ?? null,
+            goal: row.goal ?? null,
+            created_at: String(row.created_at),
+            access_status: (row.access_status as AccessStatus) ?? null,
+            onboarding_completed_at: row.onboarding_completed_at ?? null,
+          })),
+        );
+        setLoading(false);
+        return;
+      }
+      const { supabase } = await import("@/integrations/supabase/client");
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name, phone, goal, created_at")
         .order("created_at", { ascending: false });
       const ids = (profiles ?? []).map((p) => p.id);
       const [accessRes, onbRes] = await Promise.all([
-        supabase.from("client_access").select("user_id, status").in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
-        supabase.from("onboarding_responses").select("user_id, completed_at").in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
+        supabase
+          .from("client_access")
+          .select("user_id, status")
+          .in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
+        supabase
+          .from("onboarding_responses")
+          .select("user_id, completed_at")
+          .in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
       ]);
       const accessMap = new Map<string, AccessStatus>(
         (accessRes.data ?? []).map((r) => [r.user_id, r.status as AccessStatus]),
@@ -107,7 +125,6 @@ function AdminClients() {
         action={<ExportContactsButton />}
       />
 
-
       <div className="grid gap-4 sm:grid-cols-4">
         <StatCard label="Всего клиентов" value={String(clients.length)} tone="gold" />
         <StatCard label="Ждут проверки" value={String(awaiting.length)} tone="coral" />
@@ -118,10 +135,12 @@ function AdminClients() {
       {awaiting.length > 0 && (
         <div className="rounded-3xl border border-coral/40 bg-gradient-to-br from-coral/10 to-gold/5 p-6">
           <div className="flex items-center gap-2 font-display text-xl text-ivory">
-            <Clock className="h-5 w-5 text-coral" /> Новые анкеты — требуется проверка ({awaiting.length})
+            <Clock className="h-5 w-5 text-coral" /> Новые анкеты — требуется проверка (
+            {awaiting.length})
           </div>
           <p className="mt-1 text-sm text-warm-gray">
-            Черновики программы и питания уже собраны на основе анкеты. Откройте карточку клиента, при необходимости отредактируйте, затем откройте доступ.
+            Черновики программы и питания уже собраны на основе анкеты. Откройте карточку клиента,
+            при необходимости отредактируйте, затем откройте доступ.
           </p>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {awaiting.map((c) => (
@@ -158,7 +177,7 @@ function AdminClients() {
         />
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-gold/15">
+      <div className="min-w-0 overflow-x-auto rounded-2xl border border-gold/15">
         <table className="w-full text-left text-sm">
           <thead className="bg-surface/50 text-[11px] uppercase tracking-widest text-warm-gray">
             <tr>
@@ -256,7 +275,15 @@ function ExportContactsButton() {
   const handleExport = async () => {
     setBusy(true);
     try {
-      const { rows } = await fetchContacts();
+      const { usesLocalPostgresCircuit, selfhostAdminExportContacts } =
+        await import("@/lib/selfhost/client-api");
+      let rows: Array<{ full_name: string; phone: string; email: string; created_at: string }>;
+      if (await usesLocalPostgresCircuit()) {
+        rows = (await selfhostAdminExportContacts()).rows;
+      } else {
+        const result = await fetchContacts();
+        rows = result.rows;
+      }
       if (!rows.length) {
         toast.info("Нет данных для экспорта");
         return;

@@ -90,6 +90,8 @@ type ListedRow = {
   binding_status: string | null;
   binding_fallback: string | null;
   published_use_count: string | number;
+  archived_at: string | Date | null;
+  is_active: boolean | null;
 };
 
 function asStringArray(value: unknown): string[] {
@@ -100,8 +102,10 @@ function asStringArray(value: unknown): string[] {
 function mapDbError(error: unknown): never {
   const err = error as { code?: string; message?: string; statusCode?: number };
   if (err.statusCode) throw error;
-  if (err.code === "23505") {
-    throw Object.assign(new Error("Slug уже используется"), { statusCode: 409 });
+  if (err.code === "23503") {
+    throw Object.assign(new Error("Нарушена ссылочная целостность упражнения"), {
+      statusCode: 400,
+    });
   }
   if (
     err.code === "ECONNREFUSED" ||
@@ -123,20 +127,41 @@ function mediaFromRow(row: ListedRow): {
   video_status: ExerciseVideoStatus;
   video_embed_url: string | null;
 } {
-  const url = row.binding_source_url ?? row.video_url;
-  const provider = (row.binding_provider ?? row.video_provider ?? "none") as ExerciseVideoProvider;
-  const status = (row.binding_status ?? row.video_status ?? "unchecked") as ExerciseVideoStatus;
+  const hasConfirmedBinding =
+    Boolean(row.binding_source_url) && (row.binding_status ?? "unchecked") === "ok";
+  if (hasConfirmedBinding) {
+    const provider = (row.binding_provider ?? "none") as ExerciseVideoProvider;
+    const status = (row.binding_status ?? "unchecked") as ExerciseVideoStatus;
+    return {
+      video_url: row.binding_source_url,
+      video_title: row.binding_title,
+      video_fallback_text: row.binding_fallback,
+      video_provider:
+        provider === "youtube" || provider === "rutube" || provider === "external"
+          ? provider
+          : "none",
+      video_status:
+        status === "ok" || status === "unavailable" || status === "unchecked"
+          ? status
+          : "unchecked",
+      video_embed_url: row.binding_embed_url,
+    };
+  }
+  const provider = (row.video_provider ?? "none") as ExerciseVideoProvider;
+  const status = (row.video_status ?? (row.video_url ? "ok" : "unchecked")) as ExerciseVideoStatus;
   return {
-    video_url: url,
-    video_title: row.binding_title ?? row.video_title,
-    video_fallback_text: row.binding_fallback ?? row.video_fallback_text,
+    video_url: row.video_url,
+    video_title: row.video_title,
+    video_fallback_text: row.video_fallback_text,
     video_provider:
       provider === "youtube" || provider === "rutube" || provider === "external"
         ? provider
-        : "none",
+        : row.video_url
+          ? "none"
+          : "none",
     video_status:
       status === "ok" || status === "unavailable" || status === "unchecked" ? status : "unchecked",
-    video_embed_url: row.binding_embed_url ?? row.video_embed_url,
+    video_embed_url: row.video_embed_url,
   };
 }
 
@@ -169,6 +194,8 @@ function mapRow(row: ListedRow): AdminExerciseRow {
       !hasWorkingLink ||
       media.video_status === "unchecked" ||
       (publishedUseCount > 0 && !hasWorkingLink),
+    archived_at: row.archived_at ? new Date(row.archived_at).toISOString() : null,
+    is_active: row.is_active !== false && !row.archived_at,
   };
 }
 
@@ -230,6 +257,7 @@ SELECT e.id, e.slug, e.name, e.category, e.difficulty, e.muscle_groups, e.equipm
        e.tags, e.cues, e.common_mistakes,
        e.default_sets, e.default_reps, e.rest_seconds, e.tempo, e.description, e.gif_url,
        e.video_url, e.video_title, e.video_fallback_text, e.video_provider, e.video_status, e.video_embed_url,
+       e.archived_at, e.is_active,
        b.provider AS binding_provider, b.source_url AS binding_source_url, b.embed_url AS binding_embed_url,
        b.title AS binding_title, b.status AS binding_status, b.fallback_text AS binding_fallback,
        (
@@ -267,7 +295,7 @@ export class PostgresExerciseRepository implements ExerciseRepository {
 
   async list(): Promise<Exercise[]> {
     const { items } = await this.search({});
-    return items.map(toCatalogExercise);
+    return items.filter((row) => !row.archived_at).map(toCatalogExercise);
   }
 
   async search(input: { q?: string; category?: string; media?: MediaFilter } = {}): Promise<{
@@ -474,11 +502,34 @@ export class PostgresExerciseRepository implements ExerciseRepository {
     );
   }
 
-  async remove(id: string, actorId?: string | null): Promise<void> {
+  async remove(id: string, _actorId?: string | null): Promise<void> {
     try {
-      await this.deleteBinding(id, actorId ?? null);
-      const deleted = await this.db.query(`DELETE FROM public.exercises WHERE id = $1`, [id]);
-      if (!deleted.rowCount)
+      const used = await this.get(id);
+      if (!used) throw Object.assign(new Error("Упражнение не найдено"), { statusCode: 404 });
+      await this.db.query(
+        `UPDATE public.exercises SET
+           archived_at = COALESCE(archived_at, (now() AT TIME ZONE 'utc')),
+           is_active = false,
+           updated_at = (now() AT TIME ZONE 'utc')
+         WHERE id = $1`,
+        [id],
+      );
+    } catch (error) {
+      mapDbError(error);
+    }
+  }
+
+  async restore(id: string): Promise<void> {
+    try {
+      const updated = await this.db.query(
+        `UPDATE public.exercises SET
+           archived_at = NULL,
+           is_active = true,
+           updated_at = (now() AT TIME ZONE 'utc')
+         WHERE id = $1 RETURNING id`,
+        [id],
+      );
+      if (!updated.rowCount)
         throw Object.assign(new Error("Упражнение не найдено"), { statusCode: 404 });
     } catch (error) {
       mapDbError(error);

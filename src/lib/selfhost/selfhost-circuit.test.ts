@@ -680,6 +680,12 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       "SELECT snapshot, content_hash FROM training_program_versions WHERE id = $1",
       [TR_A],
     );
+    await pool.query(
+      `INSERT INTO exercises (id, slug, name, category, difficulty)
+       VALUES ($1,'shared-squat-seed','Приседания','strength_lower','beginner')
+       ON CONFLICT (id) DO NOTHING`,
+      [EX_ID],
+    );
     await upsertExerciseMediaBinding(
       pool,
       {
@@ -1119,6 +1125,8 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     const again = await applyMigrations(pool);
     expect(again.applied).toEqual([]);
     expect(again.skipped).toContain("008_exercises.sql");
+    expect(again.skipped).toContain("009_exercise_integrity.sql");
+    expect(again.skipped).toContain("010_client_card.sql");
 
     const prevUrl = process.env.DATABASE_URL;
     process.env.DATABASE_URL = "postgres://panovapro:x@127.0.0.1:1/none";
@@ -1154,6 +1162,303 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       [TR_A],
     );
     expect(hash.rows[0].content_hash).toBe("hash-tr-a");
+  });
+
+  it("держит FK media, архив упражнений и приоритет binding", async () => {
+    const orphan = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa77";
+    await expect(
+      pool.query(
+        `INSERT INTO exercise_media_bindings (exercise_id, provider, status) VALUES ($1,'youtube','ok')`,
+        [orphan],
+      ),
+    ).rejects.toThrow();
+
+    await pool.query(
+      `INSERT INTO users (id, email, password_hash) VALUES ($1,$2,$3) ON CONFLICT (id) DO NOTHING`,
+      [ADMIN_ID, "trainer-admin@example.test", await hashPasswordArgon2id("Passw0rd!")],
+    );
+    await pool.query(
+      `INSERT INTO user_roles (user_id, role) VALUES ($1,'admin') ON CONFLICT DO NOTHING`,
+      [ADMIN_ID],
+    );
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+
+    const created = await req("/api/selfhost/admin/exercises", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        slug: "archive-me",
+        name: "Архивное",
+        category: "core",
+        difficulty: "beginner",
+        muscle_groups: [],
+        equipment: [],
+        default_sets: 3,
+        default_reps: "10",
+        rest_seconds: 60,
+        tempo: null,
+        description: null,
+        gif_url: null,
+        video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      }),
+    });
+    const exId = (await created.json()).id as string;
+    const logsBefore = await pool.query(
+      "SELECT count(*)::int AS n FROM exercise_media_change_log WHERE exercise_id = $1",
+      [exId],
+    );
+    expect(
+      (
+        await req(`/api/selfhost/admin/exercises?id=${exId}`, {
+          method: "DELETE",
+          jar: adminJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(200);
+    const archived = await pool.query(
+      "SELECT archived_at, is_active FROM exercises WHERE id = $1",
+      [exId],
+    );
+    expect(archived.rows[0].archived_at).toBeTruthy();
+    expect(archived.rows[0].is_active).toBe(false);
+    const logsAfter = await pool.query(
+      "SELECT count(*)::int AS n FROM exercise_media_change_log WHERE exercise_id = $1",
+      [exId],
+    );
+    expect(Number(logsAfter.rows[0].n)).toBeGreaterThanOrEqual(Number(logsBefore.rows[0].n));
+    expect(
+      (
+        await req("/api/selfhost/admin/exercises/restore", {
+          method: "POST",
+          jar: adminJar,
+          body: JSON.stringify({ id: exId }),
+        })
+      ).status,
+    ).toBe(200);
+
+    await pool.query(
+      `UPDATE exercises SET video_url = 'https://example.com/legacy.mp4', video_provider = 'external' WHERE id = $1`,
+      [EX_ID],
+    );
+    await upsertExerciseMediaBinding(
+      pool,
+      {
+        exercise_id: EX_ID,
+        provider: "youtube",
+        source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        embed_url: "https://evil.test/ignored",
+        title: "Binding",
+        status: "ok",
+        fallback_text: null,
+      },
+      ADMIN_ID,
+    );
+    const listed = await (
+      await req("/api/selfhost/admin/exercises?q=Приседания", { jar: adminJar })
+    ).json();
+    const row = listed.items.find((item: { id: string }) => item.id === EX_ID);
+    expect(row.video_url).toContain("youtube.com");
+    expect(row.video_provider).toBe("youtube");
+    await expect(pool.query("DELETE FROM exercises WHERE id = $1", [EX_ID])).rejects.toThrow();
+
+    const snapBefore = await pool.query(
+      "SELECT snapshot, content_hash FROM training_program_versions WHERE id = $1",
+      [TR_A],
+    );
+    expect(
+      (
+        await req(`/api/selfhost/admin/exercises?id=${EX_ID}`, {
+          method: "DELETE",
+          jar: adminJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(200);
+    const still = await pool.query("SELECT id, archived_at FROM exercises WHERE id = $1", [EX_ID]);
+    expect(still.rowCount).toBe(1);
+    expect(still.rows[0].archived_at).toBeTruthy();
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+    });
+    const training = await (
+      await req(`/api/selfhost/training?courseId=${COURSE_A1}`, { jar: clientJar })
+    ).json();
+    expect(training.training.exercises[0].video.url).toContain("youtube.com");
+    const snapAfter = await pool.query(
+      "SELECT snapshot, content_hash FROM training_program_versions WHERE id = $1",
+      [TR_A],
+    );
+    expect(JSON.stringify(snapAfter.rows[0].snapshot)).toBe(
+      JSON.stringify(snapBefore.rows[0].snapshot),
+    );
+    expect(snapAfter.rows[0].content_hash).toBe(snapBefore.rows[0].content_hash);
+    await req("/api/selfhost/admin/exercises/restore", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ id: EX_ID }),
+    });
+  });
+
+  it("админка клиентов и курсов на postgres без Supabase и без N+1", async () => {
+    await pool.query(
+      `INSERT INTO onboarding_responses (user_id, goal_primary, completed_at)
+       VALUES ($1,'tone', now()) ON CONFLICT (user_id) DO UPDATE SET goal_primary = EXCLUDED.goal_primary`,
+      [CLIENT_A],
+    );
+    await pool.query(
+      `INSERT INTO measurements (user_id, measured_on, weight_kg, note) VALUES ($1,'2026-01-10', 68.5, 'тест')`,
+      [CLIENT_A],
+    );
+
+    const anon = await req("/api/selfhost/admin/clients");
+    expect(anon.status).toBe(401);
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+    });
+    expect((await req("/api/selfhost/admin/clients", { jar: clientJar })).status).toBe(403);
+    expect(
+      (await req(`/api/selfhost/training?clientId=${CLIENT_B}`, { jar: clientJar })).status,
+    ).toBe(403);
+
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+    const list = await (await req("/api/selfhost/admin/clients", { jar: adminJar })).json();
+    expect(list.queryCount).toBe(1);
+    expect(list.items.length).toBeGreaterThanOrEqual(2);
+    const search = await (
+      await req("/api/selfhost/admin/clients?q=Клиент%20А", { jar: adminJar })
+    ).json();
+    expect(search.items.some((row: { id: string }) => row.id === CLIENT_A)).toBe(true);
+    expect(search.items.some((row: { id: string }) => row.id === CLIENT_B)).toBe(false);
+
+    const card = await (
+      await req(`/api/selfhost/admin/clients/${CLIENT_A}`, { jar: adminJar })
+    ).json();
+    expect(card.client.full_name).toBe("Клиент А");
+    expect(card.client.onboarding.goal_primary).toBe("tone");
+    expect(card.client.latest_measurement.weight_kg).toBe(68.5);
+    expect(card.client.course_count).toBeGreaterThanOrEqual(1);
+
+    const noCsrf = await handleSelfhostRequest(
+      new Request(`http://selfhost.local/api/selfhost/admin/clients/${CLIENT_A}/access`, {
+        method: "POST",
+        headers: { cookie: adminJar.header(), "content-type": "application/json" },
+        body: JSON.stringify({ status: "active" }),
+      }),
+    );
+    expect(noCsrf!.status).toBe(403);
+
+    const hashesBefore = await pool.query(
+      "SELECT id, snapshot, content_hash FROM training_program_versions WHERE id IN ($1,$2) ORDER BY id",
+      [TR_A, TR_B],
+    );
+    const assignBefore = await pool.query(
+      "SELECT id, client_id, kind, course_id, active_version_id FROM client_program_assignments ORDER BY client_id, kind, course_id",
+    );
+
+    const created = await req(`/api/selfhost/admin/clients/${CLIENT_A}/courses`, {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        activate: false,
+        notes: "черновик",
+        createdBy: CLIENT_B,
+        clientId: CLIENT_B,
+      }),
+    });
+    expect(created.status).toBe(200);
+    const draft = (await created.json()).course;
+    expect(draft.client_id).toBe(CLIENT_A);
+    expect(draft.status).toBe("draft");
+    expect(draft.created_by).toBe(ADMIN_ID);
+
+    await req(`/api/selfhost/admin/clients/${CLIENT_A}/courses/${draft.id}`, {
+      method: "PATCH",
+      jar: adminJar,
+      body: JSON.stringify({ notes: "обновлён" }),
+    });
+
+    const act = await req(`/api/selfhost/admin/clients/${CLIENT_A}/courses/${draft.id}`, {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ op: "activate" }),
+    });
+    expect(act.status).toBe(200);
+    const courses = await (
+      await req(`/api/selfhost/admin/clients/${CLIENT_A}/courses`, { jar: adminJar })
+    ).json();
+    expect(courses.courses.filter((c: { status: string }) => c.status === "active")).toHaveLength(
+      1,
+    );
+
+    expect(
+      (
+        await req(`/api/selfhost/admin/clients/${CLIENT_A}/courses/${COURSE_A1}`, {
+          method: "DELETE",
+          jar: adminJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(409);
+
+    expect(
+      (
+        await req(`/api/selfhost/admin/clients/${CLIENT_A}/courses/${COURSE_A1}`, {
+          method: "POST",
+          jar: adminJar,
+          body: JSON.stringify({ op: "archive" }),
+        })
+      ).status,
+    ).toBe(200);
+
+    const resolved = await (
+      await req(`/api/selfhost/admin/resolve-course?clientId=${CLIENT_A}`, { jar: adminJar })
+    ).json();
+    expect(resolved.courseId).toBe(draft.id);
+
+    const hashesAfter = await pool.query(
+      "SELECT id, snapshot, content_hash FROM training_program_versions WHERE id IN ($1,$2) ORDER BY id",
+      [TR_A, TR_B],
+    );
+    expect(
+      JSON.stringify(
+        hashesAfter.rows.map((r: { snapshot: unknown; content_hash: string }) => [
+          r.content_hash,
+          r.snapshot,
+        ]),
+      ),
+    ).toBe(
+      JSON.stringify(
+        hashesBefore.rows.map((r: { snapshot: unknown; content_hash: string }) => [
+          r.content_hash,
+          r.snapshot,
+        ]),
+      ),
+    );
+    const assignAfter = await pool.query(
+      "SELECT id, client_id, kind, course_id, active_version_id FROM client_program_assignments ORDER BY client_id, kind, course_id",
+    );
+    expect(JSON.stringify(assignAfter.rows)).toBe(JSON.stringify(assignBefore.rows));
   });
 
   it("не обращается к Supabase в local/postgres", () => {

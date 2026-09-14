@@ -1,10 +1,22 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { StatCard } from "@/components/panel/PanelShell";
-import { ArrowLeft, ClipboardList, Dumbbell, Eye, KeyRound, Lock, Plus, Save, Trash2, Unlock, UserX, Utensils } from "lucide-react";
+import {
+  ArrowLeft,
+  ClipboardList,
+  Dumbbell,
+  Eye,
+  KeyRound,
+  Lock,
+  Plus,
+  Save,
+  Trash2,
+  Unlock,
+  UserX,
+  Utensils,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   adminDeleteClient,
@@ -16,8 +28,6 @@ import { AdminCourseManager } from "@/components/panel/AdminCourseManager";
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/")({
   component: ClientDetail,
 });
-
-
 
 type Profile = {
   id: string;
@@ -65,40 +75,71 @@ function ClientDetail() {
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
   const [updatingAccess, setUpdatingAccess] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [localCircuit, setLocalCircuit] = useState(false);
 
   const load = () => {
-    void supabase
-      .from("profiles")
-      .select("id, full_name, phone, goal, height_cm, birth_date, gender, created_at")
-      .eq("id", id)
-      .maybeSingle()
-      .then(({ data }) => setProfile(data as Profile | null));
-
-    void supabase
-      .from("measurements")
-      .select("id, measured_on, weight_kg, waist_cm, hips_cm, chest_cm, note")
-      .eq("user_id", id)
-      .order("measured_on", { ascending: false })
-      .then(({ data }) => {
-        setItems((data ?? []) as Measurement[]);
+    void (async () => {
+      const { usesLocalPostgresCircuit, selfhostAdminClient } =
+        await import("@/lib/selfhost/client-api");
+      const local = await usesLocalPostgresCircuit();
+      setLocalCircuit(local);
+      if (local) {
+        const { client } = await selfhostAdminClient(id);
+        const c = client as Record<string, unknown>;
+        setProfile({
+          id: String(c.id),
+          full_name: (c.full_name as string | null) ?? null,
+          phone: (c.phone as string | null) ?? null,
+          goal: (c.goal as string | null) ?? null,
+          height_cm: c.height_cm == null ? null : Number(c.height_cm),
+          birth_date: (c.birth_date as string | null) ?? null,
+          gender: (c.gender as string | null) ?? null,
+          created_at: String(c.created_at),
+        });
+        setAccess({
+          status: String(c.access_status ?? "pending_onboarding"),
+          activated_at: (c.activated_at as string | null) ?? null,
+          notes: (c.access_notes as string | null) ?? null,
+        });
+        setOnboardingCompleted(Boolean(c.onboarding_completed_at));
+        setItems((c.measurements as Measurement[]) ?? []);
         setLoading(false);
-      });
+        return;
+      }
+      const { supabase } = await import("@/integrations/supabase/client");
+      void supabase
+        .from("profiles")
+        .select("id, full_name, phone, goal, height_cm, birth_date, gender, created_at")
+        .eq("id", id)
+        .maybeSingle()
+        .then(({ data }) => setProfile(data as Profile | null));
 
-    void supabase
-      .from("client_access")
-      .select("status, activated_at, notes")
-      .eq("user_id", id)
-      .maybeSingle()
-      .then(({ data }) => setAccess((data ?? null) as Access | null));
+      void supabase
+        .from("measurements")
+        .select("id, measured_on, weight_kg, waist_cm, hips_cm, chest_cm, note")
+        .eq("user_id", id)
+        .order("measured_on", { ascending: false })
+        .then(({ data }) => {
+          setItems((data ?? []) as Measurement[]);
+          setLoading(false);
+        });
 
-    void supabase
-      .from("onboarding_responses")
-      .select("completed_at")
-      .eq("user_id", id)
-      .maybeSingle()
-      .then(({ data }) =>
-        setOnboardingCompleted(Boolean((data as { completed_at?: string } | null)?.completed_at)),
-      );
+      void supabase
+        .from("client_access")
+        .select("status, activated_at, notes")
+        .eq("user_id", id)
+        .maybeSingle()
+        .then(({ data }) => setAccess((data ?? null) as Access | null));
+
+      void supabase
+        .from("onboarding_responses")
+        .select("completed_at")
+        .eq("user_id", id)
+        .maybeSingle()
+        .then(({ data }) =>
+          setOnboardingCompleted(Boolean((data as { completed_at?: string } | null)?.completed_at)),
+        );
+    })();
   };
 
   useEffect(load, [id]);
@@ -106,38 +147,61 @@ function ClientDetail() {
   const grantAccess = async () => {
     if (!user) return;
     setUpdatingAccess(true);
-    const { error } = await supabase
-      .from("client_access")
-      .upsert(
-        {
-          user_id: id,
-          status: "active",
-          activated_at: new Date().toISOString(),
-          activated_by: user.id,
-        },
-        { onConflict: "user_id" },
-      );
-    setUpdatingAccess(false);
-    if (error) return toast.error(error.message);
-    toast.success("Доступ к курсу открыт");
-    load();
+    try {
+      if (localCircuit) {
+        const { selfhostAdminSetAccess } = await import("@/lib/selfhost/client-api");
+        await selfhostAdminSetAccess(id, { status: "active" });
+      } else {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { error } = await supabase.from("client_access").upsert(
+          {
+            user_id: id,
+            status: "active",
+            activated_at: new Date().toISOString(),
+            activated_by: user.id,
+          },
+          { onConflict: "user_id" },
+        );
+        if (error) return toast.error(error.message);
+      }
+      toast.success("Доступ к курсу открыт");
+      load();
+    } finally {
+      setUpdatingAccess(false);
+    }
   };
 
   const revokeAccess = async () => {
     setUpdatingAccess(true);
-    const { error } = await supabase
-      .from("client_access")
-      .update({ status: "suspended" })
-      .eq("user_id", id);
-    setUpdatingAccess(false);
-    if (error) return toast.error(error.message);
-    toast.success("Доступ приостановлен");
-    load();
+    try {
+      if (localCircuit) {
+        const { selfhostAdminSetAccess } = await import("@/lib/selfhost/client-api");
+        await selfhostAdminSetAccess(id, { status: "suspended" });
+      } else {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { error } = await supabase
+          .from("client_access")
+          .update({ status: "suspended" })
+          .eq("user_id", id);
+        if (error) return toast.error(error.message);
+      }
+      toast.success("Доступ приостановлен");
+      load();
+    } finally {
+      setUpdatingAccess(false);
+    }
   };
 
   const addMeasurement = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (localCircuit) {
+      toast.error(
+        "Добавление замеров в self-hosted режиме будет на следующем этапе. Сейчас доступен просмотр.",
+      );
+      return;
+    }
     setSaving(true);
+    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("measurements").insert({
       user_id: id,
       measured_on: form.measured_on,
@@ -155,6 +219,11 @@ function ClientDetail() {
   };
 
   const remove = async (mid: string) => {
+    if (localCircuit) {
+      toast.error("Удаление замеров в self-hosted режиме пока недоступно");
+      return;
+    }
+    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("measurements").delete().eq("id", mid);
     if (error) return toast.error(error.message);
     toast.success("Удалено");
@@ -241,18 +310,18 @@ function ClientDetail() {
         profile={profile}
         latestWeightKg={latest?.weight_kg ?? null}
         onSaved={load}
+        localCircuit={localCircuit}
       />
 
       <AdminActions
         clientId={id}
         clientName={profile?.full_name}
+        localCircuit={localCircuit}
         onDeleted={() => {
           toast.success("Клиент удалён");
           void navigate({ to: "/admin" });
         }}
       />
-
-
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Телефон" value={profile?.phone || "—"} />
@@ -327,7 +396,10 @@ function ClientDetail() {
           </F>
           <div className="flex items-end">
             <button
-              disabled={saving}
+              disabled={saving || localCircuit}
+              title={
+                localCircuit ? "В self-hosted режиме замеры доступны для просмотра" : undefined
+              }
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
             >
               <Plus className="h-4 w-4" /> Записать
@@ -338,7 +410,7 @@ function ClientDetail() {
 
       <section>
         <h2 className="font-display text-2xl">История замеров</h2>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-gold/15">
+        <div className="mt-4 min-w-0 overflow-x-auto rounded-2xl border border-gold/15">
           <table className="w-full text-left text-sm">
             <thead className="bg-surface/50 text-[11px] uppercase tracking-widest text-warm-gray">
               <tr>
@@ -499,11 +571,13 @@ function ProfileEditor({
   profile,
   latestWeightKg,
   onSaved,
+  localCircuit,
 }: {
   clientId: string;
   profile: Profile | null;
   latestWeightKg: number | null;
   onSaved: () => void;
+  localCircuit: boolean;
 }) {
   const updateProfile = useServerFn(adminUpdateClientProfile);
   const [form, setForm] = useState({
@@ -531,6 +605,7 @@ function ProfileEditor({
   }, [profile, latestWeightKg]);
 
   const saveWeight = async (weight: number) => {
+    const { supabase } = await import("@/integrations/supabase/client");
     const measuredOn = new Date().toISOString().slice(0, 10);
     const { data: existingRows } = await supabase
       .from("measurements")
@@ -561,21 +636,33 @@ function ProfileEditor({
     e.preventDefault();
     setSaving(true);
     try {
-      await updateProfile({
-        data: {
-          userId: clientId,
+      if (localCircuit) {
+        const { selfhostAdminUpdateProfile } = await import("@/lib/selfhost/client-api");
+        await selfhostAdminUpdateProfile(clientId, {
           full_name: form.full_name.trim() || null,
           phone: form.phone.trim() || null,
           goal: form.goal.trim() || null,
           height_cm: form.height_cm ? Number(form.height_cm) : null,
           birth_date: form.birth_date || null,
           gender: form.gender || null,
-        },
-      });
-      const weight = form.weight_kg.trim() ? Number(form.weight_kg.replace(",", ".")) : null;
-      if (weight != null && Number.isFinite(weight)) {
-        if (weight < 30 || weight > 250) throw new Error("Вес должен быть от 30 до 250 кг");
-        await saveWeight(weight);
+        });
+      } else {
+        await updateProfile({
+          data: {
+            userId: clientId,
+            full_name: form.full_name.trim() || null,
+            phone: form.phone.trim() || null,
+            goal: form.goal.trim() || null,
+            height_cm: form.height_cm ? Number(form.height_cm) : null,
+            birth_date: form.birth_date || null,
+            gender: form.gender || null,
+          },
+        });
+        const weight = form.weight_kg.trim() ? Number(form.weight_kg.replace(",", ".")) : null;
+        if (weight != null && Number.isFinite(weight)) {
+          if (weight < 30 || weight > 250) throw new Error("Вес должен быть от 30 до 250 кг");
+          await saveWeight(weight);
+        }
       }
       toast.success("Профиль клиента обновлён");
       onSaved();
@@ -678,10 +765,12 @@ function AdminActions({
   clientId,
   clientName,
   onDeleted,
+  localCircuit,
 }: {
   clientId: string;
   clientName: string | null | undefined;
   onDeleted: () => void;
+  localCircuit: boolean;
 }) {
   const updatePassword = useServerFn(adminUpdateClientPassword);
   const deleteClient = useServerFn(adminDeleteClient);
@@ -692,6 +781,12 @@ function AdminActions({
 
   const submitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (localCircuit) {
+      toast.error(
+        "Смена пароля будет в этапе локальной Auth. Сейчас действие отключено, облако не вызывается.",
+      );
+      return;
+    }
     if (password.length < 8) {
       toast.error("Минимум 8 символов");
       return;
@@ -709,6 +804,10 @@ function AdminActions({
   };
 
   const remove = async () => {
+    if (localCircuit) {
+      toast.error("Окончательное удаление клиента будет в этапе Auth. Сейчас действие отключено.");
+      return;
+    }
     const label = clientName || "этого клиента";
     if (
       !window.confirm(
@@ -756,7 +855,7 @@ function AdminActions({
             </button>
           </div>
           <button
-            disabled={pwLoading || password.length < 8}
+            disabled={pwLoading || password.length < 8 || localCircuit}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
           >
             <KeyRound className="h-4 w-4" /> Обновить
@@ -775,7 +874,7 @@ function AdminActions({
         <button
           type="button"
           onClick={remove}
-          disabled={delLoading}
+          disabled={delLoading || localCircuit}
           className="mt-4 inline-flex items-center gap-2 rounded-full border border-coral/40 px-5 py-3 text-sm text-coral transition-colors hover:bg-coral/15 disabled:opacity-60"
         >
           <Trash2 className="h-4 w-4" /> {delLoading ? "Удаляем…" : "Удалить безвозвратно"}
@@ -784,5 +883,3 @@ function AdminActions({
     </section>
   );
 }
-
-

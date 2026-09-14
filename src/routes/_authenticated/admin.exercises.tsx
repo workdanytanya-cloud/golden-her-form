@@ -12,6 +12,7 @@ import {
   selfhostAdminDeleteExerciseMedia,
   selfhostAdminExercises,
   selfhostAdminRemoveExercise,
+  selfhostAdminRestoreExercise,
   selfhostAdminSaveExerciseMedia,
   selfhostAdminUpsertExercise,
 } from "@/lib/selfhost/client-api";
@@ -44,6 +45,8 @@ type Exercise = {
   video_embed_url?: string | null;
   publishedUseCount?: number;
   needsManualCheck?: boolean;
+  archived_at?: string | null;
+  is_active?: boolean;
 };
 
 const emptyExercise: Omit<Exercise, "id"> = {
@@ -324,8 +327,19 @@ function AdminExercises() {
     }
   };
 
+  const restore = async (id: string) => {
+    try {
+      if (localCircuit) await selfhostAdminRestoreExercise(id);
+      toast.success("Упражнение восстановлено");
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось восстановить");
+    }
+  };
+
   const remove = async (id: string) => {
-    if (!confirm("Удалить упражнение?")) return;
+    if (!confirm("Убрать упражнение из каталога? Оно останется в опубликованных программах."))
+      return;
     try {
       if (localCircuit) {
         await selfhostAdminRemoveExercise(id);
@@ -454,13 +468,23 @@ function AdminExercises() {
                         <Download className="h-4 w-4" />
                       </button>
                     )}
-                    <button
-                      onClick={() => remove(e.id)}
-                      className="rounded-full p-1.5 text-warm-gray hover:bg-coral/15 hover:text-coral"
-                      aria-label="Удалить"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {e.archived_at ? (
+                      <button
+                        onClick={() => void restore(e.id)}
+                        className="rounded-full p-1.5 text-warm-gray hover:bg-gold/15 hover:text-gold"
+                        aria-label="Восстановить"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => remove(e.id)}
+                        className="rounded-full p-1.5 text-warm-gray hover:bg-coral/15 hover:text-coral"
+                        aria-label="Удалить"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="text-xs text-warm-gray">
@@ -470,7 +494,7 @@ function AdminExercises() {
                   {PROVIDER_LABEL[String(e.video_provider ?? "none")] ?? e.video_provider} ·{" "}
                   {STATUS_LABEL[String(e.video_status ?? "unchecked")] ?? e.video_status} · в
                   опубликованных: {e.publishedUseCount ?? 0}
-                  {e.needsManualCheck ? " · нужна проверка" : ""}
+                  {e.archived_at ? " · в архиве" : ""}
                 </div>
                 {e.muscle_groups.length > 0 && (
                   <div className="flex flex-wrap gap-1">

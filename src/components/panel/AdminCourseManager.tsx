@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarPlus, CheckCircle2, Play, Trash2 } from "lucide-react";
+import { CalendarPlus, CheckCircle2, Play, Trash2, Archive } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   activateClientCourse,
+  archiveClientCourse,
   createClientCourse,
   deleteClientCourseDraft,
   isClientCoursesAvailable,
@@ -100,6 +101,21 @@ export function AdminCourseManager({
     }
   };
 
+  const archive = async (courseId: string) => {
+    if (!window.confirm("Архивировать курс? Опубликованные программы не удаляются.")) return;
+    setBusy(true);
+    try {
+      await archiveClientCourse(courseId, clientId);
+      toast.success("Курс в архиве");
+      await load();
+      onChanged();
+    } catch (e) {
+      toast.error(errorMessage(e, "Не удалось архивировать"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const removeDraft = async (courseId: string) => {
     if (!window.confirm("Удалить этот черновик? Действие необратимо.")) return;
     setBusy(true);
@@ -126,8 +142,8 @@ export function AdminCourseManager({
         <h3 className="font-display text-lg text-foreground">Курсы (4 недели)</h3>
         <p className="text-sm leading-relaxed text-warm-gray">
           Раздел пока не активен: в Supabase не применена миграция{" "}
-          <code className="rounded bg-background/60 px-1 py-0.5 text-xs">client_courses</code>. Откройте
-          SQL Editor проекта и выполните файл{" "}
+          <code className="rounded bg-background/60 px-1 py-0.5 text-xs">client_courses</code>.
+          Откройте SQL Editor проекта и выполните файл{" "}
           <code className="rounded bg-background/60 px-1 py-0.5 text-xs">
             supabase/migrations/20260831120000_client_courses.sql
           </code>
@@ -171,79 +187,89 @@ export function AdminCourseManager({
         <>
           {courses.filter((c) => c.status === "draft").length > 1 ? (
             <p className="text-xs leading-relaxed text-warm-gray">
-              Несколько черновиков на одну дату — это следствие прошлых ошибок при создании. Оставьте
-              один и удалите лишние кнопкой «Удалить».
+              Несколько черновиков на одну дату — это следствие прошлых ошибок при создании.
+              Оставьте один и удалите лишние кнопкой «Удалить».
             </p>
           ) : null}
           <ul className="space-y-2">
-          {courses.map((c) => {
-            const selected = c.id === selectedCourseId;
-            return (
-              <li
-                key={c.id}
-                className={`flex flex-col gap-2 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between ${
-                  selected ? "border-gold/40 bg-gold/5" : "border-gold/10"
-                }`}
-              >
-                <button
-                  type="button"
-                  className="min-w-0 text-left"
-                  onClick={() => onSelectCourse(c.id)}
+            {courses.map((c) => {
+              const selected = c.id === selectedCourseId;
+              return (
+                <li
+                  key={c.id}
+                  className={`flex flex-col gap-2 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between ${
+                    selected ? "border-gold/40 bg-gold/5" : "border-gold/10"
+                  }`}
                 >
-                  <p className="font-medium text-foreground">{c.title}</p>
-                  <p className="text-xs text-warm-gray">
-                    {courseStatusLabel(c.status)} · {c.start_date} — {c.end_date}
-                  </p>
-                </button>
-                <div className="flex flex-wrap gap-2">
-                  {c.status !== "active" ? (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void activate(c.id)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-gold/25 px-2.5 py-1 text-xs hover:bg-gold/10"
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Активировать
-                    </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-700">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Активный
-                    </span>
-                  )}
-                  {c.status === "draft" ? (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void removeDraft(c.id)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-coral/30 px-2.5 py-1 text-xs text-coral hover:bg-coral/10"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Удалить
-                    </button>
-                  ) : null}
-                  <Link
-                    to="/admin/clients/$id/training"
-                    params={{ id: clientId }}
-                    search={{ course: c.id }}
-                    className="rounded-lg border border-gold/25 px-2.5 py-1 text-xs hover:bg-gold/10"
+                  <button
+                    type="button"
+                    className="min-w-0 text-left"
+                    onClick={() => onSelectCourse(c.id)}
                   >
-                    Тренировки
-                  </Link>
-                  <Link
-                    to="/admin/clients/$id/nutrition"
-                    params={{ id: clientId }}
-                    search={{ course: c.id }}
-                    className="rounded-lg border border-gold/25 px-2.5 py-1 text-xs hover:bg-gold/10"
-                  >
-                    Питание
-                  </Link>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                    <p className="font-medium text-foreground">{c.title}</p>
+                    <p className="text-xs text-warm-gray">
+                      {courseStatusLabel(c.status)} · {c.start_date} — {c.end_date}
+                    </p>
+                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    {c.status !== "active" ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void activate(c.id)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-gold/25 px-2.5 py-1 text-xs hover:bg-gold/10"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Активировать
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-700">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Активный
+                      </span>
+                    )}
+                    {c.status === "draft" ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void removeDraft(c.id)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-coral/30 px-2.5 py-1 text-xs text-coral hover:bg-coral/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Удалить
+                      </button>
+                    ) : c.status !== "archived" ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void archive(c.id)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-gold/25 px-2.5 py-1 text-xs hover:bg-gold/10"
+                      >
+                        <Archive className="h-3.5 w-3.5" />
+                        Архив
+                      </button>
+                    ) : null}
+                    <Link
+                      to="/admin/clients/$id/training"
+                      params={{ id: clientId }}
+                      search={{ course: c.id }}
+                      className="rounded-lg border border-gold/25 px-2.5 py-1 text-xs hover:bg-gold/10"
+                    >
+                      Тренировки
+                    </Link>
+                    <Link
+                      to="/admin/clients/$id/nutrition"
+                      params={{ id: clientId }}
+                      search={{ course: c.id }}
+                      className="rounded-lg border border-gold/25 px-2.5 py-1 text-xs hover:bg-gold/10"
+                    >
+                      Питание
+                    </Link>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </>
       )}
     </div>

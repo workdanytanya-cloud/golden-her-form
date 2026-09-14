@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { formatMedicalDietTable } from "@/lib/medical-diet-tables";
 import { ArrowLeft, ClipboardList } from "lucide-react";
@@ -50,6 +49,20 @@ function AdminClientOnboarding() {
 
   useEffect(() => {
     void (async () => {
+      const { usesLocalPostgresCircuit, selfhostAdminClient } =
+        await import("@/lib/selfhost/client-api");
+      if (await usesLocalPostgresCircuit()) {
+        const { client } = await selfhostAdminClient(id);
+        const c = client as Record<string, unknown>;
+        setProfileName((c.full_name as string) || "Без имени");
+        setHeightCm(c.height_cm == null ? null : Number(c.height_cm));
+        const latest = c.latest_measurement as { weight_kg?: number | null } | null;
+        setWeightKg(latest?.weight_kg ?? null);
+        setData((c.onboarding as Onboarding | null) ?? null);
+        setLoading(false);
+        return;
+      }
+      const { supabase } = await import("@/integrations/supabase/client");
       const [profileRes, onbRes, measRes] = await Promise.all([
         supabase.from("profiles").select("full_name, height_cm").eq("id", id).maybeSingle(),
         supabase.from("onboarding_responses").select("*").eq("user_id", id).maybeSingle(),
@@ -125,10 +138,16 @@ function AdminClientOnboarding() {
           </Group>
 
           <Group title="Тренировки">
-            <Row label="Опыт" value={s("experience") ? EXPERIENCE_LABELS[s("experience")!] : null} />
+            <Row
+              label="Опыт"
+              value={s("experience") ? EXPERIENCE_LABELS[s("experience")!] : null}
+            />
             <Row label="Дней в неделю" value={n("training_days_per_week")} />
             <Row label="Длительность, мин" value={n("session_duration_min")} />
-            <Row label="Локация" value={s("training_location") ? LOCATION_LABELS[s("training_location")!] : null} />
+            <Row
+              label="Локация"
+              value={s("training_location") ? LOCATION_LABELS[s("training_location")!] : null}
+            />
             <Row label="Инвентарь" value={arr("equipment").join(", ") || null} />
           </Group>
 

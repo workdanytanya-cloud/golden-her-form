@@ -21,7 +21,11 @@ import {
   exercisesFromTrainingSnapshot,
   programDaysFromSnapshot,
 } from "@/lib/published-programs/training-snapshot";
-import type { NutritionSnapshot, TrainingSnapshot, VersionMeta } from "@/lib/published-programs/types";
+import type {
+  NutritionSnapshot,
+  TrainingSnapshot,
+  VersionMeta,
+} from "@/lib/published-programs/types";
 import type { PublishedNutritionView, PublishedTrainingView } from "@/lib/published-programs/repo";
 
 type Queryable = Pool | PoolClient;
@@ -36,7 +40,9 @@ function mapVersion(row: Record<string, unknown>): VersionMeta {
     parent_version_id: (row.parent_version_id as string | null) ?? null,
     created_at: new Date(row.created_at as string | Date).toISOString(),
     created_by: (row.created_by as string | null) ?? null,
-    published_at: row.published_at ? new Date(row.published_at as string | Date).toISOString() : null,
+    published_at: row.published_at
+      ? new Date(row.published_at as string | Date).toISOString()
+      : null,
     published_by: (row.published_by as string | null) ?? null,
   };
 }
@@ -53,7 +59,37 @@ export async function loadMediaBindings(
     [exerciseIds],
   );
   for (const row of rows as ExerciseMediaBinding[]) {
-    map.set(row.exercise_id, row);
+    if (row.source_url && row.status === "ok") map.set(row.exercise_id, row);
+  }
+  const missing = exerciseIds.filter((id) => !map.has(id));
+  if (missing.length) {
+    const legacy = await db.query(
+      `SELECT id, video_url, video_provider, video_embed_url, video_title, video_status, video_fallback_text
+         FROM public.exercises
+        WHERE id = ANY($1::uuid[])
+          AND video_url IS NOT NULL
+          AND video_url <> ''`,
+      [missing],
+    );
+    for (const row of legacy.rows as Array<{
+      id: string;
+      video_url: string;
+      video_provider: string | null;
+      video_embed_url: string | null;
+      video_title: string | null;
+      video_status: string | null;
+      video_fallback_text: string | null;
+    }>) {
+      map.set(row.id, {
+        exercise_id: row.id,
+        provider: (row.video_provider as ExerciseMediaBinding["provider"]) ?? "none",
+        source_url: row.video_url,
+        embed_url: row.video_embed_url,
+        title: row.video_title,
+        status: (row.video_status as ExerciseMediaBinding["status"]) ?? "unchecked",
+        fallback_text: row.video_fallback_text,
+      });
+    }
   }
   return map;
 }
@@ -219,8 +255,11 @@ export async function getPdfAccessMetaPg(
          WHERE client_id = $1 ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, start_date DESC LIMIT 1`,
         [clientId],
       );
-  const row = course.rows[0] as { title?: string; start_date?: string; end_date?: string } | undefined;
-  const start = row?.start_date ? formatRuDate(parseISODate(String(row.start_date).slice(0, 10))) : "—";
+  const row = course.rows[0] as
+    { title?: string; start_date?: string; end_date?: string } | undefined;
+  const start = row?.start_date
+    ? formatRuDate(parseISODate(String(row.start_date).slice(0, 10)))
+    : "—";
   const end = row?.end_date ? formatRuDate(parseISODate(String(row.end_date).slice(0, 10))) : "—";
   return {
     clientName,
@@ -230,7 +269,10 @@ export async function getPdfAccessMetaPg(
   };
 }
 
-export async function listClientCoursesPg(db: Queryable, clientId: string): Promise<ClientCourse[]> {
+export async function listClientCoursesPg(
+  db: Queryable,
+  clientId: string,
+): Promise<ClientCourse[]> {
   const { rows } = await db.query(
     `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes
      FROM public.client_courses WHERE client_id = $1 ORDER BY start_date DESC`,
@@ -258,7 +300,9 @@ export async function getClientAccessPg(db: Queryable, userId: string) {
 }
 
 export async function getProfilePg(db: Queryable, userId: string) {
-  const { rows } = await db.query(`SELECT id, full_name FROM public.profiles WHERE id = $1`, [userId]);
+  const { rows } = await db.query(`SELECT id, full_name FROM public.profiles WHERE id = $1`, [
+    userId,
+  ]);
   return (rows[0] as { id: string; full_name: string | null } | undefined) ?? null;
 }
 

@@ -2,10 +2,18 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { Users, LayoutDashboard, Dumbbell, Utensils, Inbox, Ticket } from "lucide-react";
 import { PanelShell, type PanelNavItem } from "@/components/panel/PanelShell";
 import { supabase } from "@/integrations/supabase/client";
+import { loadRuntimeConfig, selfhostMe } from "@/lib/selfhost/client-api";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   ssr: false,
   beforeLoad: async () => {
+    const runtime = await loadRuntimeConfig();
+    if (runtime.authBackend === "local") {
+      const me = await selfhostMe();
+      if (!me.session) throw redirect({ to: "/auth" });
+      if (me.session.role !== "admin") throw redirect({ to: "/dashboard" });
+      return;
+    }
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) throw redirect({ to: "/auth" });
     const { data: roles } = await supabase
@@ -13,9 +21,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
       .select("role")
       .eq("user_id", userData.user.id);
     const email = userData.user?.email?.toLowerCase();
-    const isAdmin =
-      email === "panova.fortuna@gmail.com" ||
-      roles?.some((r) => r.role === "admin");
+    const isAdmin = email === "panova.fortuna@gmail.com" || roles?.some((r) => r.role === "admin");
     if (!isAdmin) throw redirect({ to: "/dashboard" });
   },
   component: AdminLayout,

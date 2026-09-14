@@ -287,6 +287,19 @@ async function fetchRole(
 }
 
 async function fetchAccess(userId: string): Promise<AccessInfo> {
+  const runtime = await loadRuntimeConfig();
+  if (runtime.authBackend === "local" && runtime.dataBackend === "postgres") {
+    const res = await fetch(`/api/selfhost/profile?clientId=${encodeURIComponent(userId)}`, {
+      credentials: "include",
+    });
+    const data = (await res.json()) as {
+      access?: { status?: AccessStatus; unlock_source?: UnlockSource };
+    };
+    return {
+      status: data.access?.status ?? "pending_onboarding",
+      unlockSource: data.access?.unlock_source ?? null,
+    };
+  }
   const { data, error } = await supabase
     .from("client_access")
     .select("status, unlock_source")

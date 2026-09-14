@@ -28,6 +28,7 @@ import {
 import { newCsrfToken as issueCsrf } from "@/lib/selfhost/passwords";
 import { resolvePdfClientId } from "@/lib/pdf/snapshot-content";
 import { buildNutritionPdf, buildTrainingPdf, pdfDownloadHeaders } from "@/lib/pdf/render-pdf";
+import { mediaExerciseIdsFromBindings } from "@/lib/selfhost/media";
 import {
   getActivePublishedNutritionPg,
   getActivePublishedTrainingPg,
@@ -41,7 +42,18 @@ import {
   toPublishedTrainingView,
   videoOverlayFromBindings,
 } from "@/lib/selfhost/postgres-published";
-import { mediaExerciseIdsFromBindings } from "@/lib/selfhost/media";
+import {
+  PostgresAdminClientRepository,
+  adminClientAccessSchema,
+  adminClientListQuerySchema,
+  adminClientProfileSchema,
+} from "@/lib/selfhost/postgres-admin-clients";
+import {
+  PostgresClientCourseRepository,
+  adminCourseCreateSchema,
+  adminCourseUpdateSchema,
+  resolveClientCourseIdPg,
+} from "@/lib/selfhost/postgres-courses";
 
 function json(data: unknown, status = 200, extraHeaders?: Record<string, string>): Response {
   return new Response(JSON.stringify(data), {
@@ -85,6 +97,14 @@ function requireAdmin(session: LocalSession): void {
 
 function exerciseRepo(): PostgresExerciseRepository {
   return new PostgresExerciseRepository(getPostgresPool());
+}
+
+function adminClients(): PostgresAdminClientRepository {
+  return new PostgresAdminClientRepository(getPostgresPool());
+}
+
+function coursesRepo(): PostgresClientCourseRepository {
+  return new PostgresClientCourseRepository(getPostgresPool());
 }
 
 function scopedClientId(session: LocalSession, requested?: string | null): string {
@@ -225,6 +245,25 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       return json({ courses });
     }
 
+    if (url.pathname === "/api/selfhost/course" && request.method === "GET") {
+      const id = url.searchParams.get("id");
+      if (!id) return errorJson("Не указан id курса", 400);
+      const course = await coursesRepo().get(id);
+      if (!course) return errorJson("Курс не найден", 404);
+      scopedClientId(session, course.client_id);
+      return json({ course });
+    }
+
+    if (url.pathname === "/api/selfhost/resolve-course" && request.method === "GET") {
+      const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+      const courseId = await resolveClientCourseIdPg(
+        getPostgresPool(),
+        clientId,
+        url.searchParams.get("courseId"),
+      );
+      return json({ courseId });
+    }
+
     if (url.pathname === "/api/selfhost/nutrition" && request.method === "GET") {
       const clientId = scopedClientId(session, url.searchParams.get("clientId"));
       const courseId = url.searchParams.get("courseId");
@@ -350,6 +389,141 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         contentType: headers["Content-Type"],
         pdfBase64: buffer.toString("base64"),
       });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/exercises/restore" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = await readJson(request);
+      const id = typeof body.id === "string" ? body.id : url.searchParams.get("id");
+      if (!id) return errorJson("Не указан id упражнения", 400);
+      await exerciseRepo().restore(id);
+      return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/clients" && request.method === "GET") {
+      requireAdmin(session);
+      const query = adminClientListQuerySchema.parse({ q: url.searchParams.get("q") ?? "" });
+      const result = await adminClients().list(query);
+      return json(result);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/clients/export" && request.method === "GET") {
+      requireAdmin(session);
+      const rows = await adminClients().exportContacts();
+      return json({ rows });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/resolve-course" && request.method === "GET") {
+      requireAdmin(session);
+      const clientId = url.searchParams.get("clientId");
+      if (!clientId) return errorJson("Не указан clientId", 400);
+      const courseId = await resolveClientCourseIdPg(
+        getPostgresPool(),
+        clientId,
+        url.searchParams.get("courseId"),
+      );
+      return json({ courseId });
+    }
+
+    const clientMatch = url.pathname.match(
+      /^\/api\/selfhost\/admin\/clients\/([^/]+)(?:\/([^/]+))?(?:\/([^/]+))?$/,
+    );
+    if (clientMatch) {
+      requireAdmin(session);
+      const clientId = clientMatch[1];
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId)) {
+        return errorJson("Некорректный идентификатор клиента", 400);
+      }
+      const action = clientMatch[2];
+      const extra = clientMatch[3];
+
+      if (!action && request.method === "GET") {
+        const card = await adminClients().get(clientId);
+        if (!card) return errorJson("Клиент не найден", 404);
+        return json({ client: card });
+      }
+
+      if (action === "profile" && request.method === "POST") {
+        assertCsrf(request);
+        const body = await readJson(request);
+        await adminClients().updateProfile(clientId, adminClientProfileSchema.parse(body));
+        return json({ ok: true });
+      }
+
+      if (action === "access" && request.method === "POST") {
+        assertCsrf(request);
+        const body = await readJson(request);
+        await adminClients().setAccess(
+          clientId,
+          adminClientAccessSchema.parse(body),
+          session.userId,
+        );
+        return json({ ok: true });
+      }
+
+      if (action === "onboarding" && request.method === "GET") {
+        const card = await adminClients().get(clientId);
+        if (!card) return errorJson("Клиент не найден", 404);
+        return json({ onboarding: card.onboarding, profile: card });
+      }
+
+      if (action === "measurements" && request.method === "GET") {
+        const card = await adminClients().get(clientId);
+        if (!card) return errorJson("Клиент не найден", 404);
+        return json({ measurements: card.measurements });
+      }
+
+      if (action === "courses" && !extra && request.method === "GET") {
+        const courses = await coursesRepo().list(clientId);
+        return json({ courses });
+      }
+
+      if (action === "courses" && !extra && request.method === "POST") {
+        assertCsrf(request);
+        const body = await readJson(request);
+        const created = await coursesRepo().create(
+          adminCourseCreateSchema.parse({ ...body, clientId, createdBy: session.userId }),
+          session.userId,
+        );
+        return json({ course: created });
+      }
+
+      if (action === "courses" && extra && request.method === "PATCH") {
+        assertCsrf(request);
+        const body = await readJson(request);
+        const course = await coursesRepo().update(
+          extra,
+          clientId,
+          adminCourseUpdateSchema.parse(body),
+        );
+        return json({ course });
+      }
+
+      if (action === "courses" && extra === undefined) {
+        /* fall through */
+      }
+
+      if (action === "courses" && extra && request.method === "POST") {
+        assertCsrf(request);
+        const body = await readJson(request);
+        const op = typeof body.op === "string" ? body.op : url.searchParams.get("op");
+        if (op === "activate") {
+          await coursesRepo().activate(extra, clientId);
+          return json({ ok: true });
+        }
+        if (op === "archive") {
+          await coursesRepo().archive(extra, clientId);
+          return json({ ok: true });
+        }
+        return errorJson("Неизвестная операция курса", 400);
+      }
+
+      if (action === "courses" && extra && request.method === "DELETE") {
+        assertCsrf(request);
+        await coursesRepo().removeDraft(extra, clientId);
+        return json({ ok: true });
+      }
     }
 
     return errorJson("Не найден маршрут", 404);

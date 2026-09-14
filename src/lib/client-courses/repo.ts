@@ -35,9 +35,14 @@ function isMissingColumn(error: { message?: string; code?: string } | null): boo
 }
 
 export async function listClientCourses(clientId: string): Promise<ClientCourse[]> {
-  const { usesLocalPostgresCircuit, selfhostCourses } = await import("@/lib/selfhost/client-api");
+  const { usesLocalPostgresCircuit, selfhostCourses, selfhostAdminCourses } =
+    await import("@/lib/selfhost/client-api");
   if (await usesLocalPostgresCircuit()) {
-    return selfhostCourses(clientId);
+    try {
+      return await selfhostAdminCourses(clientId);
+    } catch {
+      return selfhostCourses(clientId);
+    }
   }
   const { data, error } = await supabase
     .from("client_courses" as never)
@@ -52,13 +57,22 @@ export async function listClientCourses(clientId: string): Promise<ClientCourse[
 
 /** false — таблица client_courses ещё не создана (нужна SQL-миграция). */
 export async function isClientCoursesAvailable(): Promise<boolean> {
-  const { error } = await supabase.from("client_courses" as never).select("id").limit(1);
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) return true;
+  const { error } = await supabase
+    .from("client_courses" as never)
+    .select("id")
+    .limit(1);
   if (error && (isMissingTable(error) || isMissingColumn(error))) return false;
   if (error) throw error;
   return true;
 }
 
 export async function getClientCourse(courseId: string): Promise<ClientCourse | null> {
+  const { usesLocalPostgresCircuit, selfhostGetCourse } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    return selfhostGetCourse(courseId);
+  }
   const { data, error } = await supabase
     .from("client_courses" as never)
     .select("*")
@@ -74,12 +88,20 @@ export async function resolveCourseId(
   courseId?: string | null,
 ): Promise<string | null> {
   if (courseId) return courseId;
+  const { usesLocalPostgresCircuit, selfhostResolveCourse } =
+    await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    return selfhostResolveCourse(clientId);
+  }
 
   const { data, error } = await supabase.rpc(
     "resolve_client_course_id" as never,
     { p_client_id: clientId, p_course_id: null } as never,
   );
-  if (error && (isMissingTable(error) || /Could not find the function/i.test(error.message ?? ""))) {
+  if (
+    error &&
+    (isMissingTable(error) || /Could not find the function/i.test(error.message ?? ""))
+  ) {
     return null;
   }
   if (error) throw error;
@@ -205,23 +227,23 @@ async function cloneNutritionPlan(
           return Number.isFinite(n) && n > 0;
         })
         .map((ig) => ({
-        meal_item_id: mealItemId,
-        product_id: ig.product_id,
-        product_name: ig.product_name,
-        grams: ig.grams,
-        weighing_note: ig.weighing_note,
-        kcal_per_100g: ig.kcal_per_100g,
-        protein_per_100g: ig.protein_per_100g,
-        fat_per_100g: ig.fat_per_100g,
-        carbs_per_100g: ig.carbs_per_100g,
-        fiber_per_100g: ig.fiber_per_100g,
-        kcal: ig.kcal,
-        protein_g: ig.protein_g,
-        fat_g: ig.fat_g,
-        carbs_g: ig.carbs_g,
-        fiber_g: ig.fiber_g,
-        sort_order: ig.sort_order,
-      }));
+          meal_item_id: mealItemId,
+          product_id: ig.product_id,
+          product_name: ig.product_name,
+          grams: ig.grams,
+          weighing_note: ig.weighing_note,
+          kcal_per_100g: ig.kcal_per_100g,
+          protein_per_100g: ig.protein_per_100g,
+          fat_per_100g: ig.fat_per_100g,
+          carbs_per_100g: ig.carbs_per_100g,
+          fiber_per_100g: ig.fiber_per_100g,
+          kcal: ig.kcal,
+          protein_g: ig.protein_g,
+          fat_g: ig.fat_g,
+          carbs_g: ig.carbs_g,
+          fiber_g: ig.fiber_g,
+          sort_order: ig.sort_order,
+        }));
       const { error: ingErr } = await supabase
         .from("meal_plan_item_ingredients" as never)
         .insert(ingRows as never);
@@ -238,6 +260,16 @@ export async function createClientCourse(params: {
   activate?: boolean;
   notes?: string | null;
 }): Promise<ClientCourse> {
+  const { usesLocalPostgresCircuit, selfhostAdminCreateCourse } =
+    await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    return selfhostAdminCreateCourse(params.clientId, {
+      startDate: params.startDate,
+      notes: params.notes,
+      activate: params.activate,
+      cloneFromCourseId: params.cloneFromCourseId,
+    });
+  }
   const start = params.startDate ? parseISODate(params.startDate) : new Date();
   const startIso = toISODate(start);
   const endIso = toISODate(courseEndDate(start));
@@ -260,7 +292,9 @@ export async function createClientCourse(params: {
       if (sourceId && !(await courseHasLinkedContent(existingDraft.id))) {
         const cloneErrors = await cloneFromSource(sourceId, existingDraft.id, params.clientId);
         if (cloneErrors.length > 0) {
-          throw new Error(`Черновик уже есть, но копирование не удалось (${cloneErrors.join("; ")})`);
+          throw new Error(
+            `Черновик уже есть, но копирование не удалось (${cloneErrors.join("; ")})`,
+          );
         }
       }
       return existingDraft;
@@ -302,9 +336,7 @@ export async function createClientCourse(params: {
         await deleteClientCourseRow(created.id);
         throw new Error(`Не удалось создать курс (${cloneErrors.join("; ")})`);
       }
-      const err = new Error(
-        `Курс создан, но не всё скопировалось (${cloneErrors.join("; ")}).`,
-      );
+      const err = new Error(`Курс создан, но не всё скопировалось (${cloneErrors.join("; ")}).`);
       (err as Error & { partial?: boolean; course?: ClientCourse }).partial = true;
       (err as Error & { partial?: boolean; course?: ClientCourse }).course = created;
       throw err;
@@ -330,6 +362,12 @@ export async function renewClientCourse(clientId: string): Promise<ClientCourse>
 }
 
 export async function activateClientCourse(courseId: string, clientId: string): Promise<void> {
+  const { usesLocalPostgresCircuit, selfhostAdminActivateCourse } =
+    await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    await selfhostAdminActivateCourse(clientId, courseId);
+    return;
+  }
   await supabase
     .from("client_courses" as never)
     .update({ status: "completed" } as never)
@@ -343,7 +381,14 @@ export async function activateClientCourse(courseId: string, clientId: string): 
   if (error) throw error;
 }
 
-export async function archiveClientCourse(courseId: string): Promise<void> {
+export async function archiveClientCourse(courseId: string, clientId?: string): Promise<void> {
+  const { usesLocalPostgresCircuit, selfhostAdminArchiveCourse } =
+    await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    if (!clientId) throw new Error("Не указан клиент курса");
+    await selfhostAdminArchiveCourse(clientId, courseId);
+    return;
+  }
   const { error } = await supabase
     .from("client_courses" as never)
     .update({ status: "archived" } as never)
@@ -377,12 +422,21 @@ async function courseHasLinkedContent(courseId: string): Promise<boolean> {
 }
 
 async function deleteClientCourseRow(courseId: string): Promise<void> {
-  const { error } = await supabase.from("client_courses" as never).delete().eq("id", courseId);
+  const { error } = await supabase
+    .from("client_courses" as never)
+    .delete()
+    .eq("id", courseId);
   if (error) throw error;
 }
 
 /** Удалить черновик курса (лишние дубликаты после неудачного создания). */
 export async function deleteClientCourseDraft(courseId: string, clientId: string): Promise<void> {
+  const { usesLocalPostgresCircuit, selfhostAdminDeleteCourseDraft } =
+    await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    await selfhostAdminDeleteCourseDraft(clientId, courseId);
+    return;
+  }
   const course = await getClientCourse(courseId);
   if (!course || course.client_id !== clientId) {
     throw new Error("Курс не найден");

@@ -37,4 +37,6 @@ export type AdminExerciseRow = {
   video_embed_url: string | null;
   publishedUseCount: number;
   needsManualCheck: boolean;
+  archived_at: string | null;
+  is_active: boolean;
 };

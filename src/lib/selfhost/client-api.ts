@@ -112,6 +112,113 @@ export async function selfhostAdminDeleteExerciseMedia(exerciseId: string): Prom
   await readSelfhostJson(res);
 }
 
+export async function selfhostAdminRestoreExercise(id: string): Promise<void> {
+  const res = await selfhostFetch("/api/selfhost/admin/exercises/restore", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminClients(q = "") {
+  const params = q ? `?q=${encodeURIComponent(q)}` : "";
+  const res = await fetch(`/api/selfhost/admin/clients${params}`, { credentials: "include" });
+  return readSelfhostJson(res) as Promise<{
+    items: Array<Record<string, unknown>>;
+    queryCount: number;
+  }>;
+}
+
+export async function selfhostAdminClient(id: string) {
+  const res = await fetch(`/api/selfhost/admin/clients/${encodeURIComponent(id)}`, {
+    credentials: "include",
+  });
+  return readSelfhostJson(res) as Promise<{ client: Record<string, unknown> }>;
+}
+
+export async function selfhostAdminUpdateProfile(id: string, payload: Record<string, unknown>) {
+  const res = await selfhostFetch(`/api/selfhost/admin/clients/${encodeURIComponent(id)}/profile`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminSetAccess(id: string, payload: Record<string, unknown>) {
+  const res = await selfhostFetch(`/api/selfhost/admin/clients/${encodeURIComponent(id)}/access`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminExportContacts() {
+  const res = await fetch("/api/selfhost/admin/clients/export", { credentials: "include" });
+  return readSelfhostJson(res) as Promise<{
+    rows: Array<{ full_name: string; phone: string; email: string; created_at: string }>;
+  }>;
+}
+
+export async function selfhostAdminCourses(clientId: string): Promise<ClientCourse[]> {
+  const res = await fetch(`/api/selfhost/admin/clients/${encodeURIComponent(clientId)}/courses`, {
+    credentials: "include",
+  });
+  const data = await readSelfhostJson(res);
+  return data.courses as ClientCourse[];
+}
+
+export async function selfhostAdminCreateCourse(
+  clientId: string,
+  payload: Record<string, unknown>,
+) {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/clients/${encodeURIComponent(clientId)}/courses`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+  const data = await readSelfhostJson(res);
+  return data.course as ClientCourse;
+}
+
+export async function selfhostAdminActivateCourse(clientId: string, courseId: string) {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/clients/${encodeURIComponent(clientId)}/courses/${encodeURIComponent(courseId)}`,
+    { method: "POST", body: JSON.stringify({ op: "activate" }) },
+  );
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminArchiveCourse(clientId: string, courseId: string) {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/clients/${encodeURIComponent(clientId)}/courses/${encodeURIComponent(courseId)}`,
+    { method: "POST", body: JSON.stringify({ op: "archive" }) },
+  );
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminDeleteCourseDraft(clientId: string, courseId: string) {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/clients/${encodeURIComponent(clientId)}/courses/${encodeURIComponent(courseId)}`,
+    { method: "DELETE", body: "{}" },
+  );
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminUpdateCourse(
+  clientId: string,
+  courseId: string,
+  payload: Record<string, unknown>,
+) {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/clients/${encodeURIComponent(clientId)}/courses/${encodeURIComponent(courseId)}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
+  const data = await readSelfhostJson(res);
+  return data.course as ClientCourse;
+}
+
 export async function ensureCsrfToken(): Promise<string> {
   if (csrfToken) return csrfToken;
   const res = await fetch("/api/selfhost/csrf", { credentials: "include" });
@@ -165,6 +272,26 @@ export async function selfhostCourses(clientId: string): Promise<ClientCourse[]>
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Не удалось загрузить курсы");
   return data.courses as ClientCourse[];
+}
+
+export async function selfhostGetCourse(courseId: string): Promise<ClientCourse | null> {
+  const res = await fetch(`/api/selfhost/course?id=${encodeURIComponent(courseId)}`, {
+    credentials: "include",
+  });
+  if (res.status === 404) return null;
+  const data = await readSelfhostJson(res);
+  return (data.course as ClientCourse) ?? null;
+}
+
+export async function selfhostResolveCourse(
+  clientId: string,
+  courseId?: string | null,
+): Promise<string | null> {
+  const params = new URLSearchParams({ clientId });
+  if (courseId) params.set("courseId", courseId);
+  const res = await fetch(`/api/selfhost/resolve-course?${params}`, { credentials: "include" });
+  const data = await readSelfhostJson(res);
+  return (data.courseId as string | null) ?? null;
 }
 
 export async function selfhostNutrition(
