@@ -15,6 +15,7 @@ import {
   selfhostAdminRestoreExercise,
   selfhostAdminSaveExerciseMedia,
   selfhostAdminUpsertExercise,
+  selfhostUnmatchedExercises,
 } from "@/lib/selfhost/client-api";
 import type { AdminExerciseReport, MediaFilter } from "@/lib/selfhost/exercise-admin-types";
 import { toast } from "sonner";
@@ -157,6 +158,9 @@ function AdminExercises() {
   const [media, setMedia] = useState<MediaFilter>("all");
   const [localCircuit, setLocalCircuit] = useState(false);
   const [localLinks, setLocalLinks] = useState(false);
+  const [unmatched, setUnmatched] = useState<
+    Array<{ original_exercise_id: string; source_url: string | null; title: string | null }>
+  >([]);
   const [editing, setEditing] = useState<
     Exercise | (Omit<Exercise, "id"> & { id?: string }) | null
   >(null);
@@ -173,6 +177,8 @@ function AdminExercises() {
           const result = await selfhostAdminExercises();
           setItems(result.items);
           setReport(result.report);
+          const pending = await selfhostUnmatchedExercises();
+          setUnmatched(pending.items);
           setLoading(false);
           return;
         }
@@ -377,6 +383,16 @@ function AdminExercises() {
           </button>
         }
       />
+
+      {unmatched.length > 0 ? (
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-ivory">
+          <p className="font-medium">Требует сопоставления: {unmatched.length}</p>
+          <p className="mt-1 text-warm-gray">
+            Видео привязано к неизвестному UUID упражнения. Snapshot не изменён. Подтвердите
+            сопоставление вручную.
+          </p>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3 md:flex-row">
         <div className="relative flex-1">

@@ -7,7 +7,10 @@ export async function loadClientMealSchedulePreference(params: {
   courseId?: string | null;
 }): Promise<{ mode: MealScheduleMode; primarySlot: PrimaryMealSlot } | null> {
   const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
-  if (await usesLocalPostgresCircuit()) return null;
+  if (await usesLocalPostgresCircuit()) {
+    const { selfhostNutritionPreference } = await import("@/lib/selfhost/client-api");
+    return selfhostNutritionPreference(params.userId, params.courseId);
+  }
   const courseId = await resolveCourseId(params.userId, params.courseId);
 
   let query = supabase
@@ -21,8 +24,8 @@ export async function loadClientMealSchedulePreference(params: {
 
   return {
     mode:
-      ((data as { meal_schedule_mode?: MealScheduleMode }).meal_schedule_mode as MealScheduleMode) ??
-      "two_main_two_snacks",
+      ((data as { meal_schedule_mode?: MealScheduleMode })
+        .meal_schedule_mode as MealScheduleMode) ?? "two_main_two_snacks",
     primarySlot:
       ((data as { primary_meal_slot?: PrimaryMealSlot }).primary_meal_slot as PrimaryMealSlot) ??
       "lunch",
@@ -34,9 +37,19 @@ export async function saveClientMealSchedulePreference(params: {
   courseId?: string | null;
   mode: MealScheduleMode;
   primarySlot: PrimaryMealSlot;
-  /** Режим в опубликованном меню — если отличается, уведомим тренера. */
   publishedMode?: MealScheduleMode | null;
 }): Promise<void> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    const { selfhostSaveNutritionPreference } = await import("@/lib/selfhost/client-api");
+    await selfhostSaveNutritionPreference({
+      courseId: params.courseId,
+      mode: params.mode,
+      primarySlot: params.primarySlot,
+      publishedMode: params.publishedMode,
+    });
+    return;
+  }
   const courseId = await resolveCourseId(params.userId, params.courseId);
 
   let query = supabase.from("nutrition_plans").select("id").eq("user_id", params.userId);
@@ -57,8 +70,7 @@ export async function saveClientMealSchedulePreference(params: {
     .eq("id", plan.id);
   if (error) throw error;
 
-  const needsTrainer =
-    params.publishedMode != null && params.publishedMode !== params.mode;
+  const needsTrainer = params.publishedMode != null && params.publishedMode !== params.mode;
 
   if (needsTrainer) {
     const modeLabel =

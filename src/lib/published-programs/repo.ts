@@ -355,6 +355,37 @@ export async function publishConstructorNutrition(params: {
   });
   const hash = nutritionSnapshotHash(snapshot);
 
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    await saveConstructorPlan({
+      userId: params.userId,
+      courseId: params.courseId,
+      days: params.days,
+      targets: {
+        kcal: params.plan.target_kcal,
+        protein_g: params.plan.target_protein_g,
+        fat_g: params.plan.target_fat_g,
+        carbs_g: params.plan.target_carbs_g,
+      },
+      plan_days_count: params.plan.plan_days_count as 1 | 7 | 14 | 28,
+      plan_status: "assigned",
+      bmr: params.plan.bmr ?? undefined,
+      tdee: params.plan.tdee ?? undefined,
+      calorie_adjustment_pct: params.plan.calorie_adjustment_pct ?? undefined,
+      notes: params.plan.notes,
+      meal_schedule_mode: params.plan.meal_schedule_mode,
+      primary_meal_slot: params.plan.primary_meal_slot,
+      targets_manual: true,
+    });
+    const { selfhostPublishNutrition } = await import("@/lib/selfhost/client-api");
+    const published = await selfhostPublishNutrition({
+      clientId: params.userId,
+      courseId: params.courseId,
+      reason: params.reason ?? "trainer_publish",
+    });
+    return { versionId: published.versionId, usedRpc: true };
+  }
+
   // Сначала сохраняем workspace (черновик/зеркало), затем публикуем атомарно
   await saveConstructorPlan({
     userId: params.userId,

@@ -8,12 +8,17 @@ import argon2 from "argon2";
 import { applyMigrations } from "@/lib/selfhost/migrate";
 import { closePostgresPool } from "@/lib/selfhost/db";
 import { handleSelfhostRequest } from "@/lib/selfhost/http";
-import { importClients, normalizeExportPayload } from "@/lib/selfhost/import-client";
+import {
+  importClients,
+  normalizeExportPayload,
+  ImportAbortError,
+} from "@/lib/selfhost/import-client";
 import { resetLoginRateLimitForTests } from "@/lib/selfhost/local-auth";
 import { hashPasswordArgon2id } from "@/lib/selfhost/passwords";
 import { upsertExerciseMediaBinding } from "@/lib/selfhost/postgres-published";
+import { publishNutritionVersionPg, seedNutritionCatalog } from "@/lib/selfhost/postgres-nutrition";
 import { summarizeSnapshotExerciseIds } from "@/lib/selfhost/media";
-import { trainingPdfLines } from "@/lib/pdf/snapshot-content";
+import { trainingPdfLines, nutritionPdfLines } from "@/lib/pdf/snapshot-content";
 import { buildNutritionPdf, buildTrainingPdf } from "@/lib/pdf/render-pdf";
 import { normalizeExerciseVideo } from "@/lib/exercise-video";
 import type { NutritionSnapshot, TrainingSnapshot } from "@/lib/published-programs/types";
@@ -31,6 +36,57 @@ const TR_B = "77777777-7777-4777-8777-777777777772";
 const EX_ID = "88888888-8888-4888-8888-888888888888";
 const ASSIGN_N_A = "99999999-9999-4999-8999-999999999991";
 const ASSIGN_T_A = "99999999-9999-4999-8999-999999999992";
+const ORPHAN_EX = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa99";
+
+function sampleConstructorDay(productId: string, recipeId: string) {
+  return {
+    day_index: 0,
+    day_note: "draft-day",
+    is_valid: true,
+    kcal: "500",
+    protein_g: "40",
+    fat_g: "10",
+    carbs_g: "50",
+    fiber_g: "4",
+    items: [
+      {
+        slot: "main1" as const,
+        recipe_id: recipeId,
+        recipe_name: "Черновик блюда",
+        requires_cooking: true,
+        prep_time_min: 10,
+        steps: ["Готовить"],
+        weighing_note: null,
+        snack_action: null,
+        is_valid: true,
+        kcal: "500",
+        protein_g: "40",
+        fat_g: "10",
+        carbs_g: "50",
+        fiber_g: "4",
+        ingredients: [
+          {
+            product_id: productId,
+            product_name: "Курица",
+            grams: "150",
+            weighing_note: null,
+            kcal_per_100g: "120",
+            protein_per_100g: "23",
+            fat_per_100g: "2",
+            carbs_per_100g: "0",
+            fiber_per_100g: "0",
+            kcal: "180",
+            protein_g: "34.5",
+            fat_g: "3",
+            carbs_g: "0",
+            fiber_g: "0",
+            sort_order: 0,
+          },
+        ],
+      },
+    ],
+  };
+}
 
 function nutritionSnapshot(): NutritionSnapshot {
   return {
@@ -302,10 +358,20 @@ describe("selfhost import validation (без БД)", () => {
 describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreSQL circuit", () => {
   let pool: pg.Pool;
   let fetchCalls: string[];
+  const envBackup: Record<string, string | undefined> = {};
 
   beforeAll(async () => {
     const url = resolvedTestDatabaseUrl;
     if (!url) throw new Error("PostgreSQL недоступен");
+    for (const key of [
+      "AUTH_BACKEND",
+      "DATA_BACKEND",
+      "MEDIA_BACKEND",
+      "DATABASE_URL",
+      "SESSION_COOKIE_SECURE",
+    ]) {
+      envBackup[key] = process.env[key];
+    }
     process.env.AUTH_BACKEND = "local";
     process.env.DATA_BACKEND = "postgres";
     process.env.MEDIA_BACKEND = "local-links";
@@ -339,6 +405,10 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
   afterAll(async () => {
     await pool?.end();
     await closePostgresPool();
+    for (const [key, value] of Object.entries(envBackup)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   });
 
   it("импортирует нескольких клиентов изолированно и повторно", async () => {
@@ -369,7 +439,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
               title: "Курс 2",
               start_date: "2026-02-01",
               end_date: "2026-02-28",
-              status: "active",
+              status: "completed",
             },
           ],
           nutrition_versions: [
@@ -1459,6 +1529,308 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       "SELECT id, client_id, kind, course_id, active_version_id FROM client_program_assignments ORDER BY client_id, kind, course_id",
     );
     expect(JSON.stringify(assignAfter.rows)).toBe(JSON.stringify(assignBefore.rows));
+  });
+
+  it("не создаёт фиктивные упражнения для orphan UUID и требует сопоставления", async () => {
+    const beforeExercises = await pool.query("SELECT count(*)::int AS n FROM exercises");
+    await importClients(() => pool.connect(), {
+      user: { id: CLIENT_A, email: "client-a@example.test" },
+      exercise_media_bindings: [
+        {
+          exercise_id: ORPHAN_EX,
+          provider: "youtube",
+          source_url: "https://www.youtube.com/watch?v=orphan",
+          title: "Orphan video",
+          status: "unchecked",
+        },
+      ],
+    });
+    const stub = await pool.query("SELECT id FROM exercises WHERE id = $1", [ORPHAN_EX]);
+    expect(stub.rowCount).toBe(0);
+    const afterExercises = await pool.query("SELECT count(*)::int AS n FROM exercises");
+    expect(Number(afterExercises.rows[0].n)).toBe(Number(beforeExercises.rows[0].n));
+    const unmatched = await pool.query(
+      "SELECT original_exercise_id, source FROM unmatched_exercise_media WHERE original_exercise_id = $1",
+      [ORPHAN_EX],
+    );
+    expect(unmatched.rowCount).toBe(1);
+    expect(unmatched.rows[0].source).toBe("import");
+    const hashes = await pool.query(
+      "SELECT content_hash FROM nutrition_plan_versions WHERE id IN ($1,$2) ORDER BY id",
+      [NUT_A, NUT_A2],
+    );
+    expect(hashes.rows.map((r: { content_hash: string }) => r.content_hash)).toEqual([
+      "hash-nut-a1",
+      "hash-nut-a2",
+    ]);
+  });
+
+  it("отклоняет импорт с несколькими active-курсами без молчаливого исправления", async () => {
+    await expect(
+      importClients(() => pool.connect(), {
+        user: {
+          id: "12121212-1212-4121-8121-121212121212",
+          email: "dup-active@example.test",
+          password_hash: await bcrypt.hash("Passw0rd!", 10),
+        },
+        roles: ["client"],
+        courses: [
+          {
+            id: "13131313-1313-4131-8131-131313131311",
+            title: "A",
+            start_date: "2026-01-01",
+            end_date: "2026-01-28",
+            status: "active",
+          },
+          {
+            id: "13131313-1313-4131-8131-131313131312",
+            title: "B",
+            start_date: "2026-02-01",
+            end_date: "2026-02-28",
+            status: "active",
+          },
+        ],
+      }),
+    ).rejects.toThrow(ImportAbortError);
+  });
+
+  it("держит один active course на уровне БД", async () => {
+    await expect(
+      pool.query(
+        `INSERT INTO client_courses (client_id, title, start_date, end_date, status)
+         VALUES ($1,'Дубль','2026-04-01','2026-04-28','active')`,
+        [CLIENT_A],
+      ),
+    ).rejects.toMatchObject({ code: "23505" });
+  });
+
+  it("полный цикл draft → publish → client без Supabase и без мутации старых snapshots", async () => {
+    const publishedBefore = await pool.query(
+      "SELECT id, snapshot, content_hash, status FROM nutrition_plan_versions WHERE id IN ($1,$2) ORDER BY id",
+      [NUT_A, NUT_A2],
+    );
+    await seedNutritionCatalog(pool);
+    const product = await pool.query(
+      "SELECT id FROM food_products WHERE is_verified = true ORDER BY slug LIMIT 1",
+    );
+    const recipe = await pool.query("SELECT id FROM recipes ORDER BY slug LIMIT 1");
+    const productId = (product.rows[0] as { id: string }).id;
+    const recipeId = (recipe.rows[0] as { id: string }).id;
+    const day = sampleConstructorDay(productId, recipeId);
+
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+
+    expect(
+      (await req("/api/selfhost/admin/nutrition/draft", { method: "POST", body: "{}" })).status,
+    ).toBe(401);
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-b@example.test", password: "Passw0rd!" }),
+    });
+    expect(
+      (
+        await req("/api/selfhost/admin/nutrition/draft", {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({
+            clientId: CLIENT_B,
+            targets: { kcal: 1, protein_g: 1, fat_g: 1, carbs_g: 1 },
+            days: [],
+          }),
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await req("/api/selfhost/admin/nutrition/draft", {
+          method: "POST",
+          headers: { cookie: adminJar.header(), "content-type": "application/json" },
+          body: JSON.stringify({
+            clientId: CLIENT_B,
+            courseId: COURSE_B1,
+            targets: { kcal: 1800, protein_g: 120, fat_g: 60, carbs_g: 180 },
+            days: [day],
+          }),
+        })
+      ).status,
+    ).toBe(403);
+
+    const saved = await req("/api/selfhost/admin/nutrition/draft", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_B,
+        courseId: COURSE_B1,
+        userId: CLIENT_B,
+        created_by: CLIENT_B,
+        targets: { kcal: 1800, protein_g: 120, fat_g: 60, carbs_g: 180 },
+        plan_days_count: 7,
+        plan_status: "draft",
+        meal_schedule_mode: "two_main_two_snacks",
+        primary_meal_slot: "lunch",
+        days: [day],
+      }),
+    });
+    expect(saved.status).toBe(200);
+    const reopened = await (
+      await req(`/api/selfhost/admin/nutrition/draft?clientId=${CLIENT_B}&courseId=${COURSE_B1}`, {
+        jar: adminJar,
+      })
+    ).json();
+    expect(reopened.plan.user_id).toBe(CLIENT_B);
+    expect(reopened.days).toHaveLength(1);
+    expect(reopened.days[0].items[0].recipe_name).toBe("Черновик блюда");
+
+    const clientDraft = await req("/api/selfhost/nutrition", { jar: clientJar });
+    const clientDraftJson = await clientDraft.json();
+    expect(clientDraftJson.nutrition).toBeNull();
+
+    const versionsBefore = await pool.query(
+      "SELECT count(*)::int AS n FROM nutrition_plan_versions WHERE client_id = $1",
+      [CLIENT_B],
+    );
+    await expect(
+      publishNutritionVersionPg(pool, {
+        clientId: CLIENT_B,
+        courseId: COURSE_B1,
+        actorId: "99999999-9999-4999-8999-999999999999",
+        days: reopened.days,
+        plan: reopened.plan,
+      }),
+    ).rejects.toThrow();
+    const versionsAfterFail = await pool.query(
+      "SELECT count(*)::int AS n FROM nutrition_plan_versions WHERE client_id = $1",
+      [CLIENT_B],
+    );
+    expect(Number(versionsAfterFail.rows[0].n)).toBe(Number(versionsBefore.rows[0].n));
+
+    const published1 = await req("/api/selfhost/admin/nutrition/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_B,
+        courseId: COURSE_B1,
+        reason: "trainer_publish",
+        idempotencyKey: "idem-nut-b-0001",
+      }),
+    });
+    expect(published1.status).toBe(200);
+    const pub1 = await published1.json();
+    const publishedAgain = await req("/api/selfhost/admin/nutrition/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_B,
+        courseId: COURSE_B1,
+        reason: "trainer_publish",
+        idempotencyKey: "idem-nut-b-0001",
+      }),
+    });
+    const pubAgain = await publishedAgain.json();
+    expect(pubAgain.idempotent).toBe(true);
+    expect(pubAgain.versionId).toBe(pub1.versionId);
+
+    const concurrent = await Promise.all([
+      req("/api/selfhost/admin/nutrition/publish", {
+        method: "POST",
+        jar: adminJar,
+        body: JSON.stringify({ clientId: CLIENT_B, courseId: COURSE_B1, reason: "c1" }),
+      }),
+      req("/api/selfhost/admin/nutrition/publish", {
+        method: "POST",
+        jar: adminJar,
+        body: JSON.stringify({ clientId: CLIENT_B, courseId: COURSE_B1, reason: "c2" }),
+      }),
+    ]);
+    expect(concurrent.every((res) => res.status === 200)).toBe(true);
+    const concBodies = await Promise.all(concurrent.map((res) => res.json()));
+    const publishedRows = await pool.query(
+      "SELECT id, version, status, content_hash, snapshot FROM nutrition_plan_versions WHERE client_id = $1 ORDER BY version",
+      [CLIENT_B],
+    );
+    const live = publishedRows.rows.filter((row: { status: string }) => row.status === "published");
+    expect(live).toHaveLength(1);
+    expect(publishedRows.rows.some((row: { status: string }) => row.status === "superseded")).toBe(
+      true,
+    );
+    const assignment = await pool.query(
+      "SELECT active_version_id FROM client_program_assignments WHERE client_id = $1 AND kind = 'nutrition' AND course_id = $2",
+      [CLIENT_B, COURSE_B1],
+    );
+    expect(assignment.rows[0].active_version_id).toBe(live[0].id);
+
+    const clientView = await (await req("/api/selfhost/nutrition", { jar: clientJar })).json();
+    expect(clientView.nutrition.version.id).toBe(live[0].id);
+    expect(clientView.nutrition.version.status).toBe("published");
+    expect(clientView.nutrition.snapshot.constructor_days[0].items[0].recipe_name).toBe(
+      "Черновик блюда",
+    );
+
+    const other = await req(`/api/selfhost/nutrition?clientId=${CLIENT_A}`, { jar: clientJar });
+    expect(other.status).toBe(403);
+
+    await pool.query("UPDATE recipes SET name = 'Каталог изменён' WHERE id = $1", [recipeId]);
+    await pool.query("UPDATE food_products SET name = 'Продукт изменён' WHERE id = $1", [
+      productId,
+    ]);
+    const afterCatalog = await (await req("/api/selfhost/nutrition", { jar: clientJar })).json();
+    expect(afterCatalog.nutrition.snapshot.constructor_days[0].items[0].recipe_name).toBe(
+      "Черновик блюда",
+    );
+    expect(JSON.stringify(afterCatalog.nutrition.snapshot)).toBe(JSON.stringify(live[0].snapshot));
+
+    const pdfLines = nutritionPdfLines(afterCatalog.nutrition.snapshot, {
+      clientName: "Клиент B",
+      courseTitle: "Курс B",
+      courseStart: "01.03.2026",
+      courseEnd: "28.03.2026",
+      issuedAt: "2026-03-02",
+    });
+    expect(pdfLines.join("\n")).toContain("Черновик блюда");
+
+    const cloned = await req(`/api/selfhost/admin/clients/${CLIENT_B}/courses`, {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ activate: false, cloneFromCourseId: COURSE_B1 }),
+    });
+    expect(cloned.status).toBe(200);
+    const newCourse = (await cloned.json()).course as { id: string };
+    const newDraft = await (
+      await req(
+        `/api/selfhost/admin/nutrition/draft?clientId=${CLIENT_B}&courseId=${newCourse.id}`,
+        { jar: adminJar },
+      )
+    ).json();
+    expect(newDraft.plan.plan_status).toBe("draft");
+    expect(newDraft.days[0].items[0].recipe_name).toBe("Черновик блюда");
+    const stillPublished = await pool.query(
+      "SELECT snapshot, content_hash, status FROM nutrition_plan_versions WHERE id = $1",
+      [live[0].id],
+    );
+    expect(stillPublished.rows[0].status).toBe("published");
+    expect(stillPublished.rows[0].content_hash).toBe(live[0].content_hash);
+    expect(JSON.stringify(stillPublished.rows[0].snapshot)).toBe(JSON.stringify(live[0].snapshot));
+    const newAssign = await pool.query(
+      "SELECT 1 FROM client_program_assignments WHERE course_id = $1 AND kind = 'nutrition'",
+      [newCourse.id],
+    );
+    expect(newAssign.rowCount).toBe(0);
+
+    const publishedAfter = await pool.query(
+      "SELECT id, snapshot, content_hash, status FROM nutrition_plan_versions WHERE id IN ($1,$2) ORDER BY id",
+      [NUT_A, NUT_A2],
+    );
+    expect(JSON.stringify(publishedAfter.rows)).toBe(JSON.stringify(publishedBefore.rows));
+    expect(concBodies[0].versionId).toBeTruthy();
   });
 
   it("не обращается к Supabase в local/postgres", () => {

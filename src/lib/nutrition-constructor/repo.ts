@@ -241,8 +241,8 @@ export function buildInMemoryCatalog(options: BuildCatalogOptions = {}): Optimiz
 }
 
 export type ConstructorDayRow = {
-  id: string;
-  plan_id: string;
+  id?: string;
+  plan_id?: string;
   day_index: number;
   day_note: string | null;
   kcal: string;
@@ -359,7 +359,42 @@ function mapFoodProductRow(row: {
 
 export async function loadFoodProductsFromDb(): Promise<FoodProduct[]> {
   const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
-  if (await usesLocalPostgresCircuit()) return [];
+  if (await usesLocalPostgresCircuit()) {
+    try {
+      const { selfhostNutritionCatalogProducts } = await import("@/lib/selfhost/client-api");
+      return await selfhostNutritionCatalogProducts();
+    } catch {
+      return [];
+    }
+  }
+  const hasSupabase =
+    Boolean(typeof process !== "undefined" && process.env.SUPABASE_URL) ||
+    Boolean(typeof import.meta !== "undefined" && import.meta.env?.VITE_SUPABASE_URL);
+  if (!hasSupabase) {
+    return SEED_PRODUCTS.filter((p) => p.is_verified).map((p) => ({
+      id: p.slug,
+      slug: p.slug,
+      name: p.name,
+      category: p.category as FoodProduct["category"],
+      brand: p.brand ?? null,
+      state: p.state as FoodProduct["state"],
+      measurement_basis: p.measurement_basis,
+      kcal_per_100g: String(p.kcal),
+      protein_per_100g: String(p.protein),
+      fat_per_100g: String(p.fat),
+      carbs_per_100g: String(p.carbs),
+      fiber_per_100g: p.fiber != null ? String(p.fiber) : null,
+      density: p.density != null ? String(p.density) : null,
+      source_name: p.source_name,
+      source_url: p.source_url ?? null,
+      verified_at: null,
+      is_verified: p.is_verified,
+      is_active: true,
+      allowed_for_snack: p.allowed_for_snack,
+      requires_cooking: p.requires_cooking,
+      weighing_note: p.weighing_note,
+    }));
+  }
   const { data, error } = await supabase.from("food_products").select("*").eq("is_active", true);
   if (error) {
     if (/schema cache|could not find|PGRST204/i.test(error.message)) {
@@ -393,6 +428,36 @@ export async function loadFoodProductsFromDb(): Promise<FoodProduct[]> {
 }
 
 export async function loadOptimizerContext(): Promise<OptimizerContext> {
+  if (typeof window !== "undefined") {
+    const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+    if (await usesLocalPostgresCircuit()) {
+      const { selfhostNutritionCatalog } = await import("@/lib/selfhost/client-api");
+      const catalog = await selfhostNutritionCatalog();
+      const products = new Map(catalog.products.map((p) => [p.id, p]));
+      const recipeIngredients = new Map<string, RecipeIngredient[]>(
+        Object.entries(catalog.recipeIngredients),
+      );
+      const recipes = catalog.recipes;
+      return {
+        products,
+        recipes,
+        recipeIngredients,
+        mainRecipes: recipes.filter((r) => r.meal_type === "main"),
+        snackRecipes: recipes.filter((r) => r.meal_type === "snack"),
+      };
+    }
+  } else {
+    const { isLocalClientCircuit } = await import("@/lib/selfhost/config");
+    if (isLocalClientCircuit() && process.env.DATABASE_URL) {
+      const { loadOptimizerContextPg } = await import("@/lib/selfhost/postgres-nutrition");
+      const { getPostgresPool } = await import("@/lib/selfhost/db");
+      return loadOptimizerContextPg(getPostgresPool());
+    }
+  }
+  const hasSupabase =
+    Boolean(typeof process !== "undefined" && process.env.SUPABASE_URL) ||
+    Boolean(typeof import.meta !== "undefined" && import.meta.env?.VITE_SUPABASE_URL);
+  if (!hasSupabase) return buildInMemoryCatalog();
   try {
     const [productsRows, recipesRows, ingsRows] = await Promise.all([
       supabase.from("food_products").select("*").eq("is_active", true),
@@ -498,6 +563,11 @@ export async function generateAndValidateConstructorPlan(params: {
     };
   }
   const targetSafety = checkTargetSafety(calc.targets);
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (typeof window !== "undefined" && (await usesLocalPostgresCircuit())) {
+    const { selfhostGenerateNutrition } = await import("@/lib/selfhost/client-api");
+    return (await selfhostGenerateNutrition(params as unknown as Record<string, unknown>)) as never;
+  }
   const ctx = await loadOptimizerContext();
   const result = generateConstructorPlan(ctx, {
     targets: calc.targets,
@@ -661,6 +731,11 @@ export async function loadConstructorPlanFor(
   plan: ConstructorPlanRow | null;
   days: ConstructorDayRow[];
 }> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    const { selfhostNutritionDraft } = await import("@/lib/selfhost/client-api");
+    return selfhostNutritionDraft(userId, courseId);
+  }
   const { resolveCourseId } = await import("@/lib/client-courses/repo");
   const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
 
@@ -787,6 +862,11 @@ export type SaveConstructorPlanParams = {
 export async function saveConstructorPlan(
   params: SaveConstructorPlanParams,
 ): Promise<{ plan: ConstructorPlanRow; days: ConstructorDayRow[] }> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    const { selfhostSaveNutritionDraft } = await import("@/lib/selfhost/client-api");
+    return selfhostSaveNutritionDraft(params as unknown as Record<string, unknown>);
+  }
   const {
     userId,
     courseId,

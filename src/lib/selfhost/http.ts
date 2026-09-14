@@ -12,7 +12,7 @@ import {
   adminExerciseMediaSchema,
   adminExerciseUpsertSchema,
 } from "@/lib/selfhost/postgres-exercises";
-import { checkPostgresHealth, getPostgresPool } from "@/lib/selfhost/db";
+import { checkPostgresHealth, getPostgresPool, withTransaction } from "@/lib/selfhost/db";
 import {
   assertCsrf,
   assertLoginRateLimit,
@@ -54,6 +54,19 @@ import {
   adminCourseUpdateSchema,
   resolveClientCourseIdPg,
 } from "@/lib/selfhost/postgres-courses";
+import {
+  loadConstructorPlanPg,
+  loadMealPreferencePg,
+  loadOptimizerContextPg,
+  nutritionDraftSaveSchema,
+  nutritionGenerateSchema,
+  nutritionPreferenceSchema,
+  nutritionPublishSchema,
+  publishNutritionVersionPg,
+  saveConstructorPlanPg,
+  saveMealPreferencePg,
+} from "@/lib/selfhost/postgres-nutrition";
+import { generateAndValidateConstructorPlan } from "@/lib/nutrition-constructor/repo";
 
 function json(data: unknown, status = 200, extraHeaders?: Record<string, string>): Response {
   return new Response(JSON.stringify(data), {
@@ -272,6 +285,30 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       return json({ nutrition: view });
     }
 
+    if (url.pathname === "/api/selfhost/nutrition/preference" && request.method === "GET") {
+      const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+      const preference = await loadMealPreferencePg(
+        getPostgresPool(),
+        clientId,
+        url.searchParams.get("courseId"),
+      );
+      return json({ preference });
+    }
+
+    if (url.pathname === "/api/selfhost/nutrition/preference" && request.method === "POST") {
+      assertCsrf(request);
+      const body = nutritionPreferenceSchema.parse(await readJson(request));
+      const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+      await saveMealPreferencePg(getPostgresPool(), {
+        clientId,
+        courseId: body.courseId,
+        mode: body.mode,
+        primarySlot: body.primarySlot,
+        publishedMode: body.publishedMode,
+      });
+      return json({ ok: true });
+    }
+
     if (url.pathname === "/api/selfhost/training" && request.method === "GET") {
       const clientId = scopedClientId(session, url.searchParams.get("clientId"));
       const courseId = url.searchParams.get("courseId");
@@ -398,6 +435,131 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       const id = typeof body.id === "string" ? body.id : url.searchParams.get("id");
       if (!id) return errorJson("Не указан id упражнения", 400);
       await exerciseRepo().restore(id);
+      return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/nutrition/catalog" && request.method === "GET") {
+      requireAdmin(session);
+      const ctx = await loadOptimizerContextPg(getPostgresPool());
+      return json({
+        products: [...ctx.products.values()],
+        recipes: ctx.recipes,
+        recipeIngredients: Object.fromEntries(ctx.recipeIngredients),
+      });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/nutrition/draft" && request.method === "GET") {
+      requireAdmin(session);
+      const clientId = url.searchParams.get("clientId");
+      if (!clientId) return errorJson("Не указан clientId", 400);
+      const loaded = await loadConstructorPlanPg(
+        getPostgresPool(),
+        clientId,
+        url.searchParams.get("courseId"),
+      );
+      return json(loaded);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/nutrition/draft" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const raw = await readJson(request);
+      const body = nutritionDraftSaveSchema.parse(raw);
+      const userId = body.userId ?? body.clientId;
+      if (!userId) return errorJson("Не указан clientId", 400);
+      const saved = await saveConstructorPlanPg(getPostgresPool(), {
+        userId,
+        courseId: body.courseId,
+        days: (body.days as never) ?? [],
+        targets: body.targets,
+        plan_days_count: body.plan_days_count,
+        plan_status: body.plan_status,
+        bmr: body.bmr ?? undefined,
+        tdee: body.tdee ?? undefined,
+        calorie_adjustment_pct: body.calorie_adjustment_pct ?? undefined,
+        notes: body.notes ?? null,
+        excluded_products: body.excluded_products ?? [],
+        targets_manual: body.targets_manual !== false,
+        meal_schedule_mode: body.meal_schedule_mode,
+        primary_meal_slot: body.primary_meal_slot,
+        requires_manual_review: body.requires_manual_review,
+        review_reason: body.review_reason,
+      });
+      return json(saved);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/nutrition/generate" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = nutritionGenerateSchema.parse(await readJson(request));
+      const generated = await generateAndValidateConstructorPlan({
+        profile: body.profile as never,
+        days_count: body.days_count,
+        excluded_product_ids: body.excluded_product_ids,
+        meal_schedule_mode: body.meal_schedule_mode,
+        primary_meal_slot: body.primary_meal_slot,
+        targets_override: body.targets_override,
+      });
+      return json(generated);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/nutrition/publish" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = nutritionPublishSchema.parse(await readJson(request));
+      const loaded = await loadConstructorPlanPg(getPostgresPool(), body.clientId, body.courseId);
+      if (!loaded.plan || loaded.days.length === 0) {
+        return errorJson("Нет черновика для публикации", 400);
+      }
+      const published = await publishNutritionVersionPg(getPostgresPool(), {
+        clientId: body.clientId,
+        courseId: body.courseId,
+        actorId: session.userId,
+        reason: body.reason ?? null,
+        idempotencyKey: body.idempotencyKey ?? request.headers.get("idempotency-key"),
+        days: loaded.days,
+        plan: loaded.plan,
+      });
+      return json(published);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/unmatched-exercises" && request.method === "GET") {
+      requireAdmin(session);
+      const { rows } = await getPostgresPool().query(
+        `SELECT original_exercise_id, provider, source_url, title, status, resolved_exercise_id, source
+           FROM public.unmatched_exercise_media
+          WHERE resolved_exercise_id IS NULL
+          ORDER BY created_at`,
+      );
+      return json({ items: rows });
+    }
+
+    if (
+      url.pathname === "/api/selfhost/admin/unmatched-exercises/map" &&
+      request.method === "POST"
+    ) {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = await readJson(request);
+      const originalId = String(body.original_exercise_id ?? "");
+      const resolvedId = String(body.resolved_exercise_id ?? "");
+      if (!originalId || !resolvedId) return errorJson("Нужны original и resolved id", 400);
+      await withTransaction(async (client) => {
+        await client.query(
+          `UPDATE public.unmatched_exercise_media
+              SET resolved_exercise_id = $2, updated_at = (now() AT TIME ZONE 'utc')
+            WHERE original_exercise_id = $1`,
+          [originalId, resolvedId],
+        );
+        await client.query(
+          `INSERT INTO public.exercise_media_bindings (exercise_id, provider, source_url, embed_url, title, status, fallback_text)
+           SELECT $2, provider, source_url, embed_url, title, status, fallback_text
+             FROM public.unmatched_exercise_media WHERE original_exercise_id = $1
+           ON CONFLICT (exercise_id) DO UPDATE SET
+             source_url = EXCLUDED.source_url, provider = EXCLUDED.provider, status = EXCLUDED.status`,
+          [originalId, resolvedId],
+        );
+      });
       return json({ ok: true });
     }
 

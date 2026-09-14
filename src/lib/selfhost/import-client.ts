@@ -454,7 +454,14 @@ export async function importOneClient(
     );
   }
 
-  for (const course of data.courses ?? []) {
+  const courses = data.courses ?? [];
+  const activeCourses = courses.filter((course) => (course.status ?? "active") === "active");
+  if (activeCourses.length > 1) {
+    throw new ImportAbortError(
+      `Несколько active-курсов у ${data.user.email}: требуется явное решение (${activeCourses.length})`,
+    );
+  }
+  for (const course of courses) {
     const id = asUuid(course.id);
     if (!id) throw new ImportAbortError("курс без UUID");
     await client.query(
@@ -511,7 +518,27 @@ export async function importOneClient(
   }
 
   for (const row of data.exercise_media_bindings ?? []) {
-    if (!asUuid(row.exercise_id)) continue;
+    const exerciseId = asUuid(row.exercise_id);
+    if (!exerciseId) continue;
+    const exists = await client.query(`SELECT 1 FROM public.exercises WHERE id = $1`, [exerciseId]);
+    if (!exists.rowCount) {
+      await client.query(
+        `INSERT INTO public.unmatched_exercise_media
+          (original_exercise_id, provider, source_url, embed_url, title, status, fallback_text, source)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'import')
+         ON CONFLICT (original_exercise_id) DO NOTHING`,
+        [
+          exerciseId,
+          row.provider ?? "none",
+          row.source_url ?? row.url ?? null,
+          row.embed_url ?? null,
+          row.title ?? null,
+          row.status ?? "unchecked",
+          row.fallback_text ?? null,
+        ],
+      );
+      continue;
+    }
     await client.query(
       `INSERT INTO public.exercise_media_bindings
         (exercise_id, provider, source_url, embed_url, title, status, fallback_text)

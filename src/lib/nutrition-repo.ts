@@ -5,16 +5,13 @@ import {
   type MealEntry,
   type Slot,
   type NutritionTargets,
+  type ProfileInput,
   calcTargets,
   generatePlan,
   filterDishesForMedicalTable,
 } from "@/lib/nutrition";
 import { MEDICAL_DIET_NONE } from "@/lib/medical-diet-tables";
-import {
-  parseFoodList,
-  normalizeFoodTerms,
-  mergeUnique,
-} from "@/lib/food-products";
+import { parseFoodList, normalizeFoodTerms, mergeUnique } from "@/lib/food-products";
 import {
   decodePlanMeta,
   encodePlanMeta,
@@ -47,6 +44,8 @@ export type DayRow = {
 };
 
 export async function loadDishes(): Promise<Dish[]> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) return [];
   const { data, error } = await supabase
     .from("dishes")
     .select(
@@ -62,6 +61,8 @@ export async function loadDishes(): Promise<Dish[]> {
 
 /** Стол Певзнера из поля extra анкеты (medical_diet_table). */
 export async function loadMedicalDietTable(userId: string): Promise<string | null> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) return null;
   const { data } = await supabase
     .from("onboarding_responses")
     .select("extra")
@@ -96,6 +97,35 @@ export async function loadPlanFor(
   userId: string,
   courseId?: string | null,
 ): Promise<{ plan: PlanRow | null; days: DayRow[] }> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    const ctor = await import("@/lib/nutrition-constructor/repo").then((m) =>
+      m.loadConstructorPlanFor(userId, courseId),
+    );
+    if (!ctor.plan) return { plan: null, days: [] };
+    return {
+      plan: {
+        id: ctor.plan.id,
+        user_id: ctor.plan.user_id,
+        meals_per_day: 5,
+        preferred_products: [],
+        excluded_products: ctor.plan.excluded_products,
+        target_kcal: ctor.plan.target_kcal,
+        target_protein_g: ctor.plan.target_protein_g,
+        target_fat_g: ctor.plan.target_fat_g,
+        target_carbs_g: ctor.plan.target_carbs_g,
+        targets_manual: ctor.plan.targets_manual,
+        notes: ctor.plan.notes,
+      },
+      days: ctor.days.map((d, i) => ({
+        id: `${ctor.plan!.id}-${i}`,
+        plan_id: ctor.plan!.id,
+        day_index: d.day_index,
+        day_note: d.day_note,
+        meals: [],
+      })),
+    };
+  }
   const { resolveCourseId } = await import("@/lib/client-courses/repo");
   const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
 
@@ -120,7 +150,30 @@ export async function loadPlanFor(
   };
 }
 
-export async function loadTargetProfile(userId: string) {
+export async function loadTargetProfile(
+  userId: string,
+): Promise<ProfileInput & { allergies?: string; disliked_foods?: string }> {
+  const { usesLocalPostgresCircuit, selfhostAdminClient } =
+    await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    const { client } = await selfhostAdminClient(userId);
+    const c = client as Record<string, unknown>;
+    const latest = c.latest_measurement as { weight_kg?: number | null } | null;
+    const onb = (c.onboarding as Record<string, unknown> | null) ?? {};
+    const rawGender = c.gender;
+    const gender: "female" | "male" | null =
+      rawGender === "female" || rawGender === "male" ? rawGender : null;
+    return {
+      gender,
+      birth_date: (c.birth_date as string | null) ?? null,
+      height_cm: c.height_cm == null ? null : Number(c.height_cm),
+      weight_kg: latest?.weight_kg ?? null,
+      activity_level: (onb.activity_level as string | null) ?? null,
+      goal_primary: (onb.goal_primary as string | null) ?? null,
+      allergies: typeof onb.allergies === "string" ? onb.allergies : "",
+      disliked_foods: typeof onb.disliked_foods === "string" ? onb.disliked_foods : "",
+    };
+  }
   const [profileRes, measRes, onbRes] = await Promise.all([
     supabase
       .from("profiles")
@@ -191,6 +244,12 @@ export async function createOrReplacePlan(params: {
   /** Пересборка только из уже подобранных блюд плана (клиентский «пересобрать»). */
   restrictToDishIds?: string[];
 }): Promise<{ plan: PlanRow; days: DayRow[] }> {
+  const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    throw new Error(
+      "Legacy-генерация меню в self-hosted режиме недоступна. Используйте конструктор.",
+    );
+  }
   const {
     userId,
     mealsPerDay,

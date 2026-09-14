@@ -126,7 +126,20 @@ export class PostgresClientCourseRepository {
          RETURNING id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes`,
         [data.clientId, title, startIso, endIso, status, data.notes ?? null, actorId],
       );
-      return mapCourse(inserted.rows[0] as Record<string, unknown>);
+      const created = mapCourse(inserted.rows[0] as Record<string, unknown>);
+      const fallback = await client.query(
+        `SELECT id FROM public.client_courses
+          WHERE client_id = $1 AND id <> $2 AND status <> 'draft'
+          ORDER BY start_date DESC LIMIT 1`,
+        [data.clientId, created.id],
+      );
+      const sourceCourseId =
+        data.cloneFromCourseId ?? (fallback.rows[0] as { id: string } | undefined)?.id ?? null;
+      if (sourceCourseId) {
+        const { cloneNutritionPlanPg } = await import("@/lib/selfhost/postgres-nutrition");
+        await cloneNutritionPlanPg(client, sourceCourseId, created.id, data.clientId);
+      }
+      return created;
     });
   }
 

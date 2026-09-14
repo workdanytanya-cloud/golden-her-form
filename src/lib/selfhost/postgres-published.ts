@@ -63,13 +63,28 @@ export async function loadMediaBindings(
   }
   const missing = exerciseIds.filter((id) => !map.has(id));
   if (missing.length) {
+    const unmatched = await db.query(
+      `SELECT original_exercise_id AS exercise_id, provider, source_url, embed_url, title, status, fallback_text
+         FROM public.unmatched_exercise_media
+        WHERE original_exercise_id = ANY($1::uuid[])
+          AND resolved_exercise_id IS NULL
+          AND source_url IS NOT NULL
+          AND source_url <> ''`,
+      [missing],
+    );
+    for (const row of unmatched.rows as ExerciseMediaBinding[]) {
+      if (row.source_url && row.status === "ok") map.set(row.exercise_id, row);
+    }
+  }
+  const stillMissing = exerciseIds.filter((id) => !map.has(id));
+  if (stillMissing.length) {
     const legacy = await db.query(
       `SELECT id, video_url, video_provider, video_embed_url, video_title, video_status, video_fallback_text
          FROM public.exercises
         WHERE id = ANY($1::uuid[])
           AND video_url IS NOT NULL
           AND video_url <> ''`,
-      [missing],
+      [stillMissing],
     );
     for (const row of legacy.rows as Array<{
       id: string;

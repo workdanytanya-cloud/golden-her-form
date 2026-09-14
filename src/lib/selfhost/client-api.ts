@@ -294,6 +294,110 @@ export async function selfhostResolveCourse(
   return (data.courseId as string | null) ?? null;
 }
 
+export async function selfhostNutritionDraft(clientId: string, courseId?: string | null) {
+  const params = new URLSearchParams({ clientId });
+  if (courseId) params.set("courseId", courseId);
+  const res = await fetch(`/api/selfhost/admin/nutrition/draft?${params}`, {
+    credentials: "include",
+  });
+  return readSelfhostJson(res) as Promise<{
+    plan: import("@/lib/nutrition-constructor/repo").ConstructorPlanRow | null;
+    days: import("@/lib/nutrition-constructor/repo").ConstructorDayRow[];
+  }>;
+}
+
+export async function selfhostSaveNutritionDraft(payload: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/admin/nutrition/draft", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res) as Promise<{
+    plan: import("@/lib/nutrition-constructor/repo").ConstructorPlanRow;
+    days: import("@/lib/nutrition-constructor/repo").ConstructorDayRow[];
+  }>;
+}
+
+export async function selfhostGenerateNutrition(payload: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/admin/nutrition/generate", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res);
+}
+
+export async function selfhostPublishNutrition(payload: {
+  clientId: string;
+  courseId?: string | null;
+  reason?: string | null;
+  idempotencyKey?: string;
+}) {
+  const res = await selfhostFetch("/api/selfhost/admin/nutrition/publish", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res) as Promise<{
+    versionId: string;
+    contentHash: string;
+    idempotent: boolean;
+  }>;
+}
+
+export async function selfhostUnmatchedExercises() {
+  const res = await fetch("/api/selfhost/admin/unmatched-exercises", { credentials: "include" });
+  return readSelfhostJson(res) as Promise<{
+    items: Array<{
+      original_exercise_id: string;
+      source_url: string | null;
+      title: string | null;
+      source: string;
+    }>;
+  }>;
+}
+
+export async function selfhostNutritionCatalog() {
+  const res = await fetch("/api/selfhost/admin/nutrition/catalog", { credentials: "include" });
+  const data = await readSelfhostJson(res);
+  return {
+    products: data.products as import("@/lib/nutrition-constructor/types").FoodProduct[],
+    recipes: data.recipes as import("@/lib/nutrition-constructor/types").Recipe[],
+    recipeIngredients: (data.recipeIngredients ?? {}) as Record<
+      string,
+      import("@/lib/nutrition-constructor/types").RecipeIngredient[]
+    >,
+  };
+}
+
+export async function selfhostNutritionCatalogProducts() {
+  const catalog = await selfhostNutritionCatalog();
+  return catalog.products;
+}
+
+export async function selfhostNutritionPreference(clientId: string, courseId?: string | null) {
+  const params = new URLSearchParams({ clientId });
+  if (courseId) params.set("courseId", courseId);
+  const res = await fetch(`/api/selfhost/nutrition/preference?${params}`, {
+    credentials: "include",
+  });
+  const data = await readSelfhostJson(res);
+  return data.preference as {
+    mode: import("@/lib/nutrition-constructor/config").MealScheduleMode;
+    primarySlot: import("@/lib/nutrition-constructor/config").PrimaryMealSlot;
+  } | null;
+}
+
+export async function selfhostSaveNutritionPreference(payload: {
+  courseId?: string | null;
+  mode: string;
+  primarySlot: string;
+  publishedMode?: string | null;
+}) {
+  const res = await selfhostFetch("/api/selfhost/nutrition/preference", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  await readSelfhostJson(res);
+}
+
 export async function selfhostNutrition(
   clientId: string,
   courseId?: string | null,
