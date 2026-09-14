@@ -1,16 +1,31 @@
 import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
+import { buildContinuationTrainingProgram } from "@/lib/course-continuation/training-continuation";
+import type { PreviousTrainingContext } from "@/lib/course-continuation/training-continuation";
 import { normalizeExerciseVideo } from "@/lib/exercise-video";
 import {
   buildTrainingSnapshot,
+  programDaysFromSnapshot,
   trainingSnapshotHash,
 } from "@/lib/published-programs/training-snapshot";
+import type { TrainingSnapshot } from "@/lib/published-programs/types";
 import { withTransaction } from "@/lib/selfhost/db";
 import { resolveClientCourseIdPg } from "@/lib/selfhost/postgres-courses";
+import { getActivePublishedTrainingPg } from "@/lib/selfhost/postgres-published";
 import type { DayRow, ProgramRow } from "@/lib/training-repo";
-import type { Exercise, ExerciseSet, FaqItem, ProgramDay, ProgramInput } from "@/lib/training";
+import {
+  defaultFaq,
+  type Exercise,
+  type ExerciseSet,
+  type ProgramDay,
+  type ProgramInput,
+} from "@/lib/training";
 
 type Queryable = Pool | PoolClient;
+
+function isPoolClient(db: Pool | PoolClient): db is PoolClient {
+  return typeof (db as PoolClient).release === "function" && !("idleCount" in db);
+}
 
 const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -343,22 +358,22 @@ export async function loadTrainingProfilePg(
   gender: "female" | "male" | null;
   access_status: string | null;
 }> {
-  const [onb, access, weight, profile] = await Promise.all([
-    db.query(
-      `SELECT activity_level, goal_primary, has_injuries, injuries_details, equipment,
-              training_location, training_days_per_week
-         FROM public.onboarding_responses WHERE user_id = $1`,
-      [clientId],
-    ),
-    db.query(`SELECT status FROM public.client_access WHERE user_id = $1`, [clientId]),
-    db.query(
-      `SELECT weight_kg FROM public.measurements
-        WHERE user_id = $1 AND weight_kg IS NOT NULL
-        ORDER BY measured_on DESC, created_at DESC LIMIT 1`,
-      [clientId],
-    ),
-    db.query(`SELECT gender FROM public.profiles WHERE id = $1`, [clientId]),
+  const onb = await db.query(
+    `SELECT activity_level, goal_primary, has_injuries, injuries_details, equipment,
+            training_location, training_days_per_week
+       FROM public.onboarding_responses WHERE user_id = $1`,
+    [clientId],
+  );
+  const access = await db.query(`SELECT status FROM public.client_access WHERE user_id = $1`, [
+    clientId,
   ]);
+  const weight = await db.query(
+    `SELECT weight_kg FROM public.measurements
+      WHERE user_id = $1 AND weight_kg IS NOT NULL
+      ORDER BY measured_on DESC, created_at DESC LIMIT 1`,
+    [clientId],
+  );
+  const profile = await db.query(`SELECT gender FROM public.profiles WHERE id = $1`, [clientId]);
   const o = onb.rows[0] as
     | {
         activity_level?: string | null;
@@ -410,13 +425,13 @@ export async function loadTrainingProfilePg(
 }
 
 export async function saveTrainingDraftPg(
-  db: Pool,
+  db: Queryable,
   input: z.infer<typeof trainingDraftSaveSchema>,
 ): Promise<{ program: ProgramRow; days: DayRow[] }> {
   const parsedDays = input.days.map((d) => trainingDaySchema.parse(d));
   await assertExercisesExist(db, collectExerciseIds(parsedDays));
 
-  return withTransaction(async (client) => {
+  const run = async (client: PoolClient) => {
     const courseId = await resolveClientCourseIdPg(client, input.clientId, input.courseId);
     if (!courseId) throw Object.assign(new Error("Курс не найден"), { statusCode: 400 });
     const ownedCourse = await client.query(
@@ -513,6 +528,126 @@ export async function saveTrainingDraftPg(
       throw Object.assign(new Error("Не удалось сохранить черновик тренировок"), { statusCode: 500 });
     }
     return { program: loaded.program, days: loaded.days };
+  };
+
+  return isPoolClient(db) ? run(db) : withTransaction((client) => run(client));
+}
+
+async function loadPreviousTrainingContextPg(
+  db: Queryable,
+  clientId: string,
+  targetCourseId: string,
+  preferredSourceCourseId: string,
+): Promise<PreviousTrainingContext | null> {
+  const { rows: courseRows } = await db.query(
+    `SELECT id, title, status, start_date::text AS start_date
+       FROM public.client_courses
+      WHERE client_id = $1
+      ORDER BY start_date ASC`,
+    [clientId],
+  );
+  const courses = courseRows as Array<{
+    id: string;
+    title: string;
+    status: string;
+    start_date: string;
+  }>;
+  const sourceCourse =
+    courses.find((c) => c.id === preferredSourceCourseId) ??
+    [...courses].reverse().find((c) => c.id !== targetCourseId && c.status !== "draft") ??
+    null;
+  if (!sourceCourse) return null;
+
+  const published = await getActivePublishedTrainingPg(db, clientId, sourceCourse.id);
+  const draft = await loadTrainingDraftPg(db, clientId, sourceCourse.id);
+
+  const previousDays = published?.snapshot
+    ? programDaysFromSnapshot(published.snapshot as TrainingSnapshot)
+    : draft.days.map((d) => ({
+        week_index: d.week_index,
+        day_index: d.day_index,
+        is_rest: d.is_rest,
+        title: d.title,
+        focus: d.focus,
+        description: d.description,
+        warmup: d.warmup,
+        exercises: d.exercises,
+        cooldown: d.cooldown,
+        day_note: d.day_note,
+      }));
+  const previousProgram = published?.snapshot ?? draft.program;
+  if (!previousProgram || previousDays.length === 0) return null;
+
+  const priorBlocks = courses.filter(
+    (c) => c.id !== targetCourseId && c.status !== "draft",
+  ).length;
+
+  return {
+    days: previousDays,
+    goal: ((previousProgram.goal as ProgramInput["goal"]) ?? "maintain") as ProgramInput["goal"],
+    level: ((previousProgram.level as ProgramInput["level"]) ?? "beginner") as ProgramInput["level"],
+    sessions_per_week: (Number(previousProgram.sessions_per_week) >= 4 ? 4 : 3) as 3 | 4,
+    courseNumber: Math.max(2, priorBlocks + 1),
+    sourceCourseTitle: sourceCourse.title,
+  };
+}
+
+/**
+ * Аналог seedTrainingContinuationForCourse для Postgres:
+ * новый курс получает отдельный editable draft с прогрессией от published/draft источника.
+ * Published-версии, assignments и content_hash источника не трогаются.
+ */
+export async function seedTrainingContinuationForCoursePg(
+  db: Queryable,
+  params: { clientId: string; sourceCourseId: string; targetCourseId: string },
+): Promise<void> {
+  const { clientId, sourceCourseId, targetCourseId } = params;
+  const exercises = await listTrainingExercisesPg(db);
+  const profile = await loadTrainingProfilePg(db, clientId);
+  const input: ProgramInput = {
+    sessions_per_week: profile.sessions_per_week,
+    goal: profile.goal,
+    level: profile.level,
+    has_injuries: profile.has_injuries,
+    injuries_details: profile.injuries_details,
+    equipment: profile.equipment,
+    location: profile.location,
+    weight_kg: profile.weight_kg,
+    gender: profile.gender,
+  };
+  const previous = await loadPreviousTrainingContextPg(
+    db,
+    clientId,
+    targetCourseId,
+    sourceCourseId,
+  );
+  const plan = buildContinuationTrainingProgram(exercises, input, previous);
+  await saveTrainingDraftPg(db, {
+    clientId,
+    courseId: targetCourseId,
+    sessions_per_week: input.sessions_per_week,
+    goal: input.goal,
+    level: input.level,
+    has_injuries: input.has_injuries,
+    injuries_details: input.injuries_details ?? null,
+    equipment: input.equipment ?? [],
+    location: input.location ?? null,
+    notes: plan.coachNotes,
+    faq: defaultFaq(input),
+    targets_manual: true,
+    program_weeks: plan.programWeeks,
+    days: plan.days.map((d) => ({
+      week_index: d.week_index ?? 0,
+      day_index: d.day_index,
+      is_rest: d.is_rest,
+      title: d.title,
+      focus: d.focus,
+      description: d.description,
+      warmup: d.warmup,
+      exercises: d.exercises,
+      cooldown: d.cooldown,
+      day_note: d.day_note,
+    })),
   });
 }
 

@@ -137,6 +137,14 @@ export class PostgresClientCourseRepository {
         data.cloneFromCourseId ?? (fallback.rows[0] as { id: string } | undefined)?.id ?? null;
       if (sourceCourseId) {
         const { cloneNutritionPlanPg } = await import("@/lib/selfhost/postgres-nutrition");
+        const { seedTrainingContinuationForCoursePg } = await import(
+          "@/lib/selfhost/postgres-training"
+        );
+        await seedTrainingContinuationForCoursePg(client, {
+          clientId: data.clientId,
+          sourceCourseId,
+          targetCourseId: created.id,
+        });
         await cloneNutritionPlanPg(client, sourceCourseId, created.id, data.clientId);
       }
       return created;

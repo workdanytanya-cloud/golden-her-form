@@ -71,8 +71,9 @@ async function resolveTrainingPlanAdmin(
 
 /** Сгенерировать 4-недельный черновик на сервере (service role) и сохранить.
  *  mode="continuation" поддерживается API, но UI тренера всегда передаёт "fresh"
- *  (admin.clients.$id.training.tsx → handleRegenerate). Continuation при создании курса —
- *  seedTrainingContinuationForCourse (client-courses/repo), не кнопка regenerate.
+ *  (admin.clients.$id.training.tsx → handleRegenerate). Continuation при создании/
+ *  копировании курса: Supabase — seedTrainingContinuationForCourse; selfhost —
+ *  seedTrainingContinuationForCoursePg (postgres-courses create). Не кнопка regenerate.
  */
 export const adminRegenerateTrainingProgram = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

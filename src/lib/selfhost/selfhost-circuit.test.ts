@@ -2556,6 +2556,23 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       [newCourse.id],
     );
     expect(newAssign.rowCount).toBe(0);
+    const newDraft = await (
+      await req(
+        `/api/selfhost/admin/training/draft?clientId=${CLIENT_A}&courseId=${newCourse.id}`,
+        { jar: adminJar },
+      )
+    ).json();
+    expect(newDraft.program).toBeTruthy();
+    expect(newDraft.program.id).not.toBe(live.rows[0].id);
+    expect(Number(newDraft.program.program_weeks)).toBeGreaterThanOrEqual(4);
+    expect(String(newDraft.program.notes ?? "")).toMatch(/продолжен|Блок/i);
+    expect(newDraft.days.length).toBeGreaterThan(0);
+    const sourceAssignStill = await pool.query(
+      `SELECT active_version_id FROM client_program_assignments
+        WHERE client_id = $1 AND course_id = $2 AND kind = 'training'`,
+      [CLIENT_A, COURSE_A2],
+    );
+    expect(sourceAssignStill.rows[0].active_version_id).toBe(live.rows[0].id);
   });
 
   it("не обращается к Supabase в local/postgres", () => {
