@@ -551,6 +551,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       "SELFHOST_MAIL_TRANSPORT",
       "SELFHOST_MAIL_DIR",
       "SELFHOST_LEADS_NOTIFY",
+      "SELFHOST_MEDIA_ROOT",
     ]) {
       envBackup[key] = process.env[key];
     }
@@ -564,6 +565,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     process.env.SELFHOST_MAIL_TRANSPORT = "file";
     process.env.SELFHOST_MAIL_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "panova-mail-"));
     process.env.SELFHOST_LEADS_NOTIFY = "0";
+    process.env.SELFHOST_MEDIA_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "panova-media-"));
     pool = new pg.Pool({ connectionString: url });
     await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
     const first = await applyMigrations(pool);
@@ -3998,6 +4000,214 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       body: JSON.stringify({ password: "Passw0rd!" }),
     });
     await pool.query(`UPDATE users SET status = 'active' WHERE id = $1`, [CLIENT_A]);
+  });
+
+  it("блюда и media upload: CRUD, права, отказ битого файла, сохранность published image", async () => {
+    await ensureAdminUser(pool);
+    const mediaRoot = process.env.SELFHOST_MEDIA_ROOT!;
+    expect(path.isAbsolute(mediaRoot)).toBe(true);
+
+    const guest = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: guest });
+    expect((await req("/api/selfhost/admin/dishes", { jar: guest })).status).toBe(401);
+
+    const clientJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+    });
+    expect((await req("/api/selfhost/admin/dishes", { jar: clientJar })).status).toBe(403);
+    expect(
+      (
+        await req("/api/selfhost/admin/media/upload", {
+          method: "POST",
+          jar: clientJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(403);
+
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+
+    const tinyPng = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    );
+
+    const upload = async (bytes: Buffer, type: string, folder = "dishes/images") => {
+      const form = new FormData();
+      form.set("folder", folder);
+      form.set("file", new File([bytes], "upload.bin", { type }));
+      return req("/api/selfhost/admin/media/upload", {
+        method: "POST",
+        jar: adminJar,
+        body: form,
+      });
+    };
+
+    const bad = await upload(Buffer.from("not-an-image"), "application/octet-stream");
+    expect(bad.status).toBe(400);
+
+    const traversal = new FormData();
+    traversal.set("folder", "../etc");
+    traversal.set("file", new File([tinyPng], "x.png", { type: "image/png" }));
+    expect(
+      (
+        await req("/api/selfhost/admin/media/upload", {
+          method: "POST",
+          jar: adminJar,
+          body: traversal,
+        })
+      ).status,
+    ).toBe(400);
+
+    const up1 = await upload(tinyPng, "image/png");
+    expect(up1.status).toBe(200);
+    const up1Body = await up1.json();
+    expect(up1Body.url).toMatch(/^\/api\/selfhost\/media\?p=/);
+    const mediaGet = await req(up1Body.url as string);
+    expect(mediaGet.status).toBe(200);
+    expect(mediaGet.headers.get("content-type")).toMatch(/image\/png/);
+
+    const create = await req("/api/selfhost/admin/dishes", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        slug: "smoke-oatmeal",
+        name: "Овсянка smoke",
+        meal_type: "breakfast",
+        portion_weight_g: 200,
+        calories_per_100g: 120,
+        protein_per_100g: 5,
+        fat_per_100g: 3,
+        carbs_per_100g: 20,
+        tags: ["general"],
+        replacements: [],
+        image_url: up1Body.url,
+        description: "тест",
+      }),
+    });
+    expect(create.status).toBe(200);
+    const created = await create.json();
+    const dishId = created.dish.id as string;
+
+    const opened = await (
+      await req(`/api/selfhost/admin/dishes/${dishId}`, { jar: adminJar })
+    ).json();
+    expect(opened.dish.name).toBe("Овсянка smoke");
+    expect(opened.dish.image_url).toBe(up1Body.url);
+
+    const up2 = await upload(tinyPng, "image/png");
+    expect(up2.status).toBe(200);
+    const up2Body = await up2.json();
+
+    // Snapshot (draft) references old image URL — published menus freeze URLs similarly.
+    await pool.query(
+      `INSERT INTO nutrition_plan_versions
+         (id, client_id, course_id, version, status, snapshot, content_hash, published_at)
+       VALUES ($1,$2,$3,99,'draft',$4::jsonb,'hash-dish-media', now())`,
+      [
+        "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+        CLIENT_A,
+        COURSE_A1,
+        JSON.stringify({
+          kind: "legacy",
+          legacy_days: [
+            {
+              day_index: 0,
+              meals: [{ dish: { id: dishId, image_url: up1Body.url, name: "Овсянка smoke" } }],
+            },
+          ],
+        }),
+      ],
+    );
+
+    const patch = await req(`/api/selfhost/admin/dishes/${dishId}`, {
+      method: "PATCH",
+      jar: adminJar,
+      body: JSON.stringify({
+        slug: "smoke-oatmeal",
+        name: "Овсянка smoke v2",
+        meal_type: "breakfast",
+        portion_weight_g: 220,
+        calories_per_100g: 125,
+        protein_per_100g: 5,
+        fat_per_100g: 3,
+        carbs_per_100g: 21,
+        tags: ["general"],
+        replacements: [],
+        image_url: up2Body.url,
+      }),
+    });
+    expect(patch.status).toBe(200);
+    const patched = await patch.json();
+    expect(patched.dish.name).toBe("Овсянка smoke v2");
+    expect(patched.dish.image_url).toBe(up2Body.url);
+
+    // Old published image file must remain.
+    expect((await req(up1Body.url as string)).status).toBe(200);
+    const oldRel = String(up1Body.path);
+    expect(fs.existsSync(path.join(mediaRoot, ...oldRel.split("/")))).toBe(true);
+
+    expect(
+      (
+        await req(`/api/selfhost/admin/dishes/${dishId}`, {
+          method: "DELETE",
+          jar: adminJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(409);
+
+    await pool.query(`DELETE FROM nutrition_plan_versions WHERE id = $1`, [
+      "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+    ]);
+
+    const unused = await req("/api/selfhost/admin/dishes", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        slug: "unused-soup",
+        name: "Суп unused",
+        meal_type: "lunch",
+        portion_weight_g: 300,
+        calories_per_100g: 50,
+        protein_per_100g: 2,
+        fat_per_100g: 1,
+        carbs_per_100g: 8,
+        tags: ["general"],
+        replacements: [],
+      }),
+    });
+    const unusedId = (await unused.json()).dish.id as string;
+    expect(
+      (
+        await req(`/api/selfhost/admin/dishes/${unusedId}`, {
+          method: "DELETE",
+          jar: adminJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(200);
+
+    // Cleanup patched dish after snapshot removed.
+    expect(
+      (
+        await req(`/api/selfhost/admin/dishes/${dishId}`, {
+          method: "DELETE",
+          jar: adminJar,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(200);
   });
 
   it("не обращается к Supabase в local/postgres", () => {

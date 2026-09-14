@@ -18,6 +18,8 @@ export type Dish = {
   steps: string[];
   replacements: string[];
   description: string | null;
+  image_url?: string | null;
+  video_url?: string | null;
 };
 
 export type Slot = "breakfast" | "snack1" | "lunch" | "snack2" | "dinner";

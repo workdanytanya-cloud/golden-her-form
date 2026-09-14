@@ -69,4 +69,5 @@ public/__l5e/
 *.sw?
 
 .selfhost-mail-catcher/
+.selfhost-media/
 

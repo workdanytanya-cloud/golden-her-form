@@ -89,6 +89,9 @@ export type FrozenLegacyMeal = {
     steps: string[];
     replacements: string[];
     description: string | null;
+    /** Замороженный URL на момент публикации — каталог блюд может измениться позже. */
+    image_url?: string | null;
+    video_url?: string | null;
   };
 };
 

@@ -22,6 +22,11 @@ export function getMediaBackend(): MediaBackend {
   return getDataBackend() === "postgres" ? "local-links" : "supabase";
 }
 
+/** Absolute permanent media directory (SELFHOST_MEDIA_ROOT). Null if unset. */
+export function getConfiguredMediaRoot(): string | null {
+  return readEnv("SELFHOST_MEDIA_ROOT") ?? null;
+}
+
 export function isLocalClientCircuit(): boolean {
   return getAuthBackend() === "local" && getDataBackend() === "postgres";
 }

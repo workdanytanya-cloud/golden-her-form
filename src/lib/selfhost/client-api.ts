@@ -124,6 +124,76 @@ export async function selfhostAdminDeleteExerciseMedia(exerciseId: string): Prom
   await readSelfhostJson(res);
 }
 
+export async function selfhostAdminDishes(q = "") {
+  const params = q ? `?q=${encodeURIComponent(q)}` : "";
+  const res = await fetch(`/api/selfhost/admin/dishes${params}`, { credentials: "include" });
+  return readSelfhostJson(res) as Promise<{ items: Array<Record<string, unknown>> }>;
+}
+
+export async function selfhostAdminDish(id: string) {
+  const res = await fetch(`/api/selfhost/admin/dishes/${encodeURIComponent(id)}`, {
+    credentials: "include",
+  });
+  return readSelfhostJson(res) as Promise<{ dish: Record<string, unknown> }>;
+}
+
+export async function selfhostAdminSaveDish(payload: Record<string, unknown>) {
+  const id = typeof payload.id === "string" ? payload.id : null;
+  const res = await selfhostFetch(
+    id
+      ? `/api/selfhost/admin/dishes/${encodeURIComponent(id)}`
+      : "/api/selfhost/admin/dishes",
+    {
+      method: id ? "PATCH" : "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+  return readSelfhostJson(res) as Promise<{ ok: true; dish: Record<string, unknown> }>;
+}
+
+export async function selfhostAdminDeleteDish(id: string) {
+  const res = await selfhostFetch(`/api/selfhost/admin/dishes/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    body: "{}",
+  });
+  await readSelfhostJson(res);
+}
+
+export async function selfhostAdminUploadMedia(folder: string, file: File) {
+  const csrf = await ensureCsrfToken();
+  const form = new FormData();
+  form.set("folder", folder);
+  form.set("file", file);
+  const res = await fetch("/api/selfhost/admin/media/upload", {
+    method: "POST",
+    credentials: "include",
+    headers: { "x-csrf-token": csrf },
+    body: form,
+  });
+  if (res.status === 403) {
+    csrfToken = null;
+    const again = await ensureCsrfToken(true);
+    const retry = await fetch("/api/selfhost/admin/media/upload", {
+      method: "POST",
+      credentials: "include",
+      headers: { "x-csrf-token": again },
+      body: form,
+    });
+    return readSelfhostJson(retry) as Promise<{
+      ok: true;
+      url: string;
+      path: string;
+      bytes: number;
+    }>;
+  }
+  return readSelfhostJson(res) as Promise<{
+    ok: true;
+    url: string;
+    path: string;
+    bytes: number;
+  }>;
+}
+
 export async function selfhostAdminRestoreExercise(id: string): Promise<void> {
   const res = await selfhostFetch("/api/selfhost/admin/exercises/restore", {
     method: "POST",

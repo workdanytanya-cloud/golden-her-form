@@ -90,6 +90,8 @@ export function freezeLegacyMeals(
         steps: dish?.steps ?? [],
         replacements: dish?.replacements ?? [],
         description: dish?.description ?? null,
+        image_url: (dish as { image_url?: string | null })?.image_url ?? null,
+        video_url: (dish as { video_url?: string | null })?.video_url ?? null,
       },
     };
   });

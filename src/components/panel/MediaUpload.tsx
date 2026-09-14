@@ -28,21 +28,33 @@ export function MediaUpload({
   const handle = async (file: File) => {
     if (disableStorage) return;
     setBusy(true);
-    const { supabase } = await import("@/integrations/supabase/client");
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
-    const path = `${folder}/${crypto.randomUUID()}.${ext}`;
-    const { error: upErr } = await supabase.storage
-      .from("media")
-      .upload(path, file, { cacheControl: "31536000", upsert: false, contentType: file.type });
-    if (upErr) {
+    try {
+      const { usesLocalPostgresCircuit, selfhostAdminUploadMedia } =
+        await import("@/lib/selfhost/client-api");
+      if (await usesLocalPostgresCircuit()) {
+        const uploaded = await selfhostAdminUploadMedia(folder, file);
+        onChange(uploaded.url);
+        toast.success("Файл загружен");
+        return;
+      }
+      const { supabase } = await import("@/integrations/supabase/client");
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+      const path = `${folder}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("media")
+        .upload(path, file, { cacheControl: "31536000", upsert: false, contentType: file.type });
+      if (upErr) {
+        return toast.error(upErr.message);
+      }
+      const { data, error } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
+      if (error || !data) return toast.error(error?.message ?? "Не удалось получить ссылку");
+      onChange(data.signedUrl);
+      toast.success("Файл загружен");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка загрузки");
+    } finally {
       setBusy(false);
-      return toast.error(upErr.message);
     }
-    const { data, error } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
-    setBusy(false);
-    if (error || !data) return toast.error(error?.message ?? "Не удалось получить ссылку");
-    onChange(data.signedUrl);
-    toast.success("Файл загружен");
   };
 
   const embedUrl = value && preview === "video" ? getVideoEmbedUrl(value) : null;

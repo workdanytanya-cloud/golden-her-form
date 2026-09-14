@@ -8,6 +8,7 @@ const SELFHOST_KEYS = new Set([
   "MEDIA_BACKEND",
   "DATABASE_URL",
   "SESSION_COOKIE_SECURE",
+  "SELFHOST_MEDIA_ROOT",
 ]);
 
 function parseEnvFile(filePath: string): Record<string, string> {

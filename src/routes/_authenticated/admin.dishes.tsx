@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { MediaUpload } from "@/components/panel/MediaUpload";
 import { Search, Save, Trash2, Plus, X } from "lucide-react";
@@ -87,6 +86,25 @@ function displayTagChips(tags: string[]): { key: string; label: string }[] {
   return chips;
 }
 
+function mapApiDish(row: Record<string, unknown>): Dish {
+  return {
+    id: String(row.id),
+    slug: String(row.slug ?? ""),
+    name: String(row.name ?? ""),
+    meal_type: String(row.meal_type ?? "lunch"),
+    description: (row.description as string | null) ?? null,
+    portion_weight_g: Number(row.portion_weight_g ?? 0),
+    calories_per_100g: Number(row.calories_per_100g ?? 0),
+    protein_per_100g: Number(row.protein_per_100g ?? 0),
+    fat_per_100g: Number(row.fat_per_100g ?? 0),
+    carbs_per_100g: Number(row.carbs_per_100g ?? 0),
+    tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
+    replacements: Array.isArray(row.replacements) ? (row.replacements as string[]) : [],
+    image_url: (row.image_url as string | null) ?? null,
+    video_url: (row.video_url as string | null) ?? null,
+  };
+}
+
 function AdminDishes() {
   const [items, setItems] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,21 +112,39 @@ function AdminDishes() {
   const [meal, setMeal] = useState<string>("all");
   const [tableFilter, setTableFilter] = useState<string>("all");
   const [editing, setEditing] = useState<Dish | (Omit<Dish, "id"> & { id?: string }) | null>(null);
+  const [localCircuit, setLocalCircuit] = useState(false);
 
   const load = () => {
     setLoading(true);
-    void supabase
-      .from("dishes")
-      .select(
-        "id, slug, name, meal_type, description, portion_weight_g, calories_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g, tags, replacements, image_url, video_url",
-      )
-      .order("meal_type")
-      .order("name")
-      .then(({ data, error }) => {
-        if (error) toast.error(error.message);
-        setItems((data ?? []) as Dish[]);
-        setLoading(false);
-      });
+    void (async () => {
+      const { usesLocalPostgresCircuit, selfhostAdminDishes } =
+        await import("@/lib/selfhost/client-api");
+      const local = await usesLocalPostgresCircuit();
+      setLocalCircuit(local);
+      if (local) {
+        try {
+          const result = await selfhostAdminDishes();
+          setItems(result.items.map((row) => mapApiDish(row)));
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Не удалось загрузить блюда");
+          setItems([]);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data, error } = await supabase
+        .from("dishes")
+        .select(
+          "id, slug, name, meal_type, description, portion_weight_g, calories_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g, tags, replacements, image_url, video_url",
+        )
+        .order("meal_type")
+        .order("name");
+      if (error) toast.error(error.message);
+      setItems((data ?? []) as Dish[]);
+      setLoading(false);
+    })();
   };
   useEffect(load, []);
 
@@ -149,22 +185,46 @@ function AdminDishes() {
       image_url: editing.image_url,
       video_url: editing.video_url,
     };
-    const q = "id" in editing && editing.id
-      ? supabase.from("dishes").update(payload).eq("id", editing.id)
-      : supabase.from("dishes").insert(payload);
-    const { error } = await q;
-    if (error) return toast.error(error.message);
-    toast.success("Сохранено");
-    setEditing(null);
-    load();
+    try {
+      if (localCircuit) {
+        const { selfhostAdminSaveDish } = await import("@/lib/selfhost/client-api");
+        await selfhostAdminSaveDish({
+          ...payload,
+          ...("id" in editing && editing.id ? { id: editing.id } : {}),
+        });
+      } else {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const query =
+          "id" in editing && editing.id
+            ? supabase.from("dishes").update(payload).eq("id", editing.id)
+            : supabase.from("dishes").insert(payload);
+        const { error } = await query;
+        if (error) throw new Error(error.message);
+      }
+      toast.success("Сохранено");
+      setEditing(null);
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка сохранения");
+    }
   };
 
   const remove = async (id: string) => {
     if (!confirm("Удалить блюдо?")) return;
-    const { error } = await supabase.from("dishes").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Удалено");
-    load();
+    try {
+      if (localCircuit) {
+        const { selfhostAdminDeleteDish } = await import("@/lib/selfhost/client-api");
+        await selfhostAdminDeleteDish(id);
+      } else {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { error } = await supabase.from("dishes").delete().eq("id", id);
+        if (error) throw new Error(error.message);
+      }
+      toast.success("Удалено");
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка удаления");
+    }
   };
 
   return (
@@ -254,7 +314,7 @@ function AdminDishes() {
                     </div>
                   </div>
                   <button
-                    onClick={() => remove(e.id)}
+                    onClick={() => void remove(e.id)}
                     className="rounded-full p-1.5 text-warm-gray hover:bg-coral/15 hover:text-coral"
                     aria-label="Удалить"
                   >
@@ -435,7 +495,7 @@ function AdminDishes() {
               Отмена
             </button>
             <button
-              onClick={save}
+              onClick={() => void save()}
               className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2 text-sm font-medium text-background hover:scale-[1.02]"
             >
               <Save className="h-4 w-4" /> Сохранить

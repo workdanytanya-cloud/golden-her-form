@@ -104,6 +104,17 @@ import {
   adminClientProfileSchema,
 } from "@/lib/selfhost/postgres-admin-clients";
 import {
+  PostgresDishRepository,
+  adminDishListQuerySchema,
+  adminDishUpsertSchema,
+} from "@/lib/selfhost/postgres-dishes";
+import {
+  describeMediaRootForOps,
+  publicMediaUrl,
+  readMediaFile,
+  saveDishMediaUpload,
+} from "@/lib/selfhost/local-media-store";
+import {
   PostgresClientCourseRepository,
   adminCourseCreateSchema,
   adminCourseUpdateSchema,
@@ -184,6 +195,10 @@ function adminClients(): PostgresAdminClientRepository {
   return new PostgresAdminClientRepository(getPostgresPool());
 }
 
+function dishesRepo(): PostgresDishRepository {
+  return new PostgresDishRepository(getPostgresPool());
+}
+
 function coursesRepo(): PostgresClientCourseRepository {
   return new PostgresClientCourseRepository(getPostgresPool());
 }
@@ -221,6 +236,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
             authBackend,
             dataBackend,
             mediaBackend: getMediaBackend(),
+            mediaStore: describeMediaRootForOps(),
             postgres: postgres.status,
             reason: postgres.reason ?? null,
             passwordReset: mail
@@ -412,6 +428,30 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
               unlockSource: session.unlockSource,
             }
           : null,
+      });
+    }
+
+    // Public opaque media URLs. Prefer ?p=… — paths ending in .png/.jpg are often
+    // intercepted as static assets by the Vite/Nitro stack and never reach this handler.
+    if (
+      (url.pathname === "/api/selfhost/media" || url.pathname.startsWith("/api/selfhost/media/")) &&
+      request.method === "GET"
+    ) {
+      if (!isLocalClientCircuit()) {
+        return errorJson("Клиентский PostgreSQL-контур выключен", 404);
+      }
+      const fromQuery = url.searchParams.get("p") ?? url.searchParams.get("path");
+      const relative = fromQuery
+        ? decodeURIComponent(fromQuery)
+        : decodeURIComponent(url.pathname.slice("/api/selfhost/media/".length));
+      if (!relative) return errorJson("Не указан путь медиа", 400);
+      const file = readMediaFile(relative);
+      return new Response(file.bytes, {
+        status: 200,
+        headers: {
+          "content-type": file.contentType,
+          "cache-control": "public, max-age=31536000, immutable",
+        },
       });
     }
 
@@ -741,6 +781,79 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       if (!id) return errorJson("Не указан id упражнения", 400);
       await exerciseRepo().deleteBinding(id, session.userId);
       return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/dishes" && request.method === "GET") {
+      requireAdmin(session);
+      const query = adminDishListQuerySchema.parse({ q: url.searchParams.get("q") ?? "" });
+      return json(await dishesRepo().list(query));
+    }
+
+    if (url.pathname === "/api/selfhost/admin/dishes" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = await readJson(request);
+      const saved = await dishesRepo().upsert(adminDishUpsertSchema.parse(body));
+      return json({ ok: true, dish: saved });
+    }
+
+    const dishMatch = url.pathname.match(/^\/api\/selfhost\/admin\/dishes\/([^/]+)$/);
+    if (dishMatch) {
+      requireAdmin(session);
+      const dishId = dishMatch[1]!;
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(dishId)) {
+        return errorJson("Некорректный идентификатор блюда", 400);
+      }
+      if (request.method === "GET") {
+        const dish = await dishesRepo().get(dishId);
+        if (!dish) return errorJson("Блюдо не найдено", 404);
+        return json({ dish });
+      }
+      if (request.method === "PATCH" || request.method === "PUT") {
+        assertCsrf(request);
+        const body = await readJson(request);
+        const saved = await dishesRepo().upsert(
+          adminDishUpsertSchema.parse({ ...body, id: dishId }),
+        );
+        return json({ ok: true, dish: saved });
+      }
+      if (request.method === "DELETE") {
+        assertCsrf(request);
+        await dishesRepo().remove(dishId);
+        return json({ ok: true });
+      }
+    }
+
+    if (url.pathname === "/api/selfhost/admin/media/upload" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const form = await request.formData();
+      const folderRaw = form.get("folder");
+      const file = form.get("file");
+      if (typeof folderRaw !== "string") {
+        return errorJson("Не указана папка загрузки", 400);
+      }
+      if (!file || typeof (file as Blob).arrayBuffer !== "function") {
+        return errorJson("Файл не передан", 400);
+      }
+      const blob = file as Blob;
+      const contentType =
+        blob.type ||
+        (typeof form.get("contentType") === "string" ? String(form.get("contentType")) : "");
+      const bytes = Buffer.from(await blob.arrayBuffer());
+      const saved = await saveDishMediaUpload({
+        folder: folderRaw,
+        bytes,
+        contentType,
+        originalName: file instanceof File ? file.name : undefined,
+      });
+      return json({
+        ok: true,
+        url: saved.url,
+        path: saved.relativePath,
+        bytes: saved.bytes,
+        publicUrl: publicMediaUrl(saved.relativePath),
+      });
     }
 
     if (url.pathname === "/api/selfhost/pdf" && request.method === "POST") {
