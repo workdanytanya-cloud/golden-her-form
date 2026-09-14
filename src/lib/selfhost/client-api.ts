@@ -318,9 +318,20 @@ export async function selfhostSaveNutritionDraft(payload: Record<string, unknown
 }
 
 export async function selfhostGenerateNutrition(payload: Record<string, unknown>) {
+  // 28 дней two_main_two_snacks могут занимать 1–3 мин; контролируемый abort вместо «вечного» зависания.
+  const timeoutMs = 300_000;
   const res = await selfhostFetch("/api/selfhost/admin/nutrition/generate", {
     method: "POST",
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(timeoutMs),
+  }).catch((error: unknown) => {
+    if (error instanceof DOMException && error.name === "TimeoutError") {
+      throw new Error(`Таймаут генерации рациона (${Math.round(timeoutMs / 1000)} с)`);
+    }
+    if (error instanceof Error && /aborted|timeout/i.test(error.message)) {
+      throw new Error(`Таймаут генерации рациона (${Math.round(timeoutMs / 1000)} с)`);
+    }
+    throw error;
   });
   return readSelfhostJson(res);
 }

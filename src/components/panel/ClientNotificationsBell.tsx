@@ -37,39 +37,43 @@ export function ClientNotificationsBell() {
   useEffect(() => {
     if (!userId) return;
     let mounted = true;
-    void supabase
-      .from("client_notifications")
-      .select("id, type, message, link, is_read, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(30)
-      .then(({ data, error }) => {
-        if (!mounted || error || !data) return;
-        setItems(data as Notification[]);
-      });
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    void (async () => {
+      const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+      if (await usesLocalPostgresCircuit()) return;
+      if (!mounted) return;
+      const { data, error } = await supabase
+        .from("client_notifications")
+        .select("id, type, message, link, is_read, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (!mounted || error || !data) return;
+      setItems(data as Notification[]);
 
-    const channelName = `client_notifications_${userId}_${Math.random().toString(36).slice(2, 10)}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "client_notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const n = payload.new as Notification;
-          setItems((prev) => [n, ...prev].slice(0, 30));
-          toast.success(n.message);
-        },
-      )
-      .subscribe();
+      const channelName = `client_notifications_${userId}_${Math.random().toString(36).slice(2, 10)}`;
+      channel = supabase
+        .channel(channelName)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "client_notifications",
+            filter: `user_id=eq.${userId}`,
+          },
+          (payload) => {
+            const n = payload.new as Notification;
+            setItems((prev) => [n, ...prev].slice(0, 30));
+            toast.success(n.message);
+          },
+        )
+        .subscribe();
+    })();
 
     return () => {
       mounted = false;
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [userId]);
 

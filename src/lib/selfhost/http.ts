@@ -693,7 +693,14 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
     if (error instanceof ZodError) {
       return errorJson(error.issues[0]?.message ?? "Некорректные данные", 400);
     }
-    const pg = error as { code?: string; message?: string; statusCode?: number };
+    const pg = error as { code?: string; message?: string; statusCode?: number; name?: string };
+    if (
+      !pg.statusCode &&
+      (pg.name === "InvalidIngredientGramsError" ||
+        /некорректн.*граммовк|не может быть сохран/i.test(String(pg.message ?? "")))
+    ) {
+      return errorJson(pg.message ?? "Некорректные граммовки", 400);
+    }
     if (
       !pg.statusCode &&
       (pg.code === "ECONNREFUSED" ||

@@ -67,11 +67,26 @@ function AdminNutritionPage() {
     setLoading(true);
     const p = await loadPlanFor(id, courseId);
     const planIds = p.days.flatMap((d) => d.meals.map((m) => m.dish_id));
-    const [{ all, pool }, prof, profRow] = await Promise.all([
+    const [{ all, pool }, prof] = await Promise.all([
       loadDishesForClient(id, planIds),
       loadTargetProfile(id),
-      supabase.from("profiles").select("full_name").eq("id", id).maybeSingle(),
     ]);
+    let fullName = "Клиент";
+    const { usesLocalPostgresCircuit, selfhostAdminClient } =
+      await import("@/lib/selfhost/client-api");
+    if (await usesLocalPostgresCircuit()) {
+      try {
+        const { client } = await selfhostAdminClient(id);
+        if (typeof client.full_name === "string" && client.full_name.trim()) {
+          fullName = client.full_name;
+        }
+      } catch {
+        /* имя опционально */
+      }
+    } else {
+      const profRow = await supabase.from("profiles").select("full_name").eq("id", id).maybeSingle();
+      fullName = profRow.data?.full_name ?? "Клиент";
+    }
     setDishes(all);
     setSwapDishes(pool);
     setPlan(p.plan);
@@ -79,7 +94,7 @@ function AdminNutritionPage() {
     setSuggested(calcTargets(prof));
     setTargetProfile(prof);
     setAutoExcluded(extractExcludedFromText(prof.allergies, prof.disliked_foods));
-    setProfileName(profRow.data?.full_name ?? "Клиент");
+    setProfileName(fullName);
     setLoading(false);
   };
 

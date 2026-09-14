@@ -42,26 +42,35 @@ export function NotificationsBell() {
   };
 
   useEffect(() => {
-    load();
-    const channelName = `admin_notifications_changes_${
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : Date.now()
-    }`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "admin_notifications" },
-        (payload) => {
-          const n = payload.new as Notification;
-          setItems((prev) => [n, ...prev].slice(0, 30));
-          toast.info("Новый замер клиента", { description: n.message });
-        },
-      )
-      .subscribe();
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    void (async () => {
+      const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+      if (await usesLocalPostgresCircuit()) return;
+      if (cancelled) return;
+      await load();
+      if (cancelled) return;
+      const channelName = `admin_notifications_changes_${
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : Date.now()
+      }`;
+      channel = supabase
+        .channel(channelName)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "admin_notifications" },
+          (payload) => {
+            const n = payload.new as Notification;
+            setItems((prev) => [n, ...prev].slice(0, 30));
+            toast.info("Новый замер клиента", { description: n.message });
+          },
+        )
+        .subscribe();
+    })();
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 

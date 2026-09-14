@@ -1,12 +1,16 @@
 import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
-import { inferRecipeMeta, snackActionForRecipe } from "@/lib/nutrition-constructor/recipe-meta";
 import {
   prepareConstructorDaysForSave,
   visibleIngredients,
+  assertSaveableConstructorDays,
+  InvalidIngredientGramsError,
 } from "@/lib/nutrition-constructor/ingredient-normalize";
-import { roundTargetsForDb } from "@/lib/nutrition-constructor/decimal-math";
-import { SEED_PRODUCTS, SEED_RECIPES } from "@/lib/nutrition-constructor/seed-data";
+import { roundTargetsForDb, d } from "@/lib/nutrition-constructor/decimal-math";
+import { evaluatePlanKbjuStatus } from "@/lib/nutrition-constructor/plan-kbju-status";
+import { comparisonRows } from "@/lib/nutrition-constructor/calculator";
+import type { MealScheduleMode } from "@/lib/nutrition-constructor/config";
+import { buildInMemoryCatalog } from "@/lib/nutrition-constructor/repo";
 import type {
   ConstructorDay,
   FoodProduct,
@@ -193,7 +197,10 @@ function isPoolClient(db: Pool | PoolClient): db is PoolClient {
 export async function seedNutritionCatalog(
   db: Queryable,
 ): Promise<{ products: number; recipes: number }> {
-  for (const p of SEED_PRODUCTS) {
+  // Каталог как в приёмке 1313/1800 (includeTestPackaging), иначе многодневная сборка на Postgres
+  // с одними только is_verified продуктами часто даёт infeasible.
+  const catalog = buildInMemoryCatalog({ includeTestPackaging: true });
+  for (const p of catalog.products.values()) {
     await db.query(
       `INSERT INTO public.food_products (
          slug, name, category, brand, state, measurement_basis,
@@ -218,12 +225,12 @@ export async function seedNutritionCatalog(
         p.brand ?? null,
         p.state,
         p.measurement_basis,
-        p.kcal,
-        p.protein,
-        p.fat,
-        p.carbs,
-        p.fiber ?? null,
-        p.density ?? null,
+        p.kcal_per_100g,
+        p.protein_per_100g,
+        p.fat_per_100g,
+        p.carbs_per_100g,
+        p.fiber_per_100g,
+        p.density,
         p.source_name,
         p.source_url ?? null,
         p.is_verified,
@@ -238,13 +245,7 @@ export async function seedNutritionCatalog(
   const productBySlug = new Map(
     products.rows.map((row: { id: string; slug: string }) => [row.slug, row.id]),
   );
-  for (const r of SEED_RECIPES) {
-    const meta = inferRecipeMeta({
-      meal_type: r.meal_type,
-      requires_cooking: r.requires_cooking,
-      ingredients: r.ingredients,
-    });
-    const slugs = r.ingredients.map((i) => i.product_slug);
+  for (const r of catalog.recipes) {
     await db.query(
       `INSERT INTO public.recipes (
          slug, name, meal_type, steps, prep_time_min, requires_cooking, is_active, weighing_note,
@@ -263,14 +264,14 @@ export async function seedNutritionCatalog(
         r.prep_time_min,
         r.requires_cooking,
         r.weighing_note,
-        meta.is_nutrient_dense,
-        meta.contains_protein_source,
-        meta.contains_fruit_or_vegetable,
-        meta.is_treat,
-        meta.allowed_schedule_modes,
-        r.meal_type === "snack" ? snackActionForRecipe(slugs) : null,
-        Math.min(r.prep_time_min, 15),
-        r.prep_time_min,
+        r.is_nutrient_dense,
+        r.contains_protein_source,
+        r.contains_fruit_or_vegetable,
+        r.is_treat,
+        r.allowed_schedule_modes,
+        r.snack_action,
+        r.active_prep_minutes,
+        r.total_cook_minutes,
       ],
     );
   }
@@ -278,12 +279,17 @@ export async function seedNutritionCatalog(
   const recipeBySlug = new Map(
     recipes.rows.map((row: { id: string; slug: string }) => [row.slug, row.id]),
   );
-  for (const r of SEED_RECIPES) {
+  for (const r of catalog.recipes) {
     const recipeId = recipeBySlug.get(r.slug);
     if (!recipeId) continue;
+    const ings = catalog.recipeIngredients.get(r.id) ?? catalog.recipeIngredients.get(r.slug) ?? [];
     let order = 0;
-    for (const ing of r.ingredients) {
-      const productId = productBySlug.get(ing.product_slug);
+    for (const ing of ings) {
+      const productId =
+        productBySlug.get(String(ing.product_id)) ??
+        productBySlug.get(
+          [...catalog.products.values()].find((p) => p.id === ing.product_id)?.slug ?? "",
+        );
       if (!productId) continue;
       await db.query(
         `INSERT INTO public.recipe_ingredients (recipe_id, product_id, min_g, max_g, default_g, sort_order)
@@ -294,7 +300,7 @@ export async function seedNutritionCatalog(
       order += 1;
     }
   }
-  return { products: SEED_PRODUCTS.length, recipes: SEED_RECIPES.length };
+  return { products: catalog.products.size, recipes: catalog.recipes.length };
 }
 
 export async function loadOptimizerContextPg(db: Queryable): Promise<OptimizerContext> {
@@ -477,7 +483,15 @@ export async function saveConstructorPlanPg(
   db: Pool | PoolClient,
   params: SaveConstructorPlanParams,
 ): Promise<{ plan: ConstructorPlanRow; days: ConstructorDayRow[] }> {
-  const persistDays = prepareConstructorDaysForSave(params.days);
+  let persistDays;
+  try {
+    persistDays = prepareConstructorDaysForSave(params.days);
+  } catch (error) {
+    if (error instanceof InvalidIngredientGramsError) {
+      throw Object.assign(error, { statusCode: 400 });
+    }
+    throw error;
+  }
   const dbTargets = roundTargetsForDb(params.targets);
   const run = async (client: Queryable) => {
     const resolved = await resolveClientCourseIdPg(client, params.userId, params.courseId);
@@ -663,9 +677,44 @@ export async function publishNutritionVersionPg(
   if (!input.days.length) {
     throw Object.assign(new Error("Нельзя опубликовать пустой черновик"), { statusCode: 400 });
   }
-  if (input.days.some((day) => !day.items?.length || day.is_valid === false)) {
+  try {
+    assertSaveableConstructorDays(input.days);
+  } catch (error) {
+    if (error instanceof InvalidIngredientGramsError) {
+      throw Object.assign(error, { statusCode: 400 });
+    }
+    throw error;
+  }
+  const targets = {
+    kcal: d(input.plan.target_kcal),
+    protein_g: d(input.plan.target_protein_g),
+    fat_g: d(input.plan.target_fat_g),
+    carbs_g: d(input.plan.target_carbs_g),
+    fiber_g: d(0),
+  };
+  const mode = (input.plan.meal_schedule_mode ?? "two_main_two_snacks") as MealScheduleMode;
+  const firstDay = input.days[0]!;
+  const comparison = comparisonRows(targets, {
+    kcal: d(firstDay.kcal),
+    protein_g: d(firstDay.protein_g),
+    fat_g: d(firstDay.fat_g),
+    carbs_g: d(firstDay.carbs_g),
+    fiber_g: d(firstDay.fiber_g ?? 0),
+  });
+  const kbju = evaluatePlanKbjuStatus({
+    days: input.days,
+    targetMacro: targets,
+    scheduleMode: mode,
+    comparison,
+  });
+  // Не доверяем client-side is_valid: проверяем структуру и КБЖУ по содержимому.
+  if (!kbju.acceptable) {
     throw Object.assign(
-      new Error("Нельзя опубликовать невалидный или неполный план питания"),
+      new Error(
+        kbju.invalidDayCount > 0
+          ? `Нельзя опубликовать план: ${kbju.invalidDayCount} дн. вне допуска КБЖУ`
+          : "Нельзя опубликовать невалидный или неполный план питания",
+      ),
       { statusCode: 400 },
     );
   }

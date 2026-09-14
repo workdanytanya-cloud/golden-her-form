@@ -39,51 +39,77 @@ const ASSIGN_T_A = "99999999-9999-4999-8999-999999999992";
 const ORPHAN_EX = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa99";
 
 function sampleConstructorDay(productId: string, recipeId: string) {
+  const mkItem = (
+    slot: "main1" | "main2" | "snack1" | "snack2",
+    recipeName: string,
+    macros: { kcal: string; protein_g: string; fat_g: string; carbs_g: string },
+  ) => ({
+    slot,
+    recipe_id: recipeId,
+    recipe_name: recipeName,
+    requires_cooking: slot.startsWith("main"),
+    prep_time_min: 10,
+    steps: ["Готовить"],
+    weighing_note: null,
+    snack_action: null,
+    is_valid: true,
+    ...macros,
+    fiber_g: "1",
+    ingredients: [
+      {
+        product_id: productId,
+        product_name: "Курица",
+        grams: "100",
+        weighing_note: null,
+        kcal_per_100g: macros.kcal,
+        protein_per_100g: macros.protein_g,
+        fat_per_100g: macros.fat_g,
+        carbs_per_100g: macros.carbs_g,
+        fiber_per_100g: "1",
+        kcal: macros.kcal,
+        protein_g: macros.protein_g,
+        fat_g: macros.fat_g,
+        carbs_g: macros.carbs_g,
+        fiber_g: "1",
+        sort_order: 0,
+      },
+    ],
+  });
+  // Сумма дня = целевые 1800/120/60/180 (±0) — проходит серверную проверку КБЖУ.
   return {
     day_index: 0,
     day_note: "draft-day",
     is_valid: true,
-    kcal: "500",
-    protein_g: "40",
-    fat_g: "10",
-    carbs_g: "50",
+    kcal: "1800",
+    protein_g: "120",
+    fat_g: "60",
+    carbs_g: "180",
     fiber_g: "4",
     items: [
-      {
-        slot: "main1" as const,
-        recipe_id: recipeId,
-        recipe_name: "Черновик блюда",
-        requires_cooking: true,
-        prep_time_min: 10,
-        steps: ["Готовить"],
-        weighing_note: null,
-        snack_action: null,
-        is_valid: true,
+      mkItem("main1", "Черновик блюда", {
         kcal: "500",
         protein_g: "40",
-        fat_g: "10",
-        carbs_g: "50",
-        fiber_g: "4",
-        ingredients: [
-          {
-            product_id: productId,
-            product_name: "Курица",
-            grams: "150",
-            weighing_note: null,
-            kcal_per_100g: "120",
-            protein_per_100g: "23",
-            fat_per_100g: "2",
-            carbs_per_100g: "0",
-            fiber_per_100g: "0",
-            kcal: "180",
-            protein_g: "34.5",
-            fat_g: "3",
-            carbs_g: "0",
-            fiber_g: "0",
-            sort_order: 0,
-          },
-        ],
-      },
+        fat_g: "15",
+        carbs_g: "45",
+      }),
+      mkItem("main2", "Второе блюдо", {
+        kcal: "500",
+        protein_g: "40",
+        fat_g: "15",
+        carbs_g: "45",
+      }),
+      mkItem("snack1", "Перекус 1", {
+        kcal: "400",
+        protein_g: "20",
+        fat_g: "15",
+        carbs_g: "45",
+      }),
+      mkItem("snack2", "Перекус 2", {
+        kcal: "400",
+        protein_g: "20",
+        fat_g: "15",
+        carbs_g: "45",
+      }),
     ],
   };
 }
@@ -1664,7 +1690,24 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     });
     expect([400, 403]).toContain(wrongCourse.status);
 
-    // Восстановить валидный день, затем пометить is_valid=false в БД
+    // is_valid=true, но сумма КБЖУ позиций вне допуска — publish должен отказать по содержимому
+    const badKbjuDay = {
+      ...day,
+      is_valid: true,
+      kcal: "900",
+      protein_g: "40",
+      fat_g: "20",
+      carbs_g: "60",
+      items: day.items.map((item, idx) => ({
+        ...item,
+        is_valid: true,
+        // Ломаем макросы позиций: сумма дня ≈ 400 ккал при цели 1800
+        kcal: idx === 0 ? "400" : "0",
+        protein_g: idx === 0 ? "20" : "0",
+        fat_g: idx === 0 ? "10" : "0",
+        carbs_g: idx === 0 ? "30" : "0",
+      })),
+    };
     expect(
       (
         await req("/api/selfhost/admin/nutrition/draft", {
@@ -1679,16 +1722,11 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
             plan_status: "draft",
             meal_schedule_mode: "two_main_two_snacks",
             primary_meal_slot: "lunch",
-            days: [day],
+            days: [badKbjuDay],
           }),
         })
       ).status,
     ).toBe(200);
-    await pool.query(
-      `UPDATE meal_plan_items SET is_valid = false
-         WHERE plan_day_id IN (SELECT id FROM nutrition_plan_days WHERE plan_id = $1)`,
-      [planId],
-    );
     const invalidPub = await req("/api/selfhost/admin/nutrition/publish", {
       method: "POST",
       jar: adminJar,
@@ -1699,6 +1737,40 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       }),
     });
     expect(invalidPub.status).toBe(400);
+    const afterInvalid = await pool.query(
+      "SELECT count(*)::int AS n FROM nutrition_plan_versions WHERE client_id = $1",
+      [CLIENT_A],
+    );
+    expect(afterInvalid.rows[0].n).toBe(before.rows[0].n);
+
+    // Некорректные граммовки (отрицательные) при save → 400 (не 500)
+    const badGrams = structuredClone(day);
+    badGrams.items[0]!.ingredients[0]!.grams = "-1";
+    const badGramsSave = await req("/api/selfhost/admin/nutrition/draft", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_A,
+        courseId: COURSE_A2,
+        userId: CLIENT_A,
+        targets: { kcal: 1800, protein_g: 120, fat_g: 60, carbs_g: 180 },
+        plan_days_count: 7,
+        plan_status: "draft",
+        meal_schedule_mode: "two_main_two_snacks",
+        primary_meal_slot: "lunch",
+        days: [badGrams],
+      }),
+    });
+    expect(badGramsSave.status).toBe(400);
+
+    // Мусорный JSON → 4xx, не 500
+    const junk = await req("/api/selfhost/admin/nutrition/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ clientId: "not-a-uuid", courseId: COURSE_A2 }),
+    });
+    expect(junk.status).toBeGreaterThanOrEqual(400);
+    expect(junk.status).toBeLessThan(500);
 
     expect(
       (
@@ -1736,13 +1808,8 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       ...day,
       items: day.items.map((item) => ({
         ...item,
-        recipe_name: "Другое блюдо",
-        kcal: "501",
-        ingredients: item.ingredients.map((ing) => ({
-          ...ing,
-          grams: "160",
-          kcal: "192",
-        })),
+        // Меняем только имя (content_hash), макросы остаются в допуске
+        recipe_name: `${item.recipe_name} (rev2)`,
       })),
     };
     expect(

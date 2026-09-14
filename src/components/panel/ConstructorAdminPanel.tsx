@@ -354,9 +354,17 @@ export function ConstructorAdminPanel({
         targets_override: fieldTargets,
       });
       if (seq !== genToken.current) return;
+      const toNum = (value: unknown): number => {
+        if (typeof value === "number" && Number.isFinite(value)) return value;
+        if (value && typeof value === "object" && "toNumber" in value) {
+          const fn = (value as { toNumber?: () => number }).toNumber;
+          if (typeof fn === "function") return fn.call(value);
+        }
+        return Number(value);
+      };
       setMeta({
-        bmr: result.bmr.toNumber(),
-        tdee: result.tdee.toNumber(),
+        bmr: toNum(result.bmr),
+        tdee: toNum(result.tdee),
         adjustment_pct: result.adjustment_pct,
       });
       setUsedTargetsLine(result.used_targets_line ?? line);
@@ -371,9 +379,16 @@ export function ConstructorAdminPanel({
       setPreviewMode(scheduleMode);
       applyDays(result.days);
       setReviewReason(result.review_reason);
+      const targetMacro = {
+        kcal: d((result.targets as { kcal: unknown }).kcal),
+        protein_g: d((result.targets as { protein_g: unknown }).protein_g),
+        fat_g: d((result.targets as { fat_g: unknown }).fat_g),
+        carbs_g: d((result.targets as { carbs_g: unknown }).carbs_g),
+        fiber_g: d((result.targets as { fiber_g?: unknown }).fiber_g ?? 0),
+      };
       const status = evaluatePlanKbjuStatus({
         days: result.days,
-        targetMacro: result.targets,
+        targetMacro,
         scheduleMode,
         comparison: result.comparison,
       });
