@@ -252,6 +252,7 @@ function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [completed, setCompleted] = useState<string | null>(null);
   const [missingKeys, setMissingKeys] = useState<Set<string>>(new Set());
+  const weightIdempotencyKeyRef = useRef<string | null>(null);
   const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const unlocked = isEnrollmentUnlocked(
@@ -283,24 +284,42 @@ function OnboardingPage() {
   useEffect(() => {
     if (!effectiveUserId) return;
     void (async () => {
-      const [onbRes, profileRes, measRes] = await Promise.all([
-        supabase.from("onboarding_responses").select("*").eq("user_id", effectiveUserId).maybeSingle(),
-        supabase.from("profiles").select("height_cm").eq("id", effectiveUserId).maybeSingle(),
-        supabase
-          .from("measurements")
-          .select("weight_kg")
-          .eq("user_id", effectiveUserId)
-          .not("weight_kg", "is", null)
-          .order("measured_on", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
+      const { usesLocalPostgresCircuit, selfhostOnboarding } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      let height = "";
+      let weight = "";
+      let onbData: Record<string, unknown> | null = null;
 
-      const height = profileRes.data?.height_cm != null ? String(profileRes.data.height_cm) : "";
-      const weight = measRes.data?.weight_kg != null ? String(measRes.data.weight_kg) : "";
+      if (await usesLocalPostgresCircuit()) {
+        const loaded = await selfhostOnboarding(effectiveUserId);
+        height = loaded.height_cm != null ? String(loaded.height_cm) : "";
+        weight = loaded.weight_kg != null ? String(loaded.weight_kg) : "";
+        onbData = loaded.onboarding;
+      } else {
+        const [onbRes, profileRes, measRes] = await Promise.all([
+          supabase
+            .from("onboarding_responses")
+            .select("*")
+            .eq("user_id", effectiveUserId)
+            .maybeSingle(),
+          supabase.from("profiles").select("height_cm").eq("id", effectiveUserId).maybeSingle(),
+          supabase
+            .from("measurements")
+            .select("weight_kg")
+            .eq("user_id", effectiveUserId)
+            .not("weight_kg", "is", null)
+            .order("measured_on", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
+        height = profileRes.data?.height_cm != null ? String(profileRes.data.height_cm) : "";
+        weight = measRes.data?.weight_kg != null ? String(measRes.data.weight_kg) : "";
+        onbData = (onbRes.data as Record<string, unknown> | null) ?? null;
+      }
 
-      if (onbRes.data) {
-        const d = onbRes.data as Record<string, unknown>;
+      if (onbData) {
+        const d = onbData;
         const extra =
           d.extra && typeof d.extra === "object" && !Array.isArray(d.extra)
             ? (d.extra as Record<string, unknown>)
@@ -313,8 +332,10 @@ function OnboardingPage() {
           goal_primary: (d.goal_primary as string) ?? "",
           goal_details: (d.goal_details as string) ?? "",
           experience: (d.experience as string) ?? "",
-          training_days_per_week: d.training_days_per_week != null ? String(d.training_days_per_week) : "",
-          session_duration_min: d.session_duration_min != null ? String(d.session_duration_min) : "",
+          training_days_per_week:
+            d.training_days_per_week != null ? String(d.training_days_per_week) : "",
+          session_duration_min:
+            d.session_duration_min != null ? String(d.session_duration_min) : "",
           training_location: (d.training_location as string) ?? "",
           equipment: (d.equipment as string[]) ?? [],
           focus_areas: (d.focus_areas as string[]) ?? [],
@@ -479,56 +500,127 @@ function OnboardingPage() {
     }
     setSaving(true);
     try {
+      const { usesLocalPostgresCircuit, selfhostSaveOnboarding } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      const local = await usesLocalPostgresCircuit();
+      const payload = buildPayload(asCompleted);
+      if (!payload) {
+        setSaving(false);
+        return;
+      }
+
+      if (local) {
+        if (!weightIdempotencyKeyRef.current) {
+          weightIdempotencyKeyRef.current =
+            typeof crypto !== "undefined" && "randomUUID" in crypto
+              ? crypto.randomUUID()
+              : `onb-w-${Date.now()}`;
+        }
+        const saved = await selfhostSaveOnboarding({
+          clientId: effectiveUserId,
+          asCompleted,
+          height_cm: parseHeightCm(form.height_cm),
+          weight_kg: parseRuNumber(form.weight_kg),
+          weightIdempotencyKey: weightIdempotencyKeyRef.current,
+          payload: {
+            goal_primary: payload.goal_primary,
+            goal_details: payload.goal_details,
+            experience: payload.experience,
+            training_days_per_week: payload.training_days_per_week,
+            session_duration_min: payload.session_duration_min,
+            training_location: payload.training_location,
+            equipment: payload.equipment,
+            focus_areas: payload.focus_areas,
+            has_injuries: payload.has_injuries,
+            injuries_details: payload.injuries_details,
+            health_conditions: payload.health_conditions,
+            medications: payload.medications,
+            pregnancy_status: payload.pregnancy_status,
+            sleep_hours: payload.sleep_hours,
+            stress_level: payload.stress_level,
+            energy_level: payload.energy_level,
+            water_liters: payload.water_liters,
+            diet_type: payload.diet_type,
+            allergies: payload.allergies,
+            meals_per_day: payload.meals_per_day,
+            favorite_foods: payload.favorite_foods,
+            disliked_foods: payload.disliked_foods,
+            alcohol_frequency: payload.alcohol_frequency,
+            smoking: payload.smoking,
+            activity_level: payload.activity_level,
+            job_type: payload.job_type,
+            motivation: payload.motivation,
+            previous_experience: payload.previous_experience,
+            timeframe: payload.timeframe,
+            expectations: payload.expectations,
+            extra: payload.extra,
+          },
+        });
+        weightIdempotencyKeyRef.current = null;
+        if (asCompleted) {
+          setCompleted(String(saved.onboarding.completed_at ?? new Date().toISOString()));
+          await refreshAccess();
+          setSaving(false);
+          toast.message("Анкета сохранена", {
+            description:
+              "Автогенерация черновиков программ в self-hosted режиме пока не подключена — тренер соберёт программу вручную.",
+          });
+          void navigate({ to: "/dashboard" });
+        } else {
+          setSaving(false);
+          toast.success("Черновик сохранён");
+        }
+        return;
+      }
+
       await persistBodyMetrics();
+      const { error } = await supabase
+        .from("onboarding_responses")
+        .upsert(payload, { onConflict: "user_id" });
+      if (error) {
+        setSaving(false);
+        const friendly =
+          /invalid input syntax for type integer/i.test(error.message)
+            ? "В целочисленных полях (дни тренировок, приёмы пищи, рост в см) нельзя указывать дроби вроде 1,5. Исправьте и отправьте снова."
+            : error.message;
+        return toast.error(friendly);
+      }
+      if (asCompleted) {
+        setCompleted(payload.completed_at as string);
+        await supabase.from("client_access").insert({
+          user_id: effectiveUserId,
+          status: "pending_onboarding",
+        });
+        await supabase
+          .from("client_access")
+          .update({ status: "awaiting_approval" })
+          .eq("user_id", effectiveUserId)
+          .eq("status", "pending_onboarding");
+        const gen = await autoGenerateDraftsForClient(effectiveUserId);
+        await refreshAccess();
+        setSaving(false);
+        if (gen.requires_trainer_review) {
+          toast.message("Анкета сохранена", {
+            description:
+              "Программа будет подготовлена после дополнительной проверки специалистом — это нужно для вашей безопасности.",
+          });
+        } else {
+          toast.success("Анкета сохранена, ожидайте проверки тренером.");
+        }
+        if (gen.errors.length > 0) {
+          toast.message("Часть черновиков не создана", {
+            description: gen.errors.slice(0, 2).join("; "),
+          });
+        }
+        void navigate({ to: "/dashboard" });
+      } else {
+        setSaving(false);
+        toast.success("Черновик сохранён");
+      }
     } catch (e) {
       setSaving(false);
-      const msg = e instanceof Error ? e.message : "Не удалось сохранить рост/вес";
-      return toast.error(msg);
-    }
-    const payload = buildPayload(asCompleted);
-    if (!payload) return;
-    const { error } = await supabase
-      .from("onboarding_responses")
-      .upsert(payload, { onConflict: "user_id" });
-    if (error) {
-      setSaving(false);
-      const friendly =
-        /invalid input syntax for type integer/i.test(error.message)
-          ? "В целочисленных полях (дни тренировок, приёмы пищи, рост в см) нельзя указывать дроби вроде 1,5. Исправьте и отправьте снова."
-          : error.message;
-      return toast.error(friendly);
-    }
-    if (asCompleted) {
-      setCompleted(payload.completed_at as string);
-      await supabase.from("client_access").insert({
-        user_id: effectiveUserId,
-        status: "pending_onboarding",
-      });
-      await supabase
-        .from("client_access")
-        .update({ status: "awaiting_approval" })
-        .eq("user_id", effectiveUserId)
-        .eq("status", "pending_onboarding");
-      const gen = await autoGenerateDraftsForClient(effectiveUserId);
-      await refreshAccess();
-      setSaving(false);
-      if (gen.requires_trainer_review) {
-        toast.message("Анкета сохранена", {
-          description:
-            "Программа будет подготовлена после дополнительной проверки специалистом — это нужно для вашей безопасности.",
-        });
-      } else {
-        toast.success("Анкета сохранена, ожидайте проверки тренером.");
-      }
-      if (gen.errors.length > 0) {
-        toast.message("Часть черновиков не создана", {
-          description: gen.errors.slice(0, 2).join("; "),
-        });
-      }
-      void navigate({ to: "/dashboard" });
-    } else {
-      setSaving(false);
-      toast.success("Черновик сохранён");
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить анкету");
     }
   };
 

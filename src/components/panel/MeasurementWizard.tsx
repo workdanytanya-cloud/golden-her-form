@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { z } from "zod";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -145,6 +145,7 @@ export function MeasurementWizard({ userId, onSaved }: { userId: string; onSaved
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
+  const submitIdempotencyKeyRef = useRef<string | null>(null);
 
 
   const allChecked = CHECKLIST.every((c) => checked[c.key]);
@@ -191,24 +192,48 @@ export function MeasurementWizard({ userId, onSaved }: { userId: string; onSaved
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("measurements").insert({
-
-      user_id: userId,
-      measured_on: form.measured_on,
-      weight_kg: parseRuNumber(form.weight_kg),
-      waist_cm: parseRuNumber(form.waist_cm),
-      hips_cm: parseRuNumber(form.hips_cm),
-      chest_cm: parseRuNumber(form.chest_cm),
-      note: form.note.trim().slice(0, 500) || null,
-    });
-    setSaving(false);
-    if (error) {
-      toast.error("Не удалось сохранить: " + error.message);
-      return;
+    try {
+      const { usesLocalPostgresCircuit, selfhostCreateMeasurement } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (await usesLocalPostgresCircuit()) {
+        if (!submitIdempotencyKeyRef.current) {
+          submitIdempotencyKeyRef.current =
+            typeof crypto !== "undefined" && "randomUUID" in crypto
+              ? crypto.randomUUID()
+              : `meas-${userId}-${Date.now()}`;
+        }
+        await selfhostCreateMeasurement({
+          clientId: userId,
+          measured_on: form.measured_on,
+          weight_kg: parseRuNumber(form.weight_kg),
+          waist_cm: parseRuNumber(form.waist_cm),
+          hips_cm: parseRuNumber(form.hips_cm),
+          chest_cm: parseRuNumber(form.chest_cm),
+          note: form.note.trim().slice(0, 500) || null,
+          idempotencyKey: submitIdempotencyKeyRef.current,
+        });
+        submitIdempotencyKeyRef.current = null;
+      } else {
+        const { error } = await supabase.from("measurements").insert({
+          user_id: userId,
+          measured_on: form.measured_on,
+          weight_kg: parseRuNumber(form.weight_kg),
+          waist_cm: parseRuNumber(form.waist_cm),
+          hips_cm: parseRuNumber(form.hips_cm),
+          chest_cm: parseRuNumber(form.chest_cm),
+          note: form.note.trim().slice(0, 500) || null,
+        });
+        if (error) throw new Error(error.message);
+      }
+      toast.success(CLIENT_MEASUREMENT_SAVED_MESSAGE);
+      reset();
+      onSaved();
+    } catch (e) {
+      toast.error("Не удалось сохранить: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setSaving(false);
     }
-    toast.success(CLIENT_MEASUREMENT_SAVED_MESSAGE);
-    reset();
-    onSaved();
   };
 
   // ---------- INTRO ----------

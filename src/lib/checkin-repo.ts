@@ -60,6 +60,13 @@ export async function getWeeklyCheckIn(
   userId: string,
   weekStart = currentWeekStart(),
 ): Promise<WeeklyCheckInRow | null> {
+  const { usesLocalPostgresCircuit, selfhostWeeklyCheckIn } = await import(
+    "@/lib/selfhost/client-api"
+  );
+  if (await usesLocalPostgresCircuit()) {
+    const data = await selfhostWeeklyCheckIn(userId, weekStart);
+    return data.row;
+  }
   const row = await getWeeklyCheckInFn({
     data: { userId, week_start: weekStart },
   });
@@ -71,6 +78,36 @@ export async function saveWeeklyCheckIn(input: WeeklyCheckInInput): Promise<{
   decision: AdaptationDecision;
   explanation: string;
 }> {
+  const { usesLocalPostgresCircuit, selfhostSaveWeeklyCheckIn } = await import(
+    "@/lib/selfhost/client-api"
+  );
+  if (await usesLocalPostgresCircuit()) {
+    const result = await selfhostSaveWeeklyCheckIn({
+      clientId: input.userId,
+      week_start: input.week_start,
+      avg_weight_kg: input.avg_weight_kg,
+      waist_cm: input.waist_cm,
+      hips_cm: input.hips_cm,
+      workouts_completed: input.workouts_completed,
+      workouts_planned: input.workouts_planned,
+      avg_steps: input.avg_steps,
+      hunger_1_10: input.hunger_1_10,
+      energy_1_10: input.energy_1_10,
+      sleep_hours: input.sleep_hours,
+      training_difficulty_1_10: input.training_difficulty_1_10,
+      nutrition_adherence_pct: input.nutrition_adherence_pct,
+      pain_reported: input.pain_reported,
+      what_was_hard: input.what_was_hard,
+      what_liked: input.what_liked,
+      wants_change: input.wants_change,
+      notes: input.notes,
+    });
+    return {
+      row: result.row,
+      decision: result.decision as AdaptationDecision,
+      explanation: result.explanation,
+    };
+  }
   // Через server fn + service role: обходим RLS-баг public.has_role в admin-политиках.
   const result = await saveWeeklyCheckInFn({
     data: {
@@ -136,6 +173,13 @@ export function countPlannedWorkouts(
 /** Сколько feedback записей за текущую календарную неделю. */
 export async function countWorkoutsCompletedThisWeek(userId: string): Promise<number> {
   const weekStart = currentWeekStart();
+  const { usesLocalPostgresCircuit, selfhostWeeklyCheckIn } = await import(
+    "@/lib/selfhost/client-api"
+  );
+  if (await usesLocalPostgresCircuit()) {
+    const data = await selfhostWeeklyCheckIn(userId, weekStart);
+    return data.workoutsCompleted;
+  }
   const { count, error } = await supabase
     .from("workout_feedback")
     .select("id", { count: "exact", head: true })

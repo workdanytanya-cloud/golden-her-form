@@ -2575,6 +2575,308 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     expect(sourceAssignStill.rows[0].active_version_id).toBe(live.rows[0].id);
   });
 
+  it("замеры, onboarding и check-in: права, idempotency, вес и published неизменны", async () => {
+    await ensureAdminUser(pool);
+    const clientJar = new CookieJar();
+    const adminJar = new CookieJar();
+    const otherJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: clientJar });
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/csrf", { jar: otherJar });
+    expect(
+      (
+        await req("/api/selfhost/login", {
+          method: "POST",
+          jar: clientJar,
+          body: JSON.stringify({ email: "client-a@example.test", password: "Passw0rd!" }),
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await req("/api/selfhost/login", {
+          method: "POST",
+          jar: adminJar,
+          body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await req("/api/selfhost/login", {
+          method: "POST",
+          jar: otherJar,
+          body: JSON.stringify({ email: "client-b@example.test", password: "Passw0rd!" }),
+        })
+      ).status,
+    ).toBe(200);
+
+    const nutBefore = await pool.query(
+      `SELECT content_hash, snapshot::text AS snap, status FROM nutrition_plan_versions WHERE id = $1`,
+      [NUT_A],
+    );
+    const trBefore = await pool.query(
+      `SELECT content_hash, snapshot::text AS snap, status FROM training_program_versions WHERE id = $1`,
+      [TR_A],
+    );
+    const assignBefore = await pool.query(
+      `SELECT kind, active_version_id FROM client_program_assignments
+        WHERE client_id = $1 ORDER BY kind`,
+      [CLIENT_A],
+    );
+
+    const badWeight = await req("/api/selfhost/measurements", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({
+        measured_on: "2026-03-01",
+        weight_kg: 10,
+        idempotencyKey: "meas-bad-weight-01",
+      }),
+    });
+    expect(badWeight.status).toBe(400);
+
+    const crossClient = await req("/api/selfhost/measurements", {
+      method: "POST",
+      jar: otherJar,
+      body: JSON.stringify({
+        clientId: CLIENT_A,
+        measured_on: "2026-03-01",
+        weight_kg: 70,
+        idempotencyKey: "meas-cross-client-01",
+      }),
+    });
+    expect(crossClient.status).toBe(403);
+
+    // Вес в анкете не передаём — иначе «сегодня» перебивает историю задним числом в этом сценарии.
+    const onbSave = await req("/api/selfhost/onboarding", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({
+        asCompleted: true,
+        height_cm: 168,
+        weightIdempotencyKey: "onb-weight-idem-01",
+        payload: {
+          goal_primary: "tone",
+          activity_level: "medium",
+          training_days_per_week: 3,
+          equipment: ["dumbbells"],
+          focus_areas: ["legs"],
+          has_injuries: false,
+          smoking: false,
+          extra: { medical_diet_table: "none" },
+        },
+      }),
+    });
+    expect(onbSave.status).toBe(200);
+    const onbBody = await onbSave.json();
+    expect(onbBody.autogenSkipped).toBe(true);
+    // Уже active не откатываем; pending_onboarding → awaiting_approval.
+    expect(["active", "awaiting_approval"]).toContain(onbBody.accessStatus);
+    expect(onbBody.measurementId).toBeNull();
+
+    const onbAgain = await req("/api/selfhost/onboarding", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({
+        asCompleted: true,
+        height_cm: 168,
+        weight_kg: 66.5,
+        weightIdempotencyKey: "onb-weight-idem-01",
+        payload: {
+          goal_primary: "tone",
+          activity_level: "medium",
+          training_days_per_week: 3,
+          equipment: ["dumbbells"],
+          focus_areas: ["legs"],
+          has_injuries: false,
+          smoking: false,
+          extra: { medical_diet_table: "none" },
+        },
+      }),
+    });
+    expect(onbAgain.status).toBe(200);
+    const onbAgainBody = await onbAgain.json();
+    // Первый вызов без веса не зарезервировал ключ; повтор с тем же ключом и весом — один замер.
+    expect(onbAgainBody.measurementId).toBeTruthy();
+    const onbThird = await req("/api/selfhost/onboarding", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({
+        asCompleted: true,
+        height_cm: 168,
+        weight_kg: 66.5,
+        weightIdempotencyKey: "onb-weight-idem-01",
+        payload: {
+          goal_primary: "tone",
+          activity_level: "medium",
+          training_days_per_week: 3,
+          equipment: ["dumbbells"],
+          focus_areas: ["legs"],
+          has_injuries: false,
+          smoking: false,
+          extra: { medical_diet_table: "none" },
+        },
+      }),
+    });
+    expect(onbThird.status).toBe(200);
+    expect((await onbThird.json()).measurementId).toBe(onbAgainBody.measurementId);
+    const weightRowsAfterOnb = await pool.query(
+      `SELECT count(*)::int AS n FROM measurements WHERE user_id = $1 AND note = 'Из анкеты'`,
+      [CLIENT_A],
+    );
+    expect(weightRowsAfterOnb.rows[0].n).toBe(1);
+
+    const onbGet = await (await req("/api/selfhost/onboarding", { jar: clientJar })).json();
+    expect(onbGet.height_cm).toBe(168);
+    expect(onbGet.onboarding?.goal_primary).toBe("tone");
+
+    await pool.query(`UPDATE client_access SET status = 'active' WHERE user_id = $1`, [CLIENT_A]);
+    // Убираем вес из анкеты («сегодня»), чтобы дальше проверять историю по датам замеров.
+    await pool.query(`DELETE FROM measurements WHERE id = $1`, [onbAgainBody.measurementId]);
+
+    const create1 = await req("/api/selfhost/measurements", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({
+        measured_on: "2026-03-10",
+        weight_kg: 65.2,
+        waist_cm: 72,
+        note: "клиент",
+        idempotencyKey: "meas-client-resubmit-01",
+      }),
+    });
+    expect(create1.status).toBe(200);
+    const c1 = await create1.json();
+    expect(c1.idempotent).toBe(false);
+    expect(c1.latestWeightKg).toBe(65.2);
+
+    const create1b = await req("/api/selfhost/measurements", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({
+        measured_on: "2026-03-10",
+        weight_kg: 65.2,
+        waist_cm: 72,
+        note: "клиент",
+        idempotencyKey: "meas-client-resubmit-01",
+      }),
+    });
+    expect(create1b.status).toBe(200);
+    const c1b = await create1b.json();
+    expect(c1b.idempotent).toBe(true);
+    expect(c1b.measurement.id).toBe(c1.measurement.id);
+
+    const sameDay = await req("/api/selfhost/measurements", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({
+        measured_on: "2026-03-10",
+        weight_kg: 65.0,
+        note: "второй замер дня",
+        idempotencyKey: "meas-client-same-day-02",
+      }),
+    });
+    expect(sameDay.status).toBe(200);
+    expect((await sameDay.json()).idempotent).toBe(false);
+
+    const adminSee = await (
+      await req(`/api/selfhost/admin/clients/${CLIENT_A}`, { jar: adminJar })
+    ).json();
+    expect(
+      (adminSee.client.measurements as Array<{ note: string | null }>).some(
+        (m) => m.note === "клиент",
+      ),
+    ).toBe(true);
+
+    const backdated = await req("/api/selfhost/measurements", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_A,
+        measured_on: "2026-04-01",
+        weight_kg: 64.0,
+        note: "тренер",
+        idempotencyKey: "meas-admin-add-01",
+      }),
+    });
+    expect(backdated.status).toBe(200);
+    expect((await backdated.json()).latestWeightKg).toBe(64);
+
+    const olderFuture = await req("/api/selfhost/measurements", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_A,
+        measured_on: "2025-12-01",
+        weight_kg: 70,
+        note: "задним числом",
+        idempotencyKey: "meas-admin-backdate-01",
+      }),
+    });
+    expect(olderFuture.status).toBe(200);
+    expect((await olderFuture.json()).latestWeightKg).toBe(64);
+
+    const list = await (await req("/api/selfhost/measurements", { jar: clientJar })).json();
+    expect(list.latestWeightKg).toBe(64);
+    const toDelete = (list.items as Array<{ id: string; note: string | null }>).find(
+      (m) => m.note === "тренер",
+    );
+    expect(toDelete).toBeTruthy();
+
+    const del = await req(`/api/selfhost/measurements/${toDelete!.id}`, {
+      method: "DELETE",
+      jar: adminJar,
+      body: JSON.stringify({ clientId: CLIENT_A }),
+    });
+    expect(del.status).toBe(200);
+    const delBody = await del.json();
+    // После удаления 64 кг: на 2026-03-10 два замера — актуальный 65.0 (новее по created_at).
+    expect(delBody.latestWeightKg).toBe(65);
+
+    const weekStart = "2026-03-09";
+    const checkIn = await req("/api/selfhost/checkins/weekly", {
+      method: "POST",
+      jar: clientJar,
+      body: JSON.stringify({
+        week_start: weekStart,
+        avg_weight_kg: 65,
+        workouts_completed: 2,
+        workouts_planned: 3,
+        energy_1_10: 7,
+        pain_reported: false,
+      }),
+    });
+    expect(checkIn.status).toBe(200);
+    const checkGet = await (
+      await req(`/api/selfhost/checkins/weekly?weekStart=${weekStart}`, { jar: clientJar })
+    ).json();
+    expect(checkGet.row?.avg_weight_kg).toBe(65);
+
+    const rec = await pool.query(
+      `SELECT count(*)::int AS n FROM nutrition_recommendations WHERE client_id = $1`,
+      [CLIENT_A],
+    );
+    expect(rec.rows[0].n).toBeGreaterThan(0);
+
+    const nutAfter = await pool.query(
+      `SELECT content_hash, snapshot::text AS snap, status FROM nutrition_plan_versions WHERE id = $1`,
+      [NUT_A],
+    );
+    const trAfter = await pool.query(
+      `SELECT content_hash, snapshot::text AS snap, status FROM training_program_versions WHERE id = $1`,
+      [TR_A],
+    );
+    expect(nutAfter.rows[0]).toEqual(nutBefore.rows[0]);
+    expect(trAfter.rows[0]).toEqual(trBefore.rows[0]);
+    const assignAfter = await pool.query(
+      `SELECT kind, active_version_id FROM client_program_assignments
+        WHERE client_id = $1 ORDER BY kind`,
+      [CLIENT_A],
+    );
+    expect(assignAfter.rows).toEqual(assignBefore.rows);
+  });
+
   it("не обращается к Supabase в local/postgres", () => {
     expect(fetchCalls.some((url) => url.includes("supabase"))).toBe(false);
   });

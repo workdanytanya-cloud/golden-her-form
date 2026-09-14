@@ -194,43 +194,69 @@ function ClientDetail() {
 
   const addMeasurement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (localCircuit) {
-      toast.error(
-        "Добавление замеров в self-hosted режиме будет на следующем этапе. Сейчас доступен просмотр.",
-      );
-      return;
-    }
     setSaving(true);
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { error } = await supabase.from("measurements").insert({
-      user_id: id,
-      measured_on: form.measured_on,
-      weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
-      waist_cm: form.waist_cm ? Number(form.waist_cm) : null,
-      hips_cm: form.hips_cm ? Number(form.hips_cm) : null,
-      chest_cm: form.chest_cm ? Number(form.chest_cm) : null,
-      note: form.note || null,
-    });
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Замер добавлен");
-    setForm(emptyForm);
-    load();
+    try {
+      const { usesLocalPostgresCircuit, selfhostCreateMeasurement } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (await usesLocalPostgresCircuit()) {
+        await selfhostCreateMeasurement({
+          clientId: id,
+          measured_on: form.measured_on,
+          weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
+          waist_cm: form.waist_cm ? Number(form.waist_cm) : null,
+          hips_cm: form.hips_cm ? Number(form.hips_cm) : null,
+          chest_cm: form.chest_cm ? Number(form.chest_cm) : null,
+          note: form.note || null,
+          idempotencyKey:
+            typeof crypto !== "undefined" && "randomUUID" in crypto
+              ? crypto.randomUUID()
+              : `admin-meas-${Date.now()}`,
+        });
+      } else {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { error } = await supabase.from("measurements").insert({
+          user_id: id,
+          measured_on: form.measured_on,
+          weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
+          waist_cm: form.waist_cm ? Number(form.waist_cm) : null,
+          hips_cm: form.hips_cm ? Number(form.hips_cm) : null,
+          chest_cm: form.chest_cm ? Number(form.chest_cm) : null,
+          note: form.note || null,
+        });
+        if (error) throw new Error(error.message);
+      }
+      toast.success("Замер добавлен");
+      setForm(emptyForm);
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (mid: string) => {
-    if (localCircuit) {
-      toast.error("Удаление замеров в self-hosted режиме пока недоступно");
-      return;
+    try {
+      const { usesLocalPostgresCircuit, selfhostDeleteMeasurement } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (await usesLocalPostgresCircuit()) {
+        await selfhostDeleteMeasurement(mid, id);
+      } else {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { error } = await supabase.from("measurements").delete().eq("id", mid);
+        if (error) throw new Error(error.message);
+      }
+      toast.success("Удалено");
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ошибка");
     }
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { error } = await supabase.from("measurements").delete().eq("id", mid);
-    if (error) return toast.error(error.message);
-    toast.success("Удалено");
-    load();
   };
 
-  const latest = items[0];
+  // Актуальный вес = последняя запись с weight_kg (список уже DESC по measured_on, created_at).
+  const latestWeightKg = items.find((m) => m.weight_kg != null)?.weight_kg ?? null;
 
   return (
     <div className="space-y-10">
@@ -308,7 +334,7 @@ function ClientDetail() {
       <ProfileEditor
         clientId={id}
         profile={profile}
-        latestWeightKg={latest?.weight_kg ?? null}
+        latestWeightKg={latestWeightKg}
         onSaved={load}
         localCircuit={localCircuit}
       />
@@ -328,7 +354,7 @@ function ClientDetail() {
         <StatCard label="Рост" value={profile?.height_cm ? `${profile.height_cm} см` : "—"} />
         <StatCard
           label="Текущий вес"
-          value={latest?.weight_kg != null ? `${latest.weight_kg} кг` : "—"}
+          value={latestWeightKg != null ? `${latestWeightKg} кг` : "—"}
           tone="gold"
         />
         <StatCard label="Замеров" value={String(items.length)} tone="coral" />
@@ -396,10 +422,7 @@ function ClientDetail() {
           </F>
           <div className="flex items-end">
             <button
-              disabled={saving || localCircuit}
-              title={
-                localCircuit ? "В self-hosted режиме замеры доступны для просмотра" : undefined
-              }
+              disabled={saving}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-3 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
             >
               <Plus className="h-4 w-4" /> Записать
@@ -637,7 +660,9 @@ function ProfileEditor({
     setSaving(true);
     try {
       if (localCircuit) {
-        const { selfhostAdminUpdateProfile } = await import("@/lib/selfhost/client-api");
+        const { selfhostAdminUpdateProfile, selfhostCreateMeasurement } = await import(
+          "@/lib/selfhost/client-api"
+        );
         await selfhostAdminUpdateProfile(clientId, {
           full_name: form.full_name.trim() || null,
           phone: form.phone.trim() || null,
@@ -646,6 +671,20 @@ function ProfileEditor({
           birth_date: form.birth_date || null,
           gender: form.gender || null,
         });
+        const weight = form.weight_kg.trim() ? Number(form.weight_kg.replace(",", ".")) : null;
+        if (weight != null && Number.isFinite(weight)) {
+          if (weight < 30 || weight > 250) throw new Error("Вес должен быть от 30 до 250 кг");
+          await selfhostCreateMeasurement({
+            clientId,
+            measured_on: new Date().toISOString().slice(0, 10),
+            weight_kg: weight,
+            note: "Из профиля (тренер)",
+            idempotencyKey:
+              typeof crypto !== "undefined" && "randomUUID" in crypto
+                ? crypto.randomUUID()
+                : `admin-w-${Date.now()}`,
+          });
+        }
       } else {
         await updateProfile({
           data: {

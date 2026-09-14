@@ -40,6 +40,34 @@ function ProfilePage() {
   useEffect(() => {
     if (!effectiveUserId) return;
     void (async () => {
+      const { usesLocalPostgresCircuit, selfhostMeasurements } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (await usesLocalPostgresCircuit()) {
+        const [{ profile }, meas] = await Promise.all([
+          (async () => {
+            const res = await fetch(
+              `/api/selfhost/profile?clientId=${encodeURIComponent(effectiveUserId)}`,
+              { credentials: "include" },
+            );
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Не удалось загрузить профиль");
+            return data as { profile: Record<string, unknown> | null };
+          })(),
+          selfhostMeasurements(effectiveUserId),
+        ]);
+        const data = profile;
+        setForm({
+          full_name: (data?.full_name as string) ?? "",
+          phone: (data?.phone as string) ?? "",
+          goal: (data?.goal as string) ?? "",
+          height_cm: data?.height_cm != null ? String(data.height_cm) : "",
+          weight_kg: meas.latestWeightKg != null ? String(meas.latestWeightKg) : "",
+          birth_date: (data?.birth_date as string) ?? "",
+        });
+        setLoading(false);
+        return;
+      }
       const [profRes, measRes] = await Promise.all([
         supabase
           .from("profiles")
@@ -75,8 +103,21 @@ function ProfilePage() {
     })();
   }, [effectiveUserId]);
 
-  const saveWeight = async (userId: string, weight: number) => {
+  const saveWeight = async (userId: string, weight: number, idempotencyKey: string) => {
     const measuredOn = new Date().toISOString().slice(0, 10);
+    const { usesLocalPostgresCircuit, selfhostCreateMeasurement } = await import(
+      "@/lib/selfhost/client-api"
+    );
+    if (await usesLocalPostgresCircuit()) {
+      await selfhostCreateMeasurement({
+        clientId: userId,
+        measured_on: measuredOn,
+        weight_kg: weight,
+        note: "Из профиля",
+        idempotencyKey,
+      });
+      return;
+    }
     const { error } = await supabase.from("measurements").insert({
       user_id: userId,
       measured_on: measuredOn,
@@ -103,19 +144,39 @@ function ProfilePage() {
     }
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
+      const idem =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `profile-w-${Date.now()}`;
+      const { usesLocalPostgresCircuit, selfhostSaveProfile } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (await usesLocalPostgresCircuit()) {
+        await selfhostSaveProfile({
+          clientId: effectiveUserId,
           full_name: form.full_name || null,
           phone: form.phone || null,
           goal: form.goal || null,
           height_cm: form.height_cm ? parseHeightCm(form.height_cm) : null,
           birth_date: form.birth_date || null,
-        })
-        .eq("id", effectiveUserId);
-      if (error) throw error;
-      const weight = parseRuNumber(form.weight_kg);
-      if (weight != null) await saveWeight(effectiveUserId, weight);
+          weight_kg: parseRuNumber(form.weight_kg),
+          idempotencyKey: idem,
+        });
+      } else {
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            full_name: form.full_name || null,
+            phone: form.phone || null,
+            goal: form.goal || null,
+            height_cm: form.height_cm ? parseHeightCm(form.height_cm) : null,
+            birth_date: form.birth_date || null,
+          })
+          .eq("id", effectiveUserId);
+        if (error) throw error;
+        const weight = parseRuNumber(form.weight_kg);
+        if (weight != null) await saveWeight(effectiveUserId, weight, idem);
+      }
       toast.success("Профиль обновлён");
     } catch (err) {
       toast.error("Не удалось сохранить: " + (err as Error).message);

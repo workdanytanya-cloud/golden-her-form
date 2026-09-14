@@ -316,12 +316,21 @@ export async function getClientAccessPg(db: Queryable, userId: string) {
 
 export async function getProfilePg(db: Queryable, userId: string) {
   const { rows } = await db.query(
-    `SELECT id, full_name, goal, height_cm FROM public.profiles WHERE id = $1`,
+    `SELECT id, full_name, phone, goal, height_cm, birth_date::text AS birth_date, gender
+       FROM public.profiles WHERE id = $1`,
     [userId],
   );
   return (
     (rows[0] as
-      | { id: string; full_name: string | null; goal: string | null; height_cm: number | null }
+      | {
+          id: string;
+          full_name: string | null;
+          phone: string | null;
+          goal: string | null;
+          height_cm: number | null;
+          birth_date: string | null;
+          gender: string | null;
+        }
       | undefined) ?? null
   );
 }

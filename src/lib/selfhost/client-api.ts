@@ -588,6 +588,131 @@ export async function selfhostDownloadPdf(input: {
   return data as { filename: string; contentType: string; pdfBase64: string };
 }
 
+export async function selfhostMeasurements(clientId?: string | null) {
+  const params = new URLSearchParams();
+  if (clientId) params.set("clientId", clientId);
+  const qs = params.toString();
+  const res = await fetch(`/api/selfhost/measurements${qs ? `?${qs}` : ""}`, {
+    credentials: "include",
+  });
+  return readSelfhostJson(res) as Promise<{
+    items: Array<{
+      id: string;
+      measured_on: string;
+      weight_kg: number | null;
+      waist_cm: number | null;
+      hips_cm: number | null;
+      chest_cm: number | null;
+      note: string | null;
+    }>;
+    latestWeightKg: number | null;
+  }>;
+}
+
+export async function selfhostCreateMeasurement(input: {
+  clientId?: string | null;
+  measured_on: string;
+  weight_kg?: number | null;
+  waist_cm?: number | null;
+  hips_cm?: number | null;
+  chest_cm?: number | null;
+  note?: string | null;
+  idempotencyKey?: string | null;
+}) {
+  const res = await selfhostFetch("/api/selfhost/measurements", {
+    method: "POST",
+    body: JSON.stringify(input),
+    headers: input.idempotencyKey
+      ? { "idempotency-key": input.idempotencyKey }
+      : undefined,
+  });
+  return readSelfhostJson(res) as Promise<{
+    measurement: {
+      id: string;
+      measured_on: string;
+      weight_kg: number | null;
+      waist_cm: number | null;
+      hips_cm: number | null;
+      chest_cm: number | null;
+      note: string | null;
+    };
+    idempotent: boolean;
+    latestWeightKg: number | null;
+  }>;
+}
+
+export async function selfhostDeleteMeasurement(
+  measurementId: string,
+  clientId?: string | null,
+) {
+  const res = await selfhostFetch(`/api/selfhost/measurements/${measurementId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ clientId: clientId ?? null }),
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true; latestWeightKg: number | null }>;
+}
+
+export async function selfhostOnboarding(clientId?: string | null) {
+  const params = new URLSearchParams();
+  if (clientId) params.set("clientId", clientId);
+  const qs = params.toString();
+  const res = await fetch(`/api/selfhost/onboarding${qs ? `?${qs}` : ""}`, {
+    credentials: "include",
+  });
+  return readSelfhostJson(res) as Promise<{
+    onboarding: Record<string, unknown> | null;
+    height_cm: number | null;
+    weight_kg: number | null;
+  }>;
+}
+
+export async function selfhostSaveOnboarding(input: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/onboarding", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return readSelfhostJson(res) as Promise<{
+    onboarding: Record<string, unknown>;
+    accessStatus: string | null;
+    measurementId: string | null;
+    autogenSkipped: true;
+  }>;
+}
+
+export async function selfhostSaveProfile(input: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/profile", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return readSelfhostJson(res) as Promise<{
+    ok: true;
+    measurement: { id: string } | null;
+    latestWeightKg: number | null;
+  }>;
+}
+
+export async function selfhostWeeklyCheckIn(clientId: string | null | undefined, weekStart: string) {
+  const params = new URLSearchParams({ weekStart });
+  if (clientId) params.set("clientId", clientId);
+  const res = await fetch(`/api/selfhost/checkins/weekly?${params}`, { credentials: "include" });
+  return readSelfhostJson(res) as Promise<{
+    row: import("@/lib/checkin-repo").WeeklyCheckInRow | null;
+    workoutsCompleted: number;
+  }>;
+}
+
+export async function selfhostSaveWeeklyCheckIn(input: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/checkins/weekly", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return readSelfhostJson(res) as Promise<{
+    row: import("@/lib/checkin-repo").WeeklyCheckInRow;
+    decision: string;
+    explanation: string;
+  }>;
+}
+
 export function resetSelfhostClientCacheForTests() {
   cached = null;
   csrfToken = null;

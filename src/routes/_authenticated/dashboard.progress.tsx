@@ -94,15 +94,24 @@ function ProgressPage() {
       setLoading(false);
       return;
     }
-    void supabase
-      .from("measurements")
-      .select("id, measured_on, weight_kg, waist_cm, hips_cm, chest_cm, note")
-      .eq("user_id", effectiveUserId)
-      .order("measured_on", { ascending: true })
-      .then(({ data }) => {
-        setItems((data ?? []) as Measurement[]);
+    void (async () => {
+      const { usesLocalPostgresCircuit, selfhostMeasurements } = await import(
+        "@/lib/selfhost/client-api"
+      );
+      if (await usesLocalPostgresCircuit()) {
+        const data = await selfhostMeasurements(effectiveUserId);
+        setItems(data.items as Measurement[]);
         setLoading(false);
-      });
+        return;
+      }
+      const { data } = await supabase
+        .from("measurements")
+        .select("id, measured_on, weight_kg, waist_cm, hips_cm, chest_cm, note")
+        .eq("user_id", effectiveUserId)
+        .order("measured_on", { ascending: true });
+      setItems((data ?? []) as Measurement[]);
+      setLoading(false);
+    })();
   };
 
   useEffect(load, [effectiveUserId, canLoadProgress]);

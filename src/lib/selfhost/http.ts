@@ -44,6 +44,24 @@ import {
   videoOverlayFromBindings,
 } from "@/lib/selfhost/postgres-published";
 import {
+  createMeasurementPg,
+  deleteMeasurementPg,
+  listMeasurementsPg,
+  loadLatestWeightKgPg,
+  measurementCreateSchema,
+} from "@/lib/selfhost/postgres-measurements";
+import {
+  loadOnboardingPg,
+  onboardingSaveSchema,
+  saveOnboardingPg,
+} from "@/lib/selfhost/postgres-onboarding";
+import {
+  countWorkoutsCompletedThisWeekPg,
+  getWeeklyCheckInPg,
+  saveWeeklyCheckInPg,
+  weeklyCheckInSaveSchema,
+} from "@/lib/selfhost/postgres-checkins";
+import {
   PostgresAdminClientRepository,
   adminClientAccessSchema,
   adminClientListQuerySchema,
@@ -259,11 +277,129 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
 
     if (url.pathname === "/api/selfhost/profile" && request.method === "GET") {
       const clientId = scopedClientId(session, url.searchParams.get("clientId"));
-      const [profile, access] = await Promise.all([
+      const [profile, access, latestWeight] = await Promise.all([
         getProfilePg(getPostgresPool(), clientId),
         getClientAccessPg(getPostgresPool(), clientId),
+        loadLatestWeightKgPg(getPostgresPool(), clientId),
       ]);
-      return json({ profile, access });
+      return json({ profile, access, latestWeightKg: latestWeight });
+    }
+
+    if (url.pathname === "/api/selfhost/profile" && request.method === "POST") {
+      assertCsrf(request);
+      const body = await readJson(request);
+      const clientId = scopedClientId(session, body.clientId ?? null);
+      const hasProfilePatch =
+        body.full_name !== undefined ||
+        body.phone !== undefined ||
+        body.goal !== undefined ||
+        body.height_cm !== undefined ||
+        body.birth_date !== undefined ||
+        body.gender !== undefined;
+      if (hasProfilePatch) {
+        const patch = adminClientProfileSchema.parse(body);
+        await adminClients().updateProfile(clientId, patch);
+      }
+      let measurement = null as Awaited<ReturnType<typeof createMeasurementPg>>["measurement"] | null;
+      const weight =
+        body.weight_kg === undefined || body.weight_kg === null || body.weight_kg === ""
+          ? null
+          : Number(body.weight_kg);
+      if (weight != null && Number.isFinite(weight)) {
+        const created = await createMeasurementPg(getPostgresPool(), {
+          clientId,
+          measured_on: new Date().toISOString().slice(0, 10),
+          weight_kg: weight,
+          waist_cm: null,
+          hips_cm: null,
+          chest_cm: null,
+          note: session.role === "admin" ? "Из профиля (тренер)" : "Из профиля",
+          idempotencyKey:
+            typeof body.idempotencyKey === "string" ? body.idempotencyKey : null,
+        });
+        measurement = created.measurement;
+      }
+      const latestWeightKg = await loadLatestWeightKgPg(getPostgresPool(), clientId);
+      return json({ ok: true, measurement, latestWeightKg });
+    }
+
+    if (url.pathname === "/api/selfhost/measurements" && request.method === "GET") {
+      const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+      const items = await listMeasurementsPg(getPostgresPool(), clientId);
+      const latestWeightKg = await loadLatestWeightKgPg(getPostgresPool(), clientId);
+      return json({ items, latestWeightKg });
+    }
+
+    if (url.pathname === "/api/selfhost/measurements" && request.method === "POST") {
+      assertCsrf(request);
+      const body = await readJson(request);
+      const parsed = measurementCreateSchema.parse({
+        ...body,
+        clientId: scopedClientId(session, body.clientId ?? null),
+        idempotencyKey: body.idempotencyKey ?? request.headers.get("idempotency-key"),
+      });
+      const result = await createMeasurementPg(getPostgresPool(), parsed);
+      const latestWeightKg = await loadLatestWeightKgPg(getPostgresPool(), parsed.clientId);
+      return json({ ...result, latestWeightKg });
+    }
+
+    {
+      const measMatch = url.pathname.match(/^\/api\/selfhost\/measurements\/([^/]+)$/);
+      if (measMatch && request.method === "DELETE") {
+        assertCsrf(request);
+        const measurementId = measMatch[1];
+        const body = await readJson(request).catch(() => ({}));
+        const clientId = scopedClientId(
+          session,
+          (body as { clientId?: string }).clientId ?? url.searchParams.get("clientId"),
+        );
+        await deleteMeasurementPg(getPostgresPool(), measurementId, clientId);
+        const latestWeightKg = await loadLatestWeightKgPg(getPostgresPool(), clientId);
+        return json({ ok: true, latestWeightKg });
+      }
+    }
+
+    if (url.pathname === "/api/selfhost/onboarding" && request.method === "GET") {
+      const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+      const loaded = await loadOnboardingPg(getPostgresPool(), clientId);
+      return json(loaded);
+    }
+
+    if (url.pathname === "/api/selfhost/onboarding" && request.method === "POST") {
+      assertCsrf(request);
+      const body = await readJson(request);
+      const parsed = onboardingSaveSchema.parse({
+        ...body,
+        clientId: scopedClientId(session, body.clientId ?? null),
+      });
+      const saved = await saveOnboardingPg(getPostgresPool(), parsed);
+      return json(saved);
+    }
+
+    if (url.pathname === "/api/selfhost/checkins/weekly" && request.method === "GET") {
+      const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+      const weekStart = url.searchParams.get("weekStart");
+      if (!weekStart || !/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
+        return errorJson("Некорректный weekStart", 400);
+      }
+      const row = await getWeeklyCheckInPg(getPostgresPool(), clientId, weekStart);
+      const workoutsCompleted = await countWorkoutsCompletedThisWeekPg(
+        getPostgresPool(),
+        clientId,
+        weekStart,
+      );
+      return json({ row, workoutsCompleted });
+    }
+
+    if (url.pathname === "/api/selfhost/checkins/weekly" && request.method === "POST") {
+      assertCsrf(request);
+      const body = await readJson(request);
+      const parsed = weeklyCheckInSaveSchema.parse({
+        ...body,
+        clientId: scopedClientId(session, body.clientId ?? null),
+      });
+      const saved = await saveWeeklyCheckInPg(getPostgresPool(), parsed);
+      return json(saved);
     }
 
     if (url.pathname === "/api/selfhost/dashboard" && request.method === "GET") {
