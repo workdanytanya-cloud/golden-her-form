@@ -53,10 +53,27 @@ DELETE FROM public.exercise_media_bindings b
      OR e.slug LIKE 'imported-log-%'
    );
 
+-- ON DELETE SET NULL на change_log обновляет строки; immutable-триггер 007 это блокирует.
+ALTER TABLE public.exercise_media_change_log
+  DISABLE TRIGGER exercise_media_change_log_immutable;
+
+UPDATE public.exercise_media_change_log l
+   SET exercise_id = NULL
+  FROM public.exercises e
+ WHERE l.exercise_id = e.id
+   AND (
+     e.description LIKE 'Создано миграцией 009%'
+     OR e.slug LIKE 'imported-%'
+     OR e.slug LIKE 'imported-log-%'
+   );
+
 DELETE FROM public.exercises e
  WHERE e.description LIKE 'Создано миграцией 009%'
     OR e.slug LIKE 'imported-%'
     OR e.slug LIKE 'imported-log-%';
+
+ALTER TABLE public.exercise_media_change_log
+  ENABLE TRIGGER exercise_media_change_log_immutable;
 
 DO $$
 DECLARE

@@ -1604,6 +1604,184 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     ).rejects.toMatchObject({ code: "23505" });
   });
 
+  it("отклоняет публикацию пустого/невалидного плана и idempotency с другим payload", async () => {
+    await seedNutritionCatalog(pool);
+    const product = await pool.query(
+      "SELECT id FROM food_products WHERE is_verified = true ORDER BY slug LIMIT 1",
+    );
+    const recipe = await pool.query("SELECT id FROM recipes ORDER BY slug LIMIT 1");
+    const productId = (product.rows[0] as { id: string }).id;
+    const recipeId = (recipe.rows[0] as { id: string }).id;
+    const day = sampleConstructorDay(productId, recipeId);
+
+    const adminJar = new CookieJar();
+    await req("/api/selfhost/csrf", { jar: adminJar });
+    await req("/api/selfhost/login", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
+    });
+
+    const before = await pool.query(
+      "SELECT count(*)::int AS n FROM nutrition_plan_versions WHERE client_id = $1",
+      [CLIENT_A],
+    );
+
+    // Пустой draft: сохранить день, затем удалить days — publish должен отказать
+    const seedDraft = await req("/api/selfhost/admin/nutrition/draft", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_A,
+        courseId: COURSE_A2,
+        userId: CLIENT_A,
+        targets: { kcal: 1800, protein_g: 120, fat_g: 60, carbs_g: 180 },
+        plan_days_count: 7,
+        plan_status: "draft",
+        meal_schedule_mode: "two_main_two_snacks",
+        primary_meal_slot: "lunch",
+        days: [day],
+      }),
+    });
+    expect(seedDraft.status).toBe(200);
+    const planRow = await pool.query(
+      `SELECT id FROM nutrition_plans WHERE user_id = $1 AND course_id = $2`,
+      [CLIENT_A, COURSE_A2],
+    );
+    const planId = (planRow.rows[0] as { id: string }).id;
+    await pool.query(`DELETE FROM nutrition_plan_days WHERE plan_id = $1`, [planId]);
+    const emptyPub = await req("/api/selfhost/admin/nutrition/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ clientId: CLIENT_A, courseId: COURSE_A2 }),
+    });
+    expect(emptyPub.status).toBe(400);
+
+    const wrongCourse = await req("/api/selfhost/admin/nutrition/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({ clientId: CLIENT_A, courseId: COURSE_B1 }),
+    });
+    expect([400, 403]).toContain(wrongCourse.status);
+
+    // Восстановить валидный день, затем пометить is_valid=false в БД
+    expect(
+      (
+        await req("/api/selfhost/admin/nutrition/draft", {
+          method: "POST",
+          jar: adminJar,
+          body: JSON.stringify({
+            clientId: CLIENT_A,
+            courseId: COURSE_A2,
+            userId: CLIENT_A,
+            targets: { kcal: 1800, protein_g: 120, fat_g: 60, carbs_g: 180 },
+            plan_days_count: 7,
+            plan_status: "draft",
+            meal_schedule_mode: "two_main_two_snacks",
+            primary_meal_slot: "lunch",
+            days: [day],
+          }),
+        })
+      ).status,
+    ).toBe(200);
+    await pool.query(
+      `UPDATE meal_plan_items SET is_valid = false
+         WHERE plan_day_id IN (SELECT id FROM nutrition_plan_days WHERE plan_id = $1)`,
+      [planId],
+    );
+    const invalidPub = await req("/api/selfhost/admin/nutrition/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_A,
+        courseId: COURSE_A2,
+        idempotencyKey: "idem-invalid-plan-01",
+      }),
+    });
+    expect(invalidPub.status).toBe(400);
+
+    expect(
+      (
+        await req("/api/selfhost/admin/nutrition/draft", {
+          method: "POST",
+          jar: adminJar,
+          body: JSON.stringify({
+            clientId: CLIENT_A,
+            courseId: COURSE_A2,
+            userId: CLIENT_A,
+            targets: { kcal: 1800, protein_g: 120, fat_g: 60, carbs_g: 180 },
+            plan_days_count: 7,
+            plan_status: "draft",
+            meal_schedule_mode: "two_main_two_snacks",
+            primary_meal_slot: "lunch",
+            days: [day],
+          }),
+        })
+      ).status,
+    ).toBe(200);
+    const ok = await req("/api/selfhost/admin/nutrition/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_A,
+        courseId: COURSE_A2,
+        idempotencyKey: "idem-payload-conflict-01",
+      }),
+    });
+    if (ok.status !== 200) {
+      throw new Error(`publish failed: ${ok.status} ${await ok.text()}`);
+    }
+
+    const day2 = {
+      ...day,
+      items: day.items.map((item) => ({
+        ...item,
+        recipe_name: "Другое блюдо",
+        kcal: "501",
+        ingredients: item.ingredients.map((ing) => ({
+          ...ing,
+          grams: "160",
+          kcal: "192",
+        })),
+      })),
+    };
+    expect(
+      (
+        await req("/api/selfhost/admin/nutrition/draft", {
+          method: "POST",
+          jar: adminJar,
+          body: JSON.stringify({
+            clientId: CLIENT_A,
+            courseId: COURSE_A2,
+            userId: CLIENT_A,
+            targets: { kcal: 1800, protein_g: 120, fat_g: 60, carbs_g: 180 },
+            plan_days_count: 7,
+            plan_status: "draft",
+            meal_schedule_mode: "two_main_two_snacks",
+            primary_meal_slot: "lunch",
+            days: [day2],
+          }),
+        })
+      ).status,
+    ).toBe(200);
+    const conflict = await req("/api/selfhost/admin/nutrition/publish", {
+      method: "POST",
+      jar: adminJar,
+      body: JSON.stringify({
+        clientId: CLIENT_A,
+        courseId: COURSE_A2,
+        idempotencyKey: "idem-payload-conflict-01",
+      }),
+    });
+    expect(conflict.status).toBe(409);
+
+    const after = await pool.query(
+      "SELECT count(*)::int AS n FROM nutrition_plan_versions WHERE client_id = $1",
+      [CLIENT_A],
+    );
+    expect(Number(after.rows[0].n)).toBe(Number(before.rows[0].n) + 1);
+  });
+
   it("полный цикл draft → publish → client без Supabase и без мутации старых snapshots", async () => {
     const publishedBefore = await pool.query(
       "SELECT id, snapshot, content_hash, status FROM nutrition_plan_versions WHERE id IN ($1,$2) ORDER BY id",

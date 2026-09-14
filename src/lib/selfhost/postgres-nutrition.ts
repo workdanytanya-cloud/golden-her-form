@@ -511,12 +511,12 @@ export async function saveConstructorPlanPg(
       planId = (existing.rows[0] as { id: string }).id;
       await client.query(
         `UPDATE public.nutrition_plans SET
-           target_kcal=$3, target_protein_g=$4, target_fat_g=$5, target_carbs_g=$6,
-           targets_manual=$7, notes=$8, plan_mode='constructor', plan_days_count=$9, plan_status=$10,
-           bmr=$11, tdee=$12, calorie_adjustment_pct=$13, requires_manual_review=$14, review_reason=$15,
-           excluded_products=$16, meal_schedule_mode=$17, primary_meal_slot=$18,
+           target_kcal=$1, target_protein_g=$2, target_fat_g=$3, target_carbs_g=$4,
+           targets_manual=$5, notes=$6, plan_mode='constructor', plan_days_count=$7, plan_status=$8,
+           bmr=$9, tdee=$10, calorie_adjustment_pct=$11, requires_manual_review=$12, review_reason=$13,
+           excluded_products=$14::text[], meal_schedule_mode=$15, primary_meal_slot=$16,
            generated_at=(now() AT TIME ZONE 'utc'), updated_at=(now() AT TIME ZONE 'utc')
-         WHERE id=$19`,
+         WHERE id=$17`,
         [...payload.slice(2), planId],
       );
     } else {
@@ -526,7 +526,9 @@ export async function saveConstructorPlanPg(
            target_kcal, target_protein_g, target_fat_g, target_carbs_g, targets_manual, notes,
            plan_mode, plan_days_count, plan_status, bmr, tdee, calorie_adjustment_pct,
            requires_manual_review, review_reason, meal_schedule_mode, primary_meal_slot
-         ) VALUES ($1,$2,5,'{}',$16,$3,$4,$5,$6,$7,$8,'constructor',$9,$10,$11,$12,$13,$14,$15,$17,$18)
+         ) VALUES (
+           $1,$2,5,'{}',$16::text[],$3,$4,$5,$6,$7,$8,'constructor',$9,$10,$11,$12,$13,$14,$15,$17,$18
+         )
          RETURNING id`,
         payload,
       );
@@ -658,6 +660,15 @@ export async function publishNutritionVersionPg(
     plan: ConstructorPlanRow;
   },
 ): Promise<{ versionId: string; contentHash: string; idempotent: boolean }> {
+  if (!input.days.length) {
+    throw Object.assign(new Error("Нельзя опубликовать пустой черновик"), { statusCode: 400 });
+  }
+  if (input.days.some((day) => !day.items?.length || day.is_valid === false)) {
+    throw Object.assign(
+      new Error("Нельзя опубликовать невалидный или неполный план питания"),
+      { statusCode: 400 },
+    );
+  }
   const snapshot = buildConstructorNutritionSnapshot({
     days: input.days,
     targets: {
@@ -699,6 +710,12 @@ export async function publishNutritionVersionPg(
       );
       if (prior.rows[0]) {
         const row = prior.rows[0] as { version_id: string; content_hash: string };
+        if (row.content_hash !== hash) {
+          throw Object.assign(
+            new Error("Idempotency key уже использован с другим содержимым публикации"),
+            { statusCode: 409 },
+          );
+        }
         return {
           versionId: row.version_id,
           contentHash: row.content_hash,
