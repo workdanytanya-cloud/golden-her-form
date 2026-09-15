@@ -191,7 +191,13 @@ export async function toPublishedNutritionView(
   record: PublishedNutritionRecord | null,
 ): Promise<PublishedNutritionView | null> {
   if (!record) return null;
-  return { version: record.version, snapshot: record.snapshot, source: "published" };
+  // Display-time rewrite of mirrored external media URLs. Stored snapshot + content_hash unchanged.
+  const { rewriteMediaUrlsInJson } = await import("@/lib/selfhost/media-url-compat");
+  return {
+    version: record.version,
+    snapshot: rewriteMediaUrlsInJson(record.snapshot),
+    source: "published",
+  };
 }
 
 export async function toPublishedTrainingView(

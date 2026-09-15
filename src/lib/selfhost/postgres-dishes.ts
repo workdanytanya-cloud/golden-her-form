@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
 import { tryDeleteUnreferencedMedia } from "@/lib/selfhost/local-media-store";
+import { resolveCompatMediaUrl } from "@/lib/selfhost/media-url-compat";
 
 export type Queryable = Pool | PoolClient;
 
@@ -64,6 +65,8 @@ export type AdminDishRow = {
 };
 
 function mapDish(row: Record<string, unknown>): AdminDishRow {
+  const imageRaw = (row.image_url as string | null) ?? null;
+  const videoRaw = (row.video_url as string | null) ?? null;
   return {
     id: String(row.id),
     slug: String(row.slug),
@@ -77,8 +80,8 @@ function mapDish(row: Record<string, unknown>): AdminDishRow {
     carbs_per_100g: Number(row.carbs_per_100g),
     tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
     replacements: Array.isArray(row.replacements) ? (row.replacements as string[]) : [],
-    image_url: (row.image_url as string | null) ?? null,
-    video_url: (row.video_url as string | null) ?? null,
+    image_url: (resolveCompatMediaUrl(imageRaw) as string | null) ?? imageRaw,
+    video_url: (resolveCompatMediaUrl(videoRaw) as string | null) ?? videoRaw,
     ingredients: row.ingredients ?? [],
     steps: Array.isArray(row.steps) ? (row.steps as string[]) : [],
     created_at: new Date(row.created_at as string | Date).toISOString(),
