@@ -53,11 +53,13 @@ export function ClientCourseProvider({
     const stored =
       typeof window !== "undefined" ? window.localStorage.getItem(`${STORAGE_KEY}:${clientId}`) : null;
     const active = list.find((c) => c.status === "active");
-    const pick =
-      (stored && list.some((c) => c.id === stored) ? stored : null) ??
-      active?.id ??
-      list[0]?.id ??
-      null;
+    // Не поднимаем completed/archived из localStorage по умолчанию — у них часто
+    // только superseded-версии, и кабинет выглядит как «программ нет».
+    const storedCourse = stored ? list.find((c) => c.id === stored) : undefined;
+    const preferStored =
+      storedCourse &&
+      (storedCourse.status === "active" || storedCourse.status === "draft");
+    const pick = (preferStored ? storedCourse.id : null) ?? active?.id ?? list[0]?.id ?? null;
     setSelectedCourseIdState(pick);
     setLoading(false);
   }, [clientId]);

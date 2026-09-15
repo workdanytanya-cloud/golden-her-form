@@ -547,6 +547,12 @@ export async function publishTrainingProgram(params: {
 export async function loadPendingNutritionRecommendation(
   clientId: string,
 ): Promise<NutritionRecommendation | null> {
+  const { usesLocalPostgresCircuit, selfhostPendingNutritionRecommendation } = await import(
+    "@/lib/selfhost/client-api"
+  );
+  if (await usesLocalPostgresCircuit()) {
+    return selfhostPendingNutritionRecommendation(clientId);
+  }
   const { data, error } = await supabase
     .from("nutrition_recommendations" as never)
     .select("*")
@@ -648,10 +654,19 @@ export async function createNutritionCorrectionDraft(params: {
     review_reason: nextSnapshot.reason,
   });
 
-  await supabase
-    .from("nutrition_recommendations" as never)
-    .update({ status: "accepted" } as never)
-    .eq("id", params.recommendation.id as string);
+  const { usesLocalPostgresCircuit, selfhostAcceptNutritionRecommendation } = await import(
+    "@/lib/selfhost/client-api"
+  );
+  if (await usesLocalPostgresCircuit()) {
+    if (params.recommendation.id) {
+      await selfhostAcceptNutritionRecommendation(params.recommendation.id);
+    }
+  } else {
+    await supabase
+      .from("nutrition_recommendations" as never)
+      .update({ status: "accepted" } as never)
+      .eq("id", params.recommendation.id as string);
+  }
 
   return {
     days: scaled,

@@ -415,6 +415,13 @@ export function ConstructorAdminPanel({
     setSaving(true);
     try {
       if (assign) {
+        const { requireSelfhostAdminSession, usesLocalPostgresCircuit } = await import(
+          "@/lib/selfhost/client-api"
+        );
+        if (await usesLocalPostgresCircuit()) {
+          // Cookie-сессия могла смениться (клиент в той же вкладке) при живом React-state тренера.
+          await requireSelfhostAdminSession();
+        }
         const result = await publishConstructorNutrition({
           userId,
           courseId,

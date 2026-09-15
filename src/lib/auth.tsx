@@ -1,7 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { loadRuntimeConfig, selfhostLogout, selfhostMe } from "@/lib/selfhost/client-api";
+import {
+  loadRuntimeConfig,
+  SELFHOST_SESSION_EXPIRED_EVENT,
+  selfhostLogout,
+  selfhostMe,
+  type SelfhostSessionExpiredDetail,
+} from "@/lib/selfhost/client-api";
 
 export type AppRole = "admin" | "client";
 export type AccessStatus = "pending_onboarding" | "awaiting_approval" | "active" | "suspended";
@@ -113,22 +119,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
+    let onFocus: (() => void) | undefined;
+    const onSessionExpired = (event: Event) => {
+      const detail = (event as CustomEvent<SelfhostSessionExpiredDetail>).detail;
+      setSession(null);
+      setRole(null);
+      setAccessStatus(null);
+      setUnlockSource(null);
+      setImpersonation(null);
+      setImpersonatedAccess(null);
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(IMPERSONATION_KEY);
+        const redirect = detail?.redirectTo || `${window.location.pathname}${window.location.search}`;
+        const target = `/auth?redirect=${encodeURIComponent(redirect)}`;
+        if (!window.location.pathname.startsWith("/auth")) {
+          window.location.assign(target);
+        }
+      }
+    };
     void (async () => {
       const runtime = await loadRuntimeConfig();
       if (cancelled) return;
       const useLocal = runtime.authBackend === "local";
       setLocalAuth(useLocal);
       if (useLocal) {
-        const me = await selfhostMe();
-        if (cancelled) return;
-        if (me.session) {
-          setSession(localSessionShim(me.session));
-          setRole(me.session.role);
-          applyAccess({
-            status: (me.session.accessStatus as AccessStatus) ?? "pending_onboarding",
-            unlockSource: (me.session.unlockSource as UnlockSource) ?? null,
-          });
-        }
+        window.addEventListener(SELFHOST_SESSION_EXPIRED_EVENT, onSessionExpired);
+        const syncFromCookie = async () => {
+          const me = await selfhostMe();
+          if (cancelled) return;
+          if (me.session) {
+            setSession(localSessionShim(me.session));
+            setRole(me.session.role);
+            applyAccess({
+              status: (me.session.accessStatus as AccessStatus) ?? "pending_onboarding",
+              unlockSource: (me.session.unlockSource as UnlockSource) ?? null,
+            });
+          } else {
+            setSession(null);
+            setRole(null);
+            setAccessStatus(null);
+            setUnlockSource(null);
+          }
+        };
+        await syncFromCookie();
+        // После login через fetch/CDP React-state иначе остаётся чужим пользователем.
+        onFocus = () => {
+          void syncFromCookie();
+        };
+        window.addEventListener("focus", onFocus);
         setLoading(false);
         return;
       }
@@ -166,6 +204,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
       unsubscribe?.();
+      if (typeof window !== "undefined") {
+        window.removeEventListener(SELFHOST_SESSION_EXPIRED_EVENT, onSessionExpired);
+        if (onFocus) window.removeEventListener("focus", onFocus);
+      }
     };
   }, [applyAccess]);
 

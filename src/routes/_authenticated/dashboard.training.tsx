@@ -81,7 +81,8 @@ function TrainingInner() {
       <div className="space-y-6">
         {pdfButton}
         <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center text-warm-gray">
-          Программа пока не назначена. Тренер опубликует для вас фиксированный блок на 4 недели.
+          Программа пока не назначена для выбранного курса. Если выше есть активный курс —
+          переключите его; иначе тренер опубликует новый блок отдельно.
         </div>
       </div>
     );

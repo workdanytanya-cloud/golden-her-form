@@ -12,6 +12,21 @@ import type { ExerciseVideo } from "@/lib/exercise-video";
 let cached: RuntimePublicConfig | null = null;
 let csrfToken: string | null = null;
 
+/** Браузерный сигнал: cookie-сессия пропала или роль не подходит для admin-мутации. */
+export const SELFHOST_SESSION_EXPIRED_EVENT = "selfhost:session-expired";
+
+export type SelfhostSessionExpiredDetail = {
+  statusCode: number;
+  message: string;
+  redirectTo?: string;
+};
+
+export function emitSelfhostSessionExpired(detail: SelfhostSessionExpiredDetail): void {
+  csrfToken = null;
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(SELFHOST_SESSION_EXPIRED_EVENT, { detail }));
+}
+
 export async function loadRuntimeConfig(): Promise<RuntimePublicConfig> {
   if (typeof window === "undefined") {
     return {
@@ -56,6 +71,16 @@ async function readSelfhostJson(res: Response): Promise<Record<string, unknown>>
     if (res.status === 401 || (res.status === 403 && /csrf/i.test(message))) {
       csrfToken = null;
     }
+    if (res.status === 401) {
+      emitSelfhostSessionExpired({
+        statusCode: 401,
+        message,
+        redirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.pathname}${window.location.search}`
+            : undefined,
+      });
+    }
     const err = new Error(
       res.status === 401 ? `${message}. Войдите снова в кабинет.` : message,
     ) as Error & { statusCode?: number };
@@ -63,6 +88,42 @@ async function readSelfhostJson(res: Response): Promise<Record<string, unknown>>
     throw err;
   }
   return data;
+}
+
+/** Перед admin-мутацией: cookie должна быть валидной сессией admin. */
+export async function requireSelfhostAdminSession(): Promise<{
+  userId: string;
+  email: string | null;
+  role: "admin";
+}> {
+  const me = await selfhostMe();
+  if (!me.session) {
+    emitSelfhostSessionExpired({
+      statusCode: 401,
+      message: "Нужно войти в кабинет",
+      redirectTo:
+        typeof window !== "undefined"
+          ? `${window.location.pathname}${window.location.search}`
+          : undefined,
+    });
+    const err = new Error("Нужно войти в кабинет. Войдите снова в кабинет.") as Error & {
+      statusCode?: number;
+    };
+    err.statusCode = 401;
+    throw err;
+  }
+  if (me.session.role !== "admin") {
+    const err = new Error(
+      "Недостаточно прав для назначения. Войдите как тренер и повторите.",
+    ) as Error & { statusCode?: number };
+    err.statusCode = 403;
+    throw err;
+  }
+  return {
+    userId: me.session.userId,
+    email: me.session.email,
+    role: "admin",
+  };
 }
 
 export async function selfhostAdminExercises(
@@ -496,6 +557,28 @@ export async function selfhostPublishNutrition(payload: {
     contentHash: string;
     idempotent: boolean;
   }>;
+}
+
+export async function selfhostPendingNutritionRecommendation(
+  clientId: string,
+): Promise<import("@/lib/published-programs/types").NutritionRecommendation | null> {
+  const res = await fetch(
+    `/api/selfhost/admin/nutrition/recommendation?clientId=${encodeURIComponent(clientId)}`,
+    { credentials: "include" },
+  );
+  const data = await readSelfhostJson(res);
+  return (
+    (data.recommendation as import("@/lib/published-programs/types").NutritionRecommendation | null) ??
+    null
+  );
+}
+
+export async function selfhostAcceptNutritionRecommendation(recommendationId: string): Promise<void> {
+  const res = await selfhostFetch("/api/selfhost/admin/nutrition/recommendation/accept", {
+    method: "POST",
+    body: JSON.stringify({ recommendationId }),
+  });
+  await readSelfhostJson(res);
 }
 
 export async function selfhostTrainingDraft(clientId: string, courseId?: string | null) {

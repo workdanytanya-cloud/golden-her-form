@@ -43,7 +43,11 @@ export function AdminCourseManager({
     }
     const list = await listClientCourses(clientId);
     setCourses(list);
-    if (!selectedCourseId && list[0]) onSelectCourse(list[0].id);
+    const stillValid = Boolean(selectedCourseId && list.some((c) => c.id === selectedCourseId));
+    if (!stillValid) {
+      const active = list.find((c) => c.status === "active");
+      onSelectCourse(active?.id ?? list[0]?.id ?? null);
+    }
     setLoading(false);
   };
 

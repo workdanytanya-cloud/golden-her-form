@@ -903,4 +903,59 @@ export async function saveMealPreferencePg(
   });
 }
 
+export async function loadPendingNutritionRecommendationPg(
+  db: Queryable,
+  clientId: string,
+): Promise<import("@/lib/published-programs/types").NutritionRecommendation | null> {
+  const { rows } = await db.query(
+    `SELECT id, client_id, measurement_id, based_on_version_id, status,
+            assigned_kcal, assigned_protein_g, assigned_fat_g, assigned_carbs_g,
+            recommended_kcal, recommended_protein_g, recommended_fat_g, recommended_carbs_g,
+            assigned_weight_kg, new_weight_kg, bmr, tdee, reason
+       FROM public.nutrition_recommendations
+      WHERE client_id = $1 AND status = 'pending_trainer_review'
+      ORDER BY created_at DESC
+      LIMIT 1`,
+    [clientId],
+  );
+  const row = rows[0] as Record<string, unknown> | undefined;
+  if (!row) return null;
+  const num = (v: unknown) => Number(v ?? 0);
+  return {
+    id: String(row.id),
+    client_id: String(row.client_id),
+    measurement_id: (row.measurement_id as string | null) ?? null,
+    based_on_version_id: (row.based_on_version_id as string | null) ?? null,
+    status: row.status as import("@/lib/published-programs/types").RecommendationStatus,
+    assigned_kcal: num(row.assigned_kcal),
+    assigned_protein_g: num(row.assigned_protein_g),
+    assigned_fat_g: num(row.assigned_fat_g),
+    assigned_carbs_g: num(row.assigned_carbs_g),
+    recommended_kcal: num(row.recommended_kcal),
+    recommended_protein_g: num(row.recommended_protein_g),
+    recommended_fat_g: num(row.recommended_fat_g),
+    recommended_carbs_g: num(row.recommended_carbs_g),
+    assigned_weight_kg: row.assigned_weight_kg == null ? null : num(row.assigned_weight_kg),
+    new_weight_kg: row.new_weight_kg == null ? null : num(row.new_weight_kg),
+    bmr: num(row.bmr),
+    tdee: num(row.tdee),
+    reason: (row.reason as string | null) ?? null,
+  };
+}
+
+export async function acceptNutritionRecommendationPg(
+  db: Queryable,
+  recommendationId: string,
+  reviewedBy: string,
+): Promise<void> {
+  await db.query(
+    `UPDATE public.nutrition_recommendations
+        SET status = 'accepted',
+            reviewed_at = (now() AT TIME ZONE 'utc'),
+            reviewed_by = $2
+      WHERE id = $1 AND status = 'pending_trainer_review'`,
+    [recommendationId, reviewedBy],
+  );
+}
+
 export { type ConstructorDay };

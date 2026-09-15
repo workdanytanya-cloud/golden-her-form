@@ -123,9 +123,11 @@ import {
   resolveClientCourseIdPg,
 } from "@/lib/selfhost/postgres-courses";
 import {
+  acceptNutritionRecommendationPg,
   loadConstructorPlanPg,
   loadMealPreferencePg,
   loadOptimizerContextPg,
+  loadPendingNutritionRecommendationPg,
   nutritionDraftSaveSchema,
   nutritionGenerateSchema,
   nutritionPreferenceSchema,
@@ -1023,6 +1025,30 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         plan: loaded.plan,
       });
       return json(published);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/nutrition/recommendation" && request.method === "GET") {
+      requireAdmin(session);
+      const clientId = url.searchParams.get("clientId");
+      if (!clientId) return errorJson("Не указан clientId", 400);
+      const recommendation = await loadPendingNutritionRecommendationPg(getPostgresPool(), clientId);
+      return json({ recommendation });
+    }
+
+    if (
+      url.pathname === "/api/selfhost/admin/nutrition/recommendation/accept" &&
+      request.method === "POST"
+    ) {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = (await readJson(request)) as { recommendationId?: string };
+      if (!body.recommendationId) return errorJson("Не указан recommendationId", 400);
+      await acceptNutritionRecommendationPg(
+        getPostgresPool(),
+        body.recommendationId,
+        session.userId,
+      );
+      return json({ ok: true });
     }
 
     if (url.pathname === "/api/selfhost/admin/training/exercises" && request.method === "GET") {
