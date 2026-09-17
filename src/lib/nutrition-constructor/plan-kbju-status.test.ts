@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { d } from "@/lib/nutrition-constructor/decimal-math";
-import { evaluatePlanKbjuStatus } from "@/lib/nutrition-constructor/plan-kbju-status";
+import {
+  evaluatePlanKbjuStatus,
+  inferMealScheduleModeFromDays,
+  resolveDisplayMealScheduleMode,
+} from "@/lib/nutrition-constructor/plan-kbju-status";
 import type { ConstructorDay, MealPlanItem } from "@/lib/nutrition-constructor/types";
 
 function meal(slot: MealPlanItem["slot"], macros: { kcal: string; p: string; f: string; c: string }): MealPlanItem {
@@ -99,5 +103,22 @@ describe("plan-kbju-status", () => {
     expect(status.acceptable).toBe(true);
     expect(status.generationOk).toBe(true);
     expect(status.exact).toBe(true);
+  });
+});
+
+describe("inferMealScheduleModeFromDays", () => {
+  it("detects 2+2 even when stored mode is one_main_three_snacks", () => {
+    const twoPlusTwo = {
+      items: [
+        { slot: "main1" },
+        { slot: "main2" },
+        { slot: "snack1" },
+        { slot: "snack2" },
+      ],
+    };
+    expect(inferMealScheduleModeFromDays([twoPlusTwo])).toBe("two_main_two_snacks");
+    expect(
+      resolveDisplayMealScheduleMode([twoPlusTwo], "one_main_three_snacks"),
+    ).toBe("two_main_two_snacks");
   });
 });

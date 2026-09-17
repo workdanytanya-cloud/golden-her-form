@@ -12,13 +12,13 @@ export const UNIQUE_WEEK_TARGET = 7;
 export const WEEK_SEARCH_BUDGET_MS = 90_000;
 
 export function shouldUseWeekTiling(mode: MealScheduleMode, daysCount: number): boolean {
-  return (
-    mode === "two_main_two_snacks" && (daysCount === 7 || daysCount === 14 || daysCount === 28)
-  );
+  if (!(daysCount === 7 || daysCount === 14 || daysCount === 28)) return false;
+  // 2+2 и 3 без перекусов: неделя из уникальных дней + тайлинг.
+  return mode === "two_main_two_snacks" || mode === "three_mains_only";
 }
 
 export function fingerprintFromRecipes(slotRecipes: Partial<Record<PlanSlot, Recipe>>): string {
-  return (["main1", "main2", "snack1", "snack2"] as const)
+  return (["main1", "main2", "main3", "snack1", "snack2", "snack3"] as const)
     .map((slot) => `${slot}:${slotRecipes[slot]?.id ?? ""}`)
     .join("|");
 }
@@ -84,7 +84,9 @@ export function makeComboReject(
     const dayIndex = uniqueDays.length;
     const main1 = slotRecipes.main1?.id;
     const main2 = slotRecipes.main2?.id;
-    if (main1 && main2 && main1 === main2) return true;
+    const main3 = slotRecipes.main3?.id;
+    const mainIds = [main1, main2, main3].filter(Boolean) as string[];
+    if (new Set(mainIds).size !== mainIds.length) return true;
     if (uniqueDays.some((day) => fingerprintDay(day) === fingerprintFromRecipes(slotRecipes))) {
       return true;
     }
@@ -92,12 +94,12 @@ export function makeComboReject(
     const prevSnacks = uniqueDays[dayIndex - 1]
       ? snackPairKeyFromDay(uniqueDays[dayIndex - 1]!)
       : null;
-    if (prevSnacks && snacks === prevSnacks) return true;
+    if (prevSnacks && snacks && snacks === prevSnacks) return true;
     const wrapSnacks =
       dayIndex === weekLength - 1 && uniqueDays[0] ? snackPairKeyFromDay(uniqueDays[0]) : null;
-    if (wrapSnacks && snacks === wrapSnacks) return true;
+    if (wrapSnacks && snacks && snacks === wrapSnacks) return true;
 
-    for (const recipe of [slotRecipes.main1, slotRecipes.main2]) {
+    for (const recipe of [slotRecipes.main1, slotRecipes.main2, slotRecipes.main3]) {
       if (!recipe) continue;
       for (let j = 0; j < uniqueDays.length; j++) {
         const usedHere = uniqueDays[j]!.items.some(
@@ -121,7 +123,8 @@ export function weekCycleVarietyOk(days: ConstructorDay[]): boolean {
     const mains = day.items
       .filter((item) => item.slot.startsWith("main"))
       .map((item) => item.recipe_id);
-    if (mains.length !== 2 || mains[0] === mains[1]) return false;
+    if (mains.length < 2 || mains.length > 3) return false;
+    if (new Set(mains).size !== mains.length) return false;
   }
 
   if (n === 1) return false;
@@ -130,7 +133,9 @@ export function weekCycleVarietyOk(days: ConstructorDay[]): boolean {
     const a = days[i]!;
     const b = days[(i + 1) % n]!;
     if (fingerprintDay(a) === fingerprintDay(b)) return false;
-    if (snackPairKeyFromDay(a) === snackPairKeyFromDay(b)) return false;
+    const snacksA = snackPairKeyFromDay(a);
+    const snacksB = snackPairKeyFromDay(b);
+    if (snacksA && snacksB && snacksA === snacksB) return false;
   }
 
   const uses = new Map<string, number[]>();

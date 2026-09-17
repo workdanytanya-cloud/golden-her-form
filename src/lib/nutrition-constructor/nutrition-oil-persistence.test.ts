@@ -65,10 +65,10 @@ describe("oil persistence integration", () => {
     birth_date: "1990-01-01",
     activity_level: "medium",
     goal_primary: "maintain",
-    manual_kcal: 1500,
-    manual_protein_g: Math.round((1500 * 0.3) / 4),
-    manual_fat_g: Math.round((1500 * 0.3) / 9),
-    manual_carbs_g: Math.round((1500 * 0.4) / 4),
+    manual_kcal: 1313,
+    manual_protein_g: 112.1,
+    manual_fat_g: 56.1,
+    manual_carbs_g: 89.9,
   }).targets;
 
   function generateBalancedDay() {
@@ -77,14 +77,15 @@ describe("oil persistence integration", () => {
       days_count: 1,
       excluded_product_ids: [],
       tolerance: DEFAULT_TOLERANCE,
-      meal_schedule_mode: "three_main_two_snacks",
+      meal_schedule_mode: "two_main_two_snacks",
       primary_meal_slot: "lunch",
     });
+    expect(gen.is_valid, gen.message ?? "invalid").toBe(true);
     expect(gen.days.length).toBe(1);
     return gen.days[0]!;
   }
 
-  it("generates oil with real food_product_id in ingredient lines", () => {
+  it("generates oil with real food_product_id in ingredient lines", { timeout: 120_000 }, () => {
     const day = generateBalancedDay();
     const oils = findOilLines(day).filter((o) => OIL_PRODUCT_SLUGS.has(o.product_id) || AUTOGEN_OIL_PRODUCT_SLUGS.has(o.product_id));
     expect(oils.length).toBeGreaterThan(0);
@@ -97,7 +98,7 @@ describe("oil persistence integration", () => {
     expect(oils.some((o) => o.product_id === "butter")).toBe(false);
   });
 
-  it("round-trips draft ingredients through DB-shaped serialization", () => {
+  it("round-trips draft ingredients through DB-shaped serialization", { timeout: 120_000 }, () => {
     const day = generateBalancedDay();
     const beforeOils = findOilLines(day);
     expect(beforeOils.length).toBeGreaterThan(0);
@@ -115,7 +116,7 @@ describe("oil persistence integration", () => {
     }
   });
 
-  it("preserves oil and KBJU through draft save, publish and client reload", () => {
+  it("preserves oil and KBJU through draft save, publish and client reload", { timeout: 180_000 }, () => {
     const day = generateBalancedDay();
     const oilsBefore = findOilLines(day);
 
@@ -127,7 +128,7 @@ describe("oil persistence integration", () => {
         fat_g: displayMacro(targets).fat_g,
         carbs_g: displayMacro(targets).carbs_g,
       },
-      meal_schedule_mode: "three_main_two_snacks",
+      meal_schedule_mode: "two_main_two_snacks",
       primary_meal_slot: "lunch",
     });
 

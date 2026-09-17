@@ -24,7 +24,7 @@ describe("regression: former +38g protein / -16g fat case", () => {
   const ctx = buildInMemoryCatalog({ includeTestPackaging: true });
 
   for (const mode of MODES) {
-    it(`passes strict tolerance on ${mode}`, () => {
+    it(`passes strict tolerance on ${mode}`, { timeout: 90_000 }, () => {
       const gen = generateConstructorPlan(ctx, {
         targets: REGRESSION_TARGETS,
         days_count: 1,

@@ -67,6 +67,14 @@ import {
   shouldUseWeekTiling,
   tileConstructorWeek,
 } from "@/lib/nutrition-constructor/week-cycle";
+import {
+  reasonFromDiagnostics,
+  userMessageForReason,
+  type NutritionReasonCode,
+  type NutritionSearchStage,
+} from "@/lib/nutrition-constructor/reason-codes";
+import { validateMacroTargets } from "@/lib/nutrition-constructor/target-validation";
+import { PROTEIN_MAIN_PRODUCT_SLUGS } from "@/lib/nutrition-constructor/recipe-meta";
 
 export type OptimizerContext = {
   products: Map<string, FoodProduct>;
@@ -628,7 +636,9 @@ function assembleAndTuneDay(
       if (ings.length === 0) return null;
       if (
         slot.startsWith("main") &&
-        (priorities.lowCarb || (priorities.proteinFocused && !priorities.strictHighProtein))
+        (priorities.lowCarb ||
+          priorities.lowFat ||
+          (priorities.proteinFocused && !priorities.strictHighProtein))
       ) {
         ings = enrichMainIngredientsWithOil(dayCtx, recipe, ings, excluded);
       }
@@ -769,6 +779,8 @@ function buildDay(
   mode: MealScheduleMode,
   options?: {
     timeoutMs?: number;
+    forceTopN?: number;
+    seed?: number;
     comboReject?: (slotRecipes: Partial<Record<PlanSlot, Recipe>>) => boolean;
     collectUnique?: ConstructorDay[];
   },
@@ -797,9 +809,24 @@ function buildDay(
     }
   }
 
+  if (mains.length === 0) {
+    return {
+      day: null,
+      diagnostics: {
+        combinations_checked: 0,
+        elapsed_ms: 0,
+        timed_out: false,
+        infeasible: true,
+        last_failure_reason: "нет доступных основных блюд",
+        best_deviation_score: null,
+        search_stage: "validation",
+      },
+    };
+  }
+
   const assemble = (
     slotRecipes: Partial<Record<PlanSlot, Recipe>>,
-    options?: { searchPhase?: boolean },
+    assembleOpts?: { searchPhase?: boolean },
   ) =>
     assembleAndTuneDay(
       ctx,
@@ -810,7 +837,7 @@ function buildDay(
       priorities,
       slotRecipes,
       undefined,
-      options,
+      assembleOpts,
     );
 
   const slotRecipes = pickSlotRecipesForMode(
@@ -827,7 +854,16 @@ function buildDay(
     if (legacy?.is_valid) {
       return {
         day: finalizeBuiltDay(dayIndex, legacy, slotRecipes, recentMain),
-        diagnostics: null,
+        diagnostics: {
+          combinations_checked: 1,
+          elapsed_ms: 0,
+          timed_out: false,
+          infeasible: false,
+          last_failure_reason: null,
+          best_deviation_score: 0,
+          search_stage: "fast_topn",
+          used_fallback: false,
+        },
       };
     }
   }
@@ -843,6 +879,8 @@ function buildDay(
     snacks,
     assemble,
     timeoutMs: options?.timeoutMs,
+    forceTopN: options?.forceTopN,
+    seed: options?.seed,
     comboReject: options?.comboReject,
     collectValid: options?.collectUnique
       ? {
@@ -875,213 +913,299 @@ export function generateConstructorPlan(
   ctx: OptimizerContext,
   input: GenerateConstructorPlanInput,
 ): PlanValidationResult {
-  const excluded = new Set(input.excluded_product_ids);
-  const recentMain = new Map<string, number>();
-  const days: ConstructorDay[] = [];
-  const mode = input.meal_schedule_mode;
-  const tolerance = input.tolerance ?? DEFAULT_TOLERANCE;
-  let totalCombinations = 0;
-  let totalElapsedMs = 0;
-  let timedOut = false;
-  let lastFailureReason: string | null = null;
-  let uniqueWeekDays: number | undefined;
-  const weekTiled = shouldUseWeekTiling(mode, input.days_count);
-  const failMessage =
-    mode === "one_main_three_snacks"
-      ? ONE_MAIN_UNACHIEVABLE_MESSAGE
-      : "Не удалось собрать рацион в заданных ограничениях. Измените целевые показатели, исключённые продукты или режим питания.";
+  const emptyFail = (
+    code: NutritionReasonCode,
+    message: string,
+    extras?: Partial<NonNullable<PlanValidationResult["diagnostics"]>>,
+  ): PlanValidationResult => ({
+    is_valid: false,
+    kbju_acceptable: false,
+    message,
+    comparison: [],
+    days: [],
+    reason_code: code,
+    diagnostics: {
+      combinations_checked: 0,
+      elapsed_ms: 0,
+      timed_out: code === "TIMEOUT",
+      infeasible: code === "INFEASIBLE",
+      last_failure_reason: message,
+      days_with_issues: 1,
+      reason_code: code,
+      search_stage: "validation",
+      seed: input.seed ?? null,
+      ...extras,
+    },
+  });
 
-  if (shouldUseWeekTiling(mode, input.days_count)) {
-    const uniqueDays: ConstructorDay[] = [];
-    const { diagnostics } = buildDay(
-      ctx,
-      0,
-      input.targets,
-      new Map<string, number>(),
-      excluded,
-      mode,
-      {
-        timeoutMs: WEEK_SEARCH_BUDGET_MS,
-        comboReject: makeComboReject(uniqueDays, UNIQUE_WEEK_TARGET),
-        collectUnique: uniqueDays,
-      },
-    );
-    if (diagnostics) {
-      totalCombinations += diagnostics.combinations_checked;
-      totalElapsedMs += diagnostics.elapsed_ms;
-      timedOut = timedOut || diagnostics.timed_out;
-      if (diagnostics.last_failure_reason) {
-        lastFailureReason = diagnostics.last_failure_reason;
-      }
+  try {
+    if (input.force_internal_error) {
+      throw new Error("forced internal error");
     }
-    uniqueWeekDays = uniqueDays.length;
-    if (uniqueDays.length === 0) {
-      const infeasibleMsg = lastFailureReason
-        ? `Рацион не удалось собрать: ${lastFailureReason}. Проверьте исключённые продукты или выберите другой режим.`
-        : failMessage;
+
+    const targetCheck = validateMacroTargets(input.targets);
+    if (!targetCheck.ok) {
+      return emptyFail(
+        "INVALID_TARGET",
+        userMessageForReason("INVALID_TARGET", targetCheck.detail),
+      );
+    }
+
+    const excluded = new Set(input.excluded_product_ids);
+    const proteinProducts = [...ctx.products.values()].filter(
+      (p) =>
+        p.is_active &&
+        p.is_verified &&
+        (PROTEIN_MAIN_PRODUCT_SLUGS.has(p.slug) ||
+          p.category === "meat" ||
+          p.category === "fish" ||
+          p.category === "dairy"),
+    );
+    const allowedProtein = proteinProducts.filter(
+      (p) => !excluded.has(p.id) && !excluded.has(p.slug),
+    );
+    if (allowedProtein.length === 0 && proteinProducts.length > 0) {
+      return emptyFail(
+        "NO_ALLOWED_PRODUCTS",
+        userMessageForReason("NO_ALLOWED_PRODUCTS", "все белковые продукты исключены"),
+      );
+    }
+
+    const mains = eligibleMains(ctx, input.meal_schedule_mode).filter((r) => {
+      const ings = ctx.recipeIngredients.get(r.id) ?? [];
+      return ings.every((ing) => !excluded.has(ing.product_id));
+    });
+    if (mains.length === 0) {
+      return emptyFail(
+        "NO_ALLOWED_PRODUCTS",
+        userMessageForReason("NO_ALLOWED_PRODUCTS", "нет доступных основных блюд"),
+      );
+    }
+
+    const recentMain = new Map<string, number>();
+    const days: ConstructorDay[] = [];
+    const mode = input.meal_schedule_mode;
+    const tolerance = input.tolerance ?? DEFAULT_TOLERANCE;
+    let totalCombinations = 0;
+    let totalElapsedMs = 0;
+    let fastElapsed = 0;
+    let fallbackElapsed = 0;
+    let usedFallback = false;
+    let timedOut = false;
+    let lastFailureReason: string | null = null;
+    let uniqueWeekDays: number | undefined;
+    let searchStage: NutritionSearchStage = "fast_topn";
+    const weekTiled = shouldUseWeekTiling(mode, input.days_count);
+    const dayOpts = {
+      timeoutMs: input.search_timeout_ms,
+      forceTopN: input.force_top_n,
+      seed: input.seed,
+    };
+    const failMessage =
+      mode === "one_main_three_snacks"
+        ? ONE_MAIN_UNACHIEVABLE_MESSAGE
+        : "Не удалось собрать рацион в заданных ограничениях после полного поиска. Измените целевые показатели или исключённые продукты.";
+
+    const failureResult = (
+      reason: string | null,
+      timed: boolean,
+      diagnostics: ComboSearchDiagnostics | null | undefined,
+      daysWithIssues: number,
+    ): PlanValidationResult => {
+      const code: NutritionReasonCode = timed
+        ? "TIMEOUT"
+        : diagnostics?.infeasible
+          ? "INFEASIBLE"
+          : "INFEASIBLE";
+      const msg = timed
+        ? userMessageForReason("TIMEOUT", reason)
+        : userMessageForReason("INFEASIBLE", reason ?? failMessage);
       return {
         is_valid: false,
         kbju_acceptable: false,
-        message: diagnostics?.infeasible || diagnostics?.timed_out ? infeasibleMsg : failMessage,
+        message: msg,
         comparison: [],
         days: [],
+        reason_code: code,
         diagnostics: {
           combinations_checked: totalCombinations,
           elapsed_ms: totalElapsedMs,
-          timed_out: timedOut,
-          infeasible: true,
-          last_failure_reason: lastFailureReason,
-          days_with_issues: 1,
+          timed_out: timed,
+          infeasible: !timed,
+          last_failure_reason: reason,
+          days_with_issues: daysWithIssues,
           best_recipe_slugs: diagnostics?.best_recipe_slugs ?? null,
           best_deviation_score: diagnostics?.best_deviation_score ?? null,
-          unique_week_days: 0,
-          week_tiled: true,
+          unique_week_days: uniqueWeekDays,
+          week_tiled: weekTiled || undefined,
+          reason_code: code,
+          search_stage: diagnostics?.search_stage ?? searchStage,
+          fast_elapsed_ms: fastElapsed || diagnostics?.fast_elapsed_ms,
+          fallback_elapsed_ms: fallbackElapsed || diagnostics?.fallback_elapsed_ms,
+          used_fallback: usedFallback || diagnostics?.used_fallback,
+          seed: input.seed ?? null,
         },
       };
-    }
-    const arranged = arrangeBestWeekCycle(uniqueDays);
-    uniqueWeekDays = arranged.length;
-    days.push(...tileConstructorWeek(arranged, input.days_count));
-    if (days.length !== input.days_count || days.some((dayRow) => !dayRow.is_valid)) {
-      const infeasibleMsg = lastFailureReason
-        ? `Рацион не удалось собрать: ${lastFailureReason}. Проверьте исключённые продукты или выберите другой режим.`
-        : failMessage;
-      return {
-        is_valid: false,
-        kbju_acceptable: false,
-        message: infeasibleMsg,
-        comparison: [],
-        days: [],
-        diagnostics: {
-          combinations_checked: totalCombinations,
-          elapsed_ms: totalElapsedMs,
-          timed_out: timedOut,
-          infeasible: true,
-          last_failure_reason: lastFailureReason,
-          days_with_issues: uniqueDays.length,
-          unique_week_days: uniqueDays.length,
-          week_tiled: true,
+    };
+
+    const absorbDiag = (diagnostics: ComboSearchDiagnostics | null | undefined) => {
+      if (!diagnostics) return;
+      totalCombinations += diagnostics.combinations_checked;
+      totalElapsedMs += diagnostics.elapsed_ms;
+      fastElapsed += diagnostics.fast_elapsed_ms ?? 0;
+      fallbackElapsed += diagnostics.fallback_elapsed_ms ?? 0;
+      usedFallback = usedFallback || !!diagnostics.used_fallback;
+      timedOut = timedOut || diagnostics.timed_out;
+      if (diagnostics.search_stage) searchStage = diagnostics.search_stage;
+      if (diagnostics.last_failure_reason) lastFailureReason = diagnostics.last_failure_reason;
+    };
+
+    if (shouldUseWeekTiling(mode, input.days_count)) {
+      const uniqueDays: ConstructorDay[] = [];
+      const { diagnostics } = buildDay(
+        ctx,
+        0,
+        input.targets,
+        new Map<string, number>(),
+        excluded,
+        mode,
+        {
+          timeoutMs: input.search_timeout_ms ?? WEEK_SEARCH_BUDGET_MS,
+          forceTopN: input.force_top_n,
+          seed: input.seed,
+          comboReject: makeComboReject(uniqueDays, UNIQUE_WEEK_TARGET),
+          collectUnique: uniqueDays,
         },
-      };
-    }
-  } else {
-    for (let i = 0; i < input.days_count; i++) {
-      const { day, diagnostics } = buildDay(ctx, i, input.targets, recentMain, excluded, mode);
-      if (diagnostics) {
-        totalCombinations += diagnostics.combinations_checked;
-        totalElapsedMs += diagnostics.elapsed_ms;
-        timedOut = timedOut || diagnostics.timed_out;
-        if (diagnostics.last_failure_reason) {
-          lastFailureReason = diagnostics.last_failure_reason;
+      );
+      absorbDiag(diagnostics);
+      uniqueWeekDays = uniqueDays.length;
+      searchStage = "week_tile";
+      if (uniqueDays.length === 0) {
+        return failureResult(lastFailureReason, timedOut, diagnostics, 1);
+      }
+      const arranged = arrangeBestWeekCycle(uniqueDays);
+      uniqueWeekDays = arranged.length;
+      days.push(...tileConstructorWeek(arranged, input.days_count));
+      if (days.length !== input.days_count || days.some((dayRow) => !dayRow.is_valid)) {
+        return failureResult(lastFailureReason, timedOut, diagnostics, uniqueDays.length);
+      }
+    } else {
+      for (let i = 0; i < input.days_count; i++) {
+        const { day, diagnostics } = buildDay(
+          ctx,
+          i,
+          input.targets,
+          recentMain,
+          excluded,
+          mode,
+          dayOpts,
+        );
+        absorbDiag(diagnostics);
+        if (!day || !day.is_valid) {
+          return failureResult(lastFailureReason, timedOut, diagnostics, i + 1);
         }
+        days.push(day);
       }
-      if (!day || !day.is_valid) {
-        const infeasibleMsg = lastFailureReason
-          ? `Рацион не удалось собрать: ${lastFailureReason}. Проверьте исключённые продукты или выберите другой режим.`
-          : failMessage;
-        return {
-          is_valid: false,
-          kbju_acceptable: false,
-          message: diagnostics?.infeasible || diagnostics?.timed_out ? infeasibleMsg : failMessage,
-          comparison: [],
-          days: [],
-          diagnostics: {
-            combinations_checked: totalCombinations,
-            elapsed_ms: totalElapsedMs,
-            timed_out: timedOut,
-            infeasible: true,
-            last_failure_reason: lastFailureReason,
-            days_with_issues: i + 1,
-            best_recipe_slugs: diagnostics?.best_recipe_slugs ?? null,
-            best_deviation_score: diagnostics?.best_deviation_score ?? null,
-          },
-        };
-      }
-      days.push(day);
     }
-  }
 
-  const gramsInvalid = constructorDaysHaveInvalidGrams(days);
-  const finalizedDays = finalizeConstructorPlanDays(days);
-  const allValid = !gramsInvalid && finalizedDays.every((dayRow) => dayRow.is_valid);
-  const invalidDayCount = finalizedDays.filter((dayRow) => !dayRow.is_valid).length;
-  const avgTotals = sumMacros(
-    finalizedDays.map((dayRow) => ({
-      kcal: d(dayRow.kcal),
-      protein_g: d(dayRow.protein_g),
-      fat_g: d(dayRow.fat_g),
-      carbs_g: d(dayRow.carbs_g),
-      fiber_g: d(dayRow.fiber_g),
-    })),
-  );
-  const avg = {
-    kcal: avgTotals.kcal.div(finalizedDays.length),
-    protein_g: avgTotals.protein_g.div(finalizedDays.length),
-    fat_g: avgTotals.fat_g.div(finalizedDays.length),
-    carbs_g: avgTotals.carbs_g.div(finalizedDays.length),
-    fiber_g: avgTotals.fiber_g.div(finalizedDays.length),
-  };
+    const gramsInvalid = constructorDaysHaveInvalidGrams(days);
+    const finalizedDays = finalizeConstructorPlanDays(days);
+    const allValid = !gramsInvalid && finalizedDays.every((dayRow) => dayRow.is_valid);
+    const invalidDayCount = finalizedDays.filter((dayRow) => !dayRow.is_valid).length;
+    const avgTotals = sumMacros(
+      finalizedDays.map((dayRow) => ({
+        kcal: d(dayRow.kcal),
+        protein_g: d(dayRow.protein_g),
+        fat_g: d(dayRow.fat_g),
+        carbs_g: d(dayRow.carbs_g),
+        fiber_g: d(dayRow.fiber_g),
+      })),
+    );
+    const avg = {
+      kcal: avgTotals.kcal.div(finalizedDays.length),
+      protein_g: avgTotals.protein_g.div(finalizedDays.length),
+      fat_g: avgTotals.fat_g.div(finalizedDays.length),
+      carbs_g: avgTotals.carbs_g.div(finalizedDays.length),
+      fiber_g: avgTotals.fiber_g.div(finalizedDays.length),
+    };
 
-  const comparison = [
-    {
-      label: "Калории",
-      target: displayMacro(input.targets).kcal,
-      actual: displayMacro(avg).kcal,
-      diff: displayMacro(avg).kcal - displayMacro(input.targets).kcal,
-    },
-    {
-      label: "Белки",
-      target: displayMacro(input.targets).protein_g,
-      actual: displayMacro(avg).protein_g,
-      diff: displayMacro(avg).protein_g - displayMacro(input.targets).protein_g,
-    },
-    {
-      label: "Жиры",
-      target: displayMacro(input.targets).fat_g,
-      actual: displayMacro(avg).fat_g,
-      diff: displayMacro(avg).fat_g - displayMacro(input.targets).fat_g,
-    },
-    {
-      label: "Углеводы",
-      target: displayMacro(input.targets).carbs_g,
-      actual: displayMacro(avg).carbs_g,
-      diff: displayMacro(avg).carbs_g - displayMacro(input.targets).carbs_g,
-    },
-  ];
+    const comparison = [
+      {
+        label: "Калории",
+        target: displayMacro(input.targets).kcal,
+        actual: displayMacro(avg).kcal,
+        diff: displayMacro(avg).kcal - displayMacro(input.targets).kcal,
+      },
+      {
+        label: "Белки",
+        target: displayMacro(input.targets).protein_g,
+        actual: displayMacro(avg).protein_g,
+        diff: displayMacro(avg).protein_g - displayMacro(input.targets).protein_g,
+      },
+      {
+        label: "Жиры",
+        target: displayMacro(input.targets).fat_g,
+        actual: displayMacro(avg).fat_g,
+        diff: displayMacro(avg).fat_g - displayMacro(input.targets).fat_g,
+      },
+      {
+        label: "Углеводы",
+        target: displayMacro(input.targets).carbs_g,
+        actual: displayMacro(avg).carbs_g,
+        diff: displayMacro(avg).carbs_g - displayMacro(input.targets).carbs_g,
+      },
+    ];
 
-  const avgValid = withinTolerance(avg, input.targets, tolerance);
-  const kbjuAcceptable = allValid && avgValid;
-  const valid = kbjuAcceptable;
-
-  return {
-    is_valid: valid,
-    kbju_acceptable: kbjuAcceptable,
-    message: gramsInvalid
-      ? INVALID_INGREDIENT_GRAMS_MESSAGE
-      : valid
-        ? null
-        : buildPlanValidationMessage({
-            comparison,
-            tolerance,
-            hasDays: finalizedDays.length > 0,
-            failMessage,
-            invalidDayCount,
-            totalDays: finalizedDays.length,
-          }),
-    comparison,
-    days: finalizedDays,
-    best_approximation: valid ? undefined : { days: finalizedDays, comparison },
-    diagnostics: {
-      combinations_checked: totalCombinations,
-      elapsed_ms: totalElapsedMs,
+    const avgValid = withinTolerance(avg, input.targets, tolerance);
+    const kbjuAcceptable = allValid && avgValid;
+    const valid = kbjuAcceptable;
+    const reason_code = reasonFromDiagnostics({
+      is_valid: valid,
       timed_out: timedOut,
-      infeasible: !valid,
-      last_failure_reason: lastFailureReason,
-      days_with_issues: invalidDayCount,
-      unique_week_days: uniqueWeekDays,
-      week_tiled: weekTiled || undefined,
-    },
-  };
+      infeasible: !valid && !timedOut,
+    });
+
+    return {
+      is_valid: valid,
+      kbju_acceptable: kbjuAcceptable,
+      reason_code,
+      message: gramsInvalid
+        ? INVALID_INGREDIENT_GRAMS_MESSAGE
+        : valid
+          ? null
+          : buildPlanValidationMessage({
+              comparison,
+              tolerance,
+              hasDays: finalizedDays.length > 0,
+              failMessage,
+              invalidDayCount,
+              totalDays: finalizedDays.length,
+            }),
+      comparison,
+      // Near-miss: не отдаём дни как готовый рацион
+      days: valid ? finalizedDays : [],
+      best_approximation: valid ? undefined : { days: finalizedDays, comparison },
+      diagnostics: {
+        combinations_checked: totalCombinations,
+        elapsed_ms: totalElapsedMs,
+        timed_out: timedOut,
+        infeasible: !valid && !timedOut,
+        last_failure_reason: lastFailureReason,
+        days_with_issues: invalidDayCount,
+        unique_week_days: uniqueWeekDays,
+        week_tiled: weekTiled || undefined,
+        reason_code,
+        search_stage: searchStage,
+        fast_elapsed_ms: fastElapsed || undefined,
+        fallback_elapsed_ms: fallbackElapsed || undefined,
+        used_fallback: usedFallback,
+        seed: input.seed ?? null,
+      },
+    };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return emptyFail("INTERNAL_ERROR", userMessageForReason("INTERNAL_ERROR", detail));
+  }
 }
 
 export type { PrimaryMealSlot };

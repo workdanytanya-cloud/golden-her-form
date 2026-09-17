@@ -23,21 +23,37 @@ export type MacroPriorities = {
   lowCarb: boolean;
   /** 1313/112 — жёсткий режим: только protein-rich mains + tuna/cheese snacks. */
   strictHighProtein: boolean;
+  /** Доля жиров низкая (~≤28% ккал) — избегать fat-forward и держать масло у 0. */
+  lowFat: boolean;
+  /** Доля углеводов высокая (~≥45% ккал) — предпочитать крупы. */
+  highCarb: boolean;
 };
 
 export function macroPriorities(targets: MacroBreakdown): MacroPriorities {
   const kcal = targets.kcal.toNumber();
-  if (kcal <= 0) return { proteinFocused: false, lowCarb: false, strictHighProtein: false };
+  if (kcal <= 0) {
+    return {
+      proteinFocused: false,
+      lowCarb: false,
+      strictHighProtein: false,
+      lowFat: false,
+      highCarb: false,
+    };
+  }
   const proteinKcal = targets.protein_g.toNumber() * 4;
   const carbsKcal = targets.carbs_g.toNumber() * 4;
+  const fatKcal = targets.fat_g.toNumber() * 9;
   const proteinPct = proteinKcal / kcal;
   const carbsPct = carbsKcal / kcal;
+  const fatPct = fatKcal / kcal;
   return {
     proteinFocused:
       proteinPct >= 0.28 ||
       targets.protein_g.toNumber() >= targets.carbs_g.toNumber() * 0.85,
     lowCarb: carbsPct <= 0.35,
     strictHighProtein: isHighProteinTarget(targets),
+    lowFat: fatPct <= 0.28,
+    highCarb: carbsPct >= 0.45,
   };
 }
 

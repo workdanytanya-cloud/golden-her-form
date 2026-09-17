@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { ConstructorNutritionView } from "@/components/panel/ConstructorNutritionView";
+import { SnapshotPdfButton } from "@/components/panel/SnapshotPdfButton";
 import {
   TrainerMealEditor,
   type MealEditorMode,
@@ -33,6 +34,7 @@ import {
 import type { ConstructorDay } from "@/lib/nutrition-constructor/types";
 import {
   evaluatePlanKbjuStatus,
+  inferMealScheduleModeFromDays,
   kbjuStatusLabel,
   planStructureValid,
 } from "@/lib/nutrition-constructor/plan-kbju-status";
@@ -153,7 +155,7 @@ export function ConstructorAdminPanel({
       setPublishedVersion(pub?.version?.version ?? null);
       const { plan, days: loaded } = await loadConstructorPlanFor(userId, courseId);
       if (!plan) return;
-      const mode = plan.meal_schedule_mode ?? "two_main_two_snacks";
+      const storedMode = plan.meal_schedule_mode ?? "two_main_two_snacks";
       setTargets({
         kcal: plan.target_kcal,
         protein_g: plan.target_protein_g,
@@ -162,7 +164,6 @@ export function ConstructorAdminPanel({
       });
       setPlanStatus(plan.plan_status);
       setDaysCount((plan.plan_days_count as PlanDaysCount) || 7);
-      setScheduleMode(mode);
       setPrimarySlot(plan.primary_meal_slot ?? "lunch");
       const mapped = loaded.map((row) => ({
         day_index: row.day_index,
@@ -175,9 +176,22 @@ export function ConstructorAdminPanel({
         fiber_g: row.fiber_g,
         is_valid: row.is_valid,
       }));
+      // Импорт/legacy иногда пишут one_main_three_snacks при фактических слотах 2+2 —
+      // не прячем меню, а подстраиваем режим под слоты.
+      const inferred = inferMealScheduleModeFromDays(mapped);
+      const mode =
+        mapped.length > 0 && planStructureValid(mapped, storedMode)
+          ? storedMode
+          : (inferred ?? storedMode);
+      setScheduleMode(mode);
       if (mapped.length > 0 && planStructureValid(mapped, mode)) {
         setDays(mapped);
         setPreviewMode(mode);
+        setGenerationError(
+          inferred && inferred !== storedMode
+            ? `Режим в черновике был «${storedMode}», по слотам показан как «${inferred}».`
+            : null,
+        );
         setComparison(
           comparisonRows(
             {
@@ -247,15 +261,18 @@ export function ConstructorAdminPanel({
   );
 
   const deviationSummary = useMemo(
-    () => (dayComparison.length > 0 ? formatMacroDeviationSummary(dayComparison, kbjuTolerance) : ""),
+    () =>
+      dayComparison.length > 0 ? formatMacroDeviationSummary(dayComparison, kbjuTolerance) : "",
     [dayComparison, kbjuTolerance],
   );
 
   const shoppingList = useMemo(() => shoppingListFromDays(visibleDays), [visibleDays]);
 
-  const editorDay = visibleDays.find((day) => day.day_index === editor.dayIndex) ?? visibleDays[0] ?? null;
+  const editorDay =
+    visibleDays.find((day) => day.day_index === editor.dayIndex) ?? visibleDays[0] ?? null;
   const proposals = useMemo(() => {
-    if (!editor.open || (editor.mode !== "suggest" && editor.mode !== "add") || !editorDay) return [];
+    if (!editor.open || (editor.mode !== "suggest" && editor.mode !== "add") || !editorDay)
+      return [];
     return proposeDayCorrections({
       day: editorDay,
       targets: targetMacro,
@@ -264,16 +281,15 @@ export function ConstructorAdminPanel({
   }, [editor, editorDay, targetMacro, catalog.products]);
 
   const applyDays = (nextDays: ConstructorDay[]) => {
-    const nextComparison =
-      nextDays[0]
-        ? comparisonRows(targetMacro, {
-            kcal: d(nextDays[0].kcal),
-            protein_g: d(nextDays[0].protein_g),
-            fat_g: d(nextDays[0].fat_g),
-            carbs_g: d(nextDays[0].carbs_g),
-            fiber_g: d(nextDays[0].fiber_g),
-          })
-        : [];
+    const nextComparison = nextDays[0]
+      ? comparisonRows(targetMacro, {
+          kcal: d(nextDays[0].kcal),
+          protein_g: d(nextDays[0].protein_g),
+          fat_g: d(nextDays[0].fat_g),
+          carbs_g: d(nextDays[0].carbs_g),
+          fiber_g: d(nextDays[0].fiber_g),
+        })
+      : [];
     setDays(nextDays);
     setComparison(nextComparison);
     const status = evaluatePlanKbjuStatus({
@@ -315,6 +331,7 @@ export function ConstructorAdminPanel({
   };
 
   const handleGenerate = async () => {
+    if (loading) return;
     const seq = ++genToken.current;
     const fieldTargets = {
       kcal: syncedKcal(targets.protein_g, targets.fat_g, targets.carbs_g),
@@ -368,17 +385,34 @@ export function ConstructorAdminPanel({
         adjustment_pct: result.adjustment_pct,
       });
       setUsedTargetsLine(result.used_targets_line ?? line);
+      const diag = result.diagnostics as
+        | {
+            timed_out?: boolean;
+            infeasible?: boolean;
+            last_failure_reason?: string | null;
+            combinations_checked?: number;
+            elapsed_ms?: number;
+            reason_code?: string;
+            search_stage?: string;
+            used_fallback?: boolean;
+          }
+        | undefined;
+      const reasonCode =
+        (result as { reason_code?: string }).reason_code ??
+        diag?.reason_code ??
+        (diag?.timed_out ? "TIMEOUT" : diag?.infeasible ? "INFEASIBLE" : "SEARCH_FAILED");
       if (result.days.length === 0 || !planStructureValid(result.days, scheduleMode)) {
-        const message =
-          result.message ??
-          "Не удалось собрать рацион в выбранном режиме. Старое меню не показано.";
-        setGenerationError(message);
+        const message = result.message ?? "Не удалось собрать рацион. Черновик не изменён.";
+        setGenerationError(
+          `${message}\nКод: ${reasonCode}` +
+            (diag?.search_stage ? `\nЭтап поиска: ${diag.search_stage}` : "") +
+            (diag?.used_fallback ? "\nЗапускался exact fallback" : "") +
+            (diag?.last_failure_reason ? `\nОтклонение: ${diag.last_failure_reason}` : "") +
+            (diag?.elapsed_ms != null ? `\nВремя поиска: ${diag.elapsed_ms} мс` : ""),
+        );
         toast.error(message);
         return;
       }
-      setPreviewMode(scheduleMode);
-      applyDays(result.days);
-      setReviewReason(result.review_reason);
       const targetsRaw = (result.targets ?? {}) as Record<string, unknown>;
       const targetMacro = {
         kcal: d(toNum(targetsRaw.kcal)),
@@ -393,8 +427,24 @@ export function ConstructorAdminPanel({
         scheduleMode,
         comparison: result.comparison,
       });
-      setPlanStatus(status.generationOk ? "validated" : "draft");
-      toast.success(status.generationOk ? "Рацион собран и прошёл проверку" : "Рацион собран — требуется доработка");
+      if (!status.generationOk || !result.is_valid) {
+        setGenerationError(
+          (result.message ??
+            "Рацион не прошёл допуск KBJU — near-miss не применяется к черновику.") +
+            (status.precisionHint ? `\n${status.precisionHint}` : "") +
+            `\nКод: ${reasonCode}` +
+            (diag?.search_stage ? `\nЭтап поиска: ${diag.search_stage}` : "") +
+            (diag?.timed_out ? "\nTIMEOUT" : diag?.infeasible ? "\nINFEASIBLE" : ""),
+        );
+        toast.error("KBJU вне допуска — черновик не изменён");
+        return;
+      }
+      setPreviewMode(scheduleMode);
+      applyDays(result.days);
+      setReviewReason(result.review_reason);
+      setGenerationError(null);
+      setPlanStatus("validated");
+      toast.success("Рацион собран и прошёл проверку");
     } catch (e) {
       if (seq !== genToken.current) return;
       const message = (e as Error).message;
@@ -415,9 +465,8 @@ export function ConstructorAdminPanel({
     setSaving(true);
     try {
       if (assign) {
-        const { requireSelfhostAdminSession, usesLocalPostgresCircuit } = await import(
-          "@/lib/selfhost/client-api"
-        );
+        const { requireSelfhostAdminSession, usesLocalPostgresCircuit } =
+          await import("@/lib/selfhost/client-api");
         if (await usesLocalPostgresCircuit()) {
           // Cookie-сессия могла смениться (клиент в той же вкладке) при живом React-state тренера.
           await requireSelfhostAdminSession();
@@ -579,7 +628,13 @@ export function ConstructorAdminPanel({
           {(["kcal", "protein_g", "fat_g", "carbs_g"] as const).map((key) => (
             <label key={key} className="block">
               <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">
-                {key === "kcal" ? "Ккал" : key === "protein_g" ? "Белки" : key === "fat_g" ? "Жиры" : "Углеводы"}
+                {key === "kcal"
+                  ? "Ккал"
+                  : key === "protein_g"
+                    ? "Белки"
+                    : key === "fat_g"
+                      ? "Жиры"
+                      : "Углеводы"}
               </span>
               <input
                 type="number"
@@ -589,7 +644,8 @@ export function ConstructorAdminPanel({
                   const v = Number(e.target.value) || 0;
                   setTargets((prev) => {
                     const next = { ...prev, [key]: v };
-                    if (key !== "kcal") next.kcal = syncedKcal(next.protein_g, next.fat_g, next.carbs_g);
+                    if (key !== "kcal")
+                      next.kcal = syncedKcal(next.protein_g, next.fat_g, next.carbs_g);
                     return next;
                   });
                 }}
@@ -721,6 +777,12 @@ export function ConstructorAdminPanel({
             >
               {publishedVersion != null ? "Опубликовать новую версию" : "Назначить клиенту"}
             </button>
+            <SnapshotPdfButton
+              kind="nutrition"
+              courseId={courseId}
+              clientId={userId}
+              disabled={publishedVersion == null}
+            />
           </>
         )}
       </div>
@@ -739,8 +801,16 @@ export function ConstructorAdminPanel({
 
       {visibleDays.length > 0 && (
         <div className="grid gap-2 rounded-2xl border border-gold/15 bg-surface/20 p-4 text-sm sm:grid-cols-2">
-          <CheckRow label="Основных приёмов" actual={checks.mains.actual} expected={checks.mains.expected} />
-          <CheckRow label="Перекусов" actual={checks.snacks.actual} expected={checks.snacks.expected} />
+          <CheckRow
+            label="Основных приёмов"
+            actual={checks.mains.actual}
+            expected={checks.mains.expected}
+          />
+          <CheckRow
+            label="Перекусов"
+            actual={checks.snacks.actual}
+            expected={checks.snacks.expected}
+          />
           <CheckRow
             label="Перекусов без приготовления"
             actual={checks.noCookSnacks.actual}
@@ -767,7 +837,9 @@ export function ConstructorAdminPanel({
               </span>
             ) : null}
             {!kbjuStatus.generationOk && deviationSummary ? (
-              <span className="mt-1 block text-coral">Отклонение выбранного дня: {deviationSummary}</span>
+              <span className="mt-1 block text-coral">
+                Отклонение выбранного дня: {deviationSummary}
+              </span>
             ) : null}
           </p>
         </div>
@@ -805,7 +877,9 @@ export function ConstructorAdminPanel({
           editable
           onIngredientGramsChange={handleGramsChange}
           onAddMeal={(dayIndex) => setEditor({ open: true, mode: "add", dayIndex })}
-          onReplaceMeal={(dayIndex, slot) => setEditor({ open: true, mode: "replace", dayIndex, slot })}
+          onReplaceMeal={(dayIndex, slot) =>
+            setEditor({ open: true, mode: "replace", dayIndex, slot })
+          }
           onDeleteMeal={(dayIndex, slot) => {
             const current = visibleDays.find((day) => day.day_index === dayIndex);
             if (!current) return;

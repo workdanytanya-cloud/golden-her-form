@@ -28,6 +28,36 @@ export function planStructureValid(days: ConstructorDay[], mode: MealScheduleMod
   return days.length > 0 && days.every((day) => dayHasRequiredSlots(day, mode));
 }
 
+/** Вывести режим по фактическим слотам дня (импорт/legacy иногда хранят чужой meal_schedule_mode). */
+export function inferMealScheduleModeFromDays(
+  days: Array<{ items: Array<{ slot: string }> }>,
+): MealScheduleMode | null {
+  if (days.length === 0) return null;
+  const counts = days.map((day) => {
+    const mains = day.items.filter((i) => String(i.slot).startsWith("main")).length;
+    const snacks = day.items.filter((i) => String(i.slot).startsWith("snack")).length;
+    return `${mains}:${snacks}`;
+  });
+  if (counts.some((c) => c !== counts[0])) return null;
+  const [mains, snacks] = counts[0]!.split(":").map(Number) as [number, number];
+  if (mains === 3 && snacks === 2) return "three_main_two_snacks";
+  if (mains === 3 && snacks === 0) return "three_mains_only";
+  if (mains === 1 && snacks === 3) return "one_main_three_snacks";
+  if (mains === 2 && snacks === 2) return "two_main_two_snacks";
+  return null;
+}
+
+/** Режим для отображения: сохранённый, если структура сходится, иначе выведенный из слотов. */
+export function resolveDisplayMealScheduleMode(
+  days: Array<{ items: Array<{ slot: string }> }>,
+  stored: MealScheduleMode | string | null | undefined,
+  fallback: MealScheduleMode = "two_main_two_snacks",
+): MealScheduleMode {
+  const mode = (stored as MealScheduleMode | undefined) ?? fallback;
+  if (days.length > 0 && planStructureValid(days as ConstructorDay[], mode)) return mode;
+  return inferMealScheduleModeFromDays(days) ?? mode;
+}
+
 export type PlanKbjuStatus = {
   /** Среднее и дни в допуске режима (можно назначить клиенту). */
   acceptable: boolean;

@@ -1,0 +1,627 @@
+{
+  "total": 28,
+  "by_status": {
+    "PASS": 21,
+    "INFEASIBLE": 3,
+    "TIMEOUT": 4
+  },
+  "rows": [
+    {
+      "kcal": 1200,
+      "mode": "three_mains_only",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1200,
+        "protein_g": 74.2,
+        "fat_g": 33.9,
+        "carbs_g": 150.3,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": -0.8,
+        "fat_g": 0.6,
+        "carbs_g": 0.2
+      },
+      "elapsed_ms": 19538,
+      "fast_elapsed_ms": 13540,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1313,
+      "mode": "three_mains_only",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1313,
+        "protein_g": 111.9,
+        "fat_g": 57,
+        "carbs_g": 90.1,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": -0.2,
+        "fat_g": 0.9,
+        "carbs_g": 0.2
+      },
+      "elapsed_ms": 8692,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1500,
+      "mode": "three_mains_only",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1500,
+        "protein_g": 93.8,
+        "fat_g": 40.8,
+        "carbs_g": 187.5,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": 0,
+        "fat_g": -0.9,
+        "carbs_g": 0.1
+      },
+      "elapsed_ms": 9967,
+      "fast_elapsed_ms": 7162,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1726,
+      "mode": "three_mains_only",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1726,
+        "protein_g": 100,
+        "fat_g": 48.6,
+        "carbs_g": 220.9,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": 1,
+        "fat_g": -0.9,
+        "carbs_g": -0.3
+      },
+      "elapsed_ms": 11798,
+      "fast_elapsed_ms": 11758,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1800,
+      "mode": "three_mains_only",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1800,
+        "protein_g": 134.2,
+        "fat_g": 59.6,
+        "carbs_g": 179.2,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": -0.8,
+        "fat_g": -0.4,
+        "carbs_g": -0.8
+      },
+      "elapsed_ms": 4769,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 2000,
+      "mode": "three_mains_only",
+      "status": "PASS",
+      "actual": {
+        "kcal": 2000,
+        "protein_g": 124.1,
+        "fat_g": 55.3,
+        "carbs_g": 248.9,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": -0.9,
+        "fat_g": -0.3,
+        "carbs_g": -1
+      },
+      "elapsed_ms": 20426,
+      "fast_elapsed_ms": 20356,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 2200,
+      "mode": "three_mains_only",
+      "status": "PASS",
+      "actual": {
+        "kcal": 2200,
+        "protein_g": 136.9,
+        "fat_g": 60.2,
+        "carbs_g": 274.2,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": -0.6,
+        "fat_g": -0.9,
+        "carbs_g": -0.8
+      },
+      "elapsed_ms": 35304,
+      "fast_elapsed_ms": 33000,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1200,
+      "mode": "three_main_two_snacks",
+      "status": "INFEASIBLE",
+      "actual": null,
+      "diffs": null,
+      "elapsed_ms": 11680,
+      "fast_elapsed_ms": 11338,
+      "fallback_elapsed_ms": 0,
+      "search_stage": "exact_fallback",
+      "used_fallback": true,
+      "days": 0,
+      "seed": 17260917,
+      "message": "Рацион доказанно недостижим (INFEASIBLE): избыток белка (+6.3 г); недобор жиров (-3.6 г); избыток углеводов (+12.1 г)"
+    },
+    {
+      "kcal": 1313,
+      "mode": "three_main_two_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1313,
+        "protein_g": 111.1,
+        "fat_g": 57.1,
+        "carbs_g": 90.4,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": -1,
+        "fat_g": 1,
+        "carbs_g": 0.5
+      },
+      "elapsed_ms": 13003,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1500,
+      "mode": "three_main_two_snacks",
+      "status": "TIMEOUT",
+      "actual": null,
+      "diffs": null,
+      "elapsed_ms": 47713,
+      "fast_elapsed_ms": 41746,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 0,
+      "seed": 17260917,
+      "message": "Поиск не завершён вовремя (TIMEOUT): избыток белка (+2.8 г); избыток жиров (+4.4 г); избыток углеводов (+3.6 г). Повторите генерацию."
+    },
+    {
+      "kcal": 1726,
+      "mode": "three_main_two_snacks",
+      "status": "TIMEOUT",
+      "actual": null,
+      "diffs": null,
+      "elapsed_ms": 51365,
+      "fast_elapsed_ms": 42166,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 0,
+      "seed": 17260917,
+      "message": "Поиск не завершён вовремя (TIMEOUT): избыток белка (+1.1 г); избыток жиров (+2.9 г); избыток углеводов (+3.4 г). Повторите генерацию."
+    },
+    {
+      "kcal": 1800,
+      "mode": "three_main_two_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1800,
+        "protein_g": 134.1,
+        "fat_g": 60.9,
+        "carbs_g": 179.3,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": -0.9,
+        "fat_g": 0.9,
+        "carbs_g": -0.7
+      },
+      "elapsed_ms": 2800,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 2000,
+      "mode": "three_main_two_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 2000,
+        "protein_g": 125.9,
+        "fat_g": 54.9,
+        "carbs_g": 250.4,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": 0.9,
+        "fat_g": -0.7,
+        "carbs_g": 0.5
+      },
+      "elapsed_ms": 586,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 2200,
+      "mode": "three_main_two_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 2200,
+        "protein_g": 136.6,
+        "fat_g": 61.7,
+        "carbs_g": 274.1,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": -0.9,
+        "fat_g": 0.6,
+        "carbs_g": -0.9
+      },
+      "elapsed_ms": 359,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1200,
+      "mode": "two_main_two_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1200,
+        "protein_g": 75,
+        "fat_g": 34.3,
+        "carbs_g": 149.5,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": 0,
+        "fat_g": 1,
+        "carbs_g": -0.6
+      },
+      "elapsed_ms": 5788,
+      "fast_elapsed_ms": 5639,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1313,
+      "mode": "two_main_two_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1312,
+        "protein_g": 112.7,
+        "fat_g": 57,
+        "carbs_g": 90.4,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": -1,
+        "protein_g": 0.6,
+        "fat_g": 0.9,
+        "carbs_g": 0.5
+      },
+      "elapsed_ms": 636,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1500,
+      "mode": "two_main_two_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1499,
+        "protein_g": 93.5,
+        "fat_g": 41.6,
+        "carbs_g": 187.4,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": -1,
+        "protein_g": -0.3,
+        "fat_g": -0.1,
+        "carbs_g": 0
+      },
+      "elapsed_ms": 3426,
+      "fast_elapsed_ms": 3385,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1726,
+      "mode": "two_main_two_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1726,
+        "protein_g": 99.9,
+        "fat_g": 49.6,
+        "carbs_g": 222.1,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": 0.9,
+        "fat_g": 0.1,
+        "carbs_g": 0.9
+      },
+      "elapsed_ms": 8313,
+      "fast_elapsed_ms": 8265,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1800,
+      "mode": "two_main_two_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1800,
+        "protein_g": 136,
+        "fat_g": 60.3,
+        "carbs_g": 180,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": 1,
+        "fat_g": 0.3,
+        "carbs_g": 0
+      },
+      "elapsed_ms": 41501,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 2000,
+      "mode": "two_main_two_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 2000,
+        "protein_g": 124,
+        "fat_g": 56.6,
+        "carbs_g": 249,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": -1,
+        "fat_g": 1,
+        "carbs_g": -0.9
+      },
+      "elapsed_ms": 16123,
+      "fast_elapsed_ms": 16075,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 2200,
+      "mode": "two_main_two_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 2200,
+        "protein_g": 136.7,
+        "fat_g": 62,
+        "carbs_g": 275.6,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": -0.8,
+        "fat_g": 0.9,
+        "carbs_g": 0.6
+      },
+      "elapsed_ms": 17385,
+      "fast_elapsed_ms": 17321,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1200,
+      "mode": "one_main_three_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1200,
+        "protein_g": 75.5,
+        "fat_g": 33,
+        "carbs_g": 150.4,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": 0.5,
+        "fat_g": -0.3,
+        "carbs_g": 0.3
+      },
+      "elapsed_ms": 558,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1313,
+      "mode": "one_main_three_snacks",
+      "status": "TIMEOUT",
+      "actual": null,
+      "diffs": null,
+      "elapsed_ms": 31529,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 0,
+      "seed": 17260917,
+      "message": "Поиск не завершён вовремя (TIMEOUT): избыток белка (+3.6 г); недобор жиров (-3.8 г). Повторите генерацию."
+    },
+    {
+      "kcal": 1500,
+      "mode": "one_main_three_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1500,
+        "protein_g": 92.9,
+        "fat_g": 42.6,
+        "carbs_g": 187.5,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": -0.9,
+        "fat_g": 0.9,
+        "carbs_g": 0.1
+      },
+      "elapsed_ms": 26787,
+      "fast_elapsed_ms": 22510,
+      "fallback_elapsed_ms": 4039,
+      "search_stage": "exact_fallback",
+      "used_fallback": true,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 1726,
+      "mode": "one_main_three_snacks",
+      "status": "TIMEOUT",
+      "actual": null,
+      "diffs": null,
+      "elapsed_ms": 48013,
+      "fast_elapsed_ms": 34878,
+      "fallback_elapsed_ms": 5989,
+      "search_stage": "exact_fallback",
+      "used_fallback": true,
+      "days": 0,
+      "seed": 17260917,
+      "message": "Поиск не завершён вовремя (TIMEOUT): избыток жиров (+3.3 г). Повторите генерацию."
+    },
+    {
+      "kcal": 1800,
+      "mode": "one_main_three_snacks",
+      "status": "PASS",
+      "actual": {
+        "kcal": 1800,
+        "protein_g": 135.8,
+        "fat_g": 60.1,
+        "carbs_g": 180.7,
+        "fiber_g": 0
+      },
+      "diffs": {
+        "kcal": 0,
+        "protein_g": 0.8,
+        "fat_g": 0.1,
+        "carbs_g": 0.7
+      },
+      "elapsed_ms": 15089,
+      "search_stage": "fast_topn",
+      "used_fallback": false,
+      "days": 1,
+      "seed": 17260917,
+      "message": null
+    },
+    {
+      "kcal": 2000,
+      "mode": "one_main_three_snacks",
+      "status": "INFEASIBLE",
+      "actual": null,
+      "diffs": null,
+      "elapsed_ms": 25026,
+      "fast_elapsed_ms": 13264,
+      "fallback_elapsed_ms": 11325,
+      "search_stage": "exact_fallback",
+      "used_fallback": true,
+      "days": 0,
+      "seed": 17260917,
+      "message": "Рацион доказанно недостижим (INFEASIBLE): недобор калорий (-109 ккал); недобор белка (-29.7 г); избыток жиров (+14.4 г); недобор углеводов (-22.2 г)"
+    },
+    {
+      "kcal": 2200,
+      "mode": "one_main_three_snacks",
+      "status": "INFEASIBLE",
+      "actual": null,
+      "diffs": null,
+      "elapsed_ms": 22754,
+      "fast_elapsed_ms": 12279,
+      "fallback_elapsed_ms": 10051,
+      "search_stage": "exact_fallback",
+      "used_fallback": true,
+      "days": 0,
+      "seed": 17260917,
+      "message": "Рацион доказанно недостижим (INFEASIBLE): недобор калорий (-309 ккал); недобор белка (-42.2 г); избыток жиров (+8.9 г); недобор углеводов (-47.3 г)"
+    }
+  ]
+}

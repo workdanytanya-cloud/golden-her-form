@@ -151,7 +151,7 @@ function applyGrams(
   const slug = lever.slug;
   const prevG = d(ing.grams).toNumber();
   if (nextG === prevG) return null;
-  if (slug && isOil(slug) && nextG > 0 && nextG < OIL_GRAM_MIN) return null;
+  if (isOil(slug) && nextG > 0 && nextG < OIL_GRAM_MIN) return null;
   if (slug && isOil(slug) && nextG > prevG) {
     if (dayOilTotalG(items, ctx) + (nextG - prevG) > OIL_DAILY_MAX_G) return null;
   }

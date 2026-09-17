@@ -27,7 +27,12 @@ export type MacroSnapshot = {
 };
 
 export function d(value: string | number | Decimal): Decimal {
-  return value instanceof Decimal ? value : new Decimal(value);
+  if (value instanceof Decimal) return value;
+  if (typeof value === "string") {
+    const trimmed = value.trim().replace(/\s+/g, "").replace(",", ".");
+    return new Decimal(trimmed === "" ? NaN : trimmed);
+  }
+  return new Decimal(value);
 }
 
 /** Итог = значение_на_100г × масса_г / 100 */
@@ -97,13 +102,14 @@ export function displayMacro(m: MacroBreakdown): MacroDisplay {
 
 export type TargetMacroNumbers = Pick<MacroDisplay, "kcal" | "protein_g" | "fat_g" | "carbs_g">;
 
-/** nutrition_plans.target_* в Postgres — integer; UI может показывать десятые. */
+/** nutrition_plans.target_* — numeric(10,2); десятые доли сохраняем. */
 export function roundTargetsForDb(targets: TargetMacroNumbers): TargetMacroNumbers {
+  const one = (n: number) => Math.round(n * 10) / 10;
   return {
     kcal: Math.round(targets.kcal),
-    protein_g: Math.round(targets.protein_g),
-    fat_g: Math.round(targets.fat_g),
-    carbs_g: Math.round(targets.carbs_g),
+    protein_g: one(targets.protein_g),
+    fat_g: one(targets.fat_g),
+    carbs_g: one(targets.carbs_g),
   };
 }
 
@@ -138,7 +144,8 @@ export function snapshotFromStrings(s: MacroSnapshot): MacroBreakdown {
  * Отклоняет пустые строки, NaN, Infinity и значения, которые Decimal не парсит.
  */
 export function finiteMacroNumber(value: string | number): number {
-  const normalized = typeof value === "string" ? value.trim() : value;
+  const normalized =
+    typeof value === "string" ? value.trim().replace(/\s+/g, "").replace(",", ".") : value;
   if (normalized === "") {
     throw new Error(`Некорректное числовое значение КБЖУ: ${String(value)}`);
   }

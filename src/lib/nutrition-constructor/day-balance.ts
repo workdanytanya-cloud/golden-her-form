@@ -59,6 +59,14 @@ export function balancedMacroDeviationScore(
     return kcalDiff * 10 + proteinPenalty + fatPenalty + carbsPenalty;
   }
 
+  // 1726-style: низкий жир / высокий carb — сильно штрафуем избыток жира и недобор круп.
+  if (priorities?.lowFat || priorities?.highCarb) {
+    const proteinPenalty = proteinDiff < 0 ? Math.abs(proteinDiff) * 14 : proteinDiff * 8;
+    const fatPenalty = fatDiff > 0 ? fatDiff * 22 : Math.abs(fatDiff) * 8;
+    const carbsPenalty = carbsDiff < 0 ? Math.abs(carbsDiff) * 18 : carbsDiff * 8;
+    return kcalDiff * 10 + proteinPenalty + fatPenalty + carbsPenalty;
+  }
+
   const proteinPenalty =
     proteinDiff > 0 ? proteinDiff * 18 : Math.abs(proteinDiff) * 8;
   const fatPenalty = fatDiff < 0 ? Math.abs(fatDiff) * 22 : Math.abs(fatDiff) * 10;
@@ -222,11 +230,14 @@ export function tuneDayToTargets(params: {
             : { min_g: 0, max_g: 600 });
 
         const stepSize = gramStepForProduct(slug);
+        const prevG = d(ing.grams).toNumber();
         let deltas: number[];
         if (isFatLever(slug)) {
           if (fatDeficit) deltas = [stepSize];
-          else if (fatSurplus) deltas = [-stepSize];
-          else deltas = [stepSize, -stepSize];
+          else if (fatSurplus) {
+            // Масло нельзя опустить 3→2 из‑за OIL_GRAM_MIN; при избытке жира прыгаем в 0.
+            deltas = isOil(slug) && prevG > 0 ? [-stepSize, -prevG] : [-stepSize];
+          } else deltas = [stepSize, -stepSize];
         } else if (isProteinMain(slug)) {
           if (proteinSurplus) deltas = [-stepSize];
           else if (proteinDeficit) deltas = [stepSize];
@@ -240,7 +251,7 @@ export function tuneDayToTargets(params: {
         }
 
         for (const delta of deltas) {
-          const prevG = d(ing.grams).toNumber();
+          if (delta === 0) continue;
           const nextG = prevG + delta;
           if (nextG < bounds.min_g || nextG > bounds.max_g) continue;
           if (isOil(slug) && nextG > 0 && nextG < OIL_GRAM_MIN) continue;

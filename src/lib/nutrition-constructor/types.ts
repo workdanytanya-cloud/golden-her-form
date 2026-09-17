@@ -160,6 +160,12 @@ export type OptimizerDiagnostics = {
   best_deviation_score?: number | null;
   unique_week_days?: number;
   week_tiled?: boolean;
+  reason_code?: import("@/lib/nutrition-constructor/reason-codes").NutritionReasonCode;
+  search_stage?: import("@/lib/nutrition-constructor/reason-codes").NutritionSearchStage;
+  fast_elapsed_ms?: number;
+  fallback_elapsed_ms?: number;
+  seed?: number | null;
+  used_fallback?: boolean;
 };
 
 export type PlanValidationResult = {
@@ -173,6 +179,7 @@ export type PlanValidationResult = {
     comparison: MacroComparisonRow[];
   };
   diagnostics?: OptimizerDiagnostics;
+  reason_code?: import("@/lib/nutrition-constructor/reason-codes").NutritionReasonCode;
 };
 
 export type GenerateConstructorPlanInput = {
@@ -187,6 +194,14 @@ export type GenerateConstructorPlanInput = {
   };
   meal_schedule_mode: MealScheduleMode;
   primary_meal_slot: PrimaryMealSlot;
+  /** Фиксированный seed для воспроизводимости порядка кандидатов. */
+  seed?: number;
+  /** Тестовый override: размер Top-N на первом этапе (force fallback). */
+  force_top_n?: number;
+  /** Принудительный лимит времени поиска (мс) — для TIMEOUT-тестов. */
+  search_timeout_ms?: number;
+  /** Тестовый hook: бросить INTERNAL_ERROR. */
+  force_internal_error?: boolean;
 };
 
 export type DayStructureCheck = {

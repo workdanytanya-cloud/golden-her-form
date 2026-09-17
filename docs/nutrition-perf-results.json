@@ -1,0 +1,52 @@
+{
+  "n": 6,
+  "median_ms": 25629,
+  "p95_ms": 94907,
+  "max_ms": 94907,
+  "fast_median_ms": 12322,
+  "fallback_median_ms": 11697,
+  "samples": [
+    {
+      "label": "1313/two_main_two_snacks/1d",
+      "elapsed_ms": 1054,
+      "used_fallback": false,
+      "status": "PASS"
+    },
+    {
+      "label": "1726/three_mains_only/1d",
+      "elapsed_ms": 11581,
+      "fast_elapsed_ms": 11519,
+      "used_fallback": false,
+      "status": "PASS"
+    },
+    {
+      "label": "1726/three_mains_only/7d",
+      "elapsed_ms": 94907,
+      "fast_elapsed_ms": 12322,
+      "fallback_elapsed_ms": 73887,
+      "used_fallback": true,
+      "status": "PASS"
+    },
+    {
+      "label": "1800/two_main_two_snacks/1d",
+      "elapsed_ms": 48404,
+      "used_fallback": false,
+      "status": "PASS"
+    },
+    {
+      "label": "1500/three_main_two_snacks/1d",
+      "elapsed_ms": 48601,
+      "fast_elapsed_ms": 42510,
+      "used_fallback": false,
+      "status": "TIMEOUT"
+    },
+    {
+      "label": "2000/one_main_three_snacks/1d",
+      "elapsed_ms": 25629,
+      "fast_elapsed_ms": 13494,
+      "fallback_elapsed_ms": 11697,
+      "used_fallback": true,
+      "status": "INFEASIBLE"
+    }
+  ]
+}
