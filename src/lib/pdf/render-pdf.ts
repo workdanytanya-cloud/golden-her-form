@@ -1,6 +1,6 @@
-import PDFDocument from "pdfkit";
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import type { NutritionSnapshot, TrainingSnapshot } from "@/lib/published-programs/types";
 import {
@@ -11,12 +11,38 @@ import {
   type PdfKind,
 } from "@/lib/pdf/snapshot-content";
 
+// pdfkit is CJS and relies on __dirname; load via createRequire (not ESM default import).
+const require = createRequire(import.meta.url);
+const PDFDocument = require("pdfkit") as typeof import("pdfkit");
+
+const FONT_FILE = "NotoSans-Regular.ttf";
+
+function fontsDirCandidates(): string[] {
+  const besideModule = path.join(path.dirname(fileURLToPath(import.meta.url)), "fonts");
+  const cwd = process.cwd();
+  return [
+    besideModule,
+    path.join(cwd, "src/lib/pdf/fonts"),
+    path.join(cwd, "fonts"),
+    path.join(cwd, ".output/server/fonts"),
+    // Nitro chunks often live under .output/server/chunks/_/… — walk a couple of parents.
+    path.join(path.dirname(besideModule), "fonts"),
+    path.join(path.dirname(path.dirname(besideModule)), "fonts"),
+    path.join(path.dirname(path.dirname(path.dirname(besideModule))), "fonts"),
+  ];
+}
+
 function fontsDir(): string {
-  return path.join(path.dirname(fileURLToPath(import.meta.url)), "fonts");
+  for (const dir of fontsDirCandidates()) {
+    if (fs.existsSync(path.join(dir, FONT_FILE))) return dir;
+  }
+  return fontsDirCandidates()[0]!;
 }
 
 export function notoSansRegularPath(): string {
-  return path.join(fontsDir(), "NotoSans-Regular.ttf");
+  const fromEnv = process.env.PANOVA_PDF_FONT_PATH?.trim();
+  if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
+  return path.join(fontsDir(), FONT_FILE);
 }
 
 export function renderPdfFromLines(title: string, lines: string[]): Promise<Buffer> {
@@ -29,6 +55,7 @@ export function renderPdfFromLines(title: string, lines: string[]): Promise<Buff
     const doc = new PDFDocument({
       size: "A4",
       margin: 48,
+      font: fontPath,
       info: { Title: title, Author: "PanovaPRO" },
     });
     const chunks: Buffer[] = [];
@@ -36,7 +63,6 @@ export function renderPdfFromLines(title: string, lines: string[]): Promise<Buff
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    doc.font(fontPath);
     doc.fontSize(16).text(title, { underline: true });
     doc.moveDown(0.6);
     doc.fontSize(10);

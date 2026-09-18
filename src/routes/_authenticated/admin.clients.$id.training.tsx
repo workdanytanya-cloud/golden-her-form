@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { PanelHeader } from "@/components/panel/PanelShell";
 import { TrainingView } from "@/components/panel/TrainingView";
+import { SnapshotPdfButton } from "@/components/panel/SnapshotPdfButton";
 import { supabase } from "@/integrations/supabase/client";
 import {
   loadExercises,
@@ -70,9 +71,8 @@ function AdminTrainingPage() {
 
   const reload = async () => {
     setLoading(true);
-    const { usesLocalPostgresCircuit, selfhostAdminClient } = await import(
-      "@/lib/selfhost/client-api"
-    );
+    const { usesLocalPostgresCircuit, selfhostAdminClient } =
+      await import("@/lib/selfhost/client-api");
     const local = await usesLocalPostgresCircuit();
     const [ex, p, prof, published] = await Promise.all([
       loadExercises(),
@@ -91,7 +91,11 @@ function AdminTrainingPage() {
         /* имя опционально */
       }
     } else {
-      const profRow = await supabase.from("profiles").select("full_name").eq("id", id).maybeSingle();
+      const profRow = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", id)
+        .maybeSingle();
       fullName = profRow.data?.full_name ?? "Клиент";
     }
     setExercises(ex);
@@ -157,8 +161,7 @@ function AdminTrainingPage() {
         toast.success(
           `Черновик пересобран: ${built.program.sessions_per_week} трен./нед.${built.multiWeek ? " (несколько недель)" : ""}`,
           {
-            description:
-              "Клиент увидит изменения только после «Опубликовать клиенту».",
+            description: "Клиент увидит изменения только после «Опубликовать клиенту».",
           },
         );
         return;
@@ -203,7 +206,9 @@ function AdminTrainingPage() {
               ? String((e as { message: unknown }).message)
               : "Не удалось пересобрать программу";
       console.error("[adminRegenerateTrainingProgram]", e);
-      toast.error(msg.includes("WebSocket") ? "Ошибка сервера (WebSocket). Перезапустите npm run dev." : msg);
+      toast.error(
+        msg.includes("WebSocket") ? "Ошибка сервера (WebSocket). Перезапустите npm run dev." : msg,
+      );
     } finally {
       setGenerating(false);
     }
@@ -282,9 +287,8 @@ function AdminTrainingPage() {
       const key = dayKey(weekIndex, dayIndex);
       setSavingDayKey(key);
       try {
-        const { usesLocalPostgresCircuit, selfhostPatchTrainingDay } = await import(
-          "@/lib/selfhost/client-api"
-        );
+        const { usesLocalPostgresCircuit, selfhostPatchTrainingDay } =
+          await import("@/lib/selfhost/client-api");
         if (await usesLocalPostgresCircuit()) {
           await selfhostPatchTrainingDay({
             clientId: id,
@@ -354,9 +358,8 @@ function AdminTrainingPage() {
   }) => {
     if (!program) return;
     try {
-      const { usesLocalPostgresCircuit, selfhostPatchTrainingProgram } = await import(
-        "@/lib/selfhost/client-api"
-      );
+      const { usesLocalPostgresCircuit, selfhostPatchTrainingProgram } =
+        await import("@/lib/selfhost/client-api");
       if (await usesLocalPostgresCircuit()) {
         await selfhostPatchTrainingProgram({
           clientId: id,
@@ -441,13 +444,19 @@ function AdminTrainingPage() {
                   ? "Опубликовать новую версию"
                   : "Опубликовать клиенту"}
             </button>
+            <SnapshotPdfButton
+              kind="training"
+              courseId={courseId}
+              clientId={id}
+              disabled={publishedVersion == null}
+            />
           </div>
           {programDays.length === 0 && (
             <div className="rounded-3xl border border-coral/30 bg-coral/10 p-5 text-sm text-warm-gray">
               <p className="font-display text-base text-ivory">Дни программы пустые</p>
               <p className="mt-2">
-                Нажмите «Пересобрать под эти параметры» или «Автогенерация по анкете», чтобы
-                заново собрать черновик.
+                Нажмите «Пересобрать под эти параметры» или «Автогенерация по анкете», чтобы заново
+                собрать черновик.
               </p>
             </div>
           )}

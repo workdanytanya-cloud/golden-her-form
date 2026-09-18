@@ -19,7 +19,10 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
       new Headers(init.headers).forEach((value, key) => headers.set(key, value));
     }
 
-    if (isNewSupabaseApiKey(supabaseKey) && headers.get("Authorization") === `Bearer ${supabaseKey}`) {
+    if (
+      isNewSupabaseApiKey(supabaseKey) &&
+      headers.get("Authorization") === `Bearer ${supabaseKey}`
+    ) {
       headers.delete("Authorization");
     }
 
@@ -32,6 +35,12 @@ function createSupabaseAdminClient() {
   ensureNodeWebSocket();
 
   const env = process.env as Record<string, string | undefined>;
+  if (env.AUTH_BACKEND === "local" && env.DATA_BACKEND === "postgres") {
+    throw new Error(
+      "Supabase admin client отключён (AUTH_BACKEND=local, DATA_BACKEND=postgres). SERVICE_ROLE не используется.",
+    );
+  }
+
   const SUPABASE_URL = (env.SUPABASE_URL || env.VITE_SUPABASE_URL || "").trim();
   const SUPABASE_SERVICE_ROLE_KEY = (env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
 

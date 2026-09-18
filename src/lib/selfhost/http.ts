@@ -519,7 +519,8 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         const patch = adminClientProfileSchema.parse(body);
         await adminClients().updateProfile(clientId, patch);
       }
-      let measurement = null as Awaited<ReturnType<typeof createMeasurementPg>>["measurement"] | null;
+      let measurement = null as
+        Awaited<ReturnType<typeof createMeasurementPg>>["measurement"] | null;
       const weight =
         body.weight_kg === undefined || body.weight_kg === null || body.weight_kg === ""
           ? null
@@ -533,8 +534,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
           hips_cm: null,
           chest_cm: null,
           note: session.role === "admin" ? "Из профиля (тренер)" : "Из профиля",
-          idempotencyKey:
-            typeof body.idempotencyKey === "string" ? body.idempotencyKey : null,
+          idempotencyKey: typeof body.idempotencyKey === "string" ? body.idempotencyKey : null,
         });
         measurement = created.measurement;
       }
@@ -892,7 +892,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       const meta = await getPdfAccessMetaPg(getPostgresPool(), clientId, courseId);
       if (kind === "nutrition") {
         const record = await getActivePublishedNutritionPg(getPostgresPool(), clientId, courseId);
-        if (!record || record.version.status !== "published") {
+        if (!record) {
           return errorJson("Опубликованная программа ещё не выдана", 404);
         }
         const issuedAt =
@@ -906,7 +906,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         });
       }
       const record = await getActivePublishedTrainingPg(getPostgresPool(), clientId, courseId);
-      if (!record || record.version.status !== "published") {
+      if (!record) {
         return errorJson("Опубликованная программа ещё не выдана", 404);
       }
       const snapshotBindings = await loadSnapshotMediaBindings(
@@ -1027,11 +1027,17 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       return json(published);
     }
 
-    if (url.pathname === "/api/selfhost/admin/nutrition/recommendation" && request.method === "GET") {
+    if (
+      url.pathname === "/api/selfhost/admin/nutrition/recommendation" &&
+      request.method === "GET"
+    ) {
       requireAdmin(session);
       const clientId = url.searchParams.get("clientId");
       if (!clientId) return errorJson("Не указан clientId", 400);
-      const recommendation = await loadPendingNutritionRecommendationPg(getPostgresPool(), clientId);
+      const recommendation = await loadPendingNutritionRecommendationPg(
+        getPostgresPool(),
+        clientId,
+      );
       return json({ recommendation });
     }
 
@@ -1184,7 +1190,10 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       return json({ ok: true });
     }
 
-    if (url.pathname === "/api/selfhost/admin/notifications/read-all" && request.method === "POST") {
+    if (
+      url.pathname === "/api/selfhost/admin/notifications/read-all" &&
+      request.method === "POST"
+    ) {
       requireAdmin(session);
       assertCsrf(request);
       const result = await markAllAdminNotificationsReadPg(getPostgresPool());

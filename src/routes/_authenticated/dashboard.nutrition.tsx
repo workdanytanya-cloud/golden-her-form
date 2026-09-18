@@ -21,6 +21,7 @@ import type { NutritionSnapshot } from "@/lib/published-programs/types";
 import type { ConstructorDay } from "@/lib/nutrition-constructor/types";
 import type { ProductMacros } from "@/lib/nutrition-constructor/ingredient-swap";
 import { loadFoodProductsFromDb } from "@/lib/nutrition-constructor/repo";
+import { resolveDisplayMealScheduleMode } from "@/lib/nutrition-constructor/plan-kbju-status";
 import type { Dish } from "@/lib/nutrition";
 
 export const Route = createFileRoute("/_authenticated/dashboard/nutrition")({
@@ -80,7 +81,8 @@ function NutritionInner() {
       setPreferredMode(preference.mode);
       setPreferredSlot(preference.primarySlot);
     } else if (published?.snapshot?.kind === "constructor") {
-      setPreferredMode(published.snapshot.meal_schedule_mode as MealScheduleMode);
+      const days = constructorDaysFromSnapshot(published.snapshot);
+      setPreferredMode(resolveDisplayMealScheduleMode(days, published.snapshot.meal_schedule_mode));
       setPreferredSlot(published.snapshot.primary_meal_slot as PrimaryMealSlot);
     }
     setLoading(false);
@@ -123,6 +125,10 @@ function NutritionInner() {
 
   if (snapshot.kind === "constructor") {
     const constructorDays: ConstructorDay[] = constructorDaysFromSnapshot(snapshot);
+    const displayMode = resolveDisplayMealScheduleMode(
+      constructorDays,
+      snapshot.meal_schedule_mode,
+    );
     const targets = snapshot.targets;
     const comparison = comparisonRows(
       {
@@ -150,7 +156,7 @@ function NutritionInner() {
             courseId={selectedCourseId}
             value={preferredMode}
             primarySlot={preferredSlot}
-            publishedMode={snapshot.meal_schedule_mode as MealScheduleMode}
+            publishedMode={displayMode}
             onSaved={(mode, slot) => {
               setPreferredMode(mode);
               setPreferredSlot(slot);
@@ -168,7 +174,7 @@ function NutritionInner() {
           comparison={comparison}
           targets={targets}
           planStatus="assigned"
-          mealScheduleMode={snapshot.meal_schedule_mode as MealScheduleMode}
+          mealScheduleMode={displayMode}
           primaryMealSlot={snapshot.primary_meal_slot as PrimaryMealSlot}
           editable={false}
           swapCatalog={swapCatalog}

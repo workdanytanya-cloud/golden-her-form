@@ -1,4 +1,8 @@
-import { EMPTY_EXERCISE_VIDEO, normalizeExerciseVideo, type ExerciseVideo } from "@/lib/exercise-video";
+import {
+  EMPTY_EXERCISE_VIDEO,
+  normalizeExerciseVideo,
+  type ExerciseVideo,
+} from "@/lib/exercise-video";
 import type { FrozenExerciseSet, TrainingSnapshot } from "@/lib/published-programs/types";
 
 export type ExerciseMediaBinding = {
@@ -18,8 +22,7 @@ export type SnapshotExerciseMediaBinding = {
   confirmed_by_trainer: boolean;
 };
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function isUuid(value: string | null | undefined): value is string {
   return Boolean(value && UUID_RE.test(value));
@@ -161,25 +164,48 @@ export function overlayVideosForSnapshot(params: {
   return overlay;
 }
 
-export function applyMediaOverlayToExercises<T extends { id: string; name?: string; video?: ExerciseVideo; video_url: string | null }>(
-  snapshot: TrainingSnapshot,
-  exercises: T[],
-  overlay: Map<string, ExerciseVideo>,
-): T[] {
+export function applyMediaOverlayToExercises<
+  T extends { id: string; name?: string; video?: ExerciseVideo; video_url: string | null },
+>(snapshot: TrainingSnapshot, exercises: T[], overlay: Map<string, ExerciseVideo>): T[] {
+  const scrubUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    if (/supabase\.co/i.test(url) || /\/storage\/v1\/object\//i.test(url)) return null;
+    return url;
+  };
+  const scrubVideo = (video: ExerciseVideo | undefined): ExerciseVideo | undefined => {
+    if (!video) return video;
+    const url = scrubUrl(video.url);
+    const embed = scrubUrl(video.embed_url);
+    if (url === video.url && embed === video.embed_url) return video;
+    if (!url && !embed) {
+      return {
+        ...video,
+        url: null,
+        embed_url: null,
+        status: "unavailable",
+        fallback_text:
+          video.fallback_text || "Видео временно недоступно. Выполняйте по подсказкам.",
+      };
+    }
+    return { ...video, url, embed_url: embed };
+  };
   const next = exercises.map((ex) => {
-    const video = overlay.get(ex.id);
-    if (!video) return ex;
-    return { ...ex, video, video_url: video.url ?? ex.video_url };
+    const video = scrubVideo(overlay.get(ex.id) ?? ex.video);
+    return {
+      ...ex,
+      video,
+      video_url: scrubUrl(video?.url) ?? scrubUrl(ex.video_url),
+    };
   });
   for (const ref of listSnapshotExercises(snapshot)) {
-    const video = overlay.get(ref.key);
+    const video = scrubVideo(overlay.get(ref.key));
     if (!video || ref.exerciseId) continue;
     const idx = next.findIndex((ex) => !isUuid(ex.id) && !ex.video?.url);
     if (idx >= 0) {
       next[idx] = {
         ...next[idx],
         video,
-        video_url: video.url ?? next[idx].video_url,
+        video_url: scrubUrl(video.url) ?? scrubUrl(next[idx].video_url),
       };
     }
   }

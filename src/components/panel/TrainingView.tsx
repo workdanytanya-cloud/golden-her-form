@@ -144,6 +144,8 @@ export function TrainingView({
       const first = weekDays.find((d) => !d.is_rest);
       return first?.day_index ?? 0;
     });
+    // weekDays намеренно не в deps: иначе сброс дня при правках упражнений
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekIndex]);
 
   const day =
@@ -1374,9 +1376,11 @@ function MediaCard({
       {placeholder}
       <p className="text-xs text-warm-gray">
         {video?.fallback_text ||
-          (url ? "Видео не загрузилось в плеере" : "Видео пока не добавлено")}
+          (url && !/supabase\.co|\/storage\/v1\/object\//i.test(url)
+            ? "Видео не загрузилось в плеере"
+            : "Видео пока не добавлено")}
       </p>
-      {url ? (
+      {url && !/supabase\.co|\/storage\/v1\/object\//i.test(url) ? (
         <a
           href={url}
           target="_blank"

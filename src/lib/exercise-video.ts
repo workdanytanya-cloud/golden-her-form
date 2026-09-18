@@ -166,6 +166,25 @@ export function normalizeExerciseVideo(input: VideoInput | null | undefined): Ex
     };
   }
 
+  const trimmedRaw = String(rawUrl).trim();
+  // Same-origin selfhost media files (mp4/webm) — playable via <video>, not embed hosts.
+  if (
+    trimmedRaw.startsWith("/api/selfhost/media?") ||
+    trimmedRaw.startsWith("/api/selfhost/media/")
+  ) {
+    const looksVideo = /\.(mp4|webm|mov|m4v)(\?|$)/i.test(trimmedRaw);
+    return {
+      provider: "external",
+      url: trimmedRaw.slice(0, MAX_URL),
+      embed_url: null,
+      title,
+      status: looksVideo ? "ok" : "unavailable",
+      fallback_text: looksVideo
+        ? fallback_text
+        : (fallback_text ?? "Видео временно недоступно. Выполняйте по подсказкам."),
+    };
+  }
+
   const parsed = parseHttpsUrl(rawUrl);
   if (!parsed) {
     return {
@@ -195,10 +214,15 @@ export function normalizeExerciseVideo(input: VideoInput | null | undefined): Ex
 
   const rt = rutubeVideoId(parsed);
   if (rt) {
-    const embed = rutubeEmbedUrl(rt, parsed.searchParams.get("p"));
+    const privateParam = parsed.searchParams.get("p");
+    const embed = rutubeEmbedUrl(rt, privateParam);
+    const isPrivate = /\/video\/private\//i.test(parsed.pathname) || Boolean(privateParam);
+    const canonical = isPrivate
+      ? `https://rutube.ru/video/private/${rt}/${privateParam ? `?p=${encodeURIComponent(privateParam)}` : ""}`
+      : `https://rutube.ru/video/${rt}/`;
     return {
       provider: "rutube",
-      url: `https://rutube.ru/video/${rt}/`,
+      url: canonical,
       embed_url: isAllowedEmbedUrl(embed) ? embed : null,
       title,
       status: "ok",

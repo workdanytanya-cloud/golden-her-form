@@ -41,6 +41,7 @@
     "selfhost:set-password": "tsx selfhost/cli/set-password.ts",
     "selfhost:set-login": "tsx selfhost/cli/set-login.ts",
     "selfhost:mirror-media": "tsx selfhost/cli/mirror-external-media.ts",
+    "selfhost:import-coach-sheet-media": "tsx selfhost/cli/import-coach-sheet-media.ts",
     "selfhost:dev": "vite --host 127.0.0.1 --port 3000",
     "supabase:types": "npx supabase gen types typescript --linked > src/integrations/supabase/types.ts"
   },

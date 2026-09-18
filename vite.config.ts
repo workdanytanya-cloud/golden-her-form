@@ -38,6 +38,19 @@ export default defineConfig(({ mode, command }) => {
     defineEnv[`import.meta.env.${key}`] = JSON.stringify(value);
   }
 
+  // Self-host release: do not embed cloud Supabase keys into the browser bundle.
+  const selfhostRuntime =
+    (process.env.AUTH_BACKEND === "local" || env.AUTH_BACKEND === "local") &&
+    (process.env.DATA_BACKEND === "postgres" || env.DATA_BACKEND === "postgres");
+  if (selfhostRuntime) {
+    defineEnv["import.meta.env.VITE_SUPABASE_URL"] = JSON.stringify("");
+    defineEnv["import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY"] = JSON.stringify("");
+    defineEnv["import.meta.env.VITE_SUPABASE_PROJECT_ID"] = JSON.stringify("");
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.VITE_SUPABASE_URL;
+    delete process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  }
+
   // Локально и на обычном VPS — Node. На Vercel/Netlify Nitro сам подставит нужный preset.
   const nitroPreset = process.env.NITRO_PRESET || (command === "build" ? "node-server" : undefined);
 
@@ -69,7 +82,8 @@ export default defineConfig(({ mode, command }) => {
     ssr: {
       // Не externalize ws: иначе serverFn не находит native WebSocket в Node 20.
       noExternal: ["ws"],
-      external: ["pg", "argon2", "bcryptjs"],
+      // pdfkit is CJS and uses __dirname; keep it external so Node loads the package as CJS.
+      external: ["pg", "argon2", "bcryptjs", "pdfkit"],
     },
     plugins: [
       tailwindcss(),

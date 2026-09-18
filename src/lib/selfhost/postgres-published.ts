@@ -86,6 +86,8 @@ export async function loadMediaBindings(
           AND video_url <> ''`,
       [stillMissing],
     );
+    const { normalizeExerciseVideo } = await import("@/lib/exercise-video");
+    const { isExternalStorageMediaUrl } = await import("@/lib/selfhost/media-url-compat");
     for (const row of legacy.rows as Array<{
       id: string;
       video_url: string;
@@ -95,14 +97,25 @@ export async function loadMediaBindings(
       video_status: string | null;
       video_fallback_text: string | null;
     }>) {
+      // Broken Supabase Storage links (402) must not hide real bindings/sheet overlay.
+      if (isExternalStorageMediaUrl(row.video_url)) continue;
+      const video = normalizeExerciseVideo({
+        video_url: row.video_url,
+        video_provider: row.video_provider,
+        video_embed_url: row.video_embed_url,
+        video_title: row.video_title,
+        video_status: row.video_status,
+        video_fallback_text: row.video_fallback_text,
+      });
+      if (!video.url || video.status === "unavailable") continue;
       map.set(row.id, {
         exercise_id: row.id,
-        provider: (row.video_provider as ExerciseMediaBinding["provider"]) ?? "none",
-        source_url: row.video_url,
-        embed_url: row.video_embed_url,
-        title: row.video_title,
-        status: (row.video_status as ExerciseMediaBinding["status"]) ?? "unchecked",
-        fallback_text: row.video_fallback_text,
+        provider: video.provider,
+        source_url: video.url,
+        embed_url: video.embed_url,
+        title: video.title,
+        status: video.status,
+        fallback_text: video.fallback_text,
       });
     }
   }
@@ -155,7 +168,9 @@ export async function getActivePublishedNutritionPg(
   const versionId = await loadAssignmentVersionId(db, clientId, "nutrition", courseId);
   if (!versionId) return null;
   const { rows } = await db.query(
-    `SELECT * FROM public.nutrition_plan_versions WHERE id = $1 AND status = 'published' AND client_id = $2`,
+    `SELECT * FROM public.nutrition_plan_versions
+      WHERE id = $1 AND client_id = $2
+        AND status IN ('published', 'superseded')`,
     [versionId, clientId],
   );
   const row = rows[0] as Record<string, unknown> | undefined;
@@ -175,7 +190,9 @@ export async function getActivePublishedTrainingPg(
   const versionId = await loadAssignmentVersionId(db, clientId, "training", courseId);
   if (!versionId) return null;
   const { rows } = await db.query(
-    `SELECT * FROM public.training_program_versions WHERE id = $1 AND status = 'published' AND client_id = $2`,
+    `SELECT * FROM public.training_program_versions
+      WHERE id = $1 AND client_id = $2
+        AND status IN ('published', 'superseded')`,
     [versionId, clientId],
   );
   const row = rows[0] as Record<string, unknown> | undefined;

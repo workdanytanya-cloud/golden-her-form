@@ -400,6 +400,8 @@ export async function loadConstructorPlanPg(
       );
   const planRow = planRes.rows[0] as Record<string, unknown> | undefined;
   if (!planRow) return { plan: null, days: [] };
+  const planMode = String(planRow.plan_mode ?? "legacy");
+  if (planMode !== "constructor") return { plan: null, days: [] };
   const daysRes = await db.query(
     `SELECT * FROM public.nutrition_plan_days WHERE plan_id = $1 ORDER BY day_index`,
     [planRow.id],

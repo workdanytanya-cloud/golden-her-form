@@ -8,10 +8,13 @@ import { loadRuntimeConfig, selfhostDownloadPdf } from "@/lib/selfhost/client-ap
 export function SnapshotPdfButton({
   kind,
   courseId,
+  clientId,
   disabled,
 }: {
   kind: "nutrition" | "training";
   courseId?: string | null;
+  /** Админка: явный клиент. Иначе берём impersonation / текущего пользователя. */
+  clientId?: string | null;
   disabled?: boolean;
 }) {
   const { impersonation } = useAuth();
@@ -25,7 +28,7 @@ export function SnapshotPdfButton({
       const payload = {
         kind,
         courseId: courseId ?? null,
-        clientId: impersonation?.userId ?? null,
+        clientId: clientId ?? impersonation?.userId ?? null,
       };
       const result =
         runtime.authBackend === "local" && runtime.dataBackend === "postgres"
