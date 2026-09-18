@@ -16,7 +16,14 @@ function shortGitSha(): string {
 }
 
 export default defineConfig(({ mode, command }) => {
+  // .env может содержать NODE_ENV=development — для production-сборки это ломает SSR (jsxDEV).
+  if (command === "build") {
+    process.env.NODE_ENV = "production";
+  }
   loadSelfhostEnvFiles();
+  if (command === "build") {
+    process.env.NODE_ENV = "production";
+  }
   const env = loadEnv(mode, process.cwd(), "");
   const viteEnv = loadEnv(mode, process.cwd(), "VITE_");
   // SSR / server functions читают SUPABASE_* из process.env.
@@ -27,7 +34,8 @@ export default defineConfig(({ mode, command }) => {
       key === "DATA_BACKEND" ||
       key === "MEDIA_BACKEND" ||
       key === "DATABASE_URL" ||
-      key === "SESSION_COOKIE_SECURE"
+      key === "SESSION_COOKIE_SECURE" ||
+      key === "NODE_ENV"
     ) {
       continue;
     }
