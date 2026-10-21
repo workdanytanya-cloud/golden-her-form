@@ -19,6 +19,7 @@ export type ClientCourse = {
   created_at: string;
   created_by: string | null;
   notes: string | null;
+  program_scope: "nutrition" | "training" | "both";
 };
 
 export { courseStatusLabel, formatCourseTitle, buildCourseTitleFromISO };
@@ -259,6 +260,7 @@ export async function createClientCourse(params: {
   cloneFromCourseId?: string | null;
   activate?: boolean;
   notes?: string | null;
+  programScope?: "nutrition" | "training" | "both";
 }): Promise<ClientCourse> {
   const { usesLocalPostgresCircuit, selfhostAdminCreateCourse } =
     await import("@/lib/selfhost/client-api");
@@ -268,6 +270,7 @@ export async function createClientCourse(params: {
       notes: params.notes,
       activate: params.activate,
       cloneFromCourseId: params.cloneFromCourseId,
+      programScope: params.programScope ?? "both",
     });
   }
   const start = params.startDate ? parseISODate(params.startDate) : new Date();
@@ -319,6 +322,7 @@ export async function createClientCourse(params: {
       status,
       created_by: params.createdBy ?? null,
       notes: params.notes ?? null,
+      program_scope: params.programScope ?? "both",
     } as never)
     .select("*")
     .single();
@@ -348,9 +352,8 @@ export async function createClientCourse(params: {
 
 /** Клиент запрашивает продление: новый 4-недельный блок с прогрессией от прошлого курса. */
 export async function renewClientCourse(clientId: string): Promise<ClientCourse> {
-  const { usesLocalPostgresCircuit, selfhostRenewCourse, selfhostMe } = await import(
-    "@/lib/selfhost/client-api"
-  );
+  const { usesLocalPostgresCircuit, selfhostRenewCourse, selfhostMe } =
+    await import("@/lib/selfhost/client-api");
   if (await usesLocalPostgresCircuit()) {
     const me = await selfhostMe();
     if (!me.session?.userId || me.session.userId !== clientId) {
@@ -385,6 +388,27 @@ export async function activateClientCourse(courseId: string, clientId: string): 
     .update({ status: "active" } as never)
     .eq("id", courseId);
   if (error) throw error;
+}
+
+export async function updateClientCourseScope(
+  courseId: string,
+  clientId: string,
+  programScope: ClientCourse["program_scope"],
+): Promise<ClientCourse> {
+  const { usesLocalPostgresCircuit, selfhostAdminUpdateCourse } =
+    await import("@/lib/selfhost/client-api");
+  if (await usesLocalPostgresCircuit()) {
+    return selfhostAdminUpdateCourse(clientId, courseId, { program_scope: programScope });
+  }
+  const { data, error } = await supabase
+    .from("client_courses" as never)
+    .update({ program_scope: programScope } as never)
+    .eq("id", courseId)
+    .eq("client_id", clientId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as ClientCourse;
 }
 
 export async function archiveClientCourse(courseId: string, clientId?: string): Promise<void> {

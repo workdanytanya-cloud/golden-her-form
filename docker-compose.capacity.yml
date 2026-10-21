@@ -1,0 +1,52 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: capacity/Dockerfile.postgres
+    environment:
+      POSTGRES_USER: panovapro
+      POSTGRES_PASSWORD: capacity_local_only
+      POSTGRES_DB: panovapro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U panovapro -d panovapro"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - capacity_pg:/var/lib/postgresql/data
+  app:
+    build:
+      context: .
+      dockerfile: capacity/Dockerfile
+    cpus: 1.0
+    mem_limit: 2g
+    environment:
+      AUTH_BACKEND: local
+      DATA_BACKEND: postgres
+      MEDIA_BACKEND: local-links
+      DATABASE_URL: postgres://panovapro:capacity_local_only@postgres:5432/panovapro
+      SELFHOST_MEDIA_ROOT: /var/lib/panovapro/media
+      SESSION_COOKIE_SECURE: 0
+      NODE_OPTIONS: --max-old-space-size=1536
+    depends_on:
+      postgres: { condition: service_healthy }
+    volumes:
+      - capacity_uploads:/var/lib/panovapro/media
+  proxy:
+    image: nginx:1.27-alpine
+    ports: ["18080:8080"]
+    volumes: ["./capacity/nginx.conf:/etc/nginx/nginx.conf:ro"]
+    depends_on: [app]
+  loadgen:
+    image: grafana/k6:0.57.0
+    profiles: ["load"]
+    environment:
+      BASE_URL: http://proxy:8080
+      VUS: ${VUS:-1}
+      TEST_PASSWORD: CapacityTest!2026
+    volumes: ["./capacity/k6:/scripts:ro", "./capacity/results:/results"]
+    command: ["run", "--summary-export", "/results/summary-${VUS:-1}.json", "/scripts/scenarios.js"]
+    depends_on: [proxy]
+volumes:
+  capacity_pg:
+  capacity_uploads:

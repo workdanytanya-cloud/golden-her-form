@@ -9,6 +9,7 @@ import {
   deleteClientCourseDraft,
   isClientCoursesAvailable,
   listClientCourses,
+  updateClientCourseScope,
   courseStatusLabel,
   type ClientCourse,
 } from "@/lib/client-courses";
@@ -31,6 +32,7 @@ export function AdminCourseManager({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [schemaReady, setSchemaReady] = useState(true);
+  const [newProgramScope, setNewProgramScope] = useState<ClientCourse["program_scope"]>("both");
 
   const load = async () => {
     setLoading(true);
@@ -64,6 +66,7 @@ export function AdminCourseManager({
         createdBy: user?.id ?? null,
         cloneFromCourseId: selectedCourseId,
         activate,
+        programScope: newProgramScope,
       });
       toast.success(
         activate
@@ -86,6 +89,20 @@ export function AdminCourseManager({
         onChanged();
       }
       toast.error(errorMessage(e, "Ошибка создания курса"), { duration: partial ? 8000 : 4000 });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const changeScope = async (course: ClientCourse, programScope: ClientCourse["program_scope"]) => {
+    setBusy(true);
+    try {
+      await updateClientCourseScope(course.id, clientId, programScope);
+      toast.success("Состав курса обновлён");
+      await load();
+      onChanged();
+    } catch (e) {
+      toast.error(errorMessage(e, "Не удалось изменить состав курса"));
     } finally {
       setBusy(false);
     }
@@ -162,6 +179,21 @@ export function AdminCourseManager({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-display text-lg text-foreground">Курсы (4 недели)</h3>
         <div className="flex flex-wrap gap-2">
+          <label className="flex items-center gap-2 text-sm text-warm-gray">
+            Состав нового курса
+            <select
+              value={newProgramScope}
+              disabled={busy}
+              onChange={(event) =>
+                setNewProgramScope(event.target.value as ClientCourse["program_scope"])
+              }
+              className="rounded-lg border border-gold/25 bg-background px-3 py-1.5 text-foreground"
+            >
+              <option value="nutrition">Только питание</option>
+              <option value="training">Только тренировки</option>
+              <option value="both">Питание + тренировки</option>
+            </select>
+          </label>
           <button
             type="button"
             disabled={busy}
@@ -216,6 +248,19 @@ export function AdminCourseManager({
                     </p>
                   </button>
                   <div className="flex flex-wrap gap-2">
+                    <select
+                      aria-label="Состав курса"
+                      value={c.program_scope ?? "both"}
+                      disabled={busy}
+                      onChange={(event) =>
+                        void changeScope(c, event.target.value as ClientCourse["program_scope"])
+                      }
+                      className="rounded-lg border border-gold/25 bg-background px-2.5 py-1 text-xs text-foreground"
+                    >
+                      <option value="nutrition">Только питание</option>
+                      <option value="training">Только тренировки</option>
+                      <option value="both">Питание + тренировки</option>
+                    </select>
                     {c.status !== "active" ? (
                       <button
                         type="button"

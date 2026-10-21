@@ -49,6 +49,12 @@ function TrainingInner() {
 
   const reload = async () => {
     if (!effectiveUserId) return;
+    if (selectedCourse?.program_scope === "nutrition") {
+      setProgram(null);
+      setDays([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const published = await loadPublishedTrainingFor(effectiveUserId, selectedCourseId);
     if (published) {
@@ -66,8 +72,15 @@ function TrainingInner() {
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId, selectedCourseId]);
+  }, [effectiveUserId, selectedCourseId, selectedCourse?.program_scope]);
 
+  if (selectedCourse && selectedCourse.program_scope === "nutrition") {
+    return (
+      <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center text-warm-gray">
+        Этот раздел не входит в Вашу программу
+      </div>
+    );
+  }
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем программу…</div>;
   const pdfButton = (
     <SnapshotPdfButton

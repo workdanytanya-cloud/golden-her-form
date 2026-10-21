@@ -120,6 +120,7 @@ import {
   PostgresClientCourseRepository,
   adminCourseCreateSchema,
   adminCourseUpdateSchema,
+  assertCourseScopePg,
   resolveClientCourseIdPg,
 } from "@/lib/selfhost/postgres-courses";
 import {
@@ -150,6 +151,14 @@ import {
   trainingPublishSchema,
 } from "@/lib/selfhost/postgres-training";
 import { generateAndValidateConstructorPlan } from "@/lib/nutrition-constructor/repo";
+import {
+  archiveNutritionDocument,
+  createNutritionDocumentDraft,
+  listNutritionDocuments,
+  loadNutritionDocument,
+  nutritionDocumentUploadSchema,
+  publishNutritionDocument,
+} from "@/lib/selfhost/nutrition-documents";
 
 function json(data: unknown, status = 200, extraHeaders?: Record<string, string>): Response {
   return new Response(JSON.stringify(data), {
@@ -489,7 +498,8 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       session.accessStatus !== "active" &&
       (url.pathname === "/api/selfhost/nutrition" ||
         url.pathname === "/api/selfhost/training" ||
-        url.pathname === "/api/selfhost/pdf")
+        url.pathname === "/api/selfhost/pdf" ||
+        url.pathname.startsWith("/api/selfhost/nutrition-documents"))
     ) {
       return errorJson("Доступ к курсу ещё не открыт", 403);
     }
@@ -710,7 +720,12 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
 
     if (url.pathname === "/api/selfhost/nutrition" && request.method === "GET") {
       const clientId = scopedClientId(session, url.searchParams.get("clientId"));
-      const courseId = url.searchParams.get("courseId");
+      const courseId = await assertCourseScopePg(
+        getPostgresPool(),
+        clientId,
+        url.searchParams.get("courseId"),
+        "nutrition",
+      );
       const record = await getActivePublishedNutritionPg(getPostgresPool(), clientId, courseId);
       const view = await toPublishedNutritionView(record);
       return json({ nutrition: view });
@@ -742,7 +757,12 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
 
     if (url.pathname === "/api/selfhost/training" && request.method === "GET") {
       const clientId = scopedClientId(session, url.searchParams.get("clientId"));
-      const courseId = url.searchParams.get("courseId");
+      const courseId = await assertCourseScopePg(
+        getPostgresPool(),
+        clientId,
+        url.searchParams.get("courseId"),
+        "training",
+      );
       const record = await getActivePublishedTrainingPg(getPostgresPool(), clientId, courseId);
       const view = await toPublishedTrainingView(getPostgresPool(), record);
       return json({ training: view });
@@ -889,9 +909,14 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         typeof body.clientId === "string" ? body.clientId : null,
       );
       const courseId = typeof body.courseId === "string" ? body.courseId : null;
-      const meta = await getPdfAccessMetaPg(getPostgresPool(), clientId, courseId);
+      const scopedCourseId = await assertCourseScopePg(getPostgresPool(), clientId, courseId, kind);
+      const meta = await getPdfAccessMetaPg(getPostgresPool(), clientId, scopedCourseId);
       if (kind === "nutrition") {
-        const record = await getActivePublishedNutritionPg(getPostgresPool(), clientId, courseId);
+        const record = await getActivePublishedNutritionPg(
+          getPostgresPool(),
+          clientId,
+          scopedCourseId,
+        );
         if (!record) {
           return errorJson("Опубликованная программа ещё не выдана", 404);
         }
@@ -905,7 +930,11 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
           pdfBase64: buffer.toString("base64"),
         });
       }
-      const record = await getActivePublishedTrainingPg(getPostgresPool(), clientId, courseId);
+      const record = await getActivePublishedTrainingPg(
+        getPostgresPool(),
+        clientId,
+        scopedCourseId,
+      );
       if (!record) {
         return errorJson("Опубликованная программа ещё не выдана", 404);
       }
@@ -932,6 +961,103 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       });
     }
 
+    if (url.pathname === "/api/selfhost/nutrition-documents" && request.method === "GET") {
+      const clientId = scopedClientId(session, url.searchParams.get("clientId"));
+      const courseId = url.searchParams.get("courseId");
+      if (!courseId) return errorJson("Не указан курс", 400);
+      const items = await listNutritionDocuments(
+        getPostgresPool(),
+        clientId,
+        courseId,
+        session.role === "admin",
+      );
+      return json({ items });
+    }
+
+    if (
+      url.pathname === "/api/selfhost/admin/nutrition-documents/upload" &&
+      request.method === "POST"
+    ) {
+      requireAdmin(session);
+      assertCsrf(request);
+      const form = await request.formData();
+      const file = form.get("file");
+      if (!(file instanceof File)) return errorJson("Файл не передан", 400);
+      const parsed = nutritionDocumentUploadSchema.parse({
+        clientId: form.get("clientId"),
+        courseId: form.get("courseId"),
+        title: form.get("title"),
+        description: form.get("description") || null,
+        displayMode: form.get("displayMode") || "supplement",
+        replacesId: form.get("replacesId") || null,
+      });
+      const document = await createNutritionDocumentDraft(
+        getPostgresPool(),
+        session.userId,
+        parsed,
+        {
+          name: file.name,
+          type: file.type,
+          bytes: Buffer.from(await file.arrayBuffer()),
+        },
+      );
+      return json({ document }, 201);
+    }
+
+    {
+      const match = url.pathname.match(
+        /^\/api\/selfhost\/admin\/nutrition-documents\/([^/]+)\/(publish|archive)$/,
+      );
+      if (match && request.method === "POST") {
+        requireAdmin(session);
+        assertCsrf(request);
+        if (match[2] === "publish")
+          return json({
+            document: await publishNutritionDocument(getPostgresPool(), match[1], session.userId),
+          });
+        await archiveNutritionDocument(getPostgresPool(), match[1]);
+        return json({ ok: true });
+      }
+    }
+
+    {
+      const match = url.pathname.match(
+        /^\/api\/selfhost\/nutrition-documents\/([^/]+)\/(view|original)$/,
+      );
+      if (match && request.method === "GET") {
+        const requestedClientId = url.searchParams.get("clientId");
+        const clientId = scopedClientId(session, requestedClientId);
+        const { row, bytes } = await loadNutritionDocument(
+          getPostgresPool(),
+          match[1],
+          clientId,
+          session.role === "admin",
+        );
+        if (match[2] === "view" && row.media_type.includes("wordprocessingml")) {
+          return new Response(
+            `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>body{font:16px/1.55 system-ui;margin:0;padding:24px;color:#201a17}table{display:block;max-width:100%;overflow-x:auto;border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px}img{max-width:100%;height:auto}</style><main>${row.rendered_html ?? "<p>Документ не удалось отобразить.</p>"}</main>`,
+            {
+              headers: {
+                "content-type": "text/html; charset=utf-8",
+                "content-security-policy":
+                  "default-src 'none'; img-src data: https:; style-src 'unsafe-inline'; sandbox",
+              },
+            },
+          );
+        }
+        const disposition = match[2] === "view" ? "inline" : "attachment";
+        return new Response(new Uint8Array(bytes), {
+          headers: {
+            "content-type": row.media_type,
+            "content-length": String(bytes.length),
+            "content-disposition": `${disposition}; filename*=UTF-8''${encodeURIComponent(row.original_name)}`,
+            "x-content-type-options": "nosniff",
+            "cache-control": "private, no-store",
+          },
+        });
+      }
+    }
+
     if (url.pathname === "/api/selfhost/admin/exercises/restore" && request.method === "POST") {
       requireAdmin(session);
       assertCsrf(request);
@@ -956,6 +1082,12 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       requireAdmin(session);
       const clientId = url.searchParams.get("clientId");
       if (!clientId) return errorJson("Не указан clientId", 400);
+      await assertCourseScopePg(
+        getPostgresPool(),
+        clientId,
+        url.searchParams.get("courseId"),
+        "nutrition",
+      );
       const loaded = await loadConstructorPlanPg(
         getPostgresPool(),
         clientId,
@@ -971,6 +1103,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       const body = nutritionDraftSaveSchema.parse(raw);
       const userId = body.userId ?? body.clientId;
       if (!userId) return errorJson("Не указан clientId", 400);
+      await assertCourseScopePg(getPostgresPool(), userId, body.courseId, "nutrition");
       const saved = await saveConstructorPlanPg(getPostgresPool(), {
         userId,
         courseId: body.courseId,
@@ -1011,6 +1144,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       requireAdmin(session);
       assertCsrf(request);
       const body = nutritionPublishSchema.parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "nutrition");
       const loaded = await loadConstructorPlanPg(getPostgresPool(), body.clientId, body.courseId);
       if (!loaded.plan || loaded.days.length === 0) {
         return errorJson("Нет черновика для публикации", 400);
@@ -1075,6 +1209,12 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       requireAdmin(session);
       const clientId = url.searchParams.get("clientId");
       if (!clientId) return errorJson("Не указан clientId", 400);
+      await assertCourseScopePg(
+        getPostgresPool(),
+        clientId,
+        url.searchParams.get("courseId"),
+        "training",
+      );
       const loaded = await loadTrainingDraftPg(
         getPostgresPool(),
         clientId,
@@ -1087,6 +1227,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       requireAdmin(session);
       assertCsrf(request);
       const body = trainingDraftSaveSchema.parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "training");
       const saved = await saveTrainingDraftPg(getPostgresPool(), body);
       return json(saved);
     }
@@ -1095,6 +1236,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       requireAdmin(session);
       assertCsrf(request);
       const body = trainingDayPatchSchema.parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "training");
       const result = await patchTrainingDayPg(getPostgresPool(), body);
       return json(result);
     }
@@ -1103,6 +1245,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       requireAdmin(session);
       assertCsrf(request);
       const body = trainingProgramPatchSchema.parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "training");
       const result = await patchTrainingProgramPg(getPostgresPool(), body);
       return json(result);
     }
@@ -1111,6 +1254,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       requireAdmin(session);
       assertCsrf(request);
       const body = trainingPublishSchema.parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "training");
       const published = await publishTrainingVersionPg(getPostgresPool(), {
         clientId: body.clientId,
         courseId: body.courseId,
@@ -1365,6 +1509,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
           extra,
           clientId,
           adminCourseUpdateSchema.parse(body),
+          session.userId,
         );
         return json({ course });
       }

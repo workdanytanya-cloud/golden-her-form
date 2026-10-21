@@ -23,6 +23,7 @@ import type { ProductMacros } from "@/lib/nutrition-constructor/ingredient-swap"
 import { loadFoodProductsFromDb } from "@/lib/nutrition-constructor/repo";
 import { resolveDisplayMealScheduleMode } from "@/lib/nutrition-constructor/plan-kbju-status";
 import type { Dish } from "@/lib/nutrition";
+import { NutritionDocumentsPanel } from "@/components/panel/NutritionDocumentsPanel";
 
 export const Route = createFileRoute("/_authenticated/dashboard/nutrition")({
   component: NutritionPage,
@@ -40,6 +41,7 @@ function NutritionPage() {
       <AccessGate level="active">
         <div className="space-y-6">
           <ClientCoursePicker />
+          <ClientNutritionDocuments />
           <NutritionInner />
         </div>
       </AccessGate>
@@ -47,9 +49,19 @@ function NutritionPage() {
   );
 }
 
+function ClientNutritionDocuments() {
+  const { effectiveUserId } = useAuth();
+  const { selectedCourseId, selectedCourse } = useClientCourses();
+  if (!effectiveUserId || !selectedCourseId || selectedCourse?.program_scope === "training")
+    return null;
+  return (
+    <NutritionDocumentsPanel clientId={effectiveUserId} courseId={selectedCourseId} readonly />
+  );
+}
+
 function NutritionInner() {
   const { effectiveUserId } = useAuth();
-  const { selectedCourseId } = useClientCourses();
+  const { selectedCourseId, selectedCourse } = useClientCourses();
   const [snapshot, setSnapshot] = useState<NutritionSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [preferredMode, setPreferredMode] = useState<MealScheduleMode>("two_main_two_snacks");
@@ -58,6 +70,11 @@ function NutritionInner() {
 
   const reload = async () => {
     if (!effectiveUserId) return;
+    if (selectedCourse?.program_scope === "training") {
+      setSnapshot(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const [published, preference, products] = await Promise.all([
       loadPublishedNutritionFor(effectiveUserId, selectedCourseId),
@@ -91,8 +108,15 @@ function NutritionInner() {
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId, selectedCourseId]);
+  }, [effectiveUserId, selectedCourseId, selectedCourse?.program_scope]);
 
+  if (selectedCourse && selectedCourse.program_scope === "training") {
+    return (
+      <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center text-warm-gray">
+        Этот раздел не входит в Вашу программу
+      </div>
+    );
+  }
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем меню…</div>;
 
   const pdfButton = (

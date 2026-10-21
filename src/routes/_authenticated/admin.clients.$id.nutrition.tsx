@@ -33,6 +33,7 @@ import {
   type RecipeComplexity,
 } from "@/lib/plan-options";
 import { publishLegacyNutrition } from "@/lib/published-programs/repo";
+import { NutritionDocumentsPanel } from "@/components/panel/NutritionDocumentsPanel";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/nutrition")({
   component: AdminNutritionPage,
@@ -84,7 +85,11 @@ function AdminNutritionPage() {
         /* имя опционально */
       }
     } else {
-      const profRow = await supabase.from("profiles").select("full_name").eq("id", id).maybeSingle();
+      const profRow = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", id)
+        .maybeSingle();
       fullName = profRow.data?.full_name ?? "Клиент";
     }
     setDishes(all);
@@ -232,6 +237,8 @@ function AdminNutritionPage() {
           )
         }
       />
+
+      <NutritionDocumentsPanel clientId={id} courseId={courseId} />
 
       <div className="flex flex-wrap gap-2">
         <button

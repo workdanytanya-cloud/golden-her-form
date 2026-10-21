@@ -201,9 +201,7 @@ export async function selfhostAdminDish(id: string) {
 export async function selfhostAdminSaveDish(payload: Record<string, unknown>) {
   const id = typeof payload.id === "string" ? payload.id : null;
   const res = await selfhostFetch(
-    id
-      ? `/api/selfhost/admin/dishes/${encodeURIComponent(id)}`
-      : "/api/selfhost/admin/dishes",
+    id ? `/api/selfhost/admin/dishes/${encodeURIComponent(id)}` : "/api/selfhost/admin/dishes",
     {
       method: id ? "PATCH" : "POST",
       body: JSON.stringify(payload),
@@ -307,24 +305,18 @@ export async function selfhostAdminSetClientPassword(id: string, password: strin
 }
 
 export async function selfhostAdminArchiveClient(id: string) {
-  const res = await selfhostFetch(
-    `/api/selfhost/admin/clients/${encodeURIComponent(id)}/archive`,
-    {
-      method: "POST",
-      body: "{}",
-    },
-  );
+  const res = await selfhostFetch(`/api/selfhost/admin/clients/${encodeURIComponent(id)}/archive`, {
+    method: "POST",
+    body: "{}",
+  });
   await readSelfhostJson(res);
 }
 
 export async function selfhostAdminRestoreClient(id: string) {
-  const res = await selfhostFetch(
-    `/api/selfhost/admin/clients/${encodeURIComponent(id)}/restore`,
-    {
-      method: "POST",
-      body: "{}",
-    },
-  );
+  const res = await selfhostFetch(`/api/selfhost/admin/clients/${encodeURIComponent(id)}/restore`, {
+    method: "POST",
+    body: "{}",
+  });
   await readSelfhostJson(res);
 }
 
@@ -418,7 +410,8 @@ async function selfhostFetch(path: string, init: RequestInit = {}): Promise<Resp
   const alreadyRetried = Boolean((init as RequestInit & { __csrfRetried?: boolean }).__csrfRetried);
   if (mutating) {
     headers.set("x-csrf-token", await ensureCsrfToken(alreadyRetried));
-    if (!headers.has("content-type")) headers.set("content-type", "application/json");
+    if (!headers.has("content-type") && !(init.body instanceof FormData))
+      headers.set("content-type", "application/json");
   }
   const res = await fetch(path, { ...init, headers, credentials: "include" });
   // Ровно один повтор при CSRF mismatch. Тело запроса то же — publish не дублируется,
@@ -440,6 +433,63 @@ async function selfhostFetch(path: string, init: RequestInit = {}): Promise<Resp
     }
   }
   return res;
+}
+
+export type NutritionDocument = {
+  id: string;
+  client_id: string;
+  course_id: string;
+  title: string;
+  description: string | null;
+  display_mode: "supplement" | "primary";
+  status: "draft" | "published" | "superseded" | "archived";
+  version: number;
+  original_name: string;
+  media_type: string;
+  size_bytes: number;
+  sha256: string;
+  created_at: string;
+  published_at: string | null;
+};
+
+export async function selfhostNutritionDocuments(clientId: string, courseId: string) {
+  const params = new URLSearchParams({ clientId, courseId });
+  const res = await fetch(`/api/selfhost/nutrition-documents?${params}`, {
+    credentials: "include",
+  });
+  const data = await readSelfhostJson(res);
+  return (data.items ?? []) as NutritionDocument[];
+}
+
+export async function selfhostUploadNutritionDocument(form: FormData) {
+  const res = await selfhostFetch("/api/selfhost/admin/nutrition-documents/upload", {
+    method: "POST",
+    body: form,
+  });
+  const data = await readSelfhostJson(res);
+  return data.document as NutritionDocument;
+}
+
+export async function selfhostPublishNutritionDocument(id: string) {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/nutrition-documents/${encodeURIComponent(id)}/publish`,
+    { method: "POST", body: "{}" },
+  );
+  const data = await readSelfhostJson(res);
+  return data.document as NutritionDocument;
+}
+
+export async function selfhostArchiveNutritionDocument(id: string) {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/nutrition-documents/${encodeURIComponent(id)}/archive`,
+    { method: "POST", body: "{}" },
+  );
+  await readSelfhostJson(res);
+}
+
+export function nutritionDocumentUrl(id: string, mode: "view" | "original", clientId?: string) {
+  const suffix = clientId ? `?clientId=${encodeURIComponent(clientId)}` : "";
+  return `/api/selfhost/nutrition-documents/${encodeURIComponent(id)}/${mode}${suffix}`;
 }
 
 export async function selfhostLogin(email: string, password: string) {
@@ -568,12 +618,14 @@ export async function selfhostPendingNutritionRecommendation(
   );
   const data = await readSelfhostJson(res);
   return (
-    (data.recommendation as import("@/lib/published-programs/types").NutritionRecommendation | null) ??
-    null
+    (data.recommendation as
+      import("@/lib/published-programs/types").NutritionRecommendation | null) ?? null
   );
 }
 
-export async function selfhostAcceptNutritionRecommendation(recommendationId: string): Promise<void> {
+export async function selfhostAcceptNutritionRecommendation(
+  recommendationId: string,
+): Promise<void> {
   const res = await selfhostFetch("/api/selfhost/admin/nutrition/recommendation/accept", {
     method: "POST",
     body: JSON.stringify({ recommendationId }),
@@ -726,10 +778,13 @@ export async function selfhostDeleteClientNotification(id: string, clientId?: st
   const params = new URLSearchParams();
   if (clientId) params.set("clientId", clientId);
   const qs = params.toString();
-  const res = await selfhostFetch(`/api/selfhost/notifications/${encodeURIComponent(id)}${qs ? `?${qs}` : ""}`, {
-    method: "DELETE",
-    body: "{}",
-  });
+  const res = await selfhostFetch(
+    `/api/selfhost/notifications/${encodeURIComponent(id)}${qs ? `?${qs}` : ""}`,
+    {
+      method: "DELETE",
+      body: "{}",
+    },
+  );
   await readSelfhostJson(res);
 }
 
@@ -902,9 +957,7 @@ export async function selfhostCreateMeasurement(input: {
   const res = await selfhostFetch("/api/selfhost/measurements", {
     method: "POST",
     body: JSON.stringify(input),
-    headers: input.idempotencyKey
-      ? { "idempotency-key": input.idempotencyKey }
-      : undefined,
+    headers: input.idempotencyKey ? { "idempotency-key": input.idempotencyKey } : undefined,
   });
   return readSelfhostJson(res) as Promise<{
     measurement: {
@@ -921,10 +974,7 @@ export async function selfhostCreateMeasurement(input: {
   }>;
 }
 
-export async function selfhostDeleteMeasurement(
-  measurementId: string,
-  clientId?: string | null,
-) {
+export async function selfhostDeleteMeasurement(measurementId: string, clientId?: string | null) {
   const res = await selfhostFetch(`/api/selfhost/measurements/${measurementId}`, {
     method: "DELETE",
     body: JSON.stringify({ clientId: clientId ?? null }),
@@ -971,7 +1021,10 @@ export async function selfhostSaveProfile(input: Record<string, unknown>) {
   }>;
 }
 
-export async function selfhostWeeklyCheckIn(clientId: string | null | undefined, weekStart: string) {
+export async function selfhostWeeklyCheckIn(
+  clientId: string | null | undefined,
+  weekStart: string,
+) {
   const params = new URLSearchParams({ weekStart });
   if (clientId) params.set("clientId", clientId);
   const res = await fetch(`/api/selfhost/checkins/weekly?${params}`, { credentials: "include" });
@@ -1064,7 +1117,15 @@ export async function selfhostAdminCreatePromos(payload: {
   });
   return readSelfhostJson(res) as Promise<{
     ok: true;
-    codes: Array<{ id: string; code: string; status: string; label: string | null; program_title: string | null; created_at: string; expires_at: string | null }>;
+    codes: Array<{
+      id: string;
+      code: string;
+      status: string;
+      label: string | null;
+      program_title: string | null;
+      created_at: string;
+      expires_at: string | null;
+    }>;
   }>;
 }
 

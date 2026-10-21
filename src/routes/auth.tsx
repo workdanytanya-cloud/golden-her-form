@@ -44,8 +44,7 @@ export const Route = createFileRoute("/auth")({
         .eq("user_id", data.session.user.id);
       const email = data.session.user.email?.toLowerCase();
       const isAdmin =
-        email === "panova.fortuna@gmail.com" ||
-        roles?.some((r) => r.role === "admin");
+        email === "panova.fortuna@gmail.com" || roles?.some((r) => r.role === "admin");
       throw redirect({ to: isAdmin ? "/admin" : "/dashboard" });
     }
   },
@@ -213,10 +212,12 @@ function AuthPage() {
       const parsedEmail = emailSchema.parse(email);
       const parsedPassword = passwordSchema.parse(password);
       if (runtime.authBackend === "local") {
-        await selfhostLogin(parsedEmail, parsedPassword);
+        const result = await selfhostLogin(parsedEmail, parsedPassword);
         toast.success("С возвращением!");
         await refreshAccess();
-        await navigate({ to: search.redirect ?? "/dashboard" });
+        await navigate({
+          to: search.redirect ?? (result.role === "admin" ? "/admin" : "/dashboard"),
+        });
         return;
       }
       const { error } = await supabase.auth.signInWithPassword({
@@ -229,19 +230,16 @@ function AuthPage() {
 
       const { data: userData } = await supabase.auth.getUser();
       let dest = search.redirect ?? "/dashboard";
-        if (userData.user && !search.redirect) {
-          const { data: roles } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", userData.user.id);
-          const email = userData.user.email?.toLowerCase();
-          if (
-            email === "panova.fortuna@gmail.com" ||
-            roles?.some((r) => r.role === "admin")
-          ) {
-            dest = "/admin";
-          }
+      if (userData.user && !search.redirect) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userData.user.id);
+        const email = userData.user.email?.toLowerCase();
+        if (email === "panova.fortuna@gmail.com" || roles?.some((r) => r.role === "admin")) {
+          dest = "/admin";
         }
+      }
       await navigate({ to: dest });
     } catch (err) {
       const raw =
@@ -278,9 +276,7 @@ function AuthPage() {
               aria-selected={mode === "signin"}
               onClick={() => switchMode("signin")}
               className={`rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                mode === "signin"
-                  ? "bg-gold text-background"
-                  : "text-warm-gray hover:text-ivory"
+                mode === "signin" ? "bg-gold text-background" : "text-warm-gray hover:text-ivory"
               }`}
             >
               У меня есть кабинет
@@ -291,9 +287,7 @@ function AuthPage() {
               aria-selected={mode === "promo"}
               onClick={() => switchMode("promo")}
               className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                mode === "promo"
-                  ? "bg-coral text-white"
-                  : "text-warm-gray hover:text-ivory"
+                mode === "promo" ? "bg-coral text-white" : "text-warm-gray hover:text-ivory"
               }`}
             >
               <Ticket className="h-3.5 w-3.5 shrink-0" />
@@ -418,8 +412,8 @@ function AuthPage() {
 
             {mode === "promo" && user && (
               <p className="rounded-xl border border-gold/20 bg-background/40 px-4 py-3 text-sm text-warm-gray">
-                Вы уже вошли как{" "}
-                <span className="text-ivory">{user.email}</span>. Осталось ввести промокод выше.
+                Вы уже вошли как <span className="text-ivory">{user.email}</span>. Осталось ввести
+                промокод выше.
               </p>
             )}
 
@@ -449,9 +443,7 @@ function AuthPage() {
               type="submit"
               disabled={submitting || authLoading || (mode === "promo" && !user && !consent)}
               className={`mt-2 w-full rounded-full px-6 py-3.5 text-sm font-semibold transition-transform hover:scale-[1.02] disabled:opacity-60 ${
-                mode === "promo"
-                  ? "bg-coral text-white"
-                  : "bg-gold text-background"
+                mode === "promo" ? "bg-coral text-white" : "bg-gold text-background"
               }`}
             >
               {submitting

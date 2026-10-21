@@ -18,6 +18,7 @@ export const adminCourseCreateSchema = z.object({
   notes: z.string().max(2000).nullable().optional(),
   activate: z.boolean().optional().default(false),
   cloneFromCourseId: z.string().uuid().nullable().optional(),
+  programScope: z.enum(["nutrition", "training", "both"]).optional().default("both"),
 });
 
 export const adminCourseUpdateSchema = z.object({
@@ -26,6 +27,7 @@ export const adminCourseUpdateSchema = z.object({
   end_date: z.string().optional(),
   notes: z.string().max(2000).nullable().optional(),
   status: z.enum(["draft", "active", "completed", "archived"]).optional(),
+  program_scope: z.enum(["nutrition", "training", "both"]).optional(),
 });
 
 function mapCourse(row: Record<string, unknown>): ClientCourse {
@@ -39,6 +41,7 @@ function mapCourse(row: Record<string, unknown>): ClientCourse {
     created_at: new Date(row.created_at as string | Date).toISOString(),
     created_by: (row.created_by as string | null) ?? null,
     notes: (row.notes as string | null) ?? null,
+    program_scope: (row.program_scope as ClientCourse["program_scope"] | null) ?? "both",
   };
 }
 
@@ -66,6 +69,29 @@ export async function resolveClientCourseIdPg(
     [clientId],
   );
   return (any.rows[0] as { id: string } | undefined)?.id ?? null;
+}
+
+export async function assertCourseScopePg(
+  db: Queryable,
+  clientId: string,
+  courseId: string | null | undefined,
+  kind: "nutrition" | "training",
+): Promise<string> {
+  const resolved = await resolveClientCourseIdPg(db, clientId, courseId);
+  if (!resolved) {
+    throw Object.assign(new Error(courseId ? "Нет доступа к курсу" : "Курс не найден"), {
+      statusCode: courseId ? 403 : 404,
+    });
+  }
+  const { rows } = await db.query(
+    `SELECT program_scope FROM public.client_courses WHERE id = $1 AND client_id = $2`,
+    [resolved, clientId],
+  );
+  const scope = (rows[0] as { program_scope?: string } | undefined)?.program_scope ?? "both";
+  if (scope !== "both" && scope !== kind) {
+    throw Object.assign(new Error("Этот раздел не входит в Вашу программу"), { statusCode: 403 });
+  }
+  return resolved;
 }
 
 async function courseHasLinkedContentPg(
@@ -133,7 +159,7 @@ export class PostgresClientCourseRepository {
 
   async list(clientId: string): Promise<ClientCourse[]> {
     const { rows } = await this.db.query(
-      `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes
+      `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope
          FROM public.client_courses WHERE client_id = $1 ORDER BY start_date DESC`,
       [clientId],
     );
@@ -142,7 +168,7 @@ export class PostgresClientCourseRepository {
 
   async get(courseId: string): Promise<ClientCourse | null> {
     const { rows } = await this.db.query(
-      `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes
+      `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope
          FROM public.client_courses WHERE id = $1`,
       [courseId],
     );
@@ -183,7 +209,7 @@ export class PostgresClientCourseRepository {
           `course-draft:${data.clientId}:${startIso}`,
         ]);
         const existing = await client.query(
-          `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes
+          `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope
              FROM public.client_courses
             WHERE client_id = $1 AND status = 'draft' AND start_date = $2::date
             ORDER BY created_at DESC LIMIT 1`,
@@ -197,7 +223,10 @@ export class PostgresClientCourseRepository {
             draft.id,
             data.cloneFromCourseId,
           );
-          if (sourceCourseId && !(await courseHasLinkedContentPg(client, draft.id, data.clientId))) {
+          if (
+            sourceCourseId &&
+            !(await courseHasLinkedContentPg(client, draft.id, data.clientId))
+          ) {
             await cloneCourseContentPg(client, data.clientId, sourceCourseId, draft.id);
           }
           return { ...draft, idempotent: true };
@@ -212,10 +241,19 @@ export class PostgresClientCourseRepository {
         );
       }
       const inserted = await client.query(
-        `INSERT INTO public.client_courses (client_id, title, start_date, end_date, status, notes, created_by)
-         VALUES ($1,$2,$3::date,$4::date,$5,$6,$7)
-         RETURNING id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes`,
-        [data.clientId, title, startIso, endIso, status, data.notes ?? null, actorId],
+        `INSERT INTO public.client_courses (client_id, title, start_date, end_date, status, notes, created_by, program_scope)
+         VALUES ($1,$2,$3::date,$4::date,$5,$6,$7,$8)
+         RETURNING id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope`,
+        [
+          data.clientId,
+          title,
+          startIso,
+          endIso,
+          status,
+          data.notes ?? null,
+          actorId,
+          data.programScope,
+        ],
       );
       const created = mapCourse(inserted.rows[0] as Record<string, unknown>);
       const sourceCourseId = await resolveCloneSourceIdPg(
@@ -236,12 +274,18 @@ export class PostgresClientCourseRepository {
    * clone continuation от последнего не-draft курса. Не трогает published/assignments.
    */
   async renewForClient(clientId: string): Promise<ClientCourse & { idempotent: boolean }> {
+    const previous = await this.db.query(
+      `SELECT program_scope FROM public.client_courses WHERE client_id=$1 AND status <> 'draft' ORDER BY start_date DESC LIMIT 1`,
+      [clientId],
+    );
     const created = await this.create(
       {
         clientId,
         startDate: toISODate(new Date()),
         activate: false,
         notes: "Запрос на продление от клиента",
+        programScope:
+          (previous.rows[0]?.program_scope as ClientCourse["program_scope"] | undefined) ?? "both",
       },
       clientId,
     );
@@ -252,6 +296,7 @@ export class PostgresClientCourseRepository {
     courseId: string,
     clientId: string,
     patch: z.infer<typeof adminCourseUpdateSchema>,
+    actorId?: string,
   ): Promise<ClientCourse> {
     const data = adminCourseUpdateSchema.parse(patch);
     const course = await this.get(courseId);
@@ -264,25 +309,36 @@ export class PostgresClientCourseRepository {
       if (!next) throw Object.assign(new Error("Курс не найден"), { statusCode: 404 });
       return next;
     }
-    const updated = await this.db.query(
-      `UPDATE public.client_courses SET
+    const updated = await withTransaction(async (client) => {
+      if (data.program_scope && data.program_scope !== course.program_scope) {
+        await client.query(
+          `INSERT INTO public.client_course_scope_changes (course_id, old_scope, new_scope, changed_by)
+           VALUES ($1,$2,$3,$4)`,
+          [courseId, course.program_scope, data.program_scope, actorId ?? null],
+        );
+      }
+      return client.query(
+        `UPDATE public.client_courses SET
          title = COALESCE($3, title),
          start_date = COALESCE($4::date, start_date),
          end_date = COALESCE($5::date, end_date),
          notes = COALESCE($6, notes),
-         status = COALESCE($7, status)
+         status = COALESCE($7, status),
+         program_scope = COALESCE($8, program_scope)
        WHERE id = $1 AND client_id = $2
-       RETURNING id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes`,
-      [
-        courseId,
-        clientId,
-        data.title ?? null,
-        data.start_date ?? null,
-        data.end_date ?? null,
-        data.notes === undefined ? null : data.notes,
-        data.status ?? null,
-      ],
-    );
+       RETURNING id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope`,
+        [
+          courseId,
+          clientId,
+          data.title ?? null,
+          data.start_date ?? null,
+          data.end_date ?? null,
+          data.notes === undefined ? null : data.notes,
+          data.status ?? null,
+          data.program_scope ?? null,
+        ],
+      );
+    });
     return mapCourse(updated.rows[0] as Record<string, unknown>);
   }
 

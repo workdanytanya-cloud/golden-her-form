@@ -312,7 +312,7 @@ export async function listClientCoursesPg(
   clientId: string,
 ): Promise<ClientCourse[]> {
   const { rows } = await db.query(
-    `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes
+    `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope
      FROM public.client_courses WHERE client_id = $1 ORDER BY start_date DESC`,
     [clientId],
   );
@@ -326,6 +326,7 @@ export async function listClientCoursesPg(
     created_at: new Date(row.created_at).toISOString(),
     created_by: row.created_by,
     notes: row.notes,
+    program_scope: row.program_scope ?? "both",
   }));
 }
 
