@@ -34,6 +34,12 @@ import {
 } from "@/lib/plan-options";
 import { publishLegacyNutrition } from "@/lib/published-programs/repo";
 import { NutritionDocumentsPanel } from "@/components/panel/NutritionDocumentsPanel";
+import { PublishedNutritionPreview } from "@/components/panel/PublishedNutritionPreview";
+import { loadAdminNutritionState, withLoadingFinally } from "@/lib/admin-nutrition/load-state";
+import {
+  loadPublishedNutritionFor,
+  type PublishedNutritionView,
+} from "@/lib/published-programs/repo";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/nutrition")({
   component: AdminNutritionPage,
@@ -61,46 +67,58 @@ function AdminNutritionPage() {
     ReturnType<typeof loadTargetProfile>
   > | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [published, setPublished] = useState<PublishedNutritionView | null>(null);
   const [showSetup, setShowSetup] = useState(false);
   const [nutritionMode, setNutritionMode] = useState<"legacy" | "constructor">("constructor");
 
   const reload = async () => {
-    setLoading(true);
-    const p = await loadPlanFor(id, courseId);
-    const planIds = p.days.flatMap((d) => d.meals.map((m) => m.dish_id));
-    const [{ all, pool }, prof] = await Promise.all([
-      loadDishesForClient(id, planIds),
-      loadTargetProfile(id),
-    ]);
-    let fullName = "Клиент";
-    const { usesLocalPostgresCircuit, selfhostAdminClient } =
-      await import("@/lib/selfhost/client-api");
-    if (await usesLocalPostgresCircuit()) {
-      try {
-        const { client } = await selfhostAdminClient(id);
-        if (typeof client.full_name === "string" && client.full_name.trim()) {
-          fullName = client.full_name;
+    setLoadError(null);
+    try {
+      await withLoadingFinally(setLoading, async () => {
+        const state = await loadAdminNutritionState(
+          () => loadPlanFor(id, courseId),
+          () => loadPublishedNutritionFor(id, courseId),
+        );
+        const p = state.draft;
+        const planIds = p.days.flatMap((day) => day.meals.map((meal) => meal.dish_id));
+        const [{ all, pool }, prof] = await Promise.all([
+          loadDishesForClient(id, planIds),
+          loadTargetProfile(id),
+        ]);
+        let fullName = "Клиент";
+        const { usesLocalPostgresCircuit, selfhostAdminClient } =
+          await import("@/lib/selfhost/client-api");
+        if (await usesLocalPostgresCircuit()) {
+          try {
+            const { client } = await selfhostAdminClient(id);
+            if (typeof client.full_name === "string" && client.full_name.trim()) {
+              fullName = client.full_name;
+            }
+          } catch {
+            /* имя опционально */
+          }
+        } else {
+          const profRow = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", id)
+            .maybeSingle();
+          fullName = profRow.data?.full_name ?? "Клиент";
         }
-      } catch {
-        /* имя опционально */
-      }
-    } else {
-      const profRow = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", id)
-        .maybeSingle();
-      fullName = profRow.data?.full_name ?? "Клиент";
+        setDishes(all);
+        setSwapDishes(pool);
+        setPlan(p.plan);
+        setDays(p.days);
+        setPublished(state.published);
+        setSuggested(calcTargets(prof));
+        setTargetProfile(prof);
+        setAutoExcluded(extractExcludedFromText(prof.allergies, prof.disliked_foods));
+        setProfileName(fullName);
+      });
+    } catch (error) {
+      setLoadError((error as Error).message || "Не удалось загрузить питание клиента");
     }
-    setDishes(all);
-    setSwapDishes(pool);
-    setPlan(p.plan);
-    setDays(p.days);
-    setSuggested(calcTargets(prof));
-    setTargetProfile(prof);
-    setAutoExcluded(extractExcludedFromText(prof.allergies, prof.disliked_foods));
-    setProfileName(fullName);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -211,6 +229,21 @@ function AdminNutritionPage() {
 
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем…</div>;
 
+  if (loadError) {
+    return (
+      <div className="space-y-4 rounded-3xl border border-coral/30 bg-surface/40 p-8 text-center">
+        <p className="text-sm text-coral">{loadError}</p>
+        <button
+          type="button"
+          onClick={() => void reload()}
+          className="rounded-full border border-gold/30 px-5 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
+        >
+          Повторить загрузку
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <Link
@@ -268,6 +301,32 @@ function AdminNutritionPage() {
       </div>
 
       <NutritionRecommendationPanel clientId={id} onDraftCreated={() => void reload()} />
+
+      {!plan && published && (
+        <section className="space-y-4">
+          <div className="rounded-2xl border border-gold/25 bg-gold/5 p-4 text-sm text-warm-gray">
+            Черновика нет. Ниже показана действующая опубликованная версия без возможности
+            изменения.
+          </div>
+          <PublishedNutritionPreview snapshot={published.snapshot} />
+        </section>
+      )}
+
+      {!plan && !published && (
+        <section className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center">
+          <p className="text-sm text-warm-gray">Питание для этого курса ещё не создано.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setNutritionMode("legacy");
+              setShowSetup(true);
+            }}
+            className="mt-4 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-xs uppercase tracking-widest text-background"
+          >
+            Создать меню
+          </button>
+        </section>
+      )}
 
       {nutritionMode === "constructor" && targetProfile && (
         <ConstructorAdminPanel

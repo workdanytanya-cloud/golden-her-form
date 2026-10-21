@@ -745,7 +745,19 @@ export async function loadConstructorPlanFor(
   const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
   if (await usesLocalPostgresCircuit()) {
     const { selfhostNutritionDraft } = await import("@/lib/selfhost/client-api");
-    return selfhostNutritionDraft(userId, courseId);
+    try {
+      return await selfhostNutritionDraft(userId, courseId);
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "statusCode" in error &&
+        (error as { statusCode?: unknown }).statusCode === 404
+      ) {
+        return { plan: null, days: [] };
+      }
+      throw error;
+    }
   }
   const { resolveCourseId } = await import("@/lib/client-courses/repo");
   const resolvedCourseId = courseId ?? (await resolveCourseId(userId));
