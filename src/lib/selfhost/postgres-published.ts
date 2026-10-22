@@ -285,25 +285,30 @@ export async function getPdfAccessMetaPg(
 
   const course = courseId
     ? await db.query(
-        `SELECT title, start_date, end_date FROM public.client_courses WHERE id = $1 AND client_id = $2`,
+        `SELECT title, start_date::text AS start_date, end_date::text AS end_date
+         FROM public.client_courses WHERE id = $1 AND client_id = $2`,
         [courseId, clientId],
       )
     : await db.query(
-        `SELECT title, start_date, end_date FROM public.client_courses
+        `SELECT title, start_date::text AS start_date, end_date::text AS end_date
+         FROM public.client_courses
          WHERE client_id = $1 ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, start_date DESC LIMIT 1`,
         [clientId],
       );
   const row = course.rows[0] as
     { title?: string; start_date?: string; end_date?: string } | undefined;
-  const start = row?.start_date
-    ? formatRuDate(parseISODate(String(row.start_date).slice(0, 10)))
-    : "—";
-  const end = row?.end_date ? formatRuDate(parseISODate(String(row.end_date).slice(0, 10))) : "—";
+  const toRu = (raw: string | null | undefined): string => {
+    if (!raw) return "—";
+    const iso = String(raw).match(/\d{4}-\d{2}-\d{2}/)?.[0];
+    if (!iso) return "—";
+    const formatted = formatRuDate(parseISODate(iso));
+    return formatted.includes("NaN") ? "—" : formatted;
+  };
   return {
     clientName,
     courseTitle: row?.title?.trim() || "Курс",
-    courseStart: start,
-    courseEnd: end,
+    courseStart: toRu(row?.start_date),
+    courseEnd: toRu(row?.end_date),
   };
 }
 

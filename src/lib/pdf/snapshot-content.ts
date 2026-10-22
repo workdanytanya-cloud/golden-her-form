@@ -118,6 +118,15 @@ function extractNotesSection(notes: string | null | undefined, heading: string):
     .filter(Boolean);
 }
 
+/** Округляет граммы в строках списка покупок для клиентского PDF. */
+function roundShoppingLineGrams(line: string): string {
+  return line.replace(/([\d\s]+(?:[.,]\d+)?)\s*г/gi, (_full, raw: string) => {
+    const n = Number(String(raw).replace(/\s+/g, "").replace(",", "."));
+    if (!Number.isFinite(n)) return `${raw} г`;
+    return `${Math.round(n)} г`;
+  });
+}
+
 export function nutritionPdfBlocks(snapshot: NutritionSnapshot, meta: PdfClientMeta): PdfLineBlock[] {
   const safeStart = meta.courseStart.includes("NaN") ? "—" : meta.courseStart;
   const safeEnd = meta.courseEnd.includes("NaN") ? "—" : meta.courseEnd;
@@ -192,21 +201,23 @@ export function nutritionPdfBlocks(snapshot: NutritionSnapshot, meta: PdfClientM
     if (storage.length > 0) {
       blocks.push({ lines: ["", "Хранение:", ...storage.map((line) => `  ${line}`)] });
     }
-    if (shoppingFromNotes.length > 0) {
+    const shopping = shoppingListFromDays(constructorDaysFromSnapshot(snapshot));
+    if (shopping.length > 0) {
       blocks.push({
-        lines: ["", "Список покупок:", ...shoppingFromNotes.map((line) => `  ${line}`)],
+        lines: [
+          "",
+          "Список покупок:",
+          ...shopping.map((entry) => `  • ${entry.product_name} — ${Math.round(entry.grams)} г`),
+        ],
       });
-    } else {
-      const shopping = shoppingListFromDays(constructorDaysFromSnapshot(snapshot));
-      if (shopping.length > 0) {
-        blocks.push({
-          lines: [
-            "",
-            "Список покупок:",
-            ...shopping.map((entry) => `  • ${entry.product_name} — ${Math.round(entry.grams)} г`),
-          ],
-        });
-      }
+    } else if (shoppingFromNotes.length > 0) {
+      blocks.push({
+        lines: [
+          "",
+          "Список покупок:",
+          ...shoppingFromNotes.map((line) => `  ${roundShoppingLineGrams(line)}`),
+        ],
+      });
     }
   } else {
     for (const day of snapshot.legacy_days) {
