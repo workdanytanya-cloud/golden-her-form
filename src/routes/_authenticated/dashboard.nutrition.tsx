@@ -190,7 +190,7 @@ function NutritionInner() {
         {snapshot.notes && (
           <div className="rounded-2xl border border-gold/25 bg-gradient-to-br from-gold/10 to-transparent p-4 text-sm text-ivory">
             <p className="text-[11px] uppercase tracking-widest text-gold">Комментарий тренера</p>
-            <p className="mt-1">{snapshot.notes}</p>
+            <p className="mt-1 whitespace-pre-wrap">{snapshot.notes}</p>
           </div>
         )}
         <ConstructorNutritionView
@@ -254,7 +254,7 @@ function NutritionInner() {
       {snapshot.notes && (
         <div className="rounded-2xl border border-gold/25 bg-gradient-to-br from-gold/10 to-transparent p-4 text-sm text-ivory">
           <p className="text-[11px] uppercase tracking-widest text-gold">Комментарий тренера</p>
-          <p className="mt-1">{snapshot.notes}</p>
+          <p className="mt-1 whitespace-pre-wrap">{snapshot.notes}</p>
         </div>
       )}
       <NutritionView

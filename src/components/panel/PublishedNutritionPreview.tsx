@@ -3,6 +3,7 @@ import { NutritionView } from "@/components/panel/NutritionView";
 import type { DayEntry, Dish } from "@/lib/nutrition";
 import { comparisonRows } from "@/lib/nutrition-constructor/calculator";
 import { d } from "@/lib/nutrition-constructor/decimal-math";
+import { shoppingListFromDays } from "@/lib/nutrition-constructor/ingredient-normalize";
 import { resolveDisplayMealScheduleMode } from "@/lib/nutrition-constructor/plan-kbju-status";
 import type { PrimaryMealSlot } from "@/lib/nutrition-constructor/config";
 import { constructorDaysFromSnapshot } from "@/lib/published-programs/nutrition-snapshot";
@@ -30,17 +31,32 @@ export function PublishedNutritionPreview({ snapshot }: { snapshot: NutritionSna
         fiber_g: d(0),
       },
     );
+    const shoppingList = shoppingListFromDays(days);
     return (
-      <ConstructorNutritionView
-        days={days}
-        comparison={comparison}
-        targets={targets}
-        planStatus="assigned"
-        mealScheduleMode={displayMode}
-        primaryMealSlot={snapshot.primary_meal_slot as PrimaryMealSlot}
-        editable={false}
-        swapCatalog={[]}
-      />
+      <div className="space-y-4">
+        <ConstructorNutritionView
+          days={days}
+          comparison={comparison}
+          targets={targets}
+          planStatus="assigned"
+          mealScheduleMode={displayMode}
+          primaryMealSlot={snapshot.primary_meal_slot as PrimaryMealSlot}
+          editable={false}
+          swapCatalog={[]}
+        />
+        {shoppingList.length > 0 && (
+          <div className="rounded-2xl border border-gold/15 p-4 text-sm">
+            <p className="text-[11px] uppercase tracking-widest text-warm-gray">Список покупок</p>
+            <ul className="mt-2 columns-1 gap-2 sm:columns-2">
+              {shoppingList.map((entry) => (
+                <li key={entry.product_id || entry.product_name} className="text-warm-gray">
+                  {entry.product_name}: {Math.round(entry.grams)} г
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     );
   }
 

@@ -1,3 +1,6 @@
+import { displayGrams, d } from "@/lib/nutrition-constructor/decimal-math";
+import { shoppingListFromDays } from "@/lib/nutrition-constructor/ingredient-normalize";
+import { constructorDaysFromSnapshot } from "@/lib/published-programs/nutrition-snapshot";
 import type { NutritionSnapshot, TrainingSnapshot } from "@/lib/published-programs/types";
 import { videoFromFrozenExercise } from "@/lib/published-programs/training-snapshot";
 
@@ -48,11 +51,12 @@ export function requirePublishedSnapshot<T>(
 }
 
 const SLOT_LABEL: Record<string, string> = {
-  main1: "Основной приём 1",
-  main2: "Основной приём 2",
-  main3: "Основной приём 3",
+  main1: "Завтрак",
+  main2: "Обед",
+  main3: "Ужин",
   snack1: "Перекус 1",
   snack2: "Перекус 2",
+  snack3: "Перекус 3",
   breakfast: "Завтрак",
   lunch: "Обед",
   dinner: "Ужин",
@@ -63,52 +67,168 @@ function slotLabel(slot: string): string {
   return SLOT_LABEL[slot] ?? slot;
 }
 
-export function pdfFileName(kind: PdfKind, issuedAt: string): string {
+function safeDateToken(issuedAt: string): string {
   const day = issuedAt.slice(0, 10);
-  return kind === "nutrition" ? `panovapro-nutrition-${day}.pdf` : `panovapro-training-${day}.pdf`;
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : "date";
 }
 
-export function nutritionPdfLines(snapshot: NutritionSnapshot, meta: PdfClientMeta): string[] {
-  const lines: string[] = [
-    "PanovaPRO — питание",
-    `Клиент: ${meta.clientName}`,
-    `Курс: ${meta.courseTitle}`,
-    `Даты курса: ${meta.courseStart} — ${meta.courseEnd}`,
-    `Дата выдачи: ${meta.issuedAt}`,
-    `Целевые КБЖУ: ${snapshot.targets.kcal} ккал, Б ${snapshot.targets.protein_g} г, Ж ${snapshot.targets.fat_g} г, У ${snapshot.targets.carbs_g} г`,
+function clientNameSlug(clientName: string): string {
+  return clientName
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9а-яё\-]/gi, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+}
+
+export function pdfFileName(kind: PdfKind, issuedAt: string, clientName?: string): string {
+  const day = safeDateToken(issuedAt);
+  const base = kind === "nutrition" ? "panovapro-nutrition" : "panovapro-training";
+  const slug = clientName ? clientNameSlug(clientName) : "";
+  return slug ? `${base}-${slug}-${day}.pdf` : `${base}-${day}.pdf`;
+}
+
+function formatMacroLine(kcal: string, protein: string, fat: string, carbs: string): string {
+  const k = d(kcal).toDecimalPlaces(0).toNumber();
+  const p = d(protein).toDecimalPlaces(1).toNumber();
+  const f = d(fat).toDecimalPlaces(1).toNumber();
+  const c = d(carbs).toDecimalPlaces(1).toNumber();
+  return `${k} ккал, Б ${p} г, Ж ${f} г, У ${c} г`;
+}
+
+export type PdfLineBlock = {
+  keepTogether?: boolean;
+  lines: string[];
+};
+
+function extractNotesSection(notes: string | null | undefined, heading: string): string[] {
+  if (!notes) return [];
+  const re = new RegExp(`^##\\s*${heading}\\s*$`, "im");
+  const match = notes.match(re);
+  if (!match || match.index == null) return [];
+  const start = match.index + match[0].length;
+  const rest = notes.slice(start);
+  const next = rest.search(/^##\s+/m);
+  const body = (next >= 0 ? rest.slice(0, next) : rest).trim();
+  return body
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+export function nutritionPdfBlocks(snapshot: NutritionSnapshot, meta: PdfClientMeta): PdfLineBlock[] {
+  const safeStart = meta.courseStart.includes("NaN") ? "—" : meta.courseStart;
+  const safeEnd = meta.courseEnd.includes("NaN") ? "—" : meta.courseEnd;
+  const safeIssued = safeDateToken(meta.issuedAt);
+
+  const blocks: PdfLineBlock[] = [
+    {
+      lines: [
+        "PanovaPRO — питание",
+        `Клиент: ${meta.clientName}`,
+        `Курс: ${meta.courseTitle}`,
+        `Даты курса: ${safeStart} — ${safeEnd}`,
+        `Дата выдачи: ${safeIssued}`,
+        `Целевые КБЖУ: ${formatMacroLine(
+          String(snapshot.targets.kcal),
+          String(snapshot.targets.protein_g),
+          String(snapshot.targets.fat_g),
+          String(snapshot.targets.carbs_g),
+        )}`,
+      ],
+    },
   ];
-  if (snapshot.notes) lines.push(`Комментарий тренера: ${snapshot.notes}`);
+
+  const preface = (snapshot.notes ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("##"));
+  const prefaceUntilPrep = [];
+  for (const line of preface) {
+    if (/^план заготовок|^хранение|^список покупок/i.test(line)) break;
+    prefaceUntilPrep.push(line);
+  }
+  if (prefaceUntilPrep.length > 0) {
+    blocks.push({ lines: ["", "Комментарий тренера:", ...prefaceUntilPrep] });
+  }
 
   if (snapshot.kind === "constructor") {
     for (const day of snapshot.constructor_days) {
-      lines.push("");
-      lines.push(`День ${day.day_index + 1}${day.day_note ? ` — ${day.day_note}` : ""}`);
-      lines.push(
-        `Итого дня: ${day.kcal} ккал, Б ${day.protein_g} г, Ж ${day.fat_g} г, У ${day.carbs_g} г`,
-      );
+      blocks.push({
+        lines: [
+          "",
+          `День ${day.day_index + 1}${day.day_note ? ` — ${day.day_note}` : ""}`,
+          `Итого дня: ${formatMacroLine(day.kcal, day.protein_g, day.fat_g, day.carbs_g)}`,
+        ],
+      });
       for (const item of day.items) {
-        lines.push(`${slotLabel(item.slot)}: ${item.recipe_name}`);
-        lines.push(
-          `  КБЖУ: ${item.kcal} ккал, Б ${item.protein_g} г, Ж ${item.fat_g} г, У ${item.carbs_g} г`,
-        );
+        const mealLines = [
+          `${slotLabel(item.slot)}: ${item.recipe_name}`,
+          `  КБЖУ: ${formatMacroLine(item.kcal, item.protein_g, item.fat_g, item.carbs_g)}`,
+        ];
         for (const ing of item.ingredients) {
-          lines.push(`  • ${ing.product_name} — ${ing.grams} г`);
+          mealLines.push(`  • ${ing.product_name} — ${displayGrams(ing.grams)} г`);
         }
+        if (item.steps?.length) {
+          for (const step of item.steps) {
+            mealLines.push(`  Инструкция: ${step}`);
+          }
+        }
+        if (item.prep_time_min != null) {
+          mealLines.push(`  Активное время: ${item.prep_time_min} мин`);
+        }
+        blocks.push({ keepTogether: true, lines: mealLines });
+      }
+    }
+
+    const prep = extractNotesSection(snapshot.notes, "План заготовок");
+    const storage = extractNotesSection(snapshot.notes, "Хранение");
+    const shoppingFromNotes = extractNotesSection(snapshot.notes, "Список покупок");
+    if (prep.length > 0) {
+      blocks.push({ lines: ["", "План заготовок:", ...prep.map((line) => `  ${line}`)] });
+    }
+    if (storage.length > 0) {
+      blocks.push({ lines: ["", "Хранение:", ...storage.map((line) => `  ${line}`)] });
+    }
+    if (shoppingFromNotes.length > 0) {
+      blocks.push({
+        lines: ["", "Список покупок:", ...shoppingFromNotes.map((line) => `  ${line}`)],
+      });
+    } else {
+      const shopping = shoppingListFromDays(constructorDaysFromSnapshot(snapshot));
+      if (shopping.length > 0) {
+        blocks.push({
+          lines: [
+            "",
+            "Список покупок:",
+            ...shopping.map((entry) => `  • ${entry.product_name} — ${Math.round(entry.grams)} г`),
+          ],
+        });
       }
     }
   } else {
     for (const day of snapshot.legacy_days) {
-      lines.push("");
-      lines.push(`День ${day.day_index + 1}${day.day_note ? ` — ${day.day_note}` : ""}`);
+      blocks.push({
+        lines: ["", `День ${day.day_index + 1}${day.day_note ? ` — ${day.day_note}` : ""}`],
+      });
       for (const meal of day.meals) {
-        lines.push(`${slotLabel(meal.slot)}: ${meal.dish.name} — ${meal.portion_g} г`);
-        lines.push(
-          `  На 100 г: ${meal.dish.calories_per_100g} ккал, Б ${meal.dish.protein_per_100g} г, Ж ${meal.dish.fat_per_100g} г, У ${meal.dish.carbs_per_100g} г`,
-        );
+        blocks.push({
+          keepTogether: true,
+          lines: [
+            `${slotLabel(meal.slot)}: ${meal.dish.name} — ${Math.round(meal.portion_g)} г`,
+            `  На 100 г: ${meal.dish.calories_per_100g} ккал, Б ${meal.dish.protein_per_100g} г, Ж ${meal.dish.fat_per_100g} г, У ${meal.dish.carbs_per_100g} г`,
+          ],
+        });
       }
     }
   }
-  return lines;
+  return blocks;
+}
+
+export function nutritionPdfLines(snapshot: NutritionSnapshot, meta: PdfClientMeta): string[] {
+  return nutritionPdfBlocks(snapshot, meta).flatMap((block) => block.lines);
 }
 
 function sectionSets(
@@ -153,12 +273,14 @@ export function trainingPdfLines(
   meta: PdfClientMeta,
   mediaOverlay?: Map<string, import("@/lib/exercise-video").ExerciseVideo>,
 ): string[] {
+  const safeStart = meta.courseStart.includes("NaN") ? "—" : meta.courseStart;
+  const safeEnd = meta.courseEnd.includes("NaN") ? "—" : meta.courseEnd;
   const lines: string[] = [
     "PanovaPRO — тренировки",
     `Клиент: ${meta.clientName}`,
     `Курс: ${meta.courseTitle}`,
-    `Даты курса: ${meta.courseStart} — ${meta.courseEnd}`,
-    `Дата выдачи: ${meta.issuedAt}`,
+    `Даты курса: ${safeStart} — ${safeEnd}`,
+    `Дата выдачи: ${safeDateToken(meta.issuedAt)}`,
     `Программа: ${snapshot.name}`,
   ];
   const byWeek = new Map<number, typeof snapshot.days>();
@@ -176,19 +298,19 @@ export function trainingPdfLines(
         `День ${day.day_index + 1}: ${day.title}${day.is_rest ? " (отдых)" : ""}${day.focus ? ` — ${day.focus}` : ""}`,
       );
       if (day.is_rest) continue;
-      const week = day.week_index ?? 0;
-      lines.push(...sectionSets("Разминка", day.warmup, mediaOverlay, week, day.day_index, "warmup"));
+      const weekIndex = day.week_index ?? 0;
+      lines.push(...sectionSets("Разминка", day.warmup, mediaOverlay, weekIndex, day.day_index, "warmup"));
       lines.push(
         ...sectionSets(
           "Основные упражнения",
           day.exercises,
           mediaOverlay,
-          week,
+          weekIndex,
           day.day_index,
           "exercises",
         ),
       );
-      lines.push(...sectionSets("Заминка", day.cooldown, mediaOverlay, week, day.day_index, "cooldown"));
+      lines.push(...sectionSets("Заминка", day.cooldown, mediaOverlay, weekIndex, day.day_index, "cooldown"));
     }
   }
   return lines;

@@ -923,9 +923,11 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         const issuedAt =
           record.version.published_at?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
         const buffer = await buildNutritionPdf(record.snapshot, { ...meta, issuedAt });
-        const headers = pdfDownloadHeaders(kind, issuedAt);
+        const headers = pdfDownloadHeaders(kind, issuedAt, meta.clientName);
         return json({
-          filename: headers["Content-Disposition"].match(/filename="([^"]+)"/)?.[1],
+          filename: headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)?.[1]
+            ? decodeURIComponent(headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)![1]!)
+            : headers["Content-Disposition"].match(/filename="([^"]+)"/)?.[1],
           contentType: headers["Content-Type"],
           pdfBase64: buffer.toString("base64"),
         });
@@ -953,9 +955,11 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       const issuedAt =
         record.version.published_at?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
       const buffer = await buildTrainingPdf(record.snapshot, { ...meta, issuedAt }, overlay);
-      const headers = pdfDownloadHeaders(kind, issuedAt);
+      const headers = pdfDownloadHeaders(kind, issuedAt, meta.clientName);
       return json({
-        filename: headers["Content-Disposition"].match(/filename="([^"]+)"/)?.[1],
+        filename: headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)?.[1]
+          ? decodeURIComponent(headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)![1]!)
+          : headers["Content-Disposition"].match(/filename="([^"]+)"/)?.[1],
         contentType: headers["Content-Type"],
         pdfBase64: buffer.toString("base64"),
       });

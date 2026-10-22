@@ -222,8 +222,11 @@ describe("snapshot PDFs", () => {
     expect(buf.subarray(0, 4).toString()).toBe("%PDF");
     const headers = pdfDownloadHeaders("training", "2026-03-02");
     expect(headers["Content-Type"]).toBe("application/pdf");
-    expect(headers["Content-Disposition"]).toBe(
-      'attachment; filename="panovapro-training-2026-03-02.pdf"',
+    expect(headers["Content-Disposition"]).toContain(
+      'filename="panovapro-training-2026-03-02.pdf"',
+    );
+    expect(headers["Content-Disposition"]).toContain(
+      "filename*=UTF-8''panovapro-training-2026-03-02.pdf",
     );
     expect(headers["Cache-Control"]).toBe("private, no-store");
     expect(pdfFileName("nutrition", "2026-09-13")).toBe("panovapro-nutrition-2026-09-13.pdf");

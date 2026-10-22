@@ -57,9 +57,11 @@ export const downloadPublishedPdfFn = createServerFn({ method: "POST" })
       issuedAt = record?.version.published_at?.slice(0, 10) ?? published.issuedAt;
       buffer = await buildTrainingPdf(published.snapshot, { ...meta, issuedAt });
     }
-    const headers = pdfDownloadHeaders(kind, issuedAt);
+    const headers = pdfDownloadHeaders(kind, issuedAt, meta.clientName);
     return {
-      filename: headers["Content-Disposition"].match(/filename="([^"]+)"/)?.[1] ?? "panovapro.pdf",
+      filename: headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)?.[1]
+        ? decodeURIComponent(headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)![1]!)
+        : (headers["Content-Disposition"].match(/filename="([^"]+)"/)?.[1] ?? "panovapro.pdf"),
       contentType: headers["Content-Type"],
       cacheControl: headers["Cache-Control"],
       pdfBase64: buffer.toString("base64"),

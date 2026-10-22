@@ -4,11 +4,12 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import type { NutritionSnapshot, TrainingSnapshot } from "@/lib/published-programs/types";
 import {
-  nutritionPdfLines,
+  nutritionPdfBlocks,
   pdfFileName,
   trainingPdfLines,
   type PdfClientMeta,
   type PdfKind,
+  type PdfLineBlock,
 } from "@/lib/pdf/snapshot-content";
 
 // pdfkit is CJS and relies on __dirname; load via createRequire (not ESM default import).
@@ -25,7 +26,6 @@ function fontsDirCandidates(): string[] {
     path.join(cwd, "src/lib/pdf/fonts"),
     path.join(cwd, "fonts"),
     path.join(cwd, ".output/server/fonts"),
-    // Nitro chunks often live under .output/server/chunks/_/… — walk a couple of parents.
     path.join(path.dirname(besideModule), "fonts"),
     path.join(path.dirname(path.dirname(besideModule)), "fonts"),
     path.join(path.dirname(path.dirname(path.dirname(besideModule))), "fonts"),
@@ -45,7 +45,45 @@ export function notoSansRegularPath(): string {
   return path.join(fontsDir(), FONT_FILE);
 }
 
-export function renderPdfFromLines(title: string, lines: string[]): Promise<Buffer> {
+function writeLine(
+  doc: InstanceType<typeof PDFDocument>,
+  line: string,
+  width: number,
+): void {
+  if (!line) {
+    doc.moveDown(0.4);
+    return;
+  }
+  const isLink = line.includes("https://");
+  if (isLink) {
+    const idx = line.indexOf("https://");
+    const prefix = line.slice(0, idx);
+    const url = line.slice(idx).trim();
+    if (prefix) doc.text(prefix, { continued: true, width });
+    doc.fillColor("#1a56db").text(url, { link: url, underline: true, width });
+    doc.fillColor("#000000");
+    return;
+  }
+  doc.text(line, { align: "left", width });
+}
+
+function blockHeight(
+  doc: InstanceType<typeof PDFDocument>,
+  lines: string[],
+  width: number,
+): number {
+  let height = 0;
+  for (const line of lines) {
+    if (!line) {
+      height += doc.currentLineHeight() * 0.4;
+      continue;
+    }
+    height += doc.heightOfString(line, { width, align: "left" });
+  }
+  return height;
+}
+
+export function renderPdfFromBlocks(title: string, blocks: PdfLineBlock[]): Promise<Buffer> {
   const fontPath = notoSansRegularPath();
   if (!fs.existsSync(fontPath)) {
     throw new Error("Не найден шрифт Noto Sans для PDF");
@@ -63,35 +101,41 @@ export function renderPdfFromLines(title: string, lines: string[]): Promise<Buff
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    doc.fontSize(16).text(title, { underline: true });
+    const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const bottom = doc.page.height - doc.page.margins.bottom;
+
+    doc.fontSize(16).text(title, { underline: true, width });
     doc.moveDown(0.6);
     doc.fontSize(10);
-    for (const line of lines) {
-      if (!line) {
-        doc.moveDown(0.4);
-        continue;
+
+    for (const block of blocks) {
+      if (block.keepTogether && block.lines.length > 0) {
+        const needed = blockHeight(doc, block.lines, width);
+        if (doc.y + needed > bottom) doc.addPage();
       }
-      const isLink = line.includes("https://");
-      if (isLink) {
-        const idx = line.indexOf("https://");
-        const prefix = line.slice(0, idx);
-        const url = line.slice(idx).trim();
-        if (prefix) doc.text(prefix, { continued: true });
-        doc.fillColor("#1a56db").text(url, { link: url, underline: true });
-        doc.fillColor("#000000");
-      } else {
-        doc.text(line, { align: "left" });
+      for (const line of block.lines) {
+        if (line && doc.y + doc.heightOfString(line, { width }) > bottom) {
+          doc.addPage();
+        }
+        writeLine(doc, line, width);
       }
     }
     doc.end();
   });
 }
 
+export function renderPdfFromLines(title: string, lines: string[]): Promise<Buffer> {
+  return renderPdfFromBlocks(
+    title,
+    lines.map((line) => ({ lines: [line] })),
+  );
+}
+
 export async function buildNutritionPdf(
   snapshot: NutritionSnapshot,
   meta: PdfClientMeta,
 ): Promise<Buffer> {
-  return renderPdfFromLines("Питание", nutritionPdfLines(snapshot, meta));
+  return renderPdfFromBlocks("Питание", nutritionPdfBlocks(snapshot, meta));
 }
 
 export async function buildTrainingPdf(
@@ -102,18 +146,29 @@ export async function buildTrainingPdf(
   return renderPdfFromLines("Тренировки", trainingPdfLines(snapshot, meta, mediaOverlay));
 }
 
-export function pdfDownloadHeaders(kind: PdfKind, issuedAt: string): Record<string, string> {
-  const filename = pdfFileName(kind, issuedAt);
+export function pdfDownloadHeaders(
+  kind: PdfKind,
+  issuedAt: string,
+  clientName?: string,
+): Record<string, string> {
+  const filename = pdfFileName(kind, issuedAt, clientName);
+  const ascii = filename.replace(/[^\x20-\x7E]/g, "_");
+  const encoded = encodeURIComponent(filename);
   return {
     "Content-Type": "application/pdf",
-    "Content-Disposition": `attachment; filename="${filename}"`,
+    "Content-Disposition": `attachment; filename="${ascii}"; filename*=UTF-8''${encoded}`,
     "Cache-Control": "private, no-store",
   };
 }
 
-export function createPdfResponse(buffer: Buffer, kind: PdfKind, issuedAt: string): Response {
+export function createPdfResponse(
+  buffer: Buffer,
+  kind: PdfKind,
+  issuedAt: string,
+  clientName?: string,
+): Response {
   return new Response(new Uint8Array(buffer), {
     status: 200,
-    headers: pdfDownloadHeaders(kind, issuedAt),
+    headers: pdfDownloadHeaders(kind, issuedAt, clientName),
   });
 }
