@@ -1,4 +1,5 @@
 import { displayGrams, d } from "@/lib/nutrition-constructor/decimal-math";
+import { displayWeighingNote } from "@/lib/nutrition-constructor/weighing-note-display";
 import { shoppingListFromDays } from "@/lib/nutrition-constructor/ingredient-normalize";
 import { constructorDaysFromSnapshot } from "@/lib/published-programs/nutrition-snapshot";
 import type { NutritionSnapshot, TrainingSnapshot } from "@/lib/published-programs/types";
@@ -178,7 +179,16 @@ export function nutritionPdfBlocks(snapshot: NutritionSnapshot, meta: PdfClientM
           `  КБЖУ: ${formatMacroLine(item.kcal, item.protein_g, item.fat_g, item.carbs_g)}`,
         ];
         for (const ing of item.ingredients) {
-          mealLines.push(`  • ${ing.product_name} — ${displayGrams(ing.grams)} г`);
+          const note = displayWeighingNote({
+            product_id: ing.product_id,
+            product_name: ing.product_name,
+            weighing_note: ing.weighing_note ?? null,
+          });
+          mealLines.push(
+            note
+              ? `  • ${ing.product_name} — ${displayGrams(ing.grams)} г (${note})`
+              : `  • ${ing.product_name} — ${displayGrams(ing.grams)} г`,
+          );
         }
         if (item.steps?.length) {
           for (const step of item.steps) {
