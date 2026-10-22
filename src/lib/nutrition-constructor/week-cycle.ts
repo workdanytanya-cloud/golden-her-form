@@ -101,6 +101,7 @@ export function assembleExactWeek(
     if (signatures.size + remaining < Math.min(4, totalDays)) return false;
     for (const candidate of candidates) {
       if (selected.at(-1)?.signature === candidate.signature) continue;
+      if (candidates.length >= totalDays && signatures.has(candidate.signature)) continue;
       const ids = candidate.day.items.map((item) => item.recipe_id);
       if (ids.some((id) => (recipeUses.get(id) ?? 0) >= 3)) continue;
       selected.push(candidate);

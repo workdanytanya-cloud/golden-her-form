@@ -6,6 +6,8 @@ import { createSession } from "./local-auth";
 import { csrfCookieName, sessionCookieName } from "./config";
 import { handleSelfhostRequest } from "./http";
 import { loadConstructorPlanPg, seedNutritionCatalog } from "./postgres-nutrition";
+import { fingerprintExactDay } from "@/lib/nutrition-constructor/week-cycle";
+import type { ConstructorDay } from "@/lib/nutrition-constructor/types";
 
 const url = process.env.SELFHOST_NUTRITION_GENERATE_TEST_DATABASE_URL;
 const run = Boolean(url);
@@ -17,6 +19,7 @@ describe.runIf(run)("nutrition generate endpoint PostgreSQL integration", () => 
   let pool: pg.Pool;
   let cookie = "";
   let excluded: string[] = [];
+  let excludedSet = new Set<string>();
   const csrf = "integration-csrf-token";
 
   beforeAll(async () => {
@@ -43,6 +46,7 @@ describe.runIf(run)("nutrition generate endpoint PostgreSQL integration", () => 
         ],
       ])
     ).rows.map((row: { id: string }) => row.id);
+    excludedSet = new Set(excluded);
     await pool.query(
       `INSERT INTO users (id,email,password_hash) VALUES
        ($1,'generate-admin@example.invalid','test'),
@@ -99,7 +103,7 @@ describe.runIf(run)("nutrition generate endpoint PostgreSQL integration", () => 
     expect(response?.status).toBe(200);
     return response!.json() as Promise<{
       is_valid: boolean;
-      days: Array<{ items: Array<{ ingredients: Array<{ grams: string }> }> }>;
+      days: ConstructorDay[];
       draftId: string;
       diagnostics?: { pass_pool_size?: number };
     }>;
@@ -115,14 +119,16 @@ describe.runIf(run)("nutrition generate endpoint PostgreSQL integration", () => 
        (SELECT count(*)::int FROM client_program_assignments) AS assignments`,
     );
     const first = await generate();
-    expect(first.is_valid).toBe(true);
+    expect(first.is_valid, JSON.stringify(first)).toBe(true);
     expect(first.days).toHaveLength(7);
     expect(first.diagnostics?.pass_pool_size).toBeGreaterThanOrEqual(4);
+    expect(new Set(first.days.map(fingerprintExactDay)).size).toBe(7);
     for (const day of first.days)
       for (const item of day.items)
         for (const ingredient of item.ingredients) {
           expect(Number.isInteger(Number(ingredient.grams))).toBe(true);
           expect(Number(ingredient.grams)).toBeGreaterThan(0);
+          expect(excludedSet.has(ingredient.product_id)).toBe(false);
         }
     const loaded = await loadConstructorPlanPg(pool, CLIENT, COURSE);
     expect(loaded.plan?.id).toBe(first.draftId);

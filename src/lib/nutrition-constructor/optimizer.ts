@@ -986,13 +986,25 @@ export function generateConstructorPlan(
     }
 
     const excluded = new Set(input.excluded_product_ids);
-    const generationCtx: OptimizerContext =
+    let generationCtx: OptimizerContext =
       excluded.size === 0
         ? {
             ...ctx,
             mainRecipes: ctx.mainRecipes.filter((recipe) => !recipe.slug.startsWith("gentle-")),
           }
         : ctx;
+    if (excluded.size > 0) {
+      const recipeAllowed = (recipe: Recipe) =>
+        (ctx.recipeIngredients.get(recipe.id) ?? []).every(
+          (ingredient) => !excluded.has(ingredient.product_id),
+        );
+      generationCtx = {
+        ...generationCtx,
+        recipes: generationCtx.recipes.filter(recipeAllowed),
+        mainRecipes: generationCtx.mainRecipes.filter(recipeAllowed),
+        snackRecipes: generationCtx.snackRecipes.filter(recipeAllowed),
+      };
+    }
     const proteinProducts = [...ctx.products.values()].filter(
       (p) =>
         p.is_active &&
@@ -1188,7 +1200,11 @@ export function generateConstructorPlan(
           return failureResult(lastFailureReason, timedOut, diagnostics, 1);
         }
         const assemblyStarted = Date.now();
-        const arranged = assembleExactWeek(exactPool, input.days_count, input.seed);
+        const arranged = assembleExactWeek(
+          exactPool,
+          input.days_count,
+          input.seed,
+        );
         weekAssemblyElapsedMs = Date.now() - assemblyStarted;
         uniqueWeekDays = new Set(arranged.map(fingerprintExactDay)).size;
         days.push(...arranged);
