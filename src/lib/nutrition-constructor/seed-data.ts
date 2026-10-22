@@ -630,6 +630,153 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   },
 ];
 
+SEED_PRODUCTS.push(
+  {
+    slug: "turkey-breast-raw",
+    name: "Филе индейки без кожи",
+    category: "meat",
+    state: "raw",
+    measurement_basis: "per_100g_raw",
+    kcal: 114,
+    protein: 23.66,
+    fat: 1.48,
+    carbs: 0,
+    source_name: "USDA SR Legacy 5696",
+    is_verified: true,
+    allowed_for_snack: false,
+    requires_cooking: true,
+    weighing_note: "Взвешивать сырым, без кожи.",
+  },
+  {
+    slug: "egg-white-raw",
+    name: "Яичный белок",
+    category: "egg",
+    state: "raw",
+    measurement_basis: "per_100g_raw",
+    kcal: 52,
+    protein: 10.9,
+    fat: 0.17,
+    carbs: 0.73,
+    source_name: "USDA FDC 1124",
+    is_verified: true,
+    allowed_for_snack: false,
+    requires_cooking: true,
+    weighing_note: "Взвешивать сырым, без скорлупы.",
+  },
+  {
+    slug: "potato-raw",
+    name: "Картофель",
+    category: "vegetable",
+    state: "raw",
+    measurement_basis: "per_100g_raw",
+    kcal: 77,
+    protein: 2.05,
+    fat: 0.09,
+    carbs: 17.49,
+    source_name: "USDA SR Legacy 11352",
+    is_verified: true,
+    allowed_for_snack: false,
+    requires_cooking: true,
+    weighing_note: "Взвешивать очищенным сырым.",
+  },
+  {
+    slug: "pasta-durum-dry",
+    name: "Макароны из твёрдых сортов",
+    category: "grain",
+    state: "raw_dry",
+    measurement_basis: "per_100g_dry",
+    kcal: 371,
+    protein: 13.04,
+    fat: 1.51,
+    carbs: 74.67,
+    source_name: "USDA SR Legacy 20420",
+    is_verified: true,
+    allowed_for_snack: false,
+    requires_cooking: true,
+    weighing_note: "Взвешивать сухими.",
+  },
+  {
+    slug: "pumpkin-raw",
+    name: "Тыква",
+    category: "vegetable",
+    state: "raw",
+    measurement_basis: "per_100g_raw",
+    kcal: 26,
+    protein: 1,
+    fat: 0.1,
+    carbs: 6.5,
+    source_name: "USDA SR Legacy 11422",
+    is_verified: true,
+    allowed_for_snack: false,
+    requires_cooking: true,
+    weighing_note: "Взвешивать очищенной сырой.",
+  },
+  {
+    slug: "beet-raw",
+    name: "Свёкла",
+    category: "vegetable",
+    state: "raw",
+    measurement_basis: "per_100g_raw",
+    kcal: 43,
+    protein: 1.61,
+    fat: 0.17,
+    carbs: 9.56,
+    source_name: "USDA SR Legacy 11080",
+    is_verified: true,
+    allowed_for_snack: false,
+    requires_cooking: true,
+    weighing_note: "Взвешивать очищенной сырой.",
+  },
+  {
+    slug: "lettuce-raw",
+    name: "Листовой салат",
+    category: "vegetable",
+    state: "raw",
+    measurement_basis: "per_100g_raw",
+    kcal: 15,
+    protein: 1.36,
+    fat: 0.15,
+    carbs: 2.87,
+    source_name: "USDA SR Legacy 11252",
+    is_verified: true,
+    allowed_for_snack: true,
+    requires_cooking: false,
+    weighing_note: "Взвешивать промытым сырым.",
+  },
+  {
+    slug: "pear-raw",
+    name: "Груша",
+    category: "fruit",
+    state: "raw",
+    measurement_basis: "per_100g_raw",
+    kcal: 57,
+    protein: 0.36,
+    fat: 0.14,
+    carbs: 15.23,
+    source_name: "USDA SR Legacy 09252",
+    is_verified: true,
+    allowed_for_snack: true,
+    requires_cooking: false,
+    weighing_note: "Взвешивать съедобную часть сырой.",
+  },
+  {
+    slug: "cod-raw",
+    name: "Треска",
+    category: "fish",
+    state: "raw",
+    measurement_basis: "per_100g_raw",
+    kcal: 82,
+    protein: 17.81,
+    fat: 0.67,
+    carbs: 0,
+    source_name: "USDA Foundation 100328",
+    is_verified: true,
+    allowed_for_snack: false,
+    requires_cooking: true,
+    weighing_note: "Взвешивать сырое филе без кожи и костей.",
+  },
+);
+
 export type SeedRecipe = {
   slug: string;
   name: string;
@@ -638,7 +785,14 @@ export type SeedRecipe = {
   prep_time_min: number;
   steps: string[];
   weighing_note: string;
-  ingredients: Array<{ product_slug: string; min_g: number; max_g: number; default_g: number }>;
+  allowed_schedule_modes?: import("@/lib/nutrition-constructor/config").MealScheduleMode[];
+  ingredients: Array<{
+    product_slug: string;
+    min_g: number;
+    max_g: number;
+    default_g: number;
+    required?: boolean;
+  }>;
 };
 
 const SEED_RECIPES_RAW: SeedRecipe[] = [
@@ -1296,6 +1450,223 @@ const SEED_RECIPES_RAW: SeedRecipe[] = [
   },
 ];
 
+const gentleMain = (
+  slug: string,
+  name: string,
+  ingredients: Array<[string, number, number, number]>,
+  prepTime = 15,
+): SeedRecipe => ({
+  slug,
+  name,
+  meal_type: "main",
+  requires_cooking: true,
+  prep_time_min: prepTime,
+  weighing_note: "Все основные продукты взвешивать до приготовления.",
+  steps: [
+    "Подготовить продукты без обжаривания и острых специй.",
+    "Отварить, потушить с водой или запечь до готовности.",
+  ],
+  allowed_schedule_modes: ["three_mains_only"],
+  ingredients: ingredients.map(([product_slug, min_g, max_g, default_g]) => ({
+    product_slug,
+    min_g,
+    max_g,
+    default_g,
+    required: true,
+  })),
+});
+
+const GENTLE_MAIN_RECIPES: SeedRecipe[] = [
+  gentleMain(
+    "gentle-oats-banana-eggwhite",
+    "Овсяная каша с бананом и яичным белком",
+    [
+      ["oats-dry", 35, 90, 55],
+      ["banana", 60, 150, 100],
+      ["egg-white-raw", 80, 250, 150],
+    ],
+    12,
+  ),
+  gentleMain(
+    "gentle-oats-baked-pear-eggwhite",
+    "Овсяная каша с запечённой грушей и яичным белком",
+    [
+      ["oats-dry", 35, 90, 55],
+      ["pear-raw", 80, 180, 120],
+      ["egg-white-raw", 80, 250, 150],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-omelette-zucchini-potato",
+    "Омлет с кабачком и картофелем",
+    [
+      ["egg-whole", 50, 150, 100],
+      ["egg-white-raw", 50, 200, 100],
+      ["zucchini", 80, 200, 130],
+      ["potato-raw", 80, 250, 150],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-buckwheat-egg-turkey",
+    "Гречка с яйцом и индейкой",
+    [
+      ["buckwheat-dry", 40, 120, 65],
+      ["egg-whole", 50, 100, 50],
+      ["turkey-breast-raw", 80, 240, 140],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-potato-chicken-carrot",
+    "Картофель с тушёной курицей и морковью",
+    [
+      ["potato-raw", 100, 350, 220],
+      ["chicken-breast-raw", 100, 260, 160],
+      ["carrot", 50, 140, 80],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-potato-turkey-zucchini",
+    "Картофель с тушёной индейкой и кабачком",
+    [
+      ["potato-raw", 100, 350, 220],
+      ["turkey-breast-raw", 100, 260, 160],
+      ["zucchini", 80, 220, 130],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-turkey-rice-pilaf",
+    "Мягкий плов с индейкой и морковью без обжаривания",
+    [
+      ["rice-white-dry", 40, 120, 65],
+      ["turkey-breast-raw", 100, 260, 160],
+      ["carrot", 50, 140, 80],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-rice-chicken-zucchini",
+    "Рис с курицей и кабачком",
+    [
+      ["rice-white-dry", 40, 120, 65],
+      ["chicken-breast-raw", 100, 260, 160],
+      ["zucchini", 80, 220, 130],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-buckwheat-beef-carrot",
+    "Гречка с нежирной говядиной и морковью",
+    [
+      ["buckwheat-dry", 40, 120, 65],
+      ["beef-lean-raw", 100, 190, 140],
+      ["carrot", 50, 140, 80],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-cod-potato-zucchini",
+    "Треска с картофелем и кабачком",
+    [
+      ["cod-raw", 120, 280, 190],
+      ["potato-raw", 100, 320, 200],
+      ["zucchini", 80, 220, 130],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-beet-soup-chicken",
+    "Щадящий свекольный суп с курицей без томатов и зажарки",
+    [
+      ["chicken-breast-raw", 80, 200, 120],
+      ["potato-raw", 80, 220, 130],
+      ["beet-raw", 60, 160, 100],
+      ["carrot", 40, 100, 60],
+      ["white-cabbage", 60, 160, 100],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-cod-rice-zucchini",
+    "Треска с рисом и кабачком",
+    [
+      ["cod-raw", 120, 280, 190],
+      ["rice-white-dry", 40, 110, 65],
+      ["zucchini", 80, 220, 130],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-turkey-buckwheat-zucchini",
+    "Индейка с гречкой и кабачком",
+    [
+      ["turkey-breast-raw", 100, 260, 160],
+      ["buckwheat-dry", 40, 120, 65],
+      ["zucchini", 80, 220, 130],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-chicken-potato-pumpkin",
+    "Курица с картофелем и тыквой",
+    [
+      ["chicken-breast-raw", 100, 260, 160],
+      ["potato-raw", 80, 280, 170],
+      ["pumpkin-raw", 80, 220, 130],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-omelette-zucchini-rice",
+    "Омлет с кабачком и рисом",
+    [
+      ["egg-whole", 50, 150, 100],
+      ["egg-white-raw", 50, 200, 100],
+      ["zucchini", 80, 200, 130],
+      ["rice-white-dry", 30, 90, 50],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-flex-omelette-pumpkin-potato-oil",
+    "Омлет с тыквой, картофелем и оливковым маслом",
+    [
+      ["egg-whole", 40, 150, 90],
+      ["egg-white-raw", 40, 220, 100],
+      ["pumpkin-raw", 60, 240, 130],
+      ["potato-raw", 70, 320, 170],
+      ["olive-oil", 2, 25, 8],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-flex-buckwheat-beef-zucchini-oil",
+    "Гречка с нежирной говядиной, кабачком и оливковым маслом",
+    [
+      ["buckwheat-dry", 25, 130, 60],
+      ["beef-lean-raw", 70, 220, 140],
+      ["zucchini", 40, 200, 90],
+      ["olive-oil", 2, 25, 8],
+    ],
+    15,
+  ),
+  gentleMain(
+    "gentle-flex-potato-chicken-eggwhite-oil",
+    "Картофель с курицей и отдельным белковым омлетом",
+    [
+      ["potato-raw", 70, 360, 190],
+      ["chicken-breast-raw", 60, 260, 140],
+      ["egg-white-raw", 40, 240, 100],
+      ["olive-oil", 2, 25, 8],
+    ],
+    15,
+  ),
+];
+
 function enrichMainRecipesWithOil(recipes: SeedRecipe[]): SeedRecipe[] {
   return recipes.map((recipe) => {
     if (recipe.meal_type !== "main") return recipe;
@@ -1308,13 +1679,16 @@ function enrichMainRecipesWithOil(recipes: SeedRecipe[]): SeedRecipe[] {
       steps,
       ingredients: [
         ...recipe.ingredients,
-        { product_slug: "olive-oil", min_g: 0, max_g: 15, default_g: 5 },
+        { product_slug: "olive-oil", min_g: 0, max_g: 15, default_g: 5, required: false },
       ],
     };
   });
 }
 
-export const SEED_RECIPES: SeedRecipe[] = enrichMainRecipesWithOil(SEED_RECIPES_RAW);
+export const SEED_RECIPES: SeedRecipe[] = enrichMainRecipesWithOil([
+  ...SEED_RECIPES_RAW,
+  ...GENTLE_MAIN_RECIPES,
+]);
 
 /** Slug'и продуктов белого списка для валидации. */
 export const ALLOWED_PRODUCT_SLUGS = new Set(SEED_PRODUCTS.map((p) => p.slug));

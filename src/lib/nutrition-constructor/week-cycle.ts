@@ -7,9 +7,10 @@ import type { ConstructorDay, Recipe } from "@/lib/nutrition-constructor/types";
 
 /** Сколько разных валидных дней собираем для недельного цикла 7/14/28. */
 export const UNIQUE_WEEK_TARGET = 7;
+export const EXACT_DAY_POOL_TARGET = 12;
 
 /** Бюджет поиска уникальной недели — оставляем запас до лимита 120 с в пилот-тесте. */
-export const WEEK_SEARCH_BUDGET_MS = 90_000;
+export const WEEK_SEARCH_BUDGET_MS = 55_000;
 
 export function shouldUseWeekTiling(mode: MealScheduleMode, daysCount: number): boolean {
   if (!(daysCount === 7 || daysCount === 14 || daysCount === 28)) return false;
@@ -28,6 +29,95 @@ export function fingerprintDay(day: ConstructorDay): string {
     .sort((a, b) => a.slot.localeCompare(b.slot))
     .map((item) => `${item.slot}:${item.recipe_id}`)
     .join("|");
+}
+
+/** Exact signature: recipe identity plus ingredient grams rounded to constructor precision. */
+export function fingerprintExactDay(day: ConstructorDay): string {
+  return [...day.items]
+    .sort((a, b) => a.slot.localeCompare(b.slot))
+    .map((item) => {
+      const grams = [...item.ingredients]
+        .sort((a, b) => a.product_id.localeCompare(b.product_id))
+        .map((ingredient) => `${ingredient.product_id}:${Number(ingredient.grams).toFixed(1)}`)
+        .join(",");
+      return `${item.slot}:${item.recipe_id}[${grams}]`;
+    })
+    .join("|");
+}
+
+function arrangeDinnerLean(day: ConstructorDay): ConstructorDay {
+  const normalized = {
+    ...day,
+    items: day.items.map((item) => ({
+      ...item,
+      ingredients: item.ingredients.filter((ingredient) => Number(ingredient.grams) > 0),
+    })),
+  };
+  if (
+    normalized.items.length !== 3 ||
+    !normalized.items.every((item) => item.slot.startsWith("main"))
+  ) {
+    return normalized;
+  }
+  const byFat = [...normalized.items].sort(
+    (a, b) => Number(b.fat_g) - Number(a.fat_g) || a.recipe_id.localeCompare(b.recipe_id),
+  );
+  return {
+    ...normalized,
+    items: byFat.map((item, index) => ({ ...item, slot: `main${index + 1}` as PlanSlot })),
+  };
+}
+
+/** Phase B: assemble seven days from an immutable exact-PASS pool. */
+export function assembleExactWeek(
+  pool: ConstructorDay[],
+  totalDays: number,
+  seed = 0,
+): ConstructorDay[] {
+  const unique = new Map<string, ConstructorDay>();
+  for (const raw of pool) {
+    const day = arrangeDinnerLean(raw);
+    if (!day.is_valid || day.items.some((item) => item.ingredients.length === 0)) {
+      continue;
+    }
+    unique.set(fingerprintExactDay(day), day);
+  }
+  const hash = (value: string) => {
+    let out = 2166136261 ^ seed;
+    for (let i = 0; i < value.length; i++) out = Math.imul(out ^ value.charCodeAt(i), 16777619);
+    return out >>> 0;
+  };
+  const candidates = [...unique.entries()]
+    .sort((a, b) => hash(a[0]) - hash(b[0]))
+    .map(([signature, day]) => ({ signature, day }));
+  if (candidates.length < Math.min(4, totalDays)) return [];
+
+  const selected: typeof candidates = [];
+  const recipeUses = new Map<string, number>();
+  const signatures = new Set<string>();
+  const visit = (): boolean => {
+    if (selected.length === totalDays) return signatures.size >= Math.min(4, totalDays);
+    const remaining = totalDays - selected.length;
+    if (signatures.size + remaining < Math.min(4, totalDays)) return false;
+    for (const candidate of candidates) {
+      if (selected.at(-1)?.signature === candidate.signature) continue;
+      const ids = candidate.day.items.map((item) => item.recipe_id);
+      if (ids.some((id) => (recipeUses.get(id) ?? 0) >= 3)) continue;
+      selected.push(candidate);
+      const wasNew = !signatures.has(candidate.signature);
+      signatures.add(candidate.signature);
+      for (const id of ids) recipeUses.set(id, (recipeUses.get(id) ?? 0) + 1);
+      if (visit()) return true;
+      selected.pop();
+      for (const id of ids) recipeUses.set(id, recipeUses.get(id)! - 1);
+      if (wasNew && !selected.some((item) => item.signature === candidate.signature)) {
+        signatures.delete(candidate.signature);
+      }
+    }
+    return false;
+  };
+  if (!visit()) return [];
+  return selected.map((candidate, index) => cloneConstructorDay(candidate.day, index));
 }
 
 export function snackPairKeyFromRecipes(slotRecipes: Partial<Record<PlanSlot, Recipe>>): string {

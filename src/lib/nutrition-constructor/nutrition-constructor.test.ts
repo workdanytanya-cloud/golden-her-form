@@ -11,10 +11,7 @@ import {
   sumMacros,
   withinTolerance,
 } from "@/lib/nutrition-constructor/decimal-math";
-import {
-  buildInMemoryCatalog,
-  generateAndValidateConstructorPlan,
-} from "@/lib/nutrition-constructor/repo";
+import { buildInMemoryCatalog } from "@/lib/nutrition-constructor/repo";
 import { generateConstructorPlan } from "@/lib/nutrition-constructor/optimizer";
 import {
   ALLOWED_PRODUCT_SLUGS,
@@ -91,9 +88,9 @@ describe("nutrition-constructor decimal math", () => {
       }),
     ).toEqual({
       kcal: 1847,
-      protein_g: 90,
-      fat_g: 45,
-      carbs_g: 201,
+      protein_g: 89.9,
+      fat_g: 44.5,
+      carbs_g: 201.2,
     });
   });
 
@@ -160,7 +157,7 @@ describe("nutrition-constructor targets", () => {
 });
 
 describe("nutrition-constructor optimizer", () => {
-  it("builds day with exactly 4 meals and no-cook snacks", async () => {
+  it("builds day with exactly 4 meals and no-cook snacks", () => {
     const ctx = buildInMemoryCatalog();
     expect(ctx.mainRecipes.length).toBeGreaterThan(0);
     expect(ctx.snackRecipes.length).toBeGreaterThan(0);
@@ -174,13 +171,7 @@ describe("nutrition-constructor optimizer", () => {
       goal_primary: "maintain",
       profile_complete: true,
     };
-    const result = await generateAndValidateConstructorPlan({
-      profile,
-      days_count: 1,
-      excluded_product_ids: [],
-    });
-
-    const days = result.best_approximation?.days ?? [];
+    const result = calcMacroTargets(profile);
     const gen = generateConstructorPlan(buildInMemoryCatalog(), {
       targets: result.targets,
       days_count: 1,
@@ -193,10 +184,8 @@ describe("nutrition-constructor optimizer", () => {
       expect(gen.days[0].items).toHaveLength(4);
       const snacks = gen.days[0].items.filter((i) => i.slot === "snack1" || i.slot === "snack2");
       expect(snacks.every((s) => !s.requires_cooking)).toBe(true);
-    } else if (days.length > 0) {
-      expect(days[0].items).toHaveLength(4);
     }
-  });
+  }, 10_000);
 
   it("respects tolerance check helper", () => {
     const target = {

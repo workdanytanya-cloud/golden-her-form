@@ -4,6 +4,7 @@ import {
   type MealScheduleMode,
   type PlanSlot,
   slotCalorieShare,
+  slotsForMode,
 } from "@/lib/nutrition-constructor/config";
 import {
   d,
@@ -49,6 +50,12 @@ export type ComboSearchDiagnostics = {
   fast_elapsed_ms?: number;
   fallback_elapsed_ms?: number;
   used_fallback?: boolean;
+  eligible_recipes_by_slot?: Partial<Record<PlanSlot, number>>;
+  combinations_generated?: number;
+  combinations_rejected_before_grams?: number;
+  exact_fit_attempts?: number;
+  exact_pass_signatures?: number;
+  pass_recipe_sets?: string[][];
 };
 
 export type ComboSearchResult = {
@@ -427,6 +434,11 @@ export function searchValidDayCombo(params: {
     infeasible: false,
     last_failure_reason: null,
     best_deviation_score: null,
+    combinations_generated: 0,
+    combinations_rejected_before_grams: 0,
+    exact_fit_attempts: 0,
+    exact_pass_signatures: 0,
+    pass_recipe_sets: [],
   };
 
   const collectedValid: Array<{
@@ -438,6 +450,12 @@ export function searchValidDayCombo(params: {
     slotRecipes: Partial<Record<PlanSlot, Recipe>>,
   ): ComboSearchResult | "continue" => {
     if (rejected(slotRecipes) || !day.is_valid) return "continue";
+    diagnostics.exact_pass_signatures = (diagnostics.exact_pass_signatures ?? 0) + 1;
+    diagnostics.pass_recipe_sets!.push(
+      Object.values(slotRecipes)
+        .filter(Boolean)
+        .map((recipe) => recipe!.slug),
+    );
     diagnostics.elapsed_ms = Date.now() - started;
     diagnostics.infeasible = false;
     diagnostics.last_failure_reason = null;
@@ -595,6 +613,12 @@ export function searchValidDayCombo(params: {
     priorities,
     SNACK_SHORTLIST,
   );
+  diagnostics.eligible_recipes_by_slot = Object.fromEntries(
+    slotsForMode(mode).map((slot) => [
+      slot,
+      slot.startsWith("main") ? mainPool.length : snacks.length,
+    ]),
+  );
 
   const comboLimit = params.collectValid
     ? Math.max(maxCombinationsFor(priorities, mode), 900)
@@ -726,7 +750,7 @@ export function searchValidDayCombo(params: {
               ? 7
               : 6
           : mode === "three_mains_only"
-            ? 10
+            ? 20
             : 8,
       )
     : priorities.lowFat || priorities.highCarb
@@ -771,15 +795,32 @@ export function searchValidDayCombo(params: {
   }
 
   if (mode === "three_mains_only") {
+    diagnostics.combinations_generated =
+      (mainsForCombo.length * (mainsForCombo.length - 1) * (mainsForCombo.length - 2)) / 6;
     for (const trio of combinations(mainsForCombo, 3)) {
       const omeletteN = trio.filter((r) => r.slug.includes("omelette")).length;
-      if (omeletteN >= 2) continue;
-      if (priorities.lowFat && trio.filter(isFatForwardMain).length >= 1) continue;
-      if (priorities.highCarb && trio.filter(isGrainMain).length < 2) continue;
+      if (omeletteN >= 2) {
+        diagnostics.combinations_rejected_before_grams!++;
+        continue;
+      }
+      if (priorities.lowFat && trio.filter(isFatForwardMain).length >= 1) {
+        diagnostics.combinations_rejected_before_grams!++;
+        continue;
+      }
+      if (priorities.highCarb && trio.filter(isGrainMain).length < 2) {
+        diagnostics.combinations_rejected_before_grams!++;
+        continue;
+      }
       if (!priorities.highCarb && !priorities.lowFat && trio.filter(isGrainMain).length >= 3)
         continue;
-      if (sameProteinOverused(trio)) continue;
-      if (priorities.proteinFocused && trio.filter(isLeanProteinMain).length === 0) continue;
+      if (sameProteinOverused(trio)) {
+        diagnostics.combinations_rejected_before_grams!++;
+        continue;
+      }
+      if (priorities.proteinFocused && trio.filter(isLeanProteinMain).length === 0) {
+        diagnostics.combinations_rejected_before_grams!++;
+        continue;
+      }
       if (priorities.highCarb && trio.filter(isGrainMain).length < 2) continue;
       scoredCombos.push({
         slotRecipes: { main1: trio[0], main2: trio[1], main3: trio[2] },
@@ -889,7 +930,62 @@ export function searchValidDayCombo(params: {
     }
   }
 
-  scoredCombos.sort((a, b) => a.score - b.score);
+  const seededTie = (slotRecipes: Partial<Record<PlanSlot, Recipe>>) => {
+    const text = `${params.seed ?? 0}:${Object.values(slotRecipes)
+      .map((recipe) => recipe?.id ?? "")
+      .join("|")}`;
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
+    return hash >>> 0;
+  };
+  scoredCombos.sort(
+    (a, b) => {
+      const diversityScore = (candidate: ScoredCombo) =>
+        Object.values(candidate.slotRecipes).reduce((score, recipe) => {
+          if (recipe?.slug.includes("cod")) return score - 24;
+          if (recipe?.slug.includes("turkey")) return score - 18;
+          return score;
+        }, 0);
+      const scoreA = a.score + (params.collectValid ? diversityScore(a) : 0);
+      const scoreB = b.score + (params.collectValid ? diversityScore(b) : 0);
+      return scoreA - scoreB || seededTie(a.slotRecipes) - seededTie(b.slotRecipes);
+    },
+  );
+  if (params.collectValid && mode === "three_mains_only" && scoredCombos.length > 240) {
+    const beam: ScoredCombo[] = [];
+    const seen = new Set<string>();
+    const add = (candidate: ScoredCombo) => {
+      const key = Object.values(candidate.slotRecipes)
+        .map((recipe) => recipe?.id ?? "")
+        .sort()
+        .join("|");
+      if (seen.has(key)) return;
+      seen.add(key);
+      beam.push(candidate);
+    };
+    scoredCombos.slice(0, 120).forEach(add);
+    for (const recipe of mainsForCombo) {
+      let taken = 0;
+      for (const candidate of scoredCombos) {
+        if (!Object.values(candidate.slotRecipes).some((item) => item?.id === recipe.id)) continue;
+        add(candidate);
+        if (++taken >= 8) break;
+      }
+    }
+    for (let i = 0; i < mainsForCombo.length; i++) {
+      for (let j = i + 1; j < mainsForCombo.length; j++) {
+        let taken = 0;
+        for (const candidate of scoredCombos) {
+          const ids = new Set(Object.values(candidate.slotRecipes).map((item) => item?.id));
+          if (!ids.has(mainsForCombo[i]!.id) || !ids.has(mainsForCombo[j]!.id)) continue;
+          add(candidate);
+          if (++taken >= 2) break;
+        }
+      }
+    }
+    scoredCombos.length = 0;
+    scoredCombos.push(...beam.slice(0, 360));
+  }
   if (mode === "three_main_two_snacks" && scoredCombos.length > 90) {
     scoredCombos.length = 90;
   }
@@ -899,6 +995,29 @@ export function searchValidDayCombo(params: {
 
   const preferLeanCarbs =
     priorities.proteinFocused && !priorities.strictHighProtein && !priorities.lowCarb;
+
+  if (params.collectValid && excluded.size > 0) {
+    for (const { slotRecipes } of scoredCombos) {
+      if (timedOut() || diagnostics.combinations_checked >= comboLimit) break;
+      if (rejected(slotRecipes)) continue;
+      diagnostics.exact_fit_attempts!++;
+      const day = assemble(slotRecipes, { searchPhase: false });
+      const attempt = recordAttempt(day, slotRecipes);
+      if (attempt && "valid" in attempt && attempt.valid) {
+        const handled = handleValid(attempt.day, slotRecipes);
+        if (handled !== "continue") return handled;
+      }
+    }
+    diagnostics.elapsed_ms = Date.now() - started;
+    diagnostics.timed_out = timedOut();
+    diagnostics.infeasible = collectedValid.length === 0 && !diagnostics.timed_out;
+    const collected = collectedValid.at(-1);
+    return {
+      day: collected?.day ?? null,
+      slotRecipes: collected?.slotRecipes ?? null,
+      diagnostics,
+    };
+  }
 
   // 1800: сразу полная сборка лучших комбо (quick-фаза слишком дорогая с маслом).
   if (preferLeanCarbs) {
@@ -990,6 +1109,7 @@ export function searchValidDayCombo(params: {
       if (!quickDay) continue;
       if (quickDay.is_valid) {
         const full = assemble(slotRecipes, { searchPhase: false });
+        diagnostics.exact_fit_attempts!++;
         diagnostics.combinations_checked++;
         if (full?.is_valid) {
           const handled = handleValid(full, slotRecipes);
@@ -1007,7 +1127,7 @@ export function searchValidDayCombo(params: {
           Math.abs(quickMacros.carbs_g - targets.carbs_g.toNumber()) * carbWeight;
         nearCandidates.push({ slotRecipes, score });
         nearCandidates.sort((a, b) => a.score - b.score);
-        if (nearCandidates.length > (preferLeanCarbs ? 24 : 40)) nearCandidates.pop();
+        if (nearCandidates.length > (preferLeanCarbs ? 48 : 60)) nearCandidates.pop();
         const scoreDay = deviationScore(quickDay, targets);
         if (
           diagnostics.best_deviation_score == null ||
@@ -1036,6 +1156,7 @@ export function searchValidDayCombo(params: {
       if (timedOut()) break;
       if (rejected(slotRecipes)) continue;
       const day = assemble(slotRecipes, { searchPhase: false });
+      diagnostics.exact_fit_attempts!++;
       diagnostics.combinations_checked++;
       if (day?.is_valid) {
         const handled = handleValid(day, slotRecipes);

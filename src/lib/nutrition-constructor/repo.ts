@@ -136,6 +136,10 @@ const TEST_PACKAGING_KBJU: Record<
 };
 
 function seedToRecipe(r: SeedRecipe, productSlugs: Set<string>): Recipe | null {
+  const missingRequired = r.ingredients.some(
+    (ingredient) => ingredient.required !== false && !productSlugs.has(ingredient.product_slug),
+  );
+  if (missingRequired) return null;
   const ings = r.ingredients.filter((i) => productSlugs.has(i.product_slug));
   if (ings.length === 0) return null;
   const meta = inferRecipeMeta({
@@ -161,7 +165,7 @@ function seedToRecipe(r: SeedRecipe, productSlugs: Set<string>): Recipe | null {
     contains_protein_source: meta.contains_protein_source,
     contains_fruit_or_vegetable: meta.contains_fruit_or_vegetable,
     is_treat: meta.is_treat,
-    allowed_schedule_modes: meta.allowed_schedule_modes,
+    allowed_schedule_modes: r.allowed_schedule_modes ?? meta.allowed_schedule_modes,
     snack_action: r.meal_type === "snack" ? snackActionForRecipe(slugs) : null,
     is_everyday: true,
     is_nutritionally_complete: true,
@@ -226,7 +230,7 @@ export function buildInMemoryCatalog(options: BuildCatalogOptions = {}): Optimiz
         default_g: ing.default_g,
         is_scalable: true,
         sort_order: idx,
-        optional: ing.product_slug === "olive-oil" || ing.min_g === 0,
+        optional: ing.required === false,
       })),
     );
   }

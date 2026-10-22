@@ -166,6 +166,15 @@ export type OptimizerDiagnostics = {
   fallback_elapsed_ms?: number;
   seed?: number | null;
   used_fallback?: boolean;
+  eligible_recipes_by_slot?: Partial<Record<PlanSlot, number>>;
+  combinations_generated?: number;
+  combinations_rejected_before_grams?: number;
+  exact_fit_attempts?: number;
+  exact_pass_signatures?: number;
+  pass_recipe_sets?: string[][];
+  pass_pool_size?: number;
+  pool_elapsed_ms?: number;
+  week_assembly_elapsed_ms?: number;
 };
 
 export type PlanValidationResult = {

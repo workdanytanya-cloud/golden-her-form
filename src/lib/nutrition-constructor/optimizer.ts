@@ -60,9 +60,12 @@ import {
   type MacroPriorities,
 } from "@/lib/nutrition-constructor/recipe-selection";
 import {
+  EXACT_DAY_POOL_TARGET,
   UNIQUE_WEEK_TARGET,
   WEEK_SEARCH_BUDGET_MS,
   arrangeBestWeekCycle,
+  assembleExactWeek,
+  fingerprintExactDay,
   makeComboReject,
   shouldUseWeekTiling,
   tileConstructorWeek,
@@ -667,7 +670,7 @@ function assembleAndTuneDay(
   if (items.length !== slots.length) return null;
 
   const searchPhase = options?.searchPhase ?? false;
-  const tuneMax = tuneSteps ?? (searchPhase ? 350 : 2000);
+  const tuneMax = tuneSteps ?? (searchPhase ? 50 : 400);
 
   const tuned = tuneDayToTargets({
     ctx: dayCtx,
@@ -683,7 +686,7 @@ function assembleAndTuneDay(
     items: tuned.items,
     targets,
     tolerance: DEFAULT_TOLERANCE,
-    maxIterations: searchPhase ? 200 : 2500,
+    maxIterations: searchPhase ? 35 : 500,
     enableFinishing: !searchPhase,
   });
 
@@ -824,11 +827,18 @@ function buildDay(
     };
   }
 
+  const assembleCache = new Map<string, Omit<ConstructorDay, "day_index" | "day_note"> | null>();
   const assemble = (
     slotRecipes: Partial<Record<PlanSlot, Recipe>>,
     assembleOpts?: { searchPhase?: boolean },
-  ) =>
-    assembleAndTuneDay(
+  ) => {
+    const cacheKey = `${assembleOpts?.searchPhase ? "quick" : "exact"}:${Object.entries(slotRecipes)
+      .map(([slot, recipe]) => `${slot}:${recipe?.id ?? ""}`)
+      .sort()
+      .join("|")}`;
+    const cached = assembleCache.get(cacheKey);
+    if (cached !== undefined) return cached;
+    const built = assembleAndTuneDay(
       ctx,
       targets,
       shares,
@@ -839,6 +849,9 @@ function buildDay(
       undefined,
       assembleOpts,
     );
+    assembleCache.set(cacheKey, built);
+    return built;
+  };
 
   const slotRecipes = pickSlotRecipesForMode(
     ctx,
@@ -885,10 +898,31 @@ function buildDay(
     collectValid: options?.collectUnique
       ? {
           take: (day, slotRecipesFound) => {
-            options.collectUnique!.push(
-              finalizeBuiltDay(options.collectUnique!.length, day, slotRecipesFound, recentMain),
+            const candidate = finalizeBuiltDay(
+              options.collectUnique!.length,
+              day,
+              slotRecipesFound,
+              recentMain,
             );
-            return options.collectUnique!.length < UNIQUE_WEEK_TARGET;
+            const signature = fingerprintExactDay(candidate);
+            const recipeFrequency = new Map<string, number>();
+            for (const existing of options.collectUnique!) {
+              for (const item of existing.items) {
+                recipeFrequency.set(item.recipe_id, (recipeFrequency.get(item.recipe_id) ?? 0) + 1);
+              }
+            }
+            const preservesPoolDiversity = candidate.items.every(
+              (item) => (recipeFrequency.get(item.recipe_id) ?? 0) < 4,
+            );
+            if (
+              preservesPoolDiversity &&
+              !options.collectUnique!.some(
+                (existing) => fingerprintExactDay(existing) === signature,
+              )
+            ) {
+              options.collectUnique!.push(candidate);
+            }
+            return options.collectUnique!.length < EXACT_DAY_POOL_TARGET;
           },
         }
       : undefined,
@@ -952,6 +986,13 @@ export function generateConstructorPlan(
     }
 
     const excluded = new Set(input.excluded_product_ids);
+    const generationCtx: OptimizerContext =
+      excluded.size === 0
+        ? {
+            ...ctx,
+            mainRecipes: ctx.mainRecipes.filter((recipe) => !recipe.slug.startsWith("gentle-")),
+          }
+        : ctx;
     const proteinProducts = [...ctx.products.values()].filter(
       (p) =>
         p.is_active &&
@@ -971,8 +1012,8 @@ export function generateConstructorPlan(
       );
     }
 
-    const mains = eligibleMains(ctx, input.meal_schedule_mode).filter((r) => {
-      const ings = ctx.recipeIngredients.get(r.id) ?? [];
+    const mains = eligibleMains(generationCtx, input.meal_schedule_mode).filter((r) => {
+      const ings = generationCtx.recipeIngredients.get(r.id) ?? [];
       return ings.every((ing) => !excluded.has(ing.product_id));
     });
     if (mains.length === 0) {
@@ -995,6 +1036,15 @@ export function generateConstructorPlan(
     let lastFailureReason: string | null = null;
     let uniqueWeekDays: number | undefined;
     let searchStage: NutritionSearchStage = "fast_topn";
+    let eligibleRecipesBySlot: ComboSearchDiagnostics["eligible_recipes_by_slot"];
+    let combinationsGenerated: number | undefined;
+    let combinationsRejectedBeforeGrams: number | undefined;
+    let exactFitAttempts: number | undefined;
+    let exactPassSignatures: number | undefined;
+    let passRecipeSets: string[][] | undefined;
+    let passPoolSize: number | undefined;
+    let poolElapsedMs: number | undefined;
+    let weekAssemblyElapsedMs: number | undefined;
     const weekTiled = shouldUseWeekTiling(mode, input.days_count);
     const dayOpts = {
       timeoutMs: input.search_timeout_ms,
@@ -1044,12 +1094,27 @@ export function generateConstructorPlan(
           fallback_elapsed_ms: fallbackElapsed || diagnostics?.fallback_elapsed_ms,
           used_fallback: usedFallback || diagnostics?.used_fallback,
           seed: input.seed ?? null,
+          eligible_recipes_by_slot: diagnostics?.eligible_recipes_by_slot,
+          combinations_generated: diagnostics?.combinations_generated,
+          combinations_rejected_before_grams: diagnostics?.combinations_rejected_before_grams,
+          exact_fit_attempts: diagnostics?.exact_fit_attempts,
+          exact_pass_signatures: diagnostics?.exact_pass_signatures,
+          pass_recipe_sets: diagnostics?.pass_recipe_sets,
+          pass_pool_size: passPoolSize,
+          pool_elapsed_ms: poolElapsedMs,
+          week_assembly_elapsed_ms: weekAssemblyElapsedMs,
         },
       };
     };
 
     const absorbDiag = (diagnostics: ComboSearchDiagnostics | null | undefined) => {
       if (!diagnostics) return;
+      eligibleRecipesBySlot = diagnostics.eligible_recipes_by_slot;
+      combinationsGenerated = diagnostics.combinations_generated;
+      combinationsRejectedBeforeGrams = diagnostics.combinations_rejected_before_grams;
+      exactFitAttempts = diagnostics.exact_fit_attempts;
+      exactPassSignatures = diagnostics.exact_pass_signatures;
+      passRecipeSets = diagnostics.pass_recipe_sets;
       totalCombinations += diagnostics.combinations_checked;
       totalElapsedMs += diagnostics.elapsed_ms;
       fastElapsed += diagnostics.fast_elapsed_ms ?? 0;
@@ -1061,38 +1126,82 @@ export function generateConstructorPlan(
     };
 
     if (shouldUseWeekTiling(mode, input.days_count)) {
-      const uniqueDays: ConstructorDay[] = [];
-      const { diagnostics } = buildDay(
-        ctx,
-        0,
-        input.targets,
-        new Map<string, number>(),
-        excluded,
-        mode,
-        {
-          timeoutMs: input.search_timeout_ms ?? WEEK_SEARCH_BUDGET_MS,
-          forceTopN: input.force_top_n,
-          seed: input.seed,
-          comboReject: makeComboReject(uniqueDays, UNIQUE_WEEK_TARGET),
-          collectUnique: uniqueDays,
-        },
-      );
-      absorbDiag(diagnostics);
-      uniqueWeekDays = uniqueDays.length;
-      searchStage = "week_tile";
-      if (uniqueDays.length === 0) {
-        return failureResult(lastFailureReason, timedOut, diagnostics, 1);
-      }
-      const arranged = arrangeBestWeekCycle(uniqueDays);
-      uniqueWeekDays = arranged.length;
-      days.push(...tileConstructorWeek(arranged, input.days_count));
-      if (days.length !== input.days_count || days.some((dayRow) => !dayRow.is_valid)) {
-        return failureResult(lastFailureReason, timedOut, diagnostics, uniqueDays.length);
+      if (excluded.size === 0) {
+        const legacyPool: ConstructorDay[] = [];
+        const { diagnostics } = buildDay(
+          generationCtx,
+          0,
+          input.targets,
+          new Map<string, number>(),
+          excluded,
+          mode,
+          {
+            timeoutMs: input.search_timeout_ms ?? WEEK_SEARCH_BUDGET_MS,
+            forceTopN: input.force_top_n,
+            seed: input.seed,
+            comboReject: makeComboReject(legacyPool, UNIQUE_WEEK_TARGET),
+            collectUnique: legacyPool,
+          },
+        );
+        absorbDiag(diagnostics);
+        const arranged = arrangeBestWeekCycle(legacyPool);
+        uniqueWeekDays = arranged.length;
+        days.push(...tileConstructorWeek(arranged, input.days_count));
+        if (days.length !== input.days_count || days.some((dayRow) => !dayRow.is_valid)) {
+          return failureResult(lastFailureReason, timedOut, diagnostics, legacyPool.length);
+        }
+        lastFailureReason = null;
+      } else {
+        const exactPool: ConstructorDay[] = [];
+        const poolStarted = Date.now();
+        const { diagnostics } = buildDay(
+          generationCtx,
+          0,
+          input.targets,
+          new Map<string, number>(),
+          excluded,
+          mode,
+          {
+            timeoutMs: input.search_timeout_ms ?? WEEK_SEARCH_BUDGET_MS,
+            forceTopN: input.force_top_n,
+            seed: input.seed,
+            comboReject: (slotRecipes) => {
+              const frequency = new Map<string, number>();
+              for (const existing of exactPool) {
+                for (const item of existing.items) {
+                  frequency.set(item.recipe_id, (frequency.get(item.recipe_id) ?? 0) + 1);
+                }
+              }
+              return Object.values(slotRecipes).some(
+                (recipe) => recipe && (frequency.get(recipe.id) ?? 0) >= 4,
+              );
+            },
+            collectUnique: exactPool,
+          },
+        );
+        poolElapsedMs = Date.now() - poolStarted;
+        absorbDiag(diagnostics);
+        passPoolSize = exactPool.length;
+        searchStage = "week_tile";
+        if (exactPool.length < 4) {
+          lastFailureReason = `Пул точных дней содержит ${exactPool.length}; требуется минимум 4`;
+          return failureResult(lastFailureReason, timedOut, diagnostics, 1);
+        }
+        const assemblyStarted = Date.now();
+        const arranged = assembleExactWeek(exactPool, input.days_count, input.seed);
+        weekAssemblyElapsedMs = Date.now() - assemblyStarted;
+        uniqueWeekDays = new Set(arranged.map(fingerprintExactDay)).size;
+        days.push(...arranged);
+        if (days.length !== input.days_count || days.some((dayRow) => !dayRow.is_valid)) {
+          lastFailureReason = "Точные дни найдены, но недельные ограничения несовместимы";
+          return failureResult(lastFailureReason, timedOut, diagnostics, exactPool.length);
+        }
+        lastFailureReason = null;
       }
     } else {
       for (let i = 0; i < input.days_count; i++) {
         const { day, diagnostics } = buildDay(
-          ctx,
+          generationCtx,
           i,
           input.targets,
           recentMain,
@@ -1200,6 +1309,15 @@ export function generateConstructorPlan(
         fallback_elapsed_ms: fallbackElapsed || undefined,
         used_fallback: usedFallback,
         seed: input.seed ?? null,
+        eligible_recipes_by_slot: eligibleRecipesBySlot,
+        combinations_generated: combinationsGenerated,
+        combinations_rejected_before_grams: combinationsRejectedBeforeGrams,
+        exact_fit_attempts: exactFitAttempts,
+        exact_pass_signatures: exactPassSignatures,
+        pass_recipe_sets: passRecipeSets,
+        pass_pool_size: passPoolSize,
+        pool_elapsed_ms: poolElapsedMs,
+        week_assembly_elapsed_ms: weekAssemblyElapsedMs,
       },
     };
   } catch (err) {
