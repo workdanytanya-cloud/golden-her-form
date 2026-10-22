@@ -81,6 +81,9 @@ export const nutritionDraftSaveSchema = z
   });
 
 export const nutritionGenerateSchema = z.object({
+  clientId: z.string().uuid().optional(),
+  courseId: z.string().uuid().nullable().optional(),
+  seed: z.number().int().nonnegative().optional(),
   profile: z.record(z.unknown()),
   days_count: z.union([z.literal(1), z.literal(7), z.literal(14), z.literal(28)]),
   excluded_product_ids: z.array(z.string()).default([]),
@@ -197,9 +200,9 @@ function isPoolClient(db: Pool | PoolClient): db is PoolClient {
 export async function seedNutritionCatalog(
   db: Queryable,
 ): Promise<{ products: number; recipes: number }> {
-  // Каталог как в приёмке 1313/1800 (includeTestPackaging), иначе многодневная сборка на Postgres
-  // с одними только is_verified продуктами часто даёт infeasible.
-  const catalog = buildInMemoryCatalog({ includeTestPackaging: true });
+  // Единственный источник каталога для dry-run, endpoint, draft и будущего snapshot.
+  // Непроверенные упаковочные заглушки в production не импортируются.
+  const catalog = buildInMemoryCatalog();
   for (const p of catalog.products.values()) {
     await db.query(
       `INSERT INTO public.food_products (
@@ -212,12 +215,25 @@ export async function seedNutritionCatalog(
          $15, true, $16, $17, $18, $19)
        ON CONFLICT (slug) DO UPDATE SET
          name = EXCLUDED.name,
+         category = EXCLUDED.category,
+         brand = EXCLUDED.brand,
+         state = EXCLUDED.state,
+         measurement_basis = EXCLUDED.measurement_basis,
          kcal_per_100g = EXCLUDED.kcal_per_100g,
          protein_per_100g = EXCLUDED.protein_per_100g,
          fat_per_100g = EXCLUDED.fat_per_100g,
          carbs_per_100g = EXCLUDED.carbs_per_100g,
+         fiber_per_100g = EXCLUDED.fiber_per_100g,
+         density = EXCLUDED.density,
+         source_name = EXCLUDED.source_name,
+         source_url = EXCLUDED.source_url,
          is_verified = EXCLUDED.is_verified,
-         is_active_for_autogeneration = EXCLUDED.is_active_for_autogeneration`,
+         is_active = true,
+         is_active_for_autogeneration = EXCLUDED.is_active_for_autogeneration,
+         allowed_for_snack = EXCLUDED.allowed_for_snack,
+         requires_cooking = EXCLUDED.requires_cooking,
+         weighing_note = EXCLUDED.weighing_note,
+         updated_at = (now() AT TIME ZONE 'utc')`,
       [
         p.slug,
         p.name,
@@ -254,8 +270,21 @@ export async function seedNutritionCatalog(
        ) VALUES ($1,$2,$3,$4::jsonb,$5,$6,true,$7,$8,$9,$10,$11,$12,$13,$14,$15,'easy')
        ON CONFLICT (slug) DO UPDATE SET
          name = EXCLUDED.name,
+         meal_type = EXCLUDED.meal_type,
          steps = EXCLUDED.steps,
-         snack_action = EXCLUDED.snack_action`,
+         prep_time_min = EXCLUDED.prep_time_min,
+         requires_cooking = EXCLUDED.requires_cooking,
+         is_active = true,
+         weighing_note = EXCLUDED.weighing_note,
+         is_nutrient_dense = EXCLUDED.is_nutrient_dense,
+         contains_protein_source = EXCLUDED.contains_protein_source,
+         contains_fruit_or_vegetable = EXCLUDED.contains_fruit_or_vegetable,
+         is_treat = EXCLUDED.is_treat,
+         allowed_schedule_modes = EXCLUDED.allowed_schedule_modes,
+         snack_action = EXCLUDED.snack_action,
+         active_prep_minutes = EXCLUDED.active_prep_minutes,
+         total_cook_minutes = EXCLUDED.total_cook_minutes,
+         updated_at = (now() AT TIME ZONE 'utc')`,
       [
         r.slug,
         r.name,
@@ -292,10 +321,26 @@ export async function seedNutritionCatalog(
         );
       if (!productId) continue;
       await db.query(
-        `INSERT INTO public.recipe_ingredients (recipe_id, product_id, min_g, max_g, default_g, sort_order)
-         VALUES ($1,$2,$3,$4,$5,$6)
-         ON CONFLICT (recipe_id, product_id) DO UPDATE SET min_g = EXCLUDED.min_g, max_g = EXCLUDED.max_g, default_g = EXCLUDED.default_g`,
-        [recipeId, productId, ing.min_g, ing.max_g, ing.default_g, order],
+        `INSERT INTO public.recipe_ingredients (
+           recipe_id, product_id, min_g, max_g, default_g, is_scalable, sort_order, optional
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         ON CONFLICT (recipe_id, product_id) DO UPDATE SET
+           min_g = EXCLUDED.min_g,
+           max_g = EXCLUDED.max_g,
+           default_g = EXCLUDED.default_g,
+           is_scalable = EXCLUDED.is_scalable,
+           sort_order = EXCLUDED.sort_order,
+           optional = EXCLUDED.optional`,
+        [
+          recipeId,
+          productId,
+          ing.min_g,
+          ing.max_g,
+          ing.default_g,
+          ing.is_scalable,
+          order,
+          ing.optional,
+        ],
       );
       order += 1;
     }

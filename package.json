@@ -36,6 +36,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "selfhost:migrate": "tsx selfhost/cli/migrate.ts",
+    "selfhost:sync-nutrition-catalog": "tsx selfhost/cli/sync-nutrition-catalog.ts",
     "selfhost:import-client": "tsx selfhost/cli/import-client.ts",
     "selfhost:verify-import": "tsx selfhost/cli/verify-local-import.ts",
     "selfhost:set-password": "tsx selfhost/cli/set-password.ts",

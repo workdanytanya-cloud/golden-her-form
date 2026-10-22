@@ -1130,6 +1130,9 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       assertCsrf(request);
       const body = nutritionGenerateSchema.parse(await readJson(request));
       const generated = await generateAndValidateConstructorPlan({
+        clientId: body.clientId,
+        courseId: body.courseId,
+        seed: body.seed,
         profile: body.profile as never,
         days_count: body.days_count,
         excluded_product_ids: body.excluded_product_ids,
@@ -1137,7 +1140,33 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         primary_meal_slot: body.primary_meal_slot,
         targets_override: body.targets_override,
       });
-      return json(generated);
+      if (!generated.is_valid || generated.days.length === 0) return json(generated);
+      if (!body.clientId) return errorJson("Не указан clientId для сохранения черновика", 400);
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "nutrition");
+      const targets = body.targets_override ?? {
+        kcal: Number(generated.targets.kcal),
+        protein_g: Number(generated.targets.protein_g),
+        fat_g: Number(generated.targets.fat_g),
+        carbs_g: Number(generated.targets.carbs_g),
+      };
+      const saved = await saveConstructorPlanPg(getPostgresPool(), {
+        userId: body.clientId,
+        courseId: body.courseId,
+        days: generated.days,
+        targets,
+        plan_days_count: body.days_count,
+        plan_status: "validated",
+        bmr: Number(generated.bmr),
+        tdee: Number(generated.tdee),
+        calorie_adjustment_pct: generated.adjustment_pct,
+        excluded_products: body.excluded_product_ids,
+        targets_manual: Boolean(body.targets_override),
+        meal_schedule_mode: body.meal_schedule_mode,
+        primary_meal_slot: body.primary_meal_slot,
+        requires_manual_review: generated.requires_manual_review,
+        review_reason: generated.review_reason,
+      });
+      return json({ ...generated, draftId: saved.plan.id, days: saved.days });
     }
 
     if (url.pathname === "/api/selfhost/admin/nutrition/publish" && request.method === "POST") {

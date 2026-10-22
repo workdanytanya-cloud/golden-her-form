@@ -509,6 +509,9 @@ export function recalculateMealItem(
 }
 
 export async function generateAndValidateConstructorPlan(params: {
+  clientId?: string;
+  courseId?: string | null;
+  seed?: number;
   profile: TargetProfileInput & {
     pregnancy_status?: string | null;
     health_conditions?: string | null;
@@ -591,6 +594,7 @@ export async function generateAndValidateConstructorPlan(params: {
     tolerance: params.tolerance ?? DEFAULT_TOLERANCE,
     meal_schedule_mode: params.meal_schedule_mode ?? "two_main_two_snacks",
     primary_meal_slot: params.primary_meal_slot ?? "lunch",
+    seed: params.seed,
   });
   return {
     ...result,

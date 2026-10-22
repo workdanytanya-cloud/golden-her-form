@@ -341,28 +341,14 @@ export function ConstructorAdminPanel({
     };
     setTargets(fieldTargets);
     setLoading(true);
-    setDays([]);
-    setPreviewMode(null);
     setGenerationError(null);
     const line = formatUsedTargetsLine(fieldTargets);
     setUsedTargetsLine(line);
     try {
-      await saveConstructorPlan({
-        userId,
-        courseId,
-        days: [],
-        targets: fieldTargets,
-        plan_days_count: daysCount,
-        plan_status: "draft",
-        bmr: meta.bmr,
-        tdee: meta.tdee,
-        calorie_adjustment_pct: meta.adjustment_pct,
-        targets_manual: true,
-        meal_schedule_mode: scheduleMode,
-        primary_meal_slot: primarySlot,
-        review_reason: "Настройки сохранены перед генерацией",
-      });
       const result = await generateAndValidateConstructorPlan({
+        clientId: userId,
+        courseId,
+        seed: 20261022,
         profile: { ...profile, profile_complete: true },
         days_count: daysCount,
         excluded_product_ids: [...forbiddenIds],
@@ -444,7 +430,13 @@ export function ConstructorAdminPanel({
       setReviewReason(result.review_reason);
       setGenerationError(null);
       setPlanStatus("validated");
-      toast.success("Рацион собран и прошёл проверку");
+      const reloaded = await loadConstructorPlanFor(userId, courseId);
+      if (!reloaded.plan || reloaded.days.length !== result.days.length) {
+        throw new Error("Черновик сохранён, но контрольное перечитывание не прошло");
+      }
+      applyDays(reloaded.days);
+      onSaved?.();
+      toast.success(`Рацион создан: ${reloaded.days.length} дней`);
     } catch (e) {
       if (seq !== genToken.current) return;
       const message = (e as Error).message;
