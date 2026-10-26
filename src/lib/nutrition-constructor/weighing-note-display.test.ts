@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  displayProductName,
   displayWeighingNote,
   WEIGHING_NOTE_DISPLAY,
 } from "@/lib/nutrition-constructor/weighing-note-display";
@@ -33,6 +34,22 @@ describe("displayWeighingNote", () => {
         weighing_note: "Взвешивать сухой крупой.",
       }),
     ).toBe("Взвешивать сухой крупой.");
+  });
+
+  it("shows client-friendly egg product names", () => {
+    expect(
+      displayProductName({
+        product_id: "egg-whole",
+        product_name: "Яйца",
+        weighing_note: "Съедобная часть (~50 г на 1 яйцо С1).",
+      }),
+    ).toBe(WEIGHING_NOTE_DISPLAY.eggWholeName);
+    expect(
+      displayProductName({
+        product_id: "egg-white-raw",
+        product_name: "Готовый пастеризованный яичный белок",
+      }),
+    ).toBe(WEIGHING_NOTE_DISPLAY.eggWhiteName);
   });
 
   it("returns null when there is no note and no override", () => {

@@ -364,7 +364,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   },
   {
     slug: "egg-whole",
-    name: "Яйца",
+    name: "Яйцо куриное",
     category: "dairy",
     state: "raw",
     measurement_basis: "per_100g_edible",
@@ -377,7 +377,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
     is_verified: true,
     allowed_for_snack: false,
     requires_cooking: true,
-    weighing_note: "Съедобная часть (~50 г на 1 яйцо С1).",
+    weighing_note: "Взвешивать без скорлупы: белок и желток вместе. 1 яйцо категории С1 — примерно 50 г.",
   },
   {
     slug: "walnut",

@@ -12,7 +12,10 @@ import {
 } from "@/lib/nutrition-constructor/config";
 import { displayGrams, displayMacro, d } from "@/lib/nutrition-constructor/decimal-math";
 import { ingredientsForClientDisplay } from "@/lib/nutrition-constructor/ingredient-normalize";
-import { displayWeighingNote } from "@/lib/nutrition-constructor/weighing-note-display";
+import {
+  displayProductName,
+  displayWeighingNote,
+} from "@/lib/nutrition-constructor/weighing-note-display";
 import type {
   ConstructorDay,
   MacroComparisonRow,
@@ -382,6 +385,11 @@ function MealCard({
           <li className="text-[10px] uppercase tracking-widest text-warm-gray">Изменить граммовки</li>
         )}
         {displayIngredients.map((ing) => {
+          const productTitle = displayProductName({
+            product_id: ing.product_id,
+            product_name: ing.product_name,
+            weighing_note: ing.weighing_note,
+          });
           const weighingNote = displayWeighingNote({
             product_id: ing.product_id,
             product_name: ing.product_name,
@@ -393,7 +401,7 @@ function MealCard({
             className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-background/40 px-3 py-2 text-sm"
           >
             <div className="min-w-0">
-              <span className="text-ivory">{ing.product_name}</span>
+              <span className="text-ivory">{productTitle}</span>
               {weighingNote ? (
                 <span className="ml-2 text-xs text-warm-gray">({weighingNote})</span>
               ) : null}
@@ -420,7 +428,7 @@ function MealCard({
               <div className="w-full">
                 <IngredientSwapHint
                   productId={ing.product_id}
-                  productName={ing.product_name}
+                  productName={productTitle}
                   grams={displayGrams(ing.grams)}
                   catalog={swapCatalog}
                 />

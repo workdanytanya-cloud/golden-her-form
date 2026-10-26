@@ -1,5 +1,5 @@
 /**
- * Display-only overrides for ingredient weighing notes.
+ * Display-only overrides for ingredient weighing notes / product names.
  * Does not mutate stored snapshots / catalog rows.
  */
 
@@ -8,6 +8,9 @@ const EGG_WHOLE_DISPLAY =
 
 const PASTEURIZED_EGG_WHITE_DISPLAY =
   "Готовый жидкий белок из упаковки. Отмерить указанное количество в граммах.";
+
+const EGG_WHOLE_PRODUCT_NAME = "Яйцо куриное";
+const EGG_WHITE_PRODUCT_NAME = "Яичный белок";
 
 const EGG_WHOLE_SLUGS = new Set(["egg-whole"]);
 const EGG_WHITE_SLUGS = new Set(["egg-white-raw"]);
@@ -30,8 +33,21 @@ function isEggWholeName(name: string): boolean {
 function isPasteurizedEggWhiteName(name: string): boolean {
   const n = normalize(name);
   return (
-    n.includes("пастеризованн") && n.includes("белок")
-  ) || n === "яичный белок" || n === "готовый пастеризованный яичный белок";
+    (n.includes("пастеризованн") && n.includes("белок")) ||
+    n === "яичный белок" ||
+    n === "готовый пастеризованный яичный белок"
+  );
+}
+
+function isTechnicalEggWholeLabel(name: string): boolean {
+  const n = normalize(name);
+  return (
+    n === "яйца" ||
+    n === "яйцо" ||
+    n.includes("съедобная часть") ||
+    n.startsWith("яйца ") ||
+    n.startsWith("яйцо ")
+  );
 }
 
 function isLegacyEggWholeNote(note: string): boolean {
@@ -85,7 +101,37 @@ export function displayWeighingNote(input: WeighingNoteDisplayInput): string | n
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/** Client/admin/PDF facing product title (display-only). */
+export function displayProductName(input: WeighingNoteDisplayInput): string {
+  const slug = normalize(input.product_slug ?? "");
+  const id = normalize(input.product_id ?? "");
+  const name = (input.product_name ?? "").trim();
+  const note = input.weighing_note ?? null;
+
+  if (
+    EGG_WHITE_SLUGS.has(slug) ||
+    EGG_WHITE_SLUGS.has(id) ||
+    isPasteurizedEggWhiteName(name) ||
+    (note != null && isLegacyEggWhiteNote(note) && !isTechnicalEggWholeLabel(name))
+  ) {
+    return EGG_WHITE_PRODUCT_NAME;
+  }
+
+  if (
+    EGG_WHOLE_SLUGS.has(slug) ||
+    EGG_WHOLE_SLUGS.has(id) ||
+    isTechnicalEggWholeLabel(name) ||
+    (note != null && isLegacyEggWholeNote(note))
+  ) {
+    return EGG_WHOLE_PRODUCT_NAME;
+  }
+
+  return name;
+}
+
 export const WEIGHING_NOTE_DISPLAY = {
   eggWhole: EGG_WHOLE_DISPLAY,
   pasteurizedEggWhite: PASTEURIZED_EGG_WHITE_DISPLAY,
+  eggWholeName: EGG_WHOLE_PRODUCT_NAME,
+  eggWhiteName: EGG_WHITE_PRODUCT_NAME,
 } as const;
