@@ -359,13 +359,16 @@ export function evaluateStrictWeekVariety(
     };
   }
 
+  // At most roughly one appearance of each protein family per day across the week.
+  // (Hard uniqueness remains on recipe_id / variant_group / ingredient_signature.)
+  const maxProteinPerWeek = Math.max(3, days.length);
   for (const [protein, count] of proteinWeek) {
-    if (count > 3) {
+    if (count > maxProteinPerWeek) {
       return {
         code: "INSUFFICIENT_VARIETY",
         unique_days: dayFingerprints.size,
         limiting_meal_type: "week",
-        missing: [`primary_protein ${protein} ≤ 3`],
+        missing: [`primary_protein ${protein} ≤ ${maxProteinPerWeek}`],
         detail: `${protein}: ${count} основных блюд`,
       };
     }
