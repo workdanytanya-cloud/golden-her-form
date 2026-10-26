@@ -76,6 +76,10 @@ import {
   type NutritionReasonCode,
   type NutritionSearchStage,
 } from "@/lib/nutrition-constructor/reason-codes";
+import {
+  evaluateStrictWeekVariety,
+  formatInsufficientVarietyMessage,
+} from "@/lib/nutrition-constructor/recipe-variety";
 import { validateMacroTargets } from "@/lib/nutrition-constructor/target-validation";
 import { PROTEIN_MAIN_PRODUCT_SLUGS } from "@/lib/nutrition-constructor/recipe-meta";
 
@@ -986,6 +990,9 @@ export function generateConstructorPlan(
     }
 
     const excluded = new Set(input.excluded_product_ids);
+    const excludedRecipes = new Set(input.excluded_recipe_ids ?? []);
+    const excludedVariantGroups = new Set(input.excluded_variant_groups ?? []);
+    const allowRepeats = input.allow_repeats === true;
     let generationCtx: OptimizerContext =
       excluded.size === 0
         ? {
@@ -993,18 +1000,20 @@ export function generateConstructorPlan(
             mainRecipes: ctx.mainRecipes.filter((recipe) => !recipe.slug.startsWith("gentle-")),
           }
         : ctx;
-    if (excluded.size > 0) {
-      const recipeAllowed = (recipe: Recipe) =>
-        (ctx.recipeIngredients.get(recipe.id) ?? []).every(
-          (ingredient) => !excluded.has(ingredient.product_id),
-        );
-      generationCtx = {
-        ...generationCtx,
-        recipes: generationCtx.recipes.filter(recipeAllowed),
-        mainRecipes: generationCtx.mainRecipes.filter(recipeAllowed),
-        snackRecipes: generationCtx.snackRecipes.filter(recipeAllowed),
-      };
-    }
+    const recipeCatalogAllowed = (recipe: Recipe) => {
+      if (excludedRecipes.has(recipe.id) || excludedRecipes.has(recipe.slug)) return false;
+      if (recipe.variant_group && excludedVariantGroups.has(recipe.variant_group)) return false;
+      if (excluded.size === 0) return true;
+      return (ctx.recipeIngredients.get(recipe.id) ?? []).every(
+        (ingredient) => !excluded.has(ingredient.product_id),
+      );
+    };
+    generationCtx = {
+      ...generationCtx,
+      recipes: generationCtx.recipes.filter(recipeCatalogAllowed),
+      mainRecipes: generationCtx.mainRecipes.filter(recipeCatalogAllowed),
+      snackRecipes: generationCtx.snackRecipes.filter(recipeCatalogAllowed),
+    };
     const proteinProducts = [...ctx.products.values()].filter(
       (p) =>
         p.is_active &&
@@ -1073,15 +1082,25 @@ export function generateConstructorPlan(
       timed: boolean,
       diagnostics: ComboSearchDiagnostics | null | undefined,
       daysWithIssues: number,
+      forcedCode?: NutritionReasonCode,
     ): PlanValidationResult => {
+      const variety =
+        forcedCode === "INSUFFICIENT_VARIETY" ||
+        (reason ?? "").includes("INSUFFICIENT_VARIETY") ||
+        (reason ?? "").includes("недельные ограничения") ||
+        (reason ?? "").includes("уникальн");
       const code: NutritionReasonCode = timed
         ? "TIMEOUT"
-        : diagnostics?.infeasible
-          ? "INFEASIBLE"
-          : "INFEASIBLE";
+        : forcedCode
+          ? forcedCode
+          : variety
+            ? "INSUFFICIENT_VARIETY"
+            : diagnostics?.infeasible
+              ? "INFEASIBLE"
+              : "INFEASIBLE";
       const msg = timed
         ? userMessageForReason("TIMEOUT", reason)
-        : userMessageForReason("INFEASIBLE", reason ?? failMessage);
+        : userMessageForReason(code, reason ?? failMessage);
       return {
         is_valid: false,
         kbju_acceptable: false,
@@ -1138,7 +1157,10 @@ export function generateConstructorPlan(
     };
 
     if (shouldUseWeekTiling(mode, input.days_count)) {
-      if (excluded.size === 0) {
+      const recipeByIdForWeek = new Map(
+        generationCtx.recipes.map((recipe) => [recipe.id, recipe] as const),
+      );
+      if (excluded.size === 0 && allowRepeats) {
         const legacyPool: ConstructorDay[] = [];
         const { diagnostics } = buildDay(
           generationCtx,
@@ -1200,17 +1222,42 @@ export function generateConstructorPlan(
           return failureResult(lastFailureReason, timedOut, diagnostics, 1);
         }
         const assemblyStarted = Date.now();
-        const arranged = assembleExactWeek(
-          exactPool,
-          input.days_count,
-          input.seed,
-        );
+        const arranged = assembleExactWeek(exactPool, input.days_count, input.seed, {
+          recipeById: recipeByIdForWeek,
+          allowRepeats,
+        });
         weekAssemblyElapsedMs = Date.now() - assemblyStarted;
         uniqueWeekDays = new Set(arranged.map(fingerprintExactDay)).size;
         days.push(...arranged);
         if (days.length !== input.days_count || days.some((dayRow) => !dayRow.is_valid)) {
-          lastFailureReason = "Точные дни найдены, но недельные ограничения несовместимы";
-          return failureResult(lastFailureReason, timedOut, diagnostics, exactPool.length);
+          const violation = evaluateStrictWeekVariety(arranged, recipeByIdForWeek, {
+            allowRepeats,
+          });
+          lastFailureReason = violation
+            ? formatInsufficientVarietyMessage(violation)
+            : "INSUFFICIENT_VARIETY — точные дни найдены, но недельные ограничения несовместимы";
+          return failureResult(
+            lastFailureReason,
+            timedOut,
+            diagnostics,
+            exactPool.length,
+            "INSUFFICIENT_VARIETY",
+          );
+        }
+        if (!allowRepeats) {
+          const violation = evaluateStrictWeekVariety(days, recipeByIdForWeek, {
+            allowRepeats: false,
+          });
+          if (violation) {
+            lastFailureReason = formatInsufficientVarietyMessage(violation);
+            return failureResult(
+              lastFailureReason,
+              timedOut,
+              diagnostics,
+              exactPool.length,
+              "INSUFFICIENT_VARIETY",
+            );
+          }
         }
         lastFailureReason = null;
       }

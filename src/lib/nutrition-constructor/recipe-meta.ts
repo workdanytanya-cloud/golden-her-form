@@ -7,16 +7,35 @@ export const PROTEIN_SNACK_PRODUCT_SLUGS = new Set([
   "walnut",
   "almond",
   "pumpkin-seeds",
+  "sunflower-seeds",
+  "cottage-cheese-5",
+  "cottage-cheese-lf",
+  "greek-yogurt",
+  "greek-yogurt-lf",
+  "kefir",
+  "kefir-lf",
+  "chickpeas-canned",
+  "white-beans-canned",
 ]);
 
 /** Мясo/рыба/яйца/сыр — источники белка в основных блюдах. */
 export const PROTEIN_MAIN_PRODUCT_SLUGS = new Set([
   "chicken-breast-raw",
+  "chicken-thigh-raw",
+  "turkey-breast-raw",
+  "ground-turkey-raw",
   "beef-lean-raw",
   "pollock-raw",
+  "cod-raw",
+  "hake-raw",
+  "pink-salmon-raw",
   "egg-whole",
   "hard-cheese",
   "canned-tuna",
+  "cottage-cheese-5",
+  "cottage-cheese-lf",
+  "greek-yogurt",
+  "greek-yogurt-lf",
 ]);
 
 export const FRUIT_VEG_PRODUCT_SLUGS = new Set([
@@ -34,9 +53,24 @@ export const FRUIT_VEG_PRODUCT_SLUGS = new Set([
   "cherry",
   "lemon",
   "canned-corn",
+  "broccoli-raw",
+  "onion-raw",
+  "spinach-raw",
+  "green-beans-raw",
+  "frozen-berry-mix",
+  "pear-raw",
+  "potato-raw",
+  "pumpkin-raw",
+  "beet-raw",
+  "lettuce-raw",
 ]);
 
-export const NUT_SEED_PRODUCT_SLUGS = new Set(["walnut", "almond", "pumpkin-seeds"]);
+export const NUT_SEED_PRODUCT_SLUGS = new Set([
+  "walnut",
+  "almond",
+  "pumpkin-seeds",
+  "sunflower-seeds",
+]);
 
 export const OIL_PRODUCT_SLUGS = new Set([
   "olive-oil",
@@ -62,12 +96,22 @@ export const TREAT_PRODUCT_SLUGS = new Set(["stevia-candy", "marshmallow", "drie
 
 export const RAW_MEAT_FISH_SLUGS = new Set([
   "chicken-breast-raw",
+  "chicken-thigh-raw",
+  "turkey-breast-raw",
+  "ground-turkey-raw",
   "beef-lean-raw",
   "pollock-raw",
+  "cod-raw",
+  "hake-raw",
+  "pink-salmon-raw",
   "egg-whole",
   "buckwheat-dry",
   "rice-white-dry",
   "oats-dry",
+  "bulgur-dry",
+  "couscous-dry",
+  "pearl-barley-dry",
+  "lentils-dry",
 ]);
 
 export type RecipeMetaInput = {

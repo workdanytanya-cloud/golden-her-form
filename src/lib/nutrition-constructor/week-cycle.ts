@@ -3,6 +3,7 @@ import {
   type MealScheduleMode,
   type PlanSlot,
 } from "@/lib/nutrition-constructor/config";
+import { evaluateStrictWeekVariety } from "@/lib/nutrition-constructor/recipe-variety";
 import type { ConstructorDay, Recipe } from "@/lib/nutrition-constructor/types";
 
 /** Сколько разных валидных дней собираем для недельного цикла 7/14/28. */
@@ -73,6 +74,10 @@ export function assembleExactWeek(
   pool: ConstructorDay[],
   totalDays: number,
   seed = 0,
+  options?: {
+    recipeById?: Map<string, Recipe>;
+    allowRepeats?: boolean;
+  },
 ): ConstructorDay[] {
   const unique = new Map<string, ConstructorDay>();
   for (const raw of pool) {
@@ -92,27 +97,76 @@ export function assembleExactWeek(
     .map(([signature, day]) => ({ signature, day }));
   if (candidates.length < Math.min(4, totalDays)) return [];
 
+  const recipeById = options?.recipeById ?? new Map<string, Recipe>();
+  const allowRepeats = options?.allowRepeats === true;
   const selected: typeof candidates = [];
   const recipeUses = new Map<string, number>();
-  const signatures = new Set<string>();
+  const groupUses = new Map<string, number>();
+  const signatureUses = new Map<string, number>();
+  const daySignatures = new Set<string>();
   const visit = (): boolean => {
-    if (selected.length === totalDays) return signatures.size >= Math.min(4, totalDays);
+    if (selected.length === totalDays) {
+      const days = selected.map((candidate, index) =>
+        cloneConstructorDay(candidate.day, index),
+      );
+      if (allowRepeats) return daySignatures.size >= Math.min(4, totalDays);
+      return evaluateStrictWeekVariety(days, recipeById, { allowRepeats: false }) == null;
+    }
     const remaining = totalDays - selected.length;
-    if (signatures.size + remaining < Math.min(4, totalDays)) return false;
+    if (daySignatures.size + remaining < Math.min(4, totalDays)) return false;
     for (const candidate of candidates) {
       if (selected.at(-1)?.signature === candidate.signature) continue;
-      if (candidates.length >= totalDays && signatures.has(candidate.signature)) continue;
+      if (candidates.length >= totalDays && daySignatures.has(candidate.signature)) continue;
       const ids = candidate.day.items.map((item) => item.recipe_id);
-      if (ids.some((id) => (recipeUses.get(id) ?? 0) >= 3)) continue;
+      const maxRecipeUses = allowRepeats ? 3 : 1;
+      if (ids.some((id) => (recipeUses.get(id) ?? 0) >= maxRecipeUses)) continue;
+      if (!allowRepeats) {
+        let blocked = false;
+        for (const item of candidate.day.items) {
+          const recipe = recipeById.get(item.recipe_id);
+          if (recipe?.variant_group && (groupUses.get(recipe.variant_group) ?? 0) >= 1) {
+            blocked = true;
+            break;
+          }
+          if (
+            recipe?.ingredient_signature &&
+            (signatureUses.get(recipe.ingredient_signature) ?? 0) >= 1
+          ) {
+            blocked = true;
+            break;
+          }
+        }
+        if (blocked) continue;
+      }
       selected.push(candidate);
-      const wasNew = !signatures.has(candidate.signature);
-      signatures.add(candidate.signature);
+      const wasNew = !daySignatures.has(candidate.signature);
+      daySignatures.add(candidate.signature);
       for (const id of ids) recipeUses.set(id, (recipeUses.get(id) ?? 0) + 1);
+      const touchedGroups: string[] = [];
+      const touchedSignatures: string[] = [];
+      for (const item of candidate.day.items) {
+        const recipe = recipeById.get(item.recipe_id);
+        if (recipe?.variant_group) {
+          groupUses.set(recipe.variant_group, (groupUses.get(recipe.variant_group) ?? 0) + 1);
+          touchedGroups.push(recipe.variant_group);
+        }
+        if (recipe?.ingredient_signature) {
+          signatureUses.set(
+            recipe.ingredient_signature,
+            (signatureUses.get(recipe.ingredient_signature) ?? 0) + 1,
+          );
+          touchedSignatures.push(recipe.ingredient_signature);
+        }
+      }
       if (visit()) return true;
       selected.pop();
       for (const id of ids) recipeUses.set(id, recipeUses.get(id)! - 1);
+      for (const group of touchedGroups) groupUses.set(group, groupUses.get(group)! - 1);
+      for (const signature of touchedSignatures) {
+        signatureUses.set(signature, signatureUses.get(signature)! - 1);
+      }
       if (wasNew && !selected.some((item) => item.signature === candidate.signature)) {
-        signatures.delete(candidate.signature);
+        daySignatures.delete(candidate.signature);
       }
     }
     return false;

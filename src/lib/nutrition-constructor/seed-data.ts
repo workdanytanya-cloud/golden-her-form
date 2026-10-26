@@ -4,6 +4,12 @@
  * is_verified=false — требуется этикетка конкретной упаковки.
  */
 import { OIL_PRODUCT_SLUGS } from "@/lib/nutrition-constructor/recipe-meta";
+import {
+  EXPANSION_PRODUCTS,
+  EXPANSION_RECIPES,
+  type ExpandedSeedIngredient,
+  type ExpandedSeedRecipe,
+} from "@/lib/nutrition-constructor/seed-catalog-expansion";
 export type SeedProduct = {
   slug: string;
   name: string;
@@ -25,6 +31,11 @@ export type SeedProduct = {
   weighing_note: string;
   /** По умолчанию true; false — не использовать в автогенерации. */
   is_active_for_autogeneration?: boolean;
+  allergen_tags?: string[];
+  lactose_free?: boolean;
+  gluten_free?: boolean;
+  vegetarian?: boolean;
+  food_tags?: string[];
 };
 
 export const SEED_PRODUCTS: SeedProduct[] = [
@@ -777,6 +788,13 @@ SEED_PRODUCTS.push(
   },
 );
 
+const EXISTING_PRODUCT_SLUGS = new Set(SEED_PRODUCTS.map((product) => product.slug));
+for (const product of EXPANSION_PRODUCTS) {
+  if (EXISTING_PRODUCT_SLUGS.has(product.slug)) continue;
+  SEED_PRODUCTS.push(product);
+  EXISTING_PRODUCT_SLUGS.add(product.slug);
+}
+
 export type SeedRecipe = {
   slug: string;
   name: string;
@@ -786,12 +804,28 @@ export type SeedRecipe = {
   steps: string[];
   weighing_note: string;
   allowed_schedule_modes?: import("@/lib/nutrition-constructor/config").MealScheduleMode[];
+  meal_types?: import("@/lib/nutrition-constructor/recipe-variety").MealRole[];
+  variant_group?: string;
+  ingredient_signature?: string;
+  primary_protein?: string;
+  primary_carb?: string;
+  cooking_method?: import("@/lib/nutrition-constructor/recipe-variety").CookingMethod;
+  difficulty?: "easy" | "medium";
+  active_time_minutes?: number;
+  total_time_minutes?: number;
+  batch_friendly?: boolean;
+  storage_notes?: string;
+  dietary_tags?: string[];
+  allergens?: string[];
+  min_servings?: number;
+  max_servings?: number;
   ingredients: Array<{
     product_slug: string;
     min_g: number;
     max_g: number;
     default_g: number;
     required?: boolean;
+    scalable?: boolean;
   }>;
 };
 
@@ -1685,10 +1719,34 @@ function enrichMainRecipesWithOil(recipes: SeedRecipe[]): SeedRecipe[] {
   });
 }
 
+const EXPANSION_AS_SEED: SeedRecipe[] = EXPANSION_RECIPES.map((recipe: ExpandedSeedRecipe) => ({
+  ...recipe,
+  ingredients: recipe.ingredients.map((ing: ExpandedSeedIngredient) => ({
+    product_slug: ing.product_slug,
+    min_g: ing.min_g,
+    max_g: ing.max_g,
+    default_g: ing.default_g,
+    required: ing.required,
+    scalable: ing.scalable,
+  })),
+}));
+
+const EXISTING_RECIPE_SLUGS = new Set(
+  [...SEED_RECIPES_RAW, ...GENTLE_MAIN_RECIPES].map((recipe) => recipe.slug),
+);
+
 export const SEED_RECIPES: SeedRecipe[] = enrichMainRecipesWithOil([
   ...SEED_RECIPES_RAW,
   ...GENTLE_MAIN_RECIPES,
+  ...EXPANSION_AS_SEED.filter((recipe) => !EXISTING_RECIPE_SLUGS.has(recipe.slug)),
 ]);
 
 /** Slug'и продуктов белого списка для валидации. */
 export const ALLOWED_PRODUCT_SLUGS = new Set(SEED_PRODUCTS.map((p) => p.slug));
+
+export const EXPANSION_PRODUCT_COUNT = EXPANSION_PRODUCTS.filter(
+  (product) => SEED_PRODUCTS.some((row) => row.slug === product.slug),
+).length;
+export const EXPANSION_RECIPE_COUNT = EXPANSION_AS_SEED.filter(
+  (recipe) => !EXISTING_RECIPE_SLUGS.has(recipe.slug),
+).length;

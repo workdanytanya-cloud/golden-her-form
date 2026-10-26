@@ -29,6 +29,14 @@ import {
 } from "@/lib/nutrition-constructor/optimizer";
 import { inferRecipeMeta, snackActionForRecipe } from "@/lib/nutrition-constructor/recipe-meta";
 import {
+  buildIngredientSignature,
+  buildVariantGroup,
+  inferCookingMethod,
+  inferPrimaryCarb,
+  inferPrimaryProtein,
+  type MealRole,
+} from "@/lib/nutrition-constructor/recipe-variety";
+import {
   SEED_PRODUCTS,
   SEED_RECIPES,
   type SeedRecipe,
@@ -148,9 +156,25 @@ function seedToRecipe(r: SeedRecipe, productSlugs: Set<string>): Recipe | null {
     ingredients: r.ingredients,
   });
   const slugs = r.ingredients.map((i) => i.product_slug);
+  const requiredSlugs = r.ingredients
+    .filter((ingredient) => ingredient.required !== false)
+    .map((ingredient) => ingredient.product_slug);
+  const cookingMethod =
+    r.cooking_method ?? inferCookingMethod(r.steps, r.requires_cooking);
+  const primaryProtein = r.primary_protein ?? inferPrimaryProtein(requiredSlugs);
+  const primaryCarb = r.primary_carb ?? inferPrimaryCarb(requiredSlugs);
+  const variantGroup =
+    r.variant_group ?? buildVariantGroup(primaryProtein, primaryCarb, cookingMethod);
+  const ingredientSignature =
+    r.ingredient_signature ?? buildIngredientSignature(requiredSlugs, cookingMethod);
+  const mealTypes: MealRole[] =
+    r.meal_types ??
+    (r.meal_type === "snack"
+      ? ["snack"]
+      : (["breakfast", "lunch", "dinner"] as MealRole[]));
   // Активное время ≤20 мин; кипение крупы/мяса — в total_cook.
-  const activePrep = Math.min(r.prep_time_min, 15);
-  const totalCook = r.prep_time_min;
+  const activePrep = r.active_time_minutes ?? Math.min(r.prep_time_min, 15);
+  const totalCook = r.total_time_minutes ?? r.prep_time_min;
   return {
     id: r.slug,
     slug: r.slug,
@@ -172,7 +196,20 @@ function seedToRecipe(r: SeedRecipe, productSlugs: Set<string>): Recipe | null {
     dietitian_approved: true,
     active_prep_minutes: activePrep,
     total_cook_minutes: totalCook,
-    complexity: "easy" as const,
+    complexity: r.difficulty ?? ("easy" as const),
+    meal_types: mealTypes,
+    variant_group: variantGroup,
+    ingredient_signature: ingredientSignature,
+    primary_protein: primaryProtein,
+    primary_carb: primaryCarb,
+    cooking_method: cookingMethod,
+    batch_friendly: r.batch_friendly ?? r.requires_cooking,
+    storage_notes: r.storage_notes ?? null,
+    dietary_tags: r.dietary_tags ?? [],
+    allergens: r.allergens ?? [],
+    min_servings: r.min_servings ?? 1,
+    max_servings: r.max_servings ?? 2,
+    is_batch_cookable: r.batch_friendly ?? r.requires_cooking,
   };
 }
 
@@ -207,6 +244,11 @@ export function buildInMemoryCatalog(options: BuildCatalogOptions = {}): Optimiz
       requires_cooking: p.requires_cooking,
       weighing_note: p.weighing_note,
       is_active_for_autogeneration: p.is_active_for_autogeneration !== false,
+      allergen_tags: p.allergen_tags,
+      lactose_free: p.lactose_free,
+      gluten_free: p.gluten_free,
+      vegetarian: p.vegetarian,
+      food_tags: p.food_tags,
     });
   }
 
@@ -228,7 +270,7 @@ export function buildInMemoryCatalog(options: BuildCatalogOptions = {}): Optimiz
         min_g: ing.min_g,
         max_g: ing.max_g,
         default_g: ing.default_g,
-        is_scalable: true,
+        is_scalable: ing.scalable !== false,
         sort_order: idx,
         optional: ing.required === false,
       })),
@@ -274,6 +316,10 @@ function enrichRecipeFromDb(
     ingredients: slugs.map((product_slug) => ({ product_slug })),
   });
 
+  const cookingMethod =
+    recipe.cooking_method ?? inferCookingMethod(recipe.steps, recipe.requires_cooking);
+  const primaryProtein = recipe.primary_protein ?? inferPrimaryProtein(slugs);
+  const primaryCarb = recipe.primary_carb ?? inferPrimaryCarb(slugs);
   return {
     ...recipe,
     is_treat: meta.is_treat,
@@ -282,6 +328,19 @@ function enrichRecipeFromDb(
     contains_fruit_or_vegetable: meta.contains_fruit_or_vegetable,
     allowed_schedule_modes: meta.allowed_schedule_modes,
     snack_action: recipe.snack_action ?? snackActionForRecipe(slugs),
+    cooking_method: cookingMethod,
+    primary_protein: primaryProtein,
+    primary_carb: primaryCarb,
+    variant_group:
+      recipe.variant_group ?? buildVariantGroup(primaryProtein, primaryCarb, cookingMethod),
+    ingredient_signature:
+      recipe.ingredient_signature ?? buildIngredientSignature(slugs, cookingMethod),
+    meal_types:
+      recipe.meal_types && recipe.meal_types.length > 0
+        ? recipe.meal_types
+        : recipe.meal_type === "snack"
+          ? ["snack"]
+          : ["breakfast", "lunch", "dinner"],
   };
 }
 
@@ -519,6 +578,9 @@ export async function generateAndValidateConstructorPlan(params: {
   };
   days_count: PlanDaysCount;
   excluded_product_ids: string[];
+  excluded_recipe_ids?: string[];
+  excluded_variant_groups?: string[];
+  allow_repeats?: boolean;
   tolerance?: typeof DEFAULT_TOLERANCE;
   meal_schedule_mode?: MealScheduleMode;
   primary_meal_slot?: PrimaryMealSlot;
@@ -587,15 +649,54 @@ export async function generateAndValidateConstructorPlan(params: {
     return (await selfhostGenerateNutrition(params as unknown as Record<string, unknown>)) as never;
   }
   const ctx = await loadOptimizerContext();
+  let excludedRecipeIds = [...(params.excluded_recipe_ids ?? [])];
+  let excludedVariantGroups = [...(params.excluded_variant_groups ?? [])];
+  let publishedWarning: string | null = null;
+  if (params.clientId) {
+    try {
+      const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
+      if (await usesLocalPostgresCircuit()) {
+        const { getPostgresPool } = await import("@/lib/selfhost/db");
+        const { getActivePublishedNutritionPg } = await import(
+          "@/lib/selfhost/postgres-published"
+        );
+        const { exclusionsFromPublishedNutrition } = await import(
+          "@/lib/nutrition-constructor/published-exclusions"
+        );
+        const published = await getActivePublishedNutritionPg(
+          getPostgresPool(),
+          params.clientId,
+          params.courseId,
+        );
+        const exclusions = exclusionsFromPublishedNutrition(published?.snapshot, ctx.recipes);
+        excludedRecipeIds = [...new Set([...excludedRecipeIds, ...exclusions.excluded_recipe_ids])];
+        excludedVariantGroups = [
+          ...new Set([...excludedVariantGroups, ...exclusions.excluded_variant_groups]),
+        ];
+        publishedWarning = exclusions.warning;
+      }
+    } catch {
+      // Нет published / локальный контур недоступен — генерируем без исключения истории.
+    }
+  }
   const result = generateConstructorPlan(ctx, {
     targets: calc.targets,
     days_count: params.days_count,
     excluded_product_ids: params.excluded_product_ids,
+    excluded_recipe_ids: excludedRecipeIds,
+    excluded_variant_groups: excludedVariantGroups,
+    allow_repeats: params.allow_repeats === true,
     tolerance: params.tolerance ?? DEFAULT_TOLERANCE,
     meal_schedule_mode: params.meal_schedule_mode ?? "two_main_two_snacks",
     primary_meal_slot: params.primary_meal_slot ?? "lunch",
     seed: params.seed,
   });
+  const reviewBits = [
+    ...safety.reasons,
+    ...targetSafety,
+    publishedWarning,
+    result.reason_code === "INSUFFICIENT_VARIETY" ? result.message : null,
+  ].filter(Boolean) as string[];
   return {
     ...result,
     bmr: calc.bmr,
@@ -603,8 +704,9 @@ export async function generateAndValidateConstructorPlan(params: {
     adjustment_pct: calc.adjustment_pct,
     targets: calc.targets,
     used_targets_line,
+    published_exclusion_warning: publishedWarning,
     requires_manual_review: safety.blocked || targetSafety.length > 0 || !result.is_valid,
-    review_reason: [...safety.reasons, ...targetSafety].join("\n") || null,
+    review_reason: reviewBits.join("\n") || null,
     comparison: result.comparison.length
       ? result.comparison
       : comparisonRows(

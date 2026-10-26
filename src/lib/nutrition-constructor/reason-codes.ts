@@ -1,6 +1,12 @@
 /** Коды исхода генератора рациона (не путать с UI-текстом). */
 export type NutritionReasonCode =
-  "PASS" | "INVALID_TARGET" | "NO_ALLOWED_PRODUCTS" | "INFEASIBLE" | "TIMEOUT" | "INTERNAL_ERROR";
+  | "PASS"
+  | "INVALID_TARGET"
+  | "NO_ALLOWED_PRODUCTS"
+  | "INFEASIBLE"
+  | "INSUFFICIENT_VARIETY"
+  | "TIMEOUT"
+  | "INTERNAL_ERROR";
 
 export type NutritionSearchStage =
   "fast_topn" | "expand_candidates" | "exact_fallback" | "week_tile" | "validation" | "none";
@@ -34,6 +40,8 @@ export function userMessageForReason(
       return `Поиск не завершён вовремя (TIMEOUT)${suffix}. Повторите генерацию.`;
     case "INFEASIBLE":
       return `Рацион доказанно недостижим (INFEASIBLE)${suffix}`;
+    case "INSUFFICIENT_VARIETY":
+      return `Недостаточно уникальных вариантов без повторов (INSUFFICIENT_VARIETY)${suffix}`;
     case "INTERNAL_ERROR":
       return `Внутренняя ошибка генератора (INTERNAL_ERROR)${suffix}`;
   }

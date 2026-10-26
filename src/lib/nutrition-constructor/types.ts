@@ -46,6 +46,10 @@ export type FoodProduct = {
   product_group?: string | null;
   /** false — только ручной подбор тренером (например, сливочное масло). */
   is_active_for_autogeneration?: boolean;
+  lactose_free?: boolean;
+  gluten_free?: boolean;
+  vegetarian?: boolean;
+  food_tags?: string[];
 };
 
 export type RecipeMealType = "main" | "snack";
@@ -79,6 +83,19 @@ export type Recipe = {
   requires_reheating?: boolean;
   is_nutritionally_complete?: boolean;
   dietitian_approved?: boolean;
+  meal_types?: Array<"breakfast" | "lunch" | "dinner" | "snack">;
+  variant_group?: string | null;
+  ingredient_signature?: string | null;
+  primary_protein?: string | null;
+  primary_carb?: string | null;
+  cooking_method?: string | null;
+  difficulty?: RecipeComplexity | null;
+  batch_friendly?: boolean;
+  storage_notes?: string | null;
+  dietary_tags?: string[];
+  allergens?: string[];
+  min_servings?: number | null;
+  max_servings?: number | null;
 };
 
 export type RecipeIngredient = {
@@ -211,6 +228,12 @@ export type GenerateConstructorPlanInput = {
   search_timeout_ms?: number;
   /** Тестовый hook: бросить INTERNAL_ERROR. */
   force_internal_error?: boolean;
+  /** Исключить recipe_id (например, из активной published программы). */
+  excluded_recipe_ids?: string[];
+  /** Исключить variant_group из активной published программы. */
+  excluded_variant_groups?: string[];
+  /** По умолчанию false — повторы запрещены. */
+  allow_repeats?: boolean;
 };
 
 export type DayStructureCheck = {

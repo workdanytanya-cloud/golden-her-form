@@ -87,6 +87,9 @@ export const nutritionGenerateSchema = z.object({
   profile: z.record(z.unknown()),
   days_count: z.union([z.literal(1), z.literal(7), z.literal(14), z.literal(28)]),
   excluded_product_ids: z.array(z.string()).default([]),
+  excluded_recipe_ids: z.array(z.string()).default([]),
+  excluded_variant_groups: z.array(z.string()).default([]),
+  allow_repeats: z.boolean().default(false),
   meal_schedule_mode: z
     .enum([
       "three_main_two_snacks",
@@ -155,6 +158,10 @@ function mapProduct(row: Record<string, unknown>): FoodProduct {
     weighing_note: (row.weighing_note as string | null) ?? null,
     is_active_for_autogeneration: row.is_active_for_autogeneration !== false,
     allergen_tags: (row.allergen_tags as string[] | null) ?? [],
+    lactose_free: Boolean(row.lactose_free),
+    gluten_free: Boolean(row.gluten_free),
+    vegetarian: Boolean(row.vegetarian),
+    food_tags: (row.food_tags as string[] | null) ?? [],
   };
 }
 
@@ -190,6 +197,17 @@ function mapRecipe(row: Record<string, unknown>): Recipe {
     requires_reheating: Boolean(row.requires_reheating),
     is_nutritionally_complete: row.is_nutritionally_complete !== false,
     dietitian_approved: row.dietitian_approved !== false,
+    meal_types: (row.meal_types as Recipe["meal_types"]) ?? [],
+    variant_group: (row.variant_group as string | null) ?? null,
+    ingredient_signature: (row.ingredient_signature as string | null) ?? null,
+    primary_protein: (row.primary_protein as string | null) ?? null,
+    primary_carb: (row.primary_carb as string | null) ?? null,
+    cooking_method: (row.cooking_method as string | null) ?? null,
+    storage_notes: (row.storage_notes as string | null) ?? null,
+    dietary_tags: (row.dietary_tags as string[] | null) ?? [],
+    allergens: (row.allergens as string[] | null) ?? [],
+    min_servings: (row.min_servings as number | null) ?? null,
+    max_servings: (row.max_servings as number | null) ?? null,
   };
 }
 
@@ -209,10 +227,11 @@ export async function seedNutritionCatalog(
          slug, name, category, brand, state, measurement_basis,
          kcal_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g, fiber_per_100g, density,
          source_name, source_url, verified_at, is_verified, is_active, is_active_for_autogeneration,
-         allowed_for_snack, requires_cooking, weighing_note
+         allowed_for_snack, requires_cooking, weighing_note, allergen_tags,
+         lactose_free, gluten_free, vegetarian, food_tags
        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
          CASE WHEN $15 THEN (now() AT TIME ZONE 'utc') ELSE NULL END,
-         $15, true, $16, $17, $18, $19)
+         $15, true, $16, $17, $18, $19, $20::text[], $21, $22, $23, $24::text[])
        ON CONFLICT (slug) DO UPDATE SET
          name = EXCLUDED.name,
          category = EXCLUDED.category,
@@ -233,6 +252,11 @@ export async function seedNutritionCatalog(
          allowed_for_snack = EXCLUDED.allowed_for_snack,
          requires_cooking = EXCLUDED.requires_cooking,
          weighing_note = EXCLUDED.weighing_note,
+         allergen_tags = EXCLUDED.allergen_tags,
+         lactose_free = EXCLUDED.lactose_free,
+         gluten_free = EXCLUDED.gluten_free,
+         vegetarian = EXCLUDED.vegetarian,
+         food_tags = EXCLUDED.food_tags,
          updated_at = (now() AT TIME ZONE 'utc')`,
       [
         p.slug,
@@ -254,6 +278,11 @@ export async function seedNutritionCatalog(
         p.allowed_for_snack,
         p.requires_cooking,
         p.weighing_note,
+        p.allergen_tags ?? [],
+        p.lactose_free === true,
+        p.gluten_free === true,
+        p.vegetarian === true,
+        p.food_tags ?? [],
       ],
     );
   }
@@ -266,8 +295,14 @@ export async function seedNutritionCatalog(
       `INSERT INTO public.recipes (
          slug, name, meal_type, steps, prep_time_min, requires_cooking, is_active, weighing_note,
          is_nutrient_dense, contains_protein_source, contains_fruit_or_vegetable, is_treat,
-         allowed_schedule_modes, snack_action, active_prep_minutes, total_cook_minutes, complexity
-       ) VALUES ($1,$2,$3,$4::jsonb,$5,$6,true,$7,$8,$9,$10,$11,$12,$13,$14,$15,'easy')
+         allowed_schedule_modes, snack_action, active_prep_minutes, total_cook_minutes, complexity,
+         meal_types, variant_group, ingredient_signature, primary_protein, primary_carb,
+         cooking_method, storage_notes, dietary_tags, allergens, min_servings, max_servings,
+         is_batch_cookable
+       ) VALUES (
+         $1,$2,$3,$4::jsonb,$5,$6,true,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
+         $17::text[],$18,$19,$20,$21,$22,$23,$24::text[],$25::text[],$26,$27,$28
+       )
        ON CONFLICT (slug) DO UPDATE SET
          name = EXCLUDED.name,
          meal_type = EXCLUDED.meal_type,
@@ -284,6 +319,19 @@ export async function seedNutritionCatalog(
          snack_action = EXCLUDED.snack_action,
          active_prep_minutes = EXCLUDED.active_prep_minutes,
          total_cook_minutes = EXCLUDED.total_cook_minutes,
+         complexity = EXCLUDED.complexity,
+         meal_types = EXCLUDED.meal_types,
+         variant_group = EXCLUDED.variant_group,
+         ingredient_signature = EXCLUDED.ingredient_signature,
+         primary_protein = EXCLUDED.primary_protein,
+         primary_carb = EXCLUDED.primary_carb,
+         cooking_method = EXCLUDED.cooking_method,
+         storage_notes = EXCLUDED.storage_notes,
+         dietary_tags = EXCLUDED.dietary_tags,
+         allergens = EXCLUDED.allergens,
+         min_servings = EXCLUDED.min_servings,
+         max_servings = EXCLUDED.max_servings,
+         is_batch_cookable = EXCLUDED.is_batch_cookable,
          updated_at = (now() AT TIME ZONE 'utc')`,
       [
         r.slug,
@@ -301,6 +349,19 @@ export async function seedNutritionCatalog(
         r.snack_action,
         r.active_prep_minutes,
         r.total_cook_minutes,
+        r.complexity ?? "easy",
+        r.meal_types ?? [],
+        r.variant_group ?? null,
+        r.ingredient_signature ?? null,
+        r.primary_protein ?? null,
+        r.primary_carb ?? null,
+        r.cooking_method ?? null,
+        r.storage_notes ?? null,
+        r.dietary_tags ?? [],
+        r.allergens ?? [],
+        r.min_servings ?? null,
+        r.max_servings ?? null,
+        r.is_batch_cookable === true || r.batch_friendly === true,
       ],
     );
   }

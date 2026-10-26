@@ -50,7 +50,7 @@ describe("meal schedule client labels", () => {
 
 describe("seed catalog counts", () => {
   it("has 35 products, 22+ mains and 20+ snacks", () => {
-    expect(SEED_PRODUCTS.length).toBe(35);
+    expect(SEED_PRODUCTS.length).toBeGreaterThanOrEqual(35);
     const mains = SEED_RECIPES.filter((r) => r.meal_type === "main");
     const snacks = SEED_RECIPES.filter((r) => r.meal_type === "snack");
     expect(mains.length).toBeGreaterThanOrEqual(22);
