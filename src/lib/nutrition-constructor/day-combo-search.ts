@@ -108,10 +108,10 @@ const daySearchTimeoutMs = (priorities: MacroPriorities, mode: MealScheduleMode)
 function isNearValid(day: NonNullable<DayAssemblerResult>, targets: MacroBreakdown): boolean {
   const macros = dayMacroNumbers(day);
   return (
-    Math.abs(macros.kcal - targets.kcal.toNumber()) <= 8 &&
-    Math.abs(macros.protein_g - targets.protein_g.toNumber()) <= 12 &&
-    Math.abs(macros.fat_g - targets.fat_g.toNumber()) <= 8 &&
-    Math.abs(macros.carbs_g - targets.carbs_g.toNumber()) <= 8
+    Math.abs(macros.kcal - targets.kcal.toNumber()) <= 25 &&
+    Math.abs(macros.protein_g - targets.protein_g.toNumber()) <= 18 &&
+    Math.abs(macros.fat_g - targets.fat_g.toNumber()) <= 12 &&
+    Math.abs(macros.carbs_g - targets.carbs_g.toNumber()) <= 18
   );
 }
 
@@ -858,11 +858,7 @@ export function searchValidDayCombo(params: {
             const s1ok = isStrictProteinSnack(snack1) || snack1.contains_protein_source;
             const s2ok = isStrictProteinSnack(snack2) || snack2.contains_protein_source;
             if (!s1ok && !s2ok) continue;
-            if (preferMixedCarbs) {
-              const proteinSnack = (r: Recipe) =>
-                r.slug.includes("tuna") || r.slug.includes("cheese");
-              if (!proteinSnack(snack1) && !proteinSnack(snack2)) continue;
-            }
+            if (preferMixedCarbs && !carb1 && !carb2 && !fat1 && !fat2) continue;
           }
           const slotRecipes = {
             main1: trio[0],
@@ -995,8 +991,8 @@ export function searchValidDayCombo(params: {
     scoredCombos.length = 0;
     scoredCombos.push(...beam.slice(0, 360));
   }
-  if (mode === "three_main_two_snacks" && scoredCombos.length > 90) {
-    scoredCombos.length = 90;
+  if (mode === "three_main_two_snacks" && scoredCombos.length > 240) {
+    scoredCombos.length = 240;
   }
 
   const nearCandidates: Array<{ slotRecipes: Partial<Record<PlanSlot, Recipe>>; score: number }> =

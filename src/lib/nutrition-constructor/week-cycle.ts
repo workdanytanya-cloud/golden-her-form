@@ -8,15 +8,20 @@ import type { ConstructorDay, Recipe } from "@/lib/nutrition-constructor/types";
 
 /** Сколько разных валидных дней собираем для недельного цикла 7/14/28. */
 export const UNIQUE_WEEK_TARGET = 7;
-export const EXACT_DAY_POOL_TARGET = 12;
+export const EXACT_DAY_POOL_TARGET = 21;
 
 /** Бюджет поиска уникальной недели — оставляем запас до лимита 120 с в пилот-тесте. */
-export const WEEK_SEARCH_BUDGET_MS = 55_000;
+export const WEEK_SEARCH_BUDGET_MS = 22_000;
 
 export function shouldUseWeekTiling(mode: MealScheduleMode, daysCount: number): boolean {
   if (!(daysCount === 7 || daysCount === 14 || daysCount === 28)) return false;
   // Эти режимы собираются из пула точных дней. Остальные идут по дням с запретом повтора.
-  return mode === "two_main_two_snacks" || mode === "three_mains_only";
+  return (
+    mode === "two_main_two_snacks" ||
+    mode === "three_mains_only" ||
+    mode === "three_main_two_snacks" ||
+    mode === "one_main_three_snacks"
+  );
 }
 
 export function fingerprintFromRecipes(slotRecipes: Partial<Record<PlanSlot, Recipe>>): string {

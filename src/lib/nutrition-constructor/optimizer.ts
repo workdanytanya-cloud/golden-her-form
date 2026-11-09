@@ -70,6 +70,7 @@ import {
   shouldUseWeekTiling,
   tileConstructorWeek,
 } from "@/lib/nutrition-constructor/week-cycle";
+import { buildExactWeek, orderExactDays } from "@/lib/nutrition-constructor/exact-week-search";
 import {
   reasonFromDiagnostics,
   userMessageForReason,
@@ -690,7 +691,7 @@ function assembleAndTuneDay(
     items: tuned.items,
     targets,
     tolerance: DEFAULT_TOLERANCE,
-    maxIterations: searchPhase ? 35 : 500,
+    maxIterations: searchPhase ? 16 : 60,
     enableFinishing: !searchPhase,
   });
 
@@ -1186,46 +1187,39 @@ export function generateConstructorPlan(
         }
         lastFailureReason = null;
       } else {
-        const exactPool: ConstructorDay[] = [];
         const poolStarted = Date.now();
-        const { diagnostics } = buildDay(
-          generationCtx,
-          0,
-          input.targets,
-          new Map<string, number>(),
-          excluded,
+        const built = buildExactWeek({
+          ctx: generationCtx,
           mode,
-          {
-            timeoutMs: input.search_timeout_ms ?? WEEK_SEARCH_BUDGET_MS,
-            forceTopN: input.force_top_n,
-            seed: input.seed,
-            comboReject: (slotRecipes) => {
-              const frequency = new Map<string, number>();
-              for (const existing of exactPool) {
-                for (const item of existing.items) {
-                  frequency.set(item.recipe_id, (frequency.get(item.recipe_id) ?? 0) + 1);
-                }
-              }
-              return Object.values(slotRecipes).some(
-                (recipe) => recipe && (frequency.get(recipe.id) ?? 0) >= 4,
-              );
-            },
-            collectUnique: exactPool,
-          },
-        );
+          targets: input.targets,
+          tolerance,
+          days: input.days_count,
+          seed: input.seed ?? 1,
+          excluded,
+          deadlineMs: Date.now() + Math.min(input.search_timeout_ms ?? 24_000, 24_000),
+        });
+        const exactPool = built.days;
         poolElapsedMs = Date.now() - poolStarted;
-        absorbDiag(diagnostics);
+        totalCombinations += built.checked;
+        timedOut = timedOut || built.timedOut;
         passPoolSize = exactPool.length;
         searchStage = "week_tile";
-        if (exactPool.length < 4) {
-          lastFailureReason = `Пул точных дней содержит ${exactPool.length}; требуется минимум 4`;
-          return failureResult(lastFailureReason, timedOut, diagnostics, 1);
+        if (exactPool.length < input.days_count) {
+          lastFailureReason = built.timedOut
+            ? "Поиск точных дней остановлен по времени"
+            : exactPool.length === 0
+              ? "Не найден ни один день в допуске КБЖУ"
+              : `Точных дней без повтора блюд: ${exactPool.length} из ${input.days_count}`;
+          return failureResult(
+            lastFailureReason,
+            built.timedOut,
+            null,
+            Math.max(exactPool.length, 1),
+            built.timedOut ? "TIMEOUT" : exactPool.length === 0 ? "INFEASIBLE" : "INSUFFICIENT_VARIETY",
+          );
         }
         const assemblyStarted = Date.now();
-        const arranged = assembleExactWeek(exactPool, input.days_count, input.seed, {
-          recipeById: recipeByIdForWeek,
-          allowRepeats,
-        });
+        const arranged = orderExactDays(exactPool, generationCtx.recipes, input.days_count);
         weekAssemblyElapsedMs = Date.now() - assemblyStarted;
         uniqueWeekDays = new Set(arranged.map(fingerprintExactDay)).size;
         days.push(...arranged);
@@ -1239,7 +1233,7 @@ export function generateConstructorPlan(
           return failureResult(
             lastFailureReason,
             timedOut,
-            diagnostics,
+            null,
             exactPool.length,
             "INSUFFICIENT_VARIETY",
           );
@@ -1253,7 +1247,7 @@ export function generateConstructorPlan(
             return failureResult(
               lastFailureReason,
               timedOut,
-              diagnostics,
+              null,
               exactPool.length,
               "INSUFFICIENT_VARIETY",
             );

@@ -2,7 +2,6 @@ import {
   GRAM_STEP,
   GRAM_STEP_COARSE,
   OIL_DAILY_MAX_G,
-  OIL_GRAM_MIN,
   OIL_GRAM_MAX,
 } from "@/lib/nutrition-constructor/config";
 import {
@@ -151,7 +150,6 @@ function applyGrams(
   const slug = lever.slug;
   const prevG = d(ing.grams).toNumber();
   if (nextG === prevG) return null;
-  if (isOil(slug) && nextG > 0 && nextG < OIL_GRAM_MIN) return null;
   if (slug && isOil(slug) && nextG > prevG) {
     if (dayOilTotalG(items, ctx) + (nextG - prevG) > OIL_DAILY_MAX_G) return null;
   }
@@ -261,6 +259,430 @@ export type MacroSolverResult = {
   valid: boolean;
 };
 
+function projectDayPortions(params: {
+  ctx: DayBalanceContext;
+  items: MealPlanItem[];
+  targets: MacroBreakdown;
+}): MealPlanItem[] | null {
+  const levers = collectLevers(params.items, params.ctx);
+  if (levers.length === 0) return null;
+  const grams = levers.map((lever) =>
+    d(params.items[lever.itemIdx]!.ingredients[lever.ingIdx]!.grams).toNumber(),
+  );
+  const current = totalsFromItems(params.items);
+  const base = {
+    kcal: current.kcal.toNumber(),
+    protein_g: current.protein_g.toNumber(),
+    fat_g: current.fat_g.toNumber(),
+    carbs_g: current.carbs_g.toNumber(),
+  };
+  for (let i = 0; i < levers.length; i++) {
+    const per = levers[i]!.perG;
+    const amount = grams[i]!;
+    base.kcal -= per.kcal * amount;
+    base.protein_g -= per.protein_g * amount;
+    base.fat_g -= per.fat_g * amount;
+    base.carbs_g -= per.carbs_g * amount;
+  }
+  const goal = {
+    kcal: params.targets.kcal.toNumber(),
+    protein_g: params.targets.protein_g.toNumber(),
+    fat_g: params.targets.fat_g.toNumber(),
+    carbs_g: params.targets.carbs_g.toNumber(),
+  };
+  const next = grams.slice();
+  for (let iter = 0; iter < 300; iter++) {
+    const pred = { ...base };
+    let oil = 0;
+    for (let i = 0; i < levers.length; i++) {
+      const per = levers[i]!.perG;
+      const amount = next[i]!;
+      pred.kcal += per.kcal * amount;
+      pred.protein_g += per.protein_g * amount;
+      pred.fat_g += per.fat_g * amount;
+      pred.carbs_g += per.carbs_g * amount;
+      if (isOil(levers[i]!.slug)) oil += amount;
+    }
+    const err = {
+      kcal: pred.kcal - goal.kcal,
+      protein_g: (pred.protein_g - goal.protein_g) * 8,
+      fat_g: (pred.fat_g - goal.fat_g) * 8,
+      carbs_g: (pred.carbs_g - goal.carbs_g) * 8,
+    };
+    if (
+      Math.abs(pred.kcal - goal.kcal) <= 5 &&
+      Math.abs(pred.protein_g - goal.protein_g) <= 1 &&
+      Math.abs(pred.fat_g - goal.fat_g) <= 1 &&
+      Math.abs(pred.carbs_g - goal.carbs_g) <= 1
+    ) {
+      break;
+    }
+    let magnitude = 0;
+    const grad = next.map((_, i) => {
+      const per = levers[i]!.perG;
+      const value = per.kcal * err.kcal + per.protein_g * err.protein_g + per.fat_g * err.fat_g + per.carbs_g * err.carbs_g;
+      magnitude = Math.max(magnitude, Math.abs(value));
+      return value;
+    });
+    if (magnitude < 1e-8) break;
+    const rate = 12 / magnitude;
+    for (let i = 0; i < next.length; i++) {
+      const lever = levers[i]!;
+      next[i] = Math.min(lever.maxG, Math.max(lever.minG, next[i]! - rate * grad[i]!));
+    }
+    if (oil > OIL_DAILY_MAX_G) {
+      const scale = OIL_DAILY_MAX_G / oil;
+      for (let i = 0; i < next.length; i++) {
+        if (isOil(levers[i]!.slug)) next[i] = Math.max(levers[i]!.minG, next[i]! * scale);
+      }
+    }
+  }
+  const predict = () => {
+    const pred = { ...base };
+    let oilGrams = 0;
+    for (let i = 0; i < next.length; i++) {
+      const per = levers[i]!.perG;
+      const amount = next[i]!;
+      pred.kcal += per.kcal * amount;
+      pred.protein_g += per.protein_g * amount;
+      pred.fat_g += per.fat_g * amount;
+      pred.carbs_g += per.carbs_g * amount;
+      if (isOil(levers[i]!.slug)) oilGrams += amount;
+    }
+    return { pred, oilGrams };
+  };
+  const violation = (pred: { kcal: number; protein_g: number; fat_g: number; carbs_g: number }) => {
+    const soft = (value: number, tol: number, weight: number) => {
+      const abs = Math.abs(value);
+      return abs <= tol ? abs * weight : tol * weight + (abs - tol) * weight * 25;
+    };
+    return (
+      soft(pred.kcal - goal.kcal, 5, 1) +
+      soft(pred.protein_g - goal.protein_g, 1, 8) +
+      soft(pred.fat_g - goal.fat_g, 1, 8) +
+      soft(pred.carbs_g - goal.carbs_g, 1, 8)
+    );
+  };
+  const insideTol = (pred: { kcal: number; protein_g: number; fat_g: number; carbs_g: number }) =>
+    Math.abs(pred.kcal - goal.kcal) <= 5 &&
+    Math.abs(pred.protein_g - goal.protein_g) <= 1 &&
+    Math.abs(pred.fat_g - goal.fat_g) <= 1 &&
+    Math.abs(pred.carbs_g - goal.carbs_g) <= 1;
+  const rankLever = (key: "protein_g" | "fat_g" | "carbs_g") =>
+    levers.map((_, index) => index).sort((a, b) => levers[b]!.perG[key] - levers[a]!.perG[key]);
+  const byProtein = rankLever("protein_g");
+  const byFat = rankLever("fat_g");
+  const byCarb = rankLever("carbs_g");
+  const oilIndex = levers.findIndex((lever) => isOil(lever.slug));
+  const quartets = [
+    [byProtein[0], byFat[0], byCarb[0], oilIndex],
+    [byProtein[0], byProtein[1], byFat[0], byCarb[0]],
+    [byProtein[0], byFat[0], byCarb[0], byCarb[1]],
+    [byProtein[0], byFat[1], byCarb[0], oilIndex],
+    [byProtein[1], byFat[0], byCarb[1], oilIndex],
+  ];
+  const saved = next.slice();
+  let exactHit = insideTol(predict().pred);
+  if (!exactHit) {
+    const keys = ["kcal", "protein_g", "fat_g", "carbs_g"] as const;
+    let fixed = new Set<number>();
+    const guess = levers.map((lever) => (lever.minG + lever.maxG) / 2);
+    for (let iter = 0; iter < 8; iter++) {
+      const free = levers.map((_, index) => index).filter((index) => !fixed.has(index));
+      if (free.length === 0) break;
+      const locked = { ...base };
+      for (const index of fixed) {
+        const per = levers[index]!.perG;
+        const amount = guess[index]!;
+        locked.kcal += per.kcal * amount;
+        locked.protein_g += per.protein_g * amount;
+        locked.fat_g += per.fat_g * amount;
+        locked.carbs_g += per.carbs_g * amount;
+      }
+      const matrix = keys.map((key) => free.map((index) => levers[index]!.perG[key]));
+      const solved = solveNormalEq(
+        matrix,
+        [
+          goal.kcal - locked.kcal,
+          goal.protein_g - locked.protein_g,
+          goal.fat_g - locked.fat_g,
+          goal.carbs_g - locked.carbs_g,
+        ],
+        1e-8,
+      );
+      if (!solved) break;
+      let clamped = false;
+      solved.forEach((value, key) => {
+        const index = free[key]!;
+        const lever = levers[index]!;
+        if (value < lever.minG - 0.05) {
+          guess[index] = lever.minG;
+          fixed.add(index);
+          clamped = true;
+        } else if (value > lever.maxG + 0.05) {
+          guess[index] = lever.maxG;
+          fixed.add(index);
+          clamped = true;
+        } else {
+          guess[index] = value;
+        }
+      });
+      if (!clamped) break;
+    }
+    for (let i = 0; i < next.length; i++) next[i] = guess[i]!;
+    const seen = predict();
+    if (seen.oilGrams <= OIL_DAILY_MAX_G + 0.01 && insideTol(seen.pred)) exactHit = true;
+    else if (seen.oilGrams <= OIL_DAILY_MAX_G + 0.01) {
+      const lsScore = violation(seen.pred);
+      const lsGrams = next.slice();
+      for (let i = 0; i < next.length; i++) next[i] = saved[i]!;
+      if (lsScore < violation(predict().pred)) {
+        for (let i = 0; i < next.length; i++) {
+          saved[i] = lsGrams[i]!;
+          next[i] = lsGrams[i]!;
+        }
+      }
+    }
+  }
+  if (!exactHit) {
+    for (const raw of quartets) {
+      const indices = [...new Set(raw.filter((index): index is number => index != null && index >= 0))];
+      if (indices.length !== 4) continue;
+      for (const baseline of [saved, levers.map((lever) => lever.minG)]) {
+        for (let i = 0; i < next.length; i++) next[i] = baseline[i]!;
+        const fixed = { ...base };
+        for (let i = 0; i < next.length; i++) {
+          if (indices.includes(i)) continue;
+          const per = levers[i]!.perG;
+          const amount = next[i]!;
+          fixed.kcal += per.kcal * amount;
+          fixed.protein_g += per.protein_g * amount;
+          fixed.fat_g += per.fat_g * amount;
+          fixed.carbs_g += per.carbs_g * amount;
+        }
+        const matrix = (["kcal", "protein_g", "fat_g", "carbs_g"] as const).map((key) =>
+          indices.map((index) => levers[index]!.perG[key]),
+        );
+        const solved = gaussElim(matrix, [
+          goal.kcal - fixed.kcal,
+          goal.protein_g - fixed.protein_g,
+          goal.fat_g - fixed.fat_g,
+          goal.carbs_g - fixed.carbs_g,
+        ]);
+        if (!solved) continue;
+        const inBounds = solved.every((value, key) => {
+          const lever = levers[indices[key]!]!;
+          return value >= lever.minG - 0.05 && value <= lever.maxG + 0.05;
+        });
+        if (!inBounds) continue;
+        solved.forEach((value, key) => {
+          const lever = levers[indices[key]!]!;
+          next[indices[key]!] = Math.min(lever.maxG, Math.max(lever.minG, value));
+        });
+        const seen = predict();
+        if (seen.oilGrams <= OIL_DAILY_MAX_G + 0.01 && insideTol(seen.pred)) {
+          exactHit = true;
+          break;
+        }
+      }
+      if (exactHit) break;
+    }
+  }
+  if (!exactHit) {
+    for (let i = 0; i < next.length; i++) next[i] = saved[i]!;
+  }
+  for (let pass = 0; pass < 5; pass++) {
+    let improved = false;
+    for (let i = 0; i < next.length; i++) {
+      const lever = levers[i]!;
+      const current = next[i]!;
+      const seenNow = predict().pred;
+      if (
+        Math.abs(seenNow.kcal - goal.kcal) <= 5 &&
+        Math.abs(seenNow.protein_g - goal.protein_g) <= 1 &&
+        Math.abs(seenNow.fat_g - goal.fat_g) <= 1 &&
+        Math.abs(seenNow.carbs_g - goal.carbs_g) <= 1
+      ) {
+        continue;
+      }
+      let best = current;
+      let bestScore = violation(seenNow);
+      for (const delta of [-8, -5, -3, -2, -1, 1, 2, 3, 5, 8]) {
+        const trialG = Math.min(lever.maxG, Math.max(lever.minG, Math.round(current + delta)));
+        next[i] = trialG;
+        const seen = predict();
+        if (seen.oilGrams > OIL_DAILY_MAX_G + 0.01) continue;
+        const score = violation(seen.pred);
+        if (score < bestScore) {
+          bestScore = score;
+          best = trialG;
+          improved = true;
+        }
+      }
+      next[i] = best;
+    }
+    if (!improved) break;
+  }
+  const seedTotals = predict().pred;
+  const worthJoint =
+    Math.abs(seedTotals.kcal - goal.kcal) < 90 &&
+    Math.abs(seedTotals.protein_g - goal.protein_g) < 14 &&
+    Math.abs(seedTotals.fat_g - goal.fat_g) < 14 &&
+    Math.abs(seedTotals.carbs_g - goal.carbs_g) < 18;
+  if (worthJoint) {
+    for (let pass = 0; pass < 2; pass++) {
+      const seenNow = predict().pred;
+      if (
+        Math.abs(seenNow.kcal - goal.kcal) <= 5 &&
+        Math.abs(seenNow.protein_g - goal.protein_g) <= 1 &&
+        Math.abs(seenNow.fat_g - goal.fat_g) <= 1 &&
+        Math.abs(seenNow.carbs_g - goal.carbs_g) <= 1
+      ) {
+        break;
+      }
+      let improved = false;
+      let bestScore = violation(seenNow);
+      for (let i = 0; i < next.length; i++) {
+        for (let j = 0; j < next.length; j++) {
+          if (i === j) continue;
+          const left = levers[i]!;
+          const right = levers[j]!;
+          if (left.perG.kcal < 0.2 || right.perG.kcal < 0.2) continue;
+          for (const cut of [2, 4, 6, 8]) {
+            const add = (left.perG.kcal * cut) / right.perG.kcal;
+            const prevLeft = next[i]!;
+            const prevRight = next[j]!;
+            next[i] = Math.min(left.maxG, Math.max(left.minG, Math.round(prevLeft - cut)));
+            next[j] = Math.min(right.maxG, Math.max(right.minG, Math.round(prevRight + add)));
+            const seen = predict();
+            const score = seen.oilGrams > OIL_DAILY_MAX_G + 0.01 ? Number.POSITIVE_INFINITY : violation(seen.pred);
+            if (score < bestScore) {
+              bestScore = score;
+              improved = true;
+            } else {
+              next[i] = prevLeft;
+              next[j] = prevRight;
+            }
+          }
+        }
+      }
+      if (!improved) break;
+    }
+  }
+  let applied = params.items;
+  for (let i = 0; i < levers.length; i++) {
+    const lever = levers[i]!;
+    const rounded = snapToStep(next[i]!, 1, lever.minG, lever.maxG);
+    const trial = applyGrams(applied, params.ctx, lever, rounded);
+    if (trial) applied = trial;
+  }
+  return applied;
+}
+
+export function fitDayItems(params: {
+  ctx: DayBalanceContext;
+  items: MealPlanItem[];
+  targets: MacroBreakdown;
+  tolerance: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
+  passes?: number;
+}): { items: MealPlanItem[]; totals: MacroBreakdown; valid: boolean } {
+  const projected = projectDayPortions(params) ?? params.items;
+  let items = projected;
+  let totals = totalsFromItems(items);
+  const close =
+    Math.abs(totals.kcal.toNumber() - params.targets.kcal.toNumber()) <= 18 &&
+    Math.abs(totals.protein_g.toNumber() - params.targets.protein_g.toNumber()) <= 4 &&
+    Math.abs(totals.fat_g.toNumber() - params.targets.fat_g.toNumber()) <= 4 &&
+    Math.abs(totals.carbs_g.toNumber() - params.targets.carbs_g.toNumber()) <= 4;
+  for (
+    let pass = 0;
+    pass < (close ? (params.passes ?? 2) : 0) &&
+    !withinTolerance(totals, params.targets, params.tolerance);
+    pass++
+  ) {
+    let best: { items: MealPlanItem[]; totals: MacroBreakdown; score: number } | null = null;
+    const base = finishingViolationScore(totals, params.targets, params.tolerance);
+    for (const lever of collectLevers(items, params.ctx)) {
+      const grams = d(items[lever.itemIdx]!.ingredients[lever.ingIdx]!.grams).toNumber();
+      for (const delta of [-4, -2, -1, 1, 2, 4]) {
+        const trial = applyGrams(
+          items,
+          params.ctx,
+          lever,
+          snapToStep(grams + delta, 1, lever.minG, lever.maxG),
+        );
+        if (!trial) continue;
+        const nextTotals = totalsFromItems(trial);
+        const score = finishingViolationScore(nextTotals, params.targets, params.tolerance);
+        if (score < base && (!best || score < best.score)) {
+          best = { items: trial, totals: nextTotals, score };
+        }
+      }
+    }
+    if (!best) break;
+    items = best.items;
+    totals = best.totals;
+  }
+  return {
+    items,
+    totals,
+    valid: withinTolerance(totals, params.targets, params.tolerance),
+  };
+}
+
+function climbFromMinimum(params: {
+  ctx: DayBalanceContext;
+  items: MealPlanItem[];
+  targets: MacroBreakdown;
+  tolerance: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
+}): { items: MealPlanItem[]; totals: MacroBreakdown } {
+  let items = params.items;
+  let levers = collectLevers(items, params.ctx);
+  for (const lever of levers) {
+    const next = applyGrams(items, params.ctx, lever, lever.minG);
+    if (next) items = next;
+  }
+  let totals = totalsFromItems(items);
+  for (let step = 0; step < 120; step++) {
+    if (withinTolerance(totals, params.targets, params.tolerance)) break;
+    levers = collectLevers(items, params.ctx);
+    const gap = macroDiff(params.targets, totals);
+    const need = {
+      kcal: gap.kcal.toNumber() / 40,
+      protein_g: gap.protein_g.toNumber() / 3,
+      fat_g: gap.fat_g.toNumber() / 3,
+      carbs_g: gap.carbs_g.toNumber() / 6,
+    };
+    let best: { lever: LeverRef; score: number; delta: number } | null = null;
+    for (const lever of levers) {
+      const grams = d(items[lever.itemIdx]!.ingredients[lever.ingIdx]!.grams).toNumber();
+      const align =
+        lever.perG.kcal * need.kcal +
+        lever.perG.protein_g * need.protein_g +
+        lever.perG.fat_g * need.fat_g +
+        lever.perG.carbs_g * need.carbs_g;
+      if (grams < lever.maxG - 0.01 && (!best || align > best.score)) {
+        best = { lever, score: align, delta: lever.step };
+      }
+      if (grams > lever.minG + 0.01 && (!best || -align > best.score)) {
+        best = { lever, score: -align, delta: -lever.step };
+      }
+    }
+    if (!best || best.score <= 0) break;
+    const grams = d(items[best.lever.itemIdx]!.ingredients[best.lever.ingIdx]!.grams).toNumber();
+    const next = applyGrams(
+      items,
+      params.ctx,
+      best.lever,
+      snapToStep(grams + best.delta, best.lever.step, best.lever.minG, best.lever.maxG),
+    );
+    if (!next) break;
+    items = next;
+    totals = totalsFromItems(items);
+  }
+  return { items, totals };
+}
+
 export function solveDayMacros(params: {
   ctx: DayBalanceContext;
   items: MealPlanItem[];
@@ -271,14 +693,38 @@ export function solveDayMacros(params: {
 }): MacroSolverResult {
   const { ctx, targets, tolerance } = params;
   const enableFinishing = params.enableFinishing !== false;
-  let items = params.items.map((i) => ({
+  const seeded = params.items.map((i) => ({
     ...i,
     ingredients: i.ingredients.map((ing) => ({ ...ing })),
   }));
-  let totals = totalsFromItems(items);
+  const seededTotals = totalsFromItems(seeded);
+  const climbed = climbFromMinimum({
+    ctx,
+    items: params.items.map((i) => ({
+      ...i,
+      ingredients: i.ingredients.map((ing) => ({ ...ing })),
+    })),
+    targets,
+    tolerance,
+  });
+  const useClimb =
+    deviationScore(climbed.totals, targets) < deviationScore(seededTotals, targets);
+  let items = useClimb ? climbed.items : seeded;
+  let totals = useClimb ? climbed.totals : seededTotals;
   const maxIter = params.maxIterations ?? 800;
 
   const weights = { kcal: 1.2, protein_g: 1, fat_g: 1, carbs_g: 0.85 };
+  const projected = projectDayPortions({ ctx, items, targets });
+  if (projected) {
+    const projectedTotals = totalsFromItems(projected);
+    if (
+      withinTolerance(projectedTotals, targets, tolerance) ||
+      deviationScore(projectedTotals, targets) < deviationScore(totals, targets)
+    ) {
+      items = projected;
+      totals = projectedTotals;
+    }
+  }
 
   for (let iter = 0; iter < maxIter; iter++) {
     if (withinTolerance(totals, targets, tolerance)) break;
@@ -626,7 +1072,7 @@ export function solveDayMacros(params: {
       diff2.fat_g.abs().toNumber(),
       diff2.carbs_g.abs().toNumber(),
     );
-    if (maxDiff <= 8) {
+    if (maxDiff <= 20) {
       const levers = collectLevers(items, ctx).slice(0, 18);
       for (let pass = 0; pass < 120; pass++) {
         if (withinTolerance(totals, targets, tolerance)) break;
@@ -647,6 +1093,163 @@ export function solveDayMacros(params: {
           if (improved) break;
         }
         if (!improved) break;
+      }
+    }
+  }
+
+  if (enableFinishing && !withinTolerance(totals, targets, tolerance)) {
+    const leversAll = collectLevers(items, ctx);
+    const keys: MacroKey[] = ["carbs_g", "fat_g", "protein_g", "kcal"];
+    for (let pass = 0; pass < 18; pass++) {
+      if (withinTolerance(totals, targets, tolerance)) break;
+      const diffNow = macroDiff(totals, targets);
+      const over = (key: MacroKey) => {
+        const tol = key === "kcal" ? tolerance.kcal : tolerance[key];
+        return diffNow[key].toNumber() - tol;
+      };
+      const under = (key: MacroKey) => {
+        const tol = key === "kcal" ? tolerance.kcal : tolerance[key];
+        return -diffNow[key].toNumber() - tol;
+      };
+      if (keys.every((key) => over(key) <= 0 && under(key) <= 0)) break;
+      if (
+        Math.abs(diffNow.kcal.toNumber()) > 90 ||
+        Math.abs(diffNow.protein_g.toNumber()) > 8 ||
+        Math.abs(diffNow.fat_g.toNumber()) > 14 ||
+        Math.abs(diffNow.carbs_g.toNumber()) > 32
+      ) {
+        break;
+      }
+      const excess = [...keys].sort((a, b) => over(b) - over(a))[0]!;
+      const deficit = [...keys].sort((a, b) => under(b) - under(a))[0]!;
+      const cuts =
+        over(excess) > 0
+          ? [...leversAll].sort((a, b) => b.perG[excess] - a.perG[excess]).slice(0, 4)
+          : [];
+      const adds =
+        under(deficit) > 0
+          ? [...leversAll].sort((a, b) => b.perG[deficit] - a.perG[deficit]).slice(0, 4)
+          : [...leversAll]
+              .sort(
+                (a, b) =>
+                  b.perG.kcal / (1 + b.perG[excess] * 12) - a.perG.kcal / (1 + a.perG[excess] * 12),
+              )
+              .slice(0, 4);
+      const base = finishingViolationScore(totals, targets, tolerance);
+      let best: { items: MealPlanItem[]; totals: MacroBreakdown; score: number } | null = null;
+      const cutList: Array<LeverRef | null> = cuts.length > 0 ? cuts : [null];
+      const addList: Array<LeverRef | null> = adds.length > 0 ? adds : [null];
+      for (const cut of cutList) {
+        for (const add of addList) {
+          if (cut && add && cut.itemIdx === add.itemIdx && cut.ingIdx === add.ingIdx) continue;
+          for (const dc of cut ? [-1, -2, -3, -5, -8] : [0]) {
+            for (const da of add ? [1, 2, 3, 5, 8] : [0]) {
+              if (dc === 0 && da === 0) continue;
+              let trial = items;
+              if (cut) {
+                const grams = d(trial[cut.itemIdx]!.ingredients[cut.ingIdx]!.grams).toNumber();
+                const next = applyGrams(
+                  trial,
+                  ctx,
+                  cut,
+                  snapToStep(grams + dc, 1, cut.minG, cut.maxG),
+                );
+                if (!next) continue;
+                trial = next;
+              }
+              if (add) {
+                const grams = d(trial[add.itemIdx]!.ingredients[add.ingIdx]!.grams).toNumber();
+                const next = applyGrams(
+                  trial,
+                  ctx,
+                  add,
+                  snapToStep(grams + da, 1, add.minG, add.maxG),
+                );
+                if (!next) continue;
+                trial = next;
+              }
+              const newTotals = totalsFromItems(trial);
+              const score = finishingViolationScore(newTotals, targets, tolerance);
+              if (score < base && (!best || score < best.score)) {
+                best = { items: trial, totals: newTotals, score };
+              }
+            }
+          }
+        }
+      }
+      if (!best) break;
+      items = best.items;
+      totals = best.totals;
+    }
+  }
+
+  if (!withinTolerance(totals, targets, tolerance)) {
+    const gap = macroDiff(totals, targets);
+    if (
+      gap.fat_g.toNumber() < -0.8 &&
+      gap.fat_g.toNumber() > -8 &&
+      Math.abs(gap.protein_g.toNumber()) <= 5 &&
+      Math.abs(gap.carbs_g.toNumber()) <= 5 &&
+      Math.abs(gap.kcal.toNumber()) <= 20
+    ) {
+      const levers = collectLevers(items, ctx);
+      const fatLevers = [...levers].sort((a, b) => b.perG.fat_g - a.perG.fat_g).slice(0, 4);
+      const trimLevers = [...levers].sort((a, b) => b.perG.kcal / (1 + b.perG.fat_g * 8) - a.perG.kcal / (1 + a.perG.fat_g * 8)).slice(0, 6);
+      for (const fatLever of fatLevers) {
+        if (withinTolerance(totals, targets, tolerance)) break;
+        for (const addG of [1, 2, 3, 4]) {
+          const grams = d(items[fatLever.itemIdx]!.ingredients[fatLever.ingIdx]!.grams).toNumber();
+          let trial = applyGrams(
+            items,
+            ctx,
+            fatLever,
+            snapToStep(grams + addG, 1, fatLever.minG, fatLever.maxG),
+          );
+          if (!trial) continue;
+          let trialTotals = totalsFromItems(trial);
+          for (let trim = 0; trim < 18 && !withinTolerance(trialTotals, targets, tolerance); trim++) {
+            const now = macroDiff(trialTotals, targets);
+            if (
+              now.kcal.toNumber() <= tolerance.kcal &&
+              now.protein_g.toNumber() <= tolerance.protein_g &&
+              now.carbs_g.toNumber() <= tolerance.carbs_g
+            ) {
+              break;
+            }
+            let trimmed = false;
+            for (const lever of trimLevers) {
+              if (lever.itemIdx === fatLever.itemIdx && lever.ingIdx === fatLever.ingIdx) continue;
+              const current = d(trial[lever.itemIdx]!.ingredients[lever.ingIdx]!.grams).toNumber();
+              const next = applyGrams(
+                trial,
+                ctx,
+                lever,
+                snapToStep(current - 1, 1, lever.minG, lever.maxG),
+              );
+              if (!next) continue;
+              const nextTotals = totalsFromItems(next);
+              if (
+                finishingViolationScore(nextTotals, targets, tolerance) <=
+                finishingViolationScore(trialTotals, targets, tolerance)
+              ) {
+                trial = next;
+                trialTotals = nextTotals;
+                trimmed = true;
+                break;
+              }
+            }
+            if (!trimmed) break;
+          }
+          if (
+            withinTolerance(trialTotals, targets, tolerance) ||
+            finishingViolationScore(trialTotals, targets, tolerance) <
+              finishingViolationScore(totals, targets, tolerance)
+          ) {
+            items = trial;
+            totals = trialTotals;
+          }
+          if (withinTolerance(totals, targets, tolerance)) break;
+        }
       }
     }
   }

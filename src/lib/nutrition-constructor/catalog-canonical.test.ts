@@ -32,7 +32,8 @@ describe("canonical catalog calculations", () => {
     expect(ctx.products.get("chicken-breast-raw")?.name).toBe("Филе куриной грудки");
     expect(ctx.products.get("egg-whole")?.name).toBe("Яйцо куриное");
     expect(ctx.products.get("egg-white-raw")?.name).toBe("Яичный белок");
-    expect(ctx.products.has("canned-tuna")).toBe(false);
+    expect(ctx.products.get("canned-tuna")?.is_verified).toBe(true);
+    expect(ctx.products.get("canned-corn")?.is_verified).toBe(true);
     expect(ctx.products.has("hard-cheese")).toBe(false);
     for (const product of ctx.products.values()) {
       expect(product.name.toLowerCase()).not.toContain("съедобн");
