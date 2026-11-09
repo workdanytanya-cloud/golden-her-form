@@ -79,6 +79,8 @@ export type Recipe = {
   active_prep_minutes?: number | null;
   total_cook_minutes?: number | null;
   complexity?: RecipeComplexity | null;
+  /** Основные ингредиенты без воды, специй и масла. */
+  core_ingredient_count?: number;
   required_equipment?: string[];
   requires_reheating?: boolean;
   is_nutritionally_complete?: boolean;

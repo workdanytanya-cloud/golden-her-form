@@ -15,6 +15,11 @@ import {
 } from "@/lib/nutrition-constructor/ingredient-normalize";
 import type { OptimizerContext } from "@/lib/nutrition-constructor/optimizer";
 import { snapshotMacro } from "@/lib/nutrition-constructor/decimal-math";
+import {
+  suggestSwaps,
+  swapMovesBeyondTolerance,
+} from "@/lib/nutrition-constructor/ingredient-swap";
+import { OIL_PRODUCT_SLUGS } from "@/lib/nutrition-constructor/recipe-meta";
 import { verifiedIngredients } from "@/lib/nutrition-constructor/recipe-selection";
 import type {
   ConstructorDay,
@@ -29,6 +34,12 @@ export const ZERO_GRAMS_FORBIDDEN_MESSAGE = "Граммовка должна б�
 export const ALLERGEN_BLOCKED_MESSAGE = "Нельзя добавить продукт с запрещённым аллергеном.";
 export const COOKING_IN_SNACK_MESSAGE =
   "Перекус без приготовления не может содержать ингредиент, требующий приготовления.";
+export const SWAP_TOLERANCE_MESSAGE =
+  "После замены КБЖУ не укладываются в допуск ±5 ккал и ±1 г. Замена не применена.";
+export const SWAP_ROLE_MESSAGE =
+  "Этот продукт нельзя поставить вместо выбранного: у них разная роль в блюде или другое состояние (сырое и готовое не смешиваются).";
+export const REQUIRED_INGREDIENT_MESSAGE =
+  "Обязательный ингредиент нельзя убрать. Замените его на продукт той же роли.";
 
 export class ManualMealEditError extends Error {
   constructor(message: string) {
@@ -70,7 +81,11 @@ export function eligibleRecipesForManualPick(params: {
   });
 }
 
-function applyDayItems(day: ConstructorDay, items: MealPlanItem[], products: Map<string, FoodProduct>): ConstructorDay {
+function applyDayItems(
+  day: ConstructorDay,
+  items: MealPlanItem[],
+  products: Map<string, FoodProduct>,
+): ConstructorDay {
   const next: ConstructorDay = { ...day, items };
   return recalculateConstructorDay(next, products);
 }
@@ -159,16 +174,110 @@ export function addIngredientToMeal(params: {
   return applyDayItems(params.day, items, params.products);
 }
 
+export function replaceIngredientInMeal(params: {
+  day: ConstructorDay;
+  slot: PlanSlot;
+  productId: string;
+  replacement: FoodProduct;
+  forbiddenIds: Set<string>;
+  products: Map<string, FoodProduct>;
+}): ConstructorDay {
+  if (params.forbiddenIds.has(params.replacement.id)) {
+    throw new ManualMealEditError(ALLERGEN_BLOCKED_MESSAGE);
+  }
+  if (!params.replacement.is_active || !params.replacement.is_verified) {
+    throw new ManualMealEditError("Непроверенный продукт нельзя подставлять в замену.");
+  }
+  const source = params.products.get(params.productId);
+  if (!source) throw new ManualMealEditError("Исходный продукт не найден в каталоге.");
+  const item = params.day.items.find((row) => row.slot === params.slot);
+  const line = item?.ingredients.find((ing) => ing.product_id === params.productId);
+  if (!item || !line) throw new ManualMealEditError("Ингредиент в этом приёме не найден.");
+  const suggestions = suggestSwaps(
+    {
+      id: source.id,
+      name: source.name,
+      kcal_per_100g: Number(source.kcal_per_100g),
+      protein_per_100g: Number(source.protein_per_100g),
+      fat_per_100g: Number(source.fat_per_100g),
+      carbs_per_100g: Number(source.carbs_per_100g),
+      category: source.category,
+      state: source.state,
+      verified: source.is_verified,
+    },
+    Number(line.grams),
+    [
+      {
+        id: params.replacement.id,
+        name: params.replacement.name,
+        kcal_per_100g: Number(params.replacement.kcal_per_100g),
+        protein_per_100g: Number(params.replacement.protein_per_100g),
+        fat_per_100g: Number(params.replacement.fat_per_100g),
+        carbs_per_100g: Number(params.replacement.carbs_per_100g),
+        category: params.replacement.category,
+        state: params.replacement.state,
+        verified: params.replacement.is_verified,
+        autogen: params.replacement.is_active_for_autogeneration !== false,
+      },
+    ],
+    1,
+  );
+  const suggestion = suggestions[0];
+  if (!suggestion) throw new ManualMealEditError(SWAP_ROLE_MESSAGE);
+  const before = {
+    kcal: Number(params.day.kcal),
+    protein_g: Number(params.day.protein_g),
+    fat_g: Number(params.day.fat_g),
+    carbs_g: Number(params.day.carbs_g),
+  };
+  const items = params.day.items.map((row) => {
+    if (row.slot !== params.slot) return row;
+    const ingredients = row.ingredients.map((ing) =>
+      ing.product_id === params.productId
+        ? buildIngredientLine(params.replacement, suggestion.grams, ing.sort_order)
+        : ing,
+    );
+    const rename = (text: string) => text.split(source.name).join(params.replacement.name);
+    return recalculateMealFromProducts(
+      {
+        ...row,
+        recipe_name: rename(row.recipe_name),
+        steps: row.steps.map(rename),
+        ingredients,
+      },
+      params.products,
+    );
+  });
+  const next = applyDayItems(params.day, items, params.products);
+  const after = {
+    kcal: Number(next.kcal),
+    protein_g: Number(next.protein_g),
+    fat_g: Number(next.fat_g),
+    carbs_g: Number(next.carbs_g),
+  };
+  if (swapMovesBeyondTolerance(before, after)) {
+    throw new ManualMealEditError(SWAP_TOLERANCE_MESSAGE);
+  }
+  return next;
+}
+
 export function removeIngredientFromMeal(params: {
   day: ConstructorDay;
   slot: PlanSlot;
   productId: string;
   products: Map<string, FoodProduct>;
 }): ConstructorDay {
+  const product = params.products.get(params.productId);
+  if (!product || !OIL_PRODUCT_SLUGS.has(product.slug)) {
+    throw new ManualMealEditError(REQUIRED_INGREDIENT_MESSAGE);
+  }
   const items = params.day.items.map((item) => {
     if (item.slot !== params.slot) return item;
     return recalculateMealFromProducts(
-      { ...item, ingredients: item.ingredients.filter((ing) => ing.product_id !== params.productId) },
+      {
+        ...item,
+        ingredients: item.ingredients.filter((ing) => ing.product_id !== params.productId),
+      },
       params.products,
     );
   });
@@ -199,7 +308,8 @@ export function mealItemFromRecipe(params: {
     if (params.mealKind === "snack" && product.requires_cooking) {
       throw new ManualMealEditError(COOKING_IN_SNACK_MESSAGE);
     }
-    const grams = ing.default_g != null && ing.default_g > 0 ? ing.default_g : Math.max(ing.min_g, 1);
+    const grams =
+      ing.default_g != null && ing.default_g > 0 ? ing.default_g : Math.max(ing.min_g, 1);
     assertPositiveGrams(grams);
     lines.push(buildIngredientLine(product, grams, idx));
   }

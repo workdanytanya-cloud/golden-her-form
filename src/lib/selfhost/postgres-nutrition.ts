@@ -10,7 +10,9 @@ import { roundTargetsForDb, d } from "@/lib/nutrition-constructor/decimal-math";
 import { evaluatePlanKbjuStatus } from "@/lib/nutrition-constructor/plan-kbju-status";
 import { comparisonRows } from "@/lib/nutrition-constructor/calculator";
 import type { MealScheduleMode } from "@/lib/nutrition-constructor/config";
+import { clientProductName } from "@/lib/nutrition-constructor/catalog-policy";
 import { buildInMemoryCatalog } from "@/lib/nutrition-constructor/repo";
+import { SEED_PRODUCTS } from "@/lib/nutrition-constructor/seed-data";
 import type {
   ConstructorDay,
   FoodProduct,
@@ -286,6 +288,19 @@ export async function seedNutritionCatalog(
       ],
     );
   }
+  for (const seed of SEED_PRODUCTS) {
+    if (seed.is_verified) continue;
+    await db.query(
+      `UPDATE public.food_products
+       SET name = $2,
+           is_verified = false,
+           is_active = true,
+           is_active_for_autogeneration = false,
+           updated_at = (now() AT TIME ZONE 'utc')
+       WHERE slug = $1`,
+      [seed.slug, clientProductName(seed.slug, seed.name)],
+    );
+  }
   const products = await db.query(`SELECT id, slug FROM public.food_products`);
   const productBySlug = new Map(
     products.rows.map((row: { id: string; slug: string }) => [row.slug, row.id]),
@@ -300,7 +315,7 @@ export async function seedNutritionCatalog(
          cooking_method, storage_notes, dietary_tags, allergens, min_servings, max_servings,
          is_batch_cookable
        ) VALUES (
-         $1,$2,$3,$4::jsonb,$5,$6,true,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
+         $1,$2,$3,$4::jsonb,$5,$6,$29,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
          $17::text[],$18,$19,$20,$21,$22,$23,$24::text[],$25::text[],$26,$27,$28
        )
        ON CONFLICT (slug) DO UPDATE SET
@@ -309,7 +324,7 @@ export async function seedNutritionCatalog(
          steps = EXCLUDED.steps,
          prep_time_min = EXCLUDED.prep_time_min,
          requires_cooking = EXCLUDED.requires_cooking,
-         is_active = true,
+         is_active = EXCLUDED.is_active,
          weighing_note = EXCLUDED.weighing_note,
          is_nutrient_dense = EXCLUDED.is_nutrient_dense,
          contains_protein_source = EXCLUDED.contains_protein_source,
@@ -362,9 +377,24 @@ export async function seedNutritionCatalog(
         r.min_servings ?? null,
         r.max_servings ?? null,
         r.is_batch_cookable === true || r.batch_friendly === true,
+        r.is_active,
       ],
     );
   }
+  const activeSlugs = catalog.recipes
+    .filter((recipe) => recipe.is_active)
+    .map((recipe) => recipe.slug);
+  if (activeSlugs.length < 40) {
+    throw new Error(
+      `Отказ синхронизации: активных рецептов ${activeSlugs.length}, ожидалось больше`,
+    );
+  }
+  await db.query(
+    `UPDATE public.recipes
+     SET is_active = false, updated_at = (now() AT TIME ZONE 'utc')
+     WHERE NOT (slug = ANY($1::text[]))`,
+    [activeSlugs],
+  );
   const recipes = await db.query(`SELECT id, slug FROM public.recipes`);
   const recipeBySlug = new Map(
     recipes.rows.map((row: { id: string; slug: string }) => [row.slug, row.id]),
@@ -374,6 +404,7 @@ export async function seedNutritionCatalog(
     if (!recipeId) continue;
     const ings = catalog.recipeIngredients.get(r.id) ?? catalog.recipeIngredients.get(r.slug) ?? [];
     let order = 0;
+    const keptProductIds: string[] = [];
     for (const ing of ings) {
       const productId =
         productBySlug.get(String(ing.product_id)) ??
@@ -381,6 +412,7 @@ export async function seedNutritionCatalog(
           [...catalog.products.values()].find((p) => p.id === ing.product_id)?.slug ?? "",
         );
       if (!productId) continue;
+      keptProductIds.push(productId);
       await db.query(
         `INSERT INTO public.recipe_ingredients (
            recipe_id, product_id, min_g, max_g, default_g, is_scalable, sort_order, optional
@@ -404,6 +436,13 @@ export async function seedNutritionCatalog(
         ],
       );
       order += 1;
+    }
+    if (keptProductIds.length > 0) {
+      await db.query(
+        `DELETE FROM public.recipe_ingredients
+         WHERE recipe_id = $1 AND NOT (product_id = ANY($2::uuid[]))`,
+        [recipeId, keptProductIds],
+      );
     }
   }
   return { products: catalog.products.size, recipes: catalog.recipes.length };

@@ -29,6 +29,13 @@ import {
 } from "@/lib/nutrition-constructor/optimizer";
 import { inferRecipeMeta, snackActionForRecipe } from "@/lib/nutrition-constructor/recipe-meta";
 import {
+  ARCHIVED_DUPLICATE_SLUGS,
+  clientProductName,
+  coreIngredientSlugs,
+  diversifyVariantGroup,
+  ensureReadableSteps,
+} from "@/lib/nutrition-constructor/catalog-policy";
+import {
   buildIngredientSignature,
   buildVariantGroup,
   inferCookingMethod,
@@ -163,10 +170,11 @@ function seedToRecipe(r: SeedRecipe, productSlugs: Set<string>): Recipe | null {
     r.cooking_method ?? inferCookingMethod(r.steps, r.requires_cooking);
   const primaryProtein = r.primary_protein ?? inferPrimaryProtein(requiredSlugs);
   const primaryCarb = r.primary_carb ?? inferPrimaryCarb(requiredSlugs);
-  const variantGroup =
-    r.variant_group ?? buildVariantGroup(primaryProtein, primaryCarb, cookingMethod);
+  const inferredGroup = buildVariantGroup(primaryProtein, primaryCarb, cookingMethod);
+  const variantGroup = r.variant_group ?? diversifyVariantGroup(inferredGroup, requiredSlugs);
   const ingredientSignature =
     r.ingredient_signature ?? buildIngredientSignature(requiredSlugs, cookingMethod);
+  const steps = ensureReadableSteps(r.steps, slugs);
   const mealTypes: MealRole[] =
     r.meal_types ??
     (r.meal_type === "snack"
@@ -180,10 +188,11 @@ function seedToRecipe(r: SeedRecipe, productSlugs: Set<string>): Recipe | null {
     slug: r.slug,
     name: r.name,
     meal_type: r.meal_type,
-    steps: r.steps,
+    steps,
     prep_time_min: r.prep_time_min,
     requires_cooking: r.requires_cooking,
-    is_active: true,
+    is_active: !ARCHIVED_DUPLICATE_SLUGS.has(r.slug),
+    core_ingredient_count: coreIngredientSlugs(requiredSlugs).length,
     weighing_note: r.weighing_note,
     is_nutrient_dense: meta.is_nutrient_dense,
     contains_protein_source: meta.contains_protein_source,
@@ -224,7 +233,7 @@ export function buildInMemoryCatalog(options: BuildCatalogOptions = {}): Optimiz
     products.set(id, {
       id,
       slug: p.slug,
-      name: testPack?.name ?? p.name,
+      name: clientProductName(p.slug, testPack?.name ?? p.name),
       category: (testPack?.category ?? p.category) as FoodProduct["category"],
       brand: p.brand ?? null,
       state: p.state as FoodProduct["state"],

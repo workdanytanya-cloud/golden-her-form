@@ -1,10 +1,9 @@
 /**
  * Подбор замен ингредиентов в рационе.
- *
- * Для каждого продукта определяем «доминирующий макро» (белок / жир / углеводы / овощ)
- * и предлагаем продукты из той же группы с пересчитанной граммовкой так, чтобы
- * количество доминирующего макронутриента совпадало.
+ * Замена только внутри той же кулинарной роли и того же состояния (сырой/готовый).
+ * Граммы и КБЖУ считаются через Decimal. Похожей калорийности другой роли недостаточно.
  */
+import Decimal from "decimal.js";
 
 export type MacroRole = "protein" | "fat" | "carb" | "vegetable" | "other";
 
@@ -15,6 +14,10 @@ export type ProductMacros = {
   protein_per_100g: number;
   fat_per_100g: number;
   carbs_per_100g: number;
+  category?: string;
+  state?: string;
+  verified?: boolean;
+  autogen?: boolean;
 };
 
 export type SwapSuggestion = {
@@ -81,29 +84,32 @@ export function suggestSwaps(
 
   // Количество доминирующего макро в исходной порции
   const sourceMacroPer100 = dominantMacroPer100(sourceProduct, role);
-  const sourceAmount = (sourceMacroPer100 * sourceGrams) / 100;
-  if (sourceAmount <= 0) return [];
+  const sourceAmount = sourceMacroPer100.mul(sourceGrams).div(100);
+  if (sourceAmount.lte(0)) return [];
 
   const candidates = catalog
     .filter((p) => {
       if (p.id === sourceProduct.id) return false;
+      if (p.verified === false || p.autogen === false) return false;
       if (macroRole(p) !== role) return false;
-      // Не предлагать продукты с нулевыми макросами
+      if (sourceProduct.category && p.category && p.category !== sourceProduct.category)
+        return false;
+      if (sourceProduct.state && p.state && p.state !== sourceProduct.state) return false;
       const dm = dominantMacroPer100(p, role);
-      return dm > 0;
+      return dm.gt(0);
     })
     .map((p) => {
       const dm = dominantMacroPer100(p, role);
-      const grams = Math.round((sourceAmount / dm) * 100);
-      // Ограничиваем разумной порцией
-      if (grams < 5 || grams > 800) return null;
+      const grams = sourceAmount.div(dm).mul(100).toDecimalPlaces(0, Decimal.ROUND_HALF_UP);
+      if (grams.lt(5) || grams.gt(800)) return null;
+      const portion = grams.div(100);
       return {
         product: p,
-        grams,
-        kcal: Math.round((p.kcal_per_100g * grams) / 100),
-        protein_g: round1((p.protein_per_100g * grams) / 100),
-        fat_g: round1((p.fat_per_100g * grams) / 100),
-        carbs_g: round1((p.carbs_per_100g * grams) / 100),
+        grams: grams.toNumber(),
+        kcal: new Decimal(p.kcal_per_100g).mul(portion).toDecimalPlaces(1).toNumber(),
+        protein_g: new Decimal(p.protein_per_100g).mul(portion).toDecimalPlaces(1).toNumber(),
+        fat_g: new Decimal(p.fat_per_100g).mul(portion).toDecimalPlaces(1).toNumber(),
+        carbs_g: new Decimal(p.carbs_per_100g).mul(portion).toDecimalPlaces(1).toNumber(),
       };
     })
     .filter((s): s is SwapSuggestion => s !== null)
@@ -116,21 +122,38 @@ export function suggestSwaps(
   return candidates.slice(0, limit);
 }
 
-function dominantMacroPer100(p: ProductMacros, role: MacroRole): number {
+function dominantMacroPer100(p: ProductMacros, role: MacroRole): Decimal {
   switch (role) {
     case "protein":
-      return p.protein_per_100g;
+      return new Decimal(p.protein_per_100g);
     case "fat":
-      return p.fat_per_100g;
+      return new Decimal(p.fat_per_100g);
     case "carb":
-      return p.carbs_per_100g;
+      return new Decimal(p.carbs_per_100g);
     case "vegetable":
-      return p.kcal_per_100g; // Для овощей выравниваем по калорийности
+      return new Decimal(p.kcal_per_100g);
     default:
-      return 0;
+      return new Decimal(0);
   }
 }
 
-function round1(n: number): number {
-  return Math.round(n * 10) / 10;
+export function swapMovesBeyondTolerance(
+  before: {
+    kcal: number;
+    protein_g: number;
+    fat_g: number;
+    carbs_g: number;
+  },
+  after: {
+    kcal: number;
+    protein_g: number;
+    fat_g: number;
+    carbs_g: number;
+  },
+): boolean {
+  const kcal = new Decimal(after.kcal).minus(before.kcal).abs();
+  const protein = new Decimal(after.protein_g).minus(before.protein_g).abs();
+  const fat = new Decimal(after.fat_g).minus(before.fat_g).abs();
+  const carbs = new Decimal(after.carbs_g).minus(before.carbs_g).abs();
+  return kcal.gt(5) || protein.gt(1) || fat.gt(1) || carbs.gt(1);
 }

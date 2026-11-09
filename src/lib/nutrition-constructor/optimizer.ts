@@ -1262,6 +1262,13 @@ export function generateConstructorPlan(
         lastFailureReason = null;
       }
     } else {
+      const enforceWeek = !allowRepeats && input.days_count >= 7;
+      const usedIds = new Set<string>();
+      const usedGroups = new Set<string>();
+      const usedSignatures = new Set<string>();
+      const recipeById = new Map(
+        generationCtx.recipes.map((recipe) => [recipe.id, recipe] as const),
+      );
       for (let i = 0; i < input.days_count; i++) {
         const { day, diagnostics } = buildDay(
           generationCtx,
@@ -1270,13 +1277,54 @@ export function generateConstructorPlan(
           recentMain,
           excluded,
           mode,
-          dayOpts,
+          {
+            ...dayOpts,
+            comboReject: enforceWeek
+              ? (slotRecipes) =>
+                  Object.values(slotRecipes).some((recipe) => {
+                    if (!recipe) return false;
+                    if (usedIds.has(recipe.id)) return true;
+                    if (recipe.variant_group && usedGroups.has(recipe.variant_group)) return true;
+                    return Boolean(
+                      recipe.ingredient_signature &&
+                      usedSignatures.has(recipe.ingredient_signature),
+                    );
+                  })
+              : undefined,
+          },
         );
         absorbDiag(diagnostics);
         if (!day || !day.is_valid) {
-          return failureResult(lastFailureReason, timedOut, diagnostics, i + 1);
+          const varietyMiss =
+            enforceWeek && !diagnostics?.timed_out && (diagnostics?.combinations_checked ?? 0) > 0;
+          if (varietyMiss && !lastFailureReason) {
+            lastFailureReason =
+              "INSUFFICIENT_VARIETY — не хватило разных блюд на всю неделю без повторов";
+          }
+          return failureResult(
+            lastFailureReason,
+            timedOut || diagnostics?.timed_out === true,
+            diagnostics,
+            i + 1,
+            varietyMiss ? "INSUFFICIENT_VARIETY" : undefined,
+          );
+        }
+        if (enforceWeek) {
+          for (const item of day.items) {
+            usedIds.add(item.recipe_id);
+            const recipe = recipeById.get(item.recipe_id);
+            if (recipe?.variant_group) usedGroups.add(recipe.variant_group);
+            if (recipe?.ingredient_signature) usedSignatures.add(recipe.ingredient_signature);
+          }
         }
         days.push(day);
+      }
+      if (enforceWeek) {
+        const violation = evaluateStrictWeekVariety(days, recipeById, { allowRepeats: false });
+        if (violation) {
+          lastFailureReason = formatInsufficientVarietyMessage(violation);
+          return failureResult(lastFailureReason, false, null, days.length, "INSUFFICIENT_VARIETY");
+        }
       }
     }
 

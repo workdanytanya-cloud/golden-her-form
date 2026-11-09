@@ -83,6 +83,9 @@ export function isAutoGenerationEligible(recipe: Recipe): boolean {
   if (!recipe.is_active) return false;
   if (recipe.dietitian_approved === false) return false;
   if (recipe.is_nutritionally_complete === false) return false;
+  const steps = recipe.steps?.length ?? 0;
+  if (steps < 3 || steps > 7) return false;
+  if ((recipe.core_ingredient_count ?? 0) > 8) return false;
   if (recipe.meal_type === "main") {
     const activePrep = recipe.active_prep_minutes ?? recipe.prep_time_min ?? 999;
     const totalCook = recipe.total_cook_minutes ?? recipe.prep_time_min ?? 999;

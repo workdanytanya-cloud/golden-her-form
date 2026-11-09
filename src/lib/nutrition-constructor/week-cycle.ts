@@ -15,7 +15,7 @@ export const WEEK_SEARCH_BUDGET_MS = 55_000;
 
 export function shouldUseWeekTiling(mode: MealScheduleMode, daysCount: number): boolean {
   if (!(daysCount === 7 || daysCount === 14 || daysCount === 28)) return false;
-  // 2+2 и 3 без перекусов: неделя из уникальных дней + тайлинг.
+  // Эти режимы собираются из пула точных дней. Остальные идут по дням с запретом повтора.
   return mode === "two_main_two_snacks" || mode === "three_mains_only";
 }
 
@@ -77,6 +77,7 @@ export function assembleExactWeek(
   options?: {
     recipeById?: Map<string, Recipe>;
     allowRepeats?: boolean;
+    deadlineMs?: number;
   },
 ): ConstructorDay[] {
   const unique = new Map<string, ConstructorDay>();
@@ -105,10 +106,9 @@ export function assembleExactWeek(
   const signatureUses = new Map<string, number>();
   const daySignatures = new Set<string>();
   const visit = (): boolean => {
+    if (options?.deadlineMs && Date.now() > options.deadlineMs) return false;
     if (selected.length === totalDays) {
-      const days = selected.map((candidate, index) =>
-        cloneConstructorDay(candidate.day, index),
-      );
+      const days = selected.map((candidate, index) => cloneConstructorDay(candidate.day, index));
       if (allowRepeats) return daySignatures.size >= Math.min(4, totalDays);
       return evaluateStrictWeekVariety(days, recipeById, { allowRepeats: false }) == null;
     }

@@ -41,6 +41,7 @@ import {
 import { formatMacroDeviationSummary } from "@/lib/nutrition-constructor/validation-messages";
 import { calcMacroTargets, type TargetProfileInput } from "@/lib/nutrition-constructor/targets";
 import { formatUsedTargetsLine } from "@/lib/nutrition-constructor/calculator";
+import { formatTrainerVarietyLine } from "@/lib/nutrition-constructor/catalog-policy";
 import { buildForbiddenProductIds } from "@/lib/nutrition-constructor/allergens";
 import { shoppingListFromDays } from "@/lib/nutrition-constructor/ingredient-normalize";
 import { proposeDayCorrections } from "@/lib/nutrition-constructor/deviation-suggestions";
@@ -125,6 +126,7 @@ export function ConstructorAdminPanel({
     carbs_g: autoCalc.carbs_g,
   });
   const [usedTargetsLine, setUsedTargetsLine] = useState<string | null>(null);
+  const [varietyLine, setVarietyLine] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [planStatus, setPlanStatus] = useState<"draft" | "validated" | "assigned">("draft");
   const [reviewReason, setReviewReason] = useState<string | null>(null);
@@ -328,6 +330,7 @@ export function ConstructorAdminPanel({
     setComparison([]);
     setGenerationError(reason ?? null);
     setUsedTargetsLine(null);
+    setVarietyLine(null);
   };
 
   const handleGenerate = async () => {
@@ -371,30 +374,14 @@ export function ConstructorAdminPanel({
         adjustment_pct: result.adjustment_pct,
       });
       setUsedTargetsLine(result.used_targets_line ?? line);
-      const diag = result.diagnostics as
-        | {
-            timed_out?: boolean;
-            infeasible?: boolean;
-            last_failure_reason?: string | null;
-            combinations_checked?: number;
-            elapsed_ms?: number;
-            reason_code?: string;
-            search_stage?: string;
-            used_fallback?: boolean;
-          }
-        | undefined;
-      const reasonCode =
-        (result as { reason_code?: string }).reason_code ??
-        diag?.reason_code ??
-        (diag?.timed_out ? "TIMEOUT" : diag?.infeasible ? "INFEASIBLE" : "SEARCH_FAILED");
       if (result.days.length === 0 || !planStructureValid(result.days, scheduleMode)) {
         const message = result.message ?? "Не удалось собрать рацион. Черновик не изменён.";
+        const exclusionNote =
+          forbiddenIds.size > 0
+            ? `\nИсключения применены: ${forbiddenIds.size}.`
+            : "\nИсключений нет.";
         setGenerationError(
-          `${message}\nКод: ${reasonCode}` +
-            (diag?.search_stage ? `\nЭтап поиска: ${diag.search_stage}` : "") +
-            (diag?.used_fallback ? "\nЗапускался exact fallback" : "") +
-            (diag?.last_failure_reason ? `\nОтклонение: ${diag.last_failure_reason}` : "") +
-            (diag?.elapsed_ms != null ? `\nВремя поиска: ${diag.elapsed_ms} мс` : ""),
+          `${message}${exclusionNote}\nЗамены не применялись. Черновик не изменён.`,
         );
         toast.error(message);
         return;
@@ -417,10 +404,7 @@ export function ConstructorAdminPanel({
         setGenerationError(
           (result.message ??
             "Рацион не прошёл допуск KBJU — near-miss не применяется к черновику.") +
-            (status.precisionHint ? `\n${status.precisionHint}` : "") +
-            `\nКод: ${reasonCode}` +
-            (diag?.search_stage ? `\nЭтап поиска: ${diag.search_stage}` : "") +
-            (diag?.timed_out ? "\nTIMEOUT" : diag?.infeasible ? "\nINFEASIBLE" : ""),
+            (status.precisionHint ? `\n${status.precisionHint}` : ""),
         );
         toast.error("KBJU вне допуска — черновик не изменён");
         return;
@@ -429,6 +413,10 @@ export function ConstructorAdminPanel({
       applyDays(result.days);
       setReviewReason(result.review_reason);
       setGenerationError(null);
+      const summary = formatTrainerVarietyLine(result.days);
+      const exclusionNote =
+        forbiddenIds.size > 0 ? `Исключено продуктов: ${forbiddenIds.size}.` : "Исключений нет.";
+      setVarietyLine(`${summary}. ${exclusionNote} Замены не применялись.`);
       setPlanStatus("validated");
       const reloaded = await loadConstructorPlanFor(userId, courseId);
       if (!reloaded.plan || reloaded.days.length !== result.days.length) {
@@ -436,7 +424,7 @@ export function ConstructorAdminPanel({
       }
       applyDays(reloaded.days);
       onSaved?.();
-      toast.success(`Рацион создан: ${reloaded.days.length} дней`);
+      toast.success(formatTrainerVarietyLine(reloaded.days));
     } catch (e) {
       if (seq !== genToken.current) return;
       const message = (e as Error).message;
@@ -720,6 +708,12 @@ export function ConstructorAdminPanel({
       {usedTargetsLine && (
         <p className="rounded-xl border border-gold/20 bg-gold/5 px-3 py-2 text-sm text-ivory">
           {usedTargetsLine}
+        </p>
+      )}
+
+      {varietyLine && (
+        <p className="rounded-xl border border-gold/20 bg-gold/5 px-3 py-2 text-sm text-ivory">
+          {varietyLine}
         </p>
       )}
 

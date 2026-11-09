@@ -222,7 +222,11 @@ function* combinations<T>(arr: T[], k: number): Generator<T[]> {
 }
 
 function isStrictProteinSnack(recipe: Recipe): boolean {
-  return recipe.slug.includes("tuna") || recipe.slug.includes("cheese");
+  return (
+    recipe.slug.includes("tuna") ||
+    recipe.slug.includes("cheese") ||
+    recipe.contains_protein_source === true
+  );
 }
 
 function isGrainMain(recipe: Recipe): boolean {
@@ -881,8 +885,15 @@ export function searchValidDayCombo(params: {
       r.slug.includes("banana") ||
       r.slug.includes("apple") ||
       r.slug.includes("corn");
-    const proteinSnack = (r: Recipe) => r.slug.includes("tuna") || r.slug.includes("cheese");
-    const fatSnack = (r: Recipe) => r.slug.includes("cheese") || r.slug.includes("avocado");
+    const proteinSnack = (r: Recipe) =>
+      r.slug.includes("tuna") || r.slug.includes("cheese") || r.contains_protein_source === true;
+    const fatSnack = (r: Recipe) =>
+      r.slug.includes("cheese") ||
+      r.slug.includes("avocado") ||
+      r.slug.includes("almond") ||
+      r.slug.includes("walnut") ||
+      r.slug.includes("seed");
+    const fatAvailable = snackPool.some(fatSnack);
     for (const pair of combinations(mainsForCombo, 2)) {
       for (const snack1 of snackPool) {
         for (const snack2 of snackPool) {
@@ -896,7 +907,7 @@ export function searchValidDayCombo(params: {
             if (preferMixedCarbs) {
               if (!carbish(snack1) && !carbish(snack2)) continue;
               if (!proteinSnack(snack1) && !proteinSnack(snack2)) continue;
-              if (!fatSnack(snack1) && !fatSnack(snack2)) continue;
+              if (fatAvailable && !fatSnack(snack1) && !fatSnack(snack2)) continue;
             }
           }
           const slotRecipes = { main1: pair[0], main2: pair[1], snack1, snack2 };
@@ -938,19 +949,17 @@ export function searchValidDayCombo(params: {
     for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
     return hash >>> 0;
   };
-  scoredCombos.sort(
-    (a, b) => {
-      const diversityScore = (candidate: ScoredCombo) =>
-        Object.values(candidate.slotRecipes).reduce((score, recipe) => {
-          if (recipe?.slug.includes("cod")) return score - 24;
-          if (recipe?.slug.includes("turkey")) return score - 18;
-          return score;
-        }, 0);
-      const scoreA = a.score + (params.collectValid ? diversityScore(a) : 0);
-      const scoreB = b.score + (params.collectValid ? diversityScore(b) : 0);
-      return scoreA - scoreB || seededTie(a.slotRecipes) - seededTie(b.slotRecipes);
-    },
-  );
+  scoredCombos.sort((a, b) => {
+    const diversityScore = (candidate: ScoredCombo) =>
+      Object.values(candidate.slotRecipes).reduce((score, recipe) => {
+        if (recipe?.slug.includes("cod")) return score - 24;
+        if (recipe?.slug.includes("turkey")) return score - 18;
+        return score;
+      }, 0);
+    const scoreA = a.score + (params.collectValid ? diversityScore(a) : 0);
+    const scoreB = b.score + (params.collectValid ? diversityScore(b) : 0);
+    return scoreA - scoreB || seededTie(a.slotRecipes) - seededTie(b.slotRecipes);
+  });
   if (params.collectValid && mode === "three_mains_only" && scoredCombos.length > 240) {
     const beam: ScoredCombo[] = [];
     const seen = new Set<string>();

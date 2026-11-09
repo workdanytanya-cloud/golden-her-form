@@ -64,10 +64,10 @@ export function consistentTargetsForKcal(kcal: number): MacroBreakdown {
       fiber_g: d(0),
     };
   }
-  // ~25% белок / ~25% жир / остаток углеводы; десятые доли.
-  const protein = Math.round(((kcal * 0.25) / 4) * 10) / 10;
-  const fat = Math.round(((kcal * 0.25) / 9) * 10) / 10;
-  const carbs = Math.round(((kcal - protein * 4 - fat * 9) / 4) * 10) / 10;
+  // ~25% белок / ~25% жир / остаток углеводы; десятые доли только у цели.
+  const protein = d(kcal).mul("0.25").div(4).toDecimalPlaces(1);
+  const fat = d(kcal).mul("0.25").div(9).toDecimalPlaces(1);
+  const carbs = d(kcal).minus(protein.mul(4)).minus(fat.mul(9)).div(4).toDecimalPlaces(1);
   return {
     kcal: d(kcal),
     protein_g: d(protein),

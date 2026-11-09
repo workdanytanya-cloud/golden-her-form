@@ -4,14 +4,7 @@ import type { ConstructorDay, Recipe } from "@/lib/nutrition-constructor/types";
 
 export type MealRole = "breakfast" | "lunch" | "dinner" | "snack";
 
-export type CookingMethod =
-  | "boil"
-  | "bake"
-  | "stew"
-  | "pan"
-  | "assemble"
-  | "soup"
-  | "grill";
+export type CookingMethod = "boil" | "bake" | "stew" | "pan" | "assemble" | "soup" | "grill";
 
 const PROTEIN_FAMILY: Record<string, string> = {
   "chicken-breast-raw": "chicken",
@@ -237,18 +230,15 @@ export function evaluateStrictWeekVariety(
     }
     dayFingerprints.add(fp);
 
-    const prev = days[i - 1];
-    const mains = day.items.filter((item) => item.slot.startsWith("main"));
-    for (let m = 0; m < mains.length; m++) {
-      const item = mains[m]!;
+    for (const item of day.items) {
       const recipe = recipeById.get(item.recipe_id);
       if (seenRecipes.has(item.recipe_id)) {
         return {
           code: "INSUFFICIENT_VARIETY",
           unique_days: dayFingerprints.size,
           limiting_meal_type: slotMealRole(item.slot),
-          missing: [`уникальный recipe_id (${item.recipe_name})`],
-          detail: "recipe_id повторяется чаще одного раза",
+          missing: [`уникальное блюдо «${item.recipe_name}»`],
+          detail: "блюдо повторяется чаще одного раза за неделю",
         };
       }
       seenRecipes.add(item.recipe_id);
@@ -258,7 +248,7 @@ export function evaluateStrictWeekVariety(
             code: "INSUFFICIENT_VARIETY",
             unique_days: dayFingerprints.size,
             limiting_meal_type: slotMealRole(item.slot),
-            missing: [`variant_group ${recipe.variant_group}`],
+            missing: [`группа «${recipe.variant_group}»`],
             detail: "variant_group повторяется чаще одного раза",
           };
         }
@@ -270,17 +260,21 @@ export function evaluateStrictWeekVariety(
             code: "INSUFFICIENT_VARIETY",
             unique_days: dayFingerprints.size,
             limiting_meal_type: slotMealRole(item.slot),
-            missing: [`ingredient_signature ${recipe.ingredient_signature}`],
+            missing: [`состав «${recipe.ingredient_signature}»`],
             detail: "ingredient_signature повторяется чаще одного раза",
           };
         }
         seenSignatures.add(recipe.ingredient_signature);
       }
+    }
+
+    const prev = days[i - 1];
+    const mains = day.items.filter((item) => item.slot.startsWith("main"));
+    for (let m = 0; m < mains.length; m++) {
+      const item = mains[m]!;
+      const recipe = recipeById.get(item.recipe_id);
       if (recipe?.primary_protein && recipe.primary_protein !== "none") {
-        proteinWeek.set(
-          recipe.primary_protein,
-          (proteinWeek.get(recipe.primary_protein) ?? 0) + 1,
-        );
+        proteinWeek.set(recipe.primary_protein, (proteinWeek.get(recipe.primary_protein) ?? 0) + 1);
       }
       if (slotMealRole(item.slot) === "breakfast" && recipe?.primary_protein === "egg") {
         eggBreakfasts += 1;
@@ -375,20 +369,24 @@ export function evaluateStrictWeekVariety(
   }
 
   const stats = collectWeekVarietyStats(days, recipeById);
-  const minRole = options?.requireSevenRoles ? 7 : 5;
+  const slots = new Set(days.flatMap((day) => day.items.map((item) => item.slot)));
+  const roleNeed: Array<[MealRole, number]> = [];
+  if (slots.has("main1")) roleNeed.push(["breakfast", stats.breakfasts.size]);
+  if (slots.has("main2")) roleNeed.push(["lunch", stats.lunches.size]);
+  if (slots.has("main3")) roleNeed.push(["dinner", stats.dinners.size]);
   const missing: string[] = [];
   let limiting: MealRole | "day" | "week" = "week";
-  if (stats.breakfasts.size < Math.min(minRole, days.length)) {
-    missing.push(`завтраков ≥ ${Math.min(minRole, days.length)} (сейчас ${stats.breakfasts.size})`);
-    limiting = "breakfast";
-  }
-  if (stats.lunches.size < Math.min(minRole, days.length)) {
-    missing.push(`обедов ≥ ${Math.min(minRole, days.length)} (сейчас ${stats.lunches.size})`);
-    if (limiting === "week") limiting = "lunch";
-  }
-  if (stats.dinners.size < Math.min(minRole, days.length)) {
-    missing.push(`ужинов ≥ ${Math.min(minRole, days.length)} (сейчас ${stats.dinners.size})`);
-    if (limiting === "week") limiting = "dinner";
+  const roleLabel: Record<MealRole, string> = {
+    breakfast: "завтраков",
+    lunch: "обедов",
+    dinner: "ужинов",
+    snack: "перекусов",
+  };
+  for (const [role, count] of roleNeed) {
+    if (count < days.length) {
+      missing.push(`${roleLabel[role]} ≥ ${days.length} (сейчас ${count})`);
+      if (limiting === "week") limiting = role;
+    }
   }
   if (missing.length > 0) {
     return {
