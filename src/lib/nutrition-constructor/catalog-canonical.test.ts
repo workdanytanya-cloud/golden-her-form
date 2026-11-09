@@ -191,16 +191,32 @@ describe("ingredient swaps", () => {
         products: ctx.products,
       }),
     ).toThrow(SWAP_ROLE_MESSAGE);
-    expect(() =>
-      replaceIngredientInMeal({
-        day,
-        slot: "main1",
-        productId: "chicken-breast-raw",
-        replacement: turkey,
-        forbiddenIds: new Set(),
-        products: ctx.products,
-      }),
-    ).toThrow(SWAP_TOLERANCE_MESSAGE);
+    const swapped = replaceIngredientInMeal({
+      day,
+      slot: "main1",
+      productId: "chicken-breast-raw",
+      replacement: turkey,
+      forbiddenIds: new Set(),
+      products: ctx.products,
+    });
+    expect(swapped.items[0]!.recipe_name).toContain(turkey.name);
+    expect(swapped.items[0]!.ingredients.some((ing) => ing.product_id === turkey.id)).toBe(true);
+    expect(
+      swapMovesBeyondTolerance(
+        {
+          kcal: Number(day.kcal),
+          protein_g: Number(day.protein_g),
+          fat_g: Number(day.fat_g),
+          carbs_g: Number(day.carbs_g),
+        },
+        {
+          kcal: Number(swapped.kcal),
+          protein_g: Number(swapped.protein_g),
+          fat_g: Number(swapped.fat_g),
+          carbs_g: Number(swapped.carbs_g),
+        },
+      ),
+    ).toBe(false);
   });
 });
 

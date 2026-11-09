@@ -56,8 +56,7 @@ export const MEAL_SCHEDULE_DESCRIPTIONS: Record<MealScheduleMode, string> = {
     "Три полноценных приёма без перекусов. Удобно, если вы предпочитаете есть реже, но сытно.",
   one_main_three_snacks:
     "Для плотного графика: один полноценный приём в удобное время и три перекуса, которые собираются за 1–3 минуты и их можно взять с собой.",
-  two_main_two_snacks:
-    "Прежний формат программы. Сохранён для уже назначенных рационов.",
+  two_main_two_snacks: "Прежний формат программы. Сохранён для уже назначенных рационов.",
 };
 
 export function mealScheduleClientLabel(mode: MealScheduleMode): string {
@@ -282,22 +281,54 @@ export const SLOT_CALORIE_SHARE_MAX_TWO_MAIN: Record<PlanSlot, number> = {
 };
 
 export const SLOT_CALORIE_SHARE_MIN_ONE_MAIN: Record<PlanSlot, number> = {
-  main1: 0.45,
-  snack1: 0.14,
-  snack2: 0.14,
-  snack3: 0.14,
+  main1: 0.35,
+  snack1: 0.12,
+  snack2: 0.12,
+  snack3: 0.12,
   main2: 0,
   main3: 0,
 };
 
 export const SLOT_CALORIE_SHARE_MAX_ONE_MAIN: Record<PlanSlot, number> = {
-  main1: 0.55,
-  snack1: 0.2,
-  snack2: 0.2,
-  snack3: 0.2,
+  main1: 0.48,
+  snack1: 0.25,
+  snack2: 0.25,
+  snack3: 0.25,
   main2: 0,
   main3: 0,
 };
+
+/** Доля энергии приёма зависит от схемы и суточной калорийности. Это ориентир, не допуск КБЖУ дня. */
+export function mealEnergyBand(
+  mode: MealScheduleMode,
+  kcal: number,
+): {
+  min: Record<PlanSlot, number>;
+  max: Record<PlanSlot, number>;
+} {
+  const bounds = slotCalorieShareBounds(mode);
+  if (mode === "one_main_three_snacks" && kcal >= 2400) {
+    return {
+      min: { ...bounds.min, main1: 0.34, snack1: 0.14, snack2: 0.14, snack3: 0.14 },
+      max: { ...bounds.max, main1: 0.46, snack1: 0.26, snack2: 0.26, snack3: 0.26 },
+    };
+  }
+  if (kcal <= 1500) {
+    return {
+      min: {
+        ...bounds.min,
+        main1: Math.min(bounds.min.main1, 0.16),
+        main2: bounds.min.main2 ? Math.min(bounds.min.main2, 0.16) : 0,
+        main3: bounds.min.main3 ? Math.min(bounds.min.main3, 0.16) : 0,
+        snack1: bounds.min.snack1 ? Math.min(bounds.min.snack1, 0.06) : 0,
+        snack2: bounds.min.snack2 ? Math.min(bounds.min.snack2, 0.06) : 0,
+        snack3: bounds.min.snack3 ? Math.min(bounds.min.snack3, 0.06) : 0,
+      },
+      max: bounds.max,
+    };
+  }
+  return bounds;
+}
 
 export function slotCalorieShareBounds(mode: MealScheduleMode): {
   min: Record<PlanSlot, number>;
@@ -380,7 +411,7 @@ export const MAX_ACTIVE_PREP_MINUTES = 20;
 export const MAX_TOTAL_COOK_MINUTES = 40;
 
 export const ONE_MAIN_UNACHIEVABLE_MESSAGE =
-  'Не удалось собрать рацион в формате «1 основной + 3 перекуса» с заданными KBJU. Измените целевые показатели, доступные продукты или выберите другой режим питания.';
+  "Не удалось собрать рацион в формате «1 основной + 3 перекуса» с заданными KBJU. Измените целевые показатели, доступные продукты или выберите другой режим питания.";
 
 export const MACRO_INCOMPATIBLE_MESSAGE =
   "Заданные калории и БЖУ математически несовместимы. Проверьте целевые показатели.";

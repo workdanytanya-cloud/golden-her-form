@@ -65,6 +65,48 @@ function r(partial: ExpandedSeedRecipe): ExpandedSeedRecipe {
 /** ≥20 новых продуктов, доступных в обычных РФ-магазинах. КБЖУ — USDA/FDC. */
 export const EXPANSION_PRODUCTS: ExpandedSeedProduct[] = [
   p({
+    slug: "cooked-chicken-breast",
+    name: "Куриная грудка запечённая",
+    category: "meat",
+    state: "cooked",
+    measurement_basis: "per_100g_cooked",
+    kcal: 165,
+    protein: 31.02,
+    fat: 3.57,
+    carbs: 0,
+    source_name: "USDA SR Legacy 05064, roasted breast meat only",
+    is_verified: true,
+    allowed_for_snack: true,
+    requires_cooking: false,
+    weighing_note: "Готовое мясо без кожи. Взвешивать уже запечённым или отваренным.",
+    allergen_tags: [],
+    lactose_free: true,
+    gluten_free: true,
+    vegetarian: false,
+    food_tags: ["poultry", "protein", "cooked"],
+  }),
+  p({
+    slug: "cheddar-cheese",
+    name: "Сыр чеддер",
+    category: "dairy",
+    state: "ready",
+    measurement_basis: "per_100g_edible",
+    kcal: 403,
+    protein: 22.9,
+    fat: 33.3,
+    carbs: 3.37,
+    source_name: "USDA FDC 173414, cheddar cheese",
+    is_verified: true,
+    allowed_for_snack: true,
+    requires_cooking: false,
+    weighing_note: "Готовый сыр без корки. Порция — ломтики, не весь кусок.",
+    allergen_tags: ["milk"],
+    lactose_free: false,
+    gluten_free: true,
+    vegetarian: true,
+    food_tags: ["dairy", "cheese"],
+  }),
+  p({
     slug: "hake-raw",
     name: "Хек",
     category: "fish",
@@ -585,7 +627,9 @@ export const EXPANSION_PRODUCTS: ExpandedSeedProduct[] = [
   }),
 ];
 
-type Ing = [string, number, number, number] | [string, number, number, number, { required?: boolean; scalable?: boolean }];
+type Ing =
+  | [string, number, number, number]
+  | [string, number, number, number, { required?: boolean; scalable?: boolean }];
 
 function ings(list: Ing[]): ExpandedSeedIngredient[] {
   return list.map((row) => {
@@ -661,7 +705,11 @@ export const EXPANSION_RECIPES: ExpandedSeedRecipe[] = [
       ["frozen-berry-mix", 50, 120, 80],
       ["walnut", 5, 20, 10, { required: false }],
     ],
-    ["Залить овсянку кипятком на 5–7 минут.", "Добавить йогурт и ягоды.", "По желанию посыпать орехом."],
+    [
+      "Залить овсянку кипятком на 5–7 минут.",
+      "Добавить йогурт и ягоды.",
+      "По желанию посыпать орехом.",
+    ],
     12,
   ),
   main(
@@ -1542,7 +1590,11 @@ export const EXPANSION_RECIPES: ExpandedSeedRecipe[] = [
       ["oats-dry", 30, 70, 45],
       ["pear-raw", 70, 150, 100],
     ],
-    ["Залить овсянку кипятком на 5 минут.", "Остудить и смешать с творогом.", "Добавить нарезанную грушу."],
+    [
+      "Залить овсянку кипятком на 5 минут.",
+      "Остудить и смешать с творогом.",
+      "Добавить нарезанную грушу.",
+    ],
     10,
     { cooking_method: "assemble", requires_cooking: false },
   ),
@@ -2002,4 +2054,1436 @@ export const EXPANSION_RECIPES: ExpandedSeedRecipe[] = [
     5,
     { variant_group: "egg|yogurt-banana|assemble", dietary_tags: ["lactose_free"] },
   ),
+  snack(
+    "snack-chicken-bread-avocado",
+    "Хлеб с готовой курицей и авокадо",
+    [
+      ["cooked-chicken-breast", 90, 180, 140],
+      ["wheat-bread", 40, 110, 70],
+      ["avocado", 30, 90, 50],
+      ["tomato", 40, 100, 60],
+    ],
+    ["Нарезать готовую курицу и хлеб.", "Добавить авокадо и помидор.", "Собрать холодный приём."],
+    false,
+    6,
+    { variant_group: "chicken|bread-avocado|assemble" },
+  ),
+  snack(
+    "snack-chicken-rye-cucumber",
+    "Ржаной хлеб с готовой курицей и огурцом",
+    [
+      ["cooked-chicken-breast", 90, 180, 140],
+      ["rye-bread", 40, 110, 70],
+      ["cucumber", 50, 140, 90],
+      ["bell-pepper", 30, 80, 50],
+    ],
+    ["Нарезать готовую курицу и хлеб.", "Добавить огурец и перец.", "Собрать без нагрева."],
+    false,
+    6,
+    { variant_group: "chicken|rye-cucumber|assemble" },
+  ),
+  snack(
+    "snack-chicken-corn-salad",
+    "Салат из готовой курицы с кукурузой",
+    [
+      ["cooked-chicken-breast", 90, 180, 140],
+      ["canned-corn", 40, 120, 80],
+      ["cucumber", 40, 120, 70],
+      ["bell-pepper", 30, 90, 50],
+    ],
+    ["Нарезать готовую курицу.", "Смешать с кукурузой и овощами.", "Подать холодным."],
+    false,
+    5,
+    { variant_group: "chicken|corn-salad|assemble" },
+  ),
+  snack(
+    "snack-tuna-wheat-cucumber",
+    "Хлеб с тунцом и огурцом",
+    [
+      ["canned-tuna", 80, 170, 130],
+      ["wheat-bread", 40, 110, 70],
+      ["cucumber", 40, 130, 80],
+    ],
+    ["Выложить тунец на хлеб.", "Добавить огурец.", "Собрать без нагрева."],
+    false,
+    4,
+    { variant_group: "tuna|wheat-cucumber|assemble" },
+  ),
+  snack(
+    "snack-tuna-rye-avocado",
+    "Ржаной хлеб с тунцом и авокадо",
+    [
+      ["canned-tuna", 80, 170, 130],
+      ["rye-bread", 40, 110, 70],
+      ["avocado", 30, 90, 50],
+    ],
+    ["Размять авокадо.", "Выложить тунец на хлеб.", "Собрать холодный приём."],
+    false,
+    5,
+    { variant_group: "tuna|rye-avocado|assemble" },
+  ),
+  snack(
+    "snack-oats-cottage-banana",
+    "Овсяная чаша с творогом и бананом",
+    [
+      ["oats-dry", 40, 90, 60],
+      ["cottage-cheese-5", 100, 200, 150],
+      ["banana", 60, 140, 90],
+    ],
+    ["Залить овсянку заранее и остудить.", "Добавить творог и банан.", "Подать холодной."],
+    false,
+    5,
+    { variant_group: "cottage|oats-banana|assemble" },
+  ),
+  snack(
+    "snack-oats-yogurt-pear",
+    "Овсяная чаша с йогуртом и грушей",
+    [
+      ["oats-dry", 40, 90, 60],
+      ["greek-yogurt-lf", 120, 220, 160],
+      ["pear-raw", 60, 150, 100],
+    ],
+    ["Залить овсянку заранее и остудить.", "Смешать с йогуртом.", "Добавить грушу."],
+    false,
+    5,
+    { variant_group: "yogurt|oats-pear|assemble", dietary_tags: ["lactose_free"] },
+  ),
+  snack(
+    "snack-egg-rye-avocado",
+    "Ржаной хлеб с яйцом и авокадо",
+    [
+      ["egg-whole", 50, 110, 80],
+      ["rye-bread", 40, 100, 60],
+      ["avocado", 30, 90, 50],
+      ["tomato", 40, 100, 60],
+    ],
+    ["Очистить уже сваренное яйцо.", "Выложить на хлеб с авокадо.", "Добавить помидор."],
+    false,
+    5,
+    { variant_group: "egg|rye-avocado|assemble" },
+  ),
+  snack(
+    "snack-cottage-bread-tomato",
+    "Хлеб с творогом и помидором",
+    [
+      ["cottage-cheese-5", 100, 200, 150],
+      ["wheat-bread", 30, 90, 50],
+      ["tomato", 50, 140, 80],
+      ["cucumber", 40, 120, 70],
+    ],
+    ["Намазать творог на хлеб.", "Добавить помидор и огурец.", "Подать холодным."],
+    false,
+    4,
+    { variant_group: "cottage|bread-tomato|assemble" },
+  ),
+  snack(
+    "snack-chicken-buckwheat-bowl",
+    "Холодная гречка с готовой курицей",
+    [
+      ["cooked-chicken-breast", 90, 180, 140],
+      ["buckwheat-dry", 40, 90, 60],
+      ["cucumber", 40, 120, 70],
+      ["bell-pepper", 30, 80, 50],
+    ],
+    [
+      "Использовать уже сваренную гречку.",
+      "Смешать с готовой курицей.",
+      "Добавить овощи и подать холодным.",
+    ],
+    false,
+    5,
+    { variant_group: "chicken|buckwheat-bowl|assemble" },
+  ),
+  main(
+    "breakfast-egg-pepper-cucumber",
+    "Яичница с перцем и огурцом",
+    ["breakfast"],
+    [
+      ["egg-whole", 70, 140, 100],
+      ["bell-pepper", 40, 120, 70],
+      ["cucumber", 40, 140, 80],
+      ["tomato", 40, 120, 70],
+    ],
+    ["Нарезать овощи.", "Приготовить яйцо на сковороде.", "Подать с огурцом и помидором."],
+    12,
+    { cooking_method: "pan", variant_group: "egg|veg-pepper|pan" },
+  ),
+  main(
+    "breakfast-cottage-tomato-plate",
+    "Творог с помидором и огурцом",
+    ["breakfast", "snack"],
+    [
+      ["cottage-cheese-5", 80, 180, 120],
+      ["tomato", 50, 160, 90],
+      ["cucumber", 50, 160, 90],
+      ["rye-bread", 20, 50, 30],
+    ],
+    ["Нарезать овощи и хлеб.", "Выложить творог.", "Собрать тарелку без нагрева."],
+    6,
+    {
+      cooking_method: "assemble",
+      requires_cooking: false,
+      variant_group: "cottage|tomato-plate|assemble",
+    },
+  ),
+  main(
+    "lunch-cod-zucchini-rice",
+    "Треска с кабачком и небольшим рисом",
+    ["lunch", "dinner"],
+    [
+      ["cod-raw", 90, 180, 130],
+      ["zucchini", 80, 200, 120],
+      ["rice-white-dry", 25, 70, 40],
+      ["bell-pepper", 40, 100, 60],
+    ],
+    ["Отварить небольшую порцию риса.", "Запечь треску с кабачком.", "Подать с перцем."],
+    25,
+    { cooking_method: "bake", variant_group: "whitefish|zucchini-rice|bake" },
+  ),
+  main(
+    "lunch-pollock-cabbage",
+    "Минтай с капустой и морковью",
+    ["lunch", "dinner"],
+    [
+      ["pollock-raw", 90, 180, 130],
+      ["white-cabbage", 80, 220, 140],
+      ["carrot", 40, 100, 60],
+      ["cucumber", 40, 120, 70],
+    ],
+    ["Нарезать капусту и морковь.", "Запечь минтай.", "Подать с огурцом."],
+    25,
+    { cooking_method: "bake", variant_group: "whitefish|cabbage|bake" },
+  ),
+  main(
+    "dinner-turkey-broccoli-light",
+    "Индейка с брокколи и помидором",
+    ["dinner", "lunch"],
+    [
+      ["turkey-breast-raw", 80, 160, 120],
+      ["broccoli-raw", 80, 200, 130],
+      ["tomato", 50, 140, 80],
+      ["bell-pepper", 40, 100, 60],
+    ],
+    ["Разобрать брокколи.", "Запечь индейку с овощами.", "Подать с помидором."],
+    25,
+    { cooking_method: "bake", variant_group: "turkey|broccoli-light|bake" },
+  ),
+  main(
+    "dinner-hake-spinach",
+    "Хек со шпинатом и огурцом",
+    ["dinner", "lunch"],
+    [
+      ["hake-raw", 90, 180, 130],
+      ["spinach-raw", 40, 100, 60],
+      ["cucumber", 50, 150, 90],
+      ["tomato", 40, 120, 70],
+    ],
+    ["Прогреть шпинат.", "Запечь хек.", "Подать с огурцом и помидором."],
+    22,
+    { cooking_method: "bake", variant_group: "whitefish|spinach|bake" },
+  ),
+  main(
+    "breakfast-turkey-rice-egg",
+    "Индейка с рисом и яйцом",
+    ["breakfast", "lunch"],
+    [
+      ["turkey-breast-raw", 160, 280, 220],
+      ["rice-white-dry", 90, 190, 140],
+      ["egg-whole", 50, 110, 70],
+      ["cucumber", 40, 100, 60],
+    ],
+    ["Отварить рис.", "Запечь индейку.", "Подать с яйцом и огурцом."],
+    25,
+    { cooking_method: "bake", variant_group: "turkey|rice-egg|bake" },
+  ),
+  main(
+    "breakfast-salmon-pasta",
+    "Горбуша с макаронами и огурцом",
+    ["breakfast", "lunch"],
+    [
+      ["pink-salmon-raw", 140, 240, 190],
+      ["pasta-durum-dry", 90, 180, 140],
+      ["cucumber", 40, 120, 70],
+      ["tomato", 40, 100, 60],
+    ],
+    ["Отварить макароны.", "Запечь горбушу.", "Подать с огурцом и помидором."],
+    25,
+    { cooking_method: "bake", variant_group: "salmon|pasta-cucumber|bake" },
+  ),
+  main(
+    "lunch-beef-pasta-tomato",
+    "Говядина с макаронами и помидором",
+    ["lunch", "dinner"],
+    [
+      ["beef-lean-raw", 120, 200, 170],
+      ["pasta-durum-dry", 90, 180, 140],
+      ["tomato", 50, 140, 80],
+      ["bell-pepper", 40, 100, 60],
+    ],
+    ["Отварить макароны.", "Тушить говядину с перцем.", "Подать с помидором."],
+    28,
+    { cooking_method: "stew", variant_group: "beef|pasta-tomato|stew" },
+  ),
+  main(
+    "lunch-salmon-rice-broccoli",
+    "Горбуша с рисом и брокколи",
+    ["lunch", "dinner"],
+    [
+      ["pink-salmon-raw", 140, 240, 190],
+      ["rice-white-dry", 90, 190, 140],
+      ["broccoli-raw", 60, 160, 100],
+      ["carrot", 40, 90, 60],
+    ],
+    ["Отварить рис.", "Запечь горбушу с брокколи.", "Подать с морковью."],
+    25,
+    { cooking_method: "bake", variant_group: "salmon|rice-broccoli|bake" },
+  ),
+  main(
+    "dinner-chicken-pasta-avocado",
+    "Курица с макаронами и авокадо",
+    ["dinner", "lunch"],
+    [
+      ["chicken-breast-raw", 160, 300, 230],
+      ["pasta-durum-dry", 90, 190, 140],
+      ["avocado", 40, 100, 60],
+      ["tomato", 40, 110, 70],
+    ],
+    ["Отварить макароны.", "Запечь курицу.", "Подать с авокадо и помидором."],
+    25,
+    { cooking_method: "bake", variant_group: "chicken|pasta-avocado|bake" },
+  ),
+  main(
+    "dinner-beef-buckwheat-egg",
+    "Говядина с гречкой и яйцом",
+    ["dinner", "breakfast"],
+    [
+      ["beef-lean-raw", 120, 200, 170],
+      ["buckwheat-dry", 80, 170, 130],
+      ["egg-whole", 50, 110, 70],
+      ["bell-pepper", 40, 100, 60],
+    ],
+    ["Отварить гречку.", "Тушить говядину с перцем.", "Подать с яйцом."],
+    28,
+    { cooking_method: "stew", variant_group: "beef|buckwheat-egg|stew" },
+  ),
+  main(
+    "breakfast-beef-pasta-egg",
+    "Говядина с макаронами и яйцом",
+    ["breakfast"],
+    [
+      ["beef-lean-raw", 110, 200, 160],
+      ["pasta-durum-dry", 90, 210, 150],
+      ["egg-whole", 50, 110, 70],
+      ["cucumber", 40, 120, 70],
+    ],
+    ["Отварить макароны.", "Тушить говядину.", "Подать с яйцом и огурцом."],
+    28,
+    { cooking_method: "stew", variant_group: "beef|pasta-egg|stew" },
+  ),
+  main(
+    "breakfast-chicken-pasta-plate",
+    "Курица с макаронами и помидором",
+    ["breakfast", "lunch"],
+    [
+      ["chicken-breast-raw", 140, 280, 200],
+      ["pasta-durum-dry", 90, 220, 160],
+      ["tomato", 50, 140, 80],
+      ["bell-pepper", 40, 100, 60],
+    ],
+    ["Отварить макароны.", "Запечь курицу.", "Подать с помидором и перцем."],
+    25,
+    { cooking_method: "bake", variant_group: "chicken|pasta-plate|bake" },
+  ),
+  main(
+    "breakfast-turkey-buckwheat-egg",
+    "Индейка с гречкой и яйцом",
+    ["breakfast"],
+    [
+      ["turkey-breast-raw", 150, 280, 210],
+      ["buckwheat-dry", 80, 190, 140],
+      ["egg-whole", 50, 110, 70],
+      ["tomato", 40, 120, 70],
+    ],
+    ["Отварить гречку.", "Запечь индейку.", "Подать с яйцом и помидором."],
+    25,
+    { cooking_method: "bake", variant_group: "turkey|buckwheat-egg|bake" },
+  ),
+  main(
+    "breakfast-salmon-rice-plate",
+    "Горбуша с рисом и авокадо",
+    ["breakfast"],
+    [
+      ["pink-salmon-raw", 140, 240, 180],
+      ["rice-white-dry", 90, 210, 160],
+      ["avocado", 30, 90, 50],
+      ["cucumber", 40, 120, 70],
+    ],
+    ["Отварить рис.", "Запечь горбушу.", "Подать с авокадо и огурцом."],
+    25,
+    { cooking_method: "bake", variant_group: "salmon|rice-avocado|bake" },
+  ),
+  main(
+    "breakfast-beef-oats-banana",
+    "Говядина с овсянкой и бананом",
+    ["breakfast"],
+    [
+      ["beef-lean-raw", 110, 190, 150],
+      ["oats-dry", 70, 150, 110],
+      ["banana", 70, 150, 100],
+      ["egg-whole", 40, 90, 60],
+    ],
+    ["Сварить овсянку.", "Тушить говядину.", "Подать с бананом и яйцом."],
+    25,
+    { cooking_method: "stew", variant_group: "beef|oats-banana|stew" },
+  ),
+  main(
+    "breakfast-chicken-rice-bread",
+    "Курица с рисом и хлебом",
+    ["breakfast", "lunch"],
+    [
+      ["chicken-breast-raw", 140, 280, 200],
+      ["rice-white-dry", 80, 200, 150],
+      ["rye-bread", 30, 90, 50],
+      ["cucumber", 40, 120, 70],
+    ],
+    ["Отварить рис.", "Запечь курицу.", "Подать с хлебом и огурцом."],
+    25,
+    { cooking_method: "bake", variant_group: "chicken|rice-bread|bake" },
+  ),
+  main(
+    "breakfast-thigh-bulgur-plate",
+    "Бедро с булгуром и перцем",
+    ["breakfast", "dinner"],
+    [
+      ["chicken-thigh-raw", 140, 240, 190],
+      ["bulgur-dry", 80, 180, 130],
+      ["bell-pepper", 40, 110, 70],
+      ["tomato", 40, 120, 70],
+    ],
+    ["Залить булгур кипятком.", "Запечь бедро с перцем.", "Подать с помидором."],
+    25,
+    { cooking_method: "bake", variant_group: "chicken|bulgur-plate|bake" },
+  ),
+  main(
+    "breakfast-turkey-pasta-plate",
+    "Индейка с макаронами и огурцом",
+    ["breakfast"],
+    [
+      ["turkey-breast-raw", 150, 280, 210],
+      ["pasta-durum-dry", 90, 220, 160],
+      ["cucumber", 40, 120, 70],
+      ["tomato", 40, 120, 70],
+    ],
+    ["Отварить макароны.", "Запечь индейку.", "Подать с огурцом и помидором."],
+    25,
+    { cooking_method: "bake", variant_group: "turkey|pasta-plate|bake" },
+  ),
+  main(
+    "breakfast-beef-rice-plate",
+    "Говядина с рисом и яйцом",
+    ["breakfast"],
+    [
+      ["beef-lean-raw", 110, 200, 160],
+      ["rice-white-dry", 90, 220, 160],
+      ["egg-whole", 50, 100, 70],
+      ["tomato", 40, 120, 70],
+    ],
+    ["Отварить рис.", "Тушить говядину.", "Подать с яйцом и помидором."],
+    28,
+    { cooking_method: "stew", variant_group: "beef|rice-egg|stew" },
+  ),
+  main(
+    "breakfast-salmon-pasta-plate",
+    "Горбуша с макаронами и перцем",
+    ["breakfast"],
+    [
+      ["pink-salmon-raw", 140, 230, 180],
+      ["pasta-durum-dry", 90, 220, 160],
+      ["bell-pepper", 40, 110, 60],
+      ["cucumber", 40, 120, 70],
+    ],
+    ["Отварить макароны.", "Запечь горбушу.", "Подать с перцем и огурцом."],
+    25,
+    { cooking_method: "bake", variant_group: "salmon|pasta-plate|bake" },
+  ),
 ];
+
+const HEARTY_SNACKS: Array<[string, string, string, Ing[]]> = [
+  [
+    "snack-chicken-oats-banana",
+    "Готовая курица с овсянкой и бананом",
+    "chicken|oats-banana|assemble",
+    [
+      ["cooked-chicken-breast", 90, 180, 130],
+      ["oats-dry", 40, 160, 110],
+      ["banana", 70, 140, 100],
+    ],
+  ],
+  [
+    "snack-chicken-pasta-tomato",
+    "Холодные макароны с готовой курицей",
+    "chicken|pasta-tomato|assemble",
+    [
+      ["cooked-chicken-breast", 90, 180, 130],
+      ["pasta-durum-dry", 40, 150, 100],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "snack-chicken-rice-pepper",
+    "Холодный рис с готовой курицей",
+    "chicken|rice-pepper|assemble",
+    [
+      ["cooked-chicken-breast", 90, 180, 130],
+      ["rice-white-dry", 40, 150, 100],
+      ["bell-pepper", 40, 110, 60],
+    ],
+  ],
+  [
+    "snack-chicken-couscous-cucumber",
+    "Кускус с готовой курицей и огурцом",
+    "chicken|couscous-cucumber|assemble",
+    [
+      ["cooked-chicken-breast", 90, 180, 130],
+      ["couscous-dry", 40, 150, 100],
+      ["cucumber", 40, 120, 70],
+    ],
+  ],
+  [
+    "snack-chicken-bulgur-tomato",
+    "Булгур с готовой курицей и помидором",
+    "chicken|bulgur-tomato|assemble",
+    [
+      ["cooked-chicken-breast", 90, 170, 120],
+      ["bulgur-dry", 40, 150, 100],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "snack-tuna-oats-apple",
+    "Тунец с овсянкой и яблоком",
+    "tuna|oats-apple|assemble",
+    [
+      ["canned-tuna", 80, 160, 120],
+      ["oats-dry", 40, 160, 110],
+      ["apple", 60, 140, 90],
+    ],
+  ],
+  [
+    "snack-tuna-buckwheat-tomato",
+    "Тунец с гречкой и помидором",
+    "tuna|buckwheat-tomato|assemble",
+    [
+      ["canned-tuna", 80, 160, 120],
+      ["buckwheat-dry", 40, 150, 100],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "snack-tuna-pasta-cucumber",
+    "Холодные макароны с тунцом",
+    "tuna|pasta-cucumber|assemble",
+    [
+      ["canned-tuna", 80, 160, 120],
+      ["pasta-durum-dry", 40, 150, 100],
+      ["cucumber", 40, 130, 80],
+    ],
+  ],
+  [
+    "snack-tuna-rice-pepper",
+    "Холодный рис с тунцом",
+    "tuna|rice-pepper|assemble",
+    [
+      ["canned-tuna", 80, 160, 120],
+      ["rice-white-dry", 40, 150, 100],
+      ["bell-pepper", 40, 110, 60],
+    ],
+  ],
+  [
+    "snack-tuna-couscous-corn",
+    "Кускус с тунцом и кукурузой",
+    "tuna|couscous-corn|assemble",
+    [
+      ["canned-tuna", 80, 160, 120],
+      ["couscous-dry", 40, 150, 100],
+      ["canned-corn", 30, 90, 50],
+    ],
+  ],
+  [
+    "snack-cottage-buckwheat-walnut",
+    "Творог с гречкой и орехом",
+    "cottage|buckwheat-walnut|assemble",
+    [
+      ["cottage-cheese-5", 100, 200, 150],
+      ["buckwheat-dry", 40, 150, 100],
+      ["walnut", 8, 20, 12],
+    ],
+  ],
+  [
+    "snack-cottage-pasta-cucumber",
+    "Холодные макароны с творогом",
+    "cottage|pasta-cucumber|assemble",
+    [
+      ["cottage-cheese-5", 100, 200, 150],
+      ["pasta-durum-dry", 40, 150, 100],
+      ["cucumber", 40, 130, 80],
+    ],
+  ],
+  [
+    "snack-cottage-rice-pear",
+    "Творог с рисом и грушей",
+    "cottage|rice-pear|assemble",
+    [
+      ["cottage-cheese-5", 100, 200, 150],
+      ["rice-white-dry", 40, 150, 100],
+      ["pear-raw", 60, 140, 90],
+    ],
+  ],
+  [
+    "snack-egg-oats-tomato",
+    "Яйцо с овсянкой и помидором",
+    "egg|oats-tomato|assemble",
+    [
+      ["egg-whole", 50, 120, 80],
+      ["oats-dry", 40, 160, 110],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "snack-egg-wheat-cucumber",
+    "Пшеничный хлеб с яйцом и огурцом",
+    "egg|wheat-cucumber|assemble",
+    [
+      ["egg-whole", 50, 120, 80],
+      ["wheat-bread", 40, 180, 110],
+      ["cucumber", 40, 130, 80],
+    ],
+  ],
+  [
+    "snack-egg-pasta-pepper",
+    "Холодные макароны с яйцом",
+    "egg|pasta-pepper|assemble",
+    [
+      ["egg-whole", 50, 120, 80],
+      ["pasta-durum-dry", 40, 150, 100],
+      ["bell-pepper", 40, 110, 60],
+    ],
+  ],
+  [
+    "snack-yogurt-buckwheat-banana",
+    "Йогурт с гречкой и бананом",
+    "yogurt|buckwheat-banana|assemble",
+    [
+      ["greek-yogurt", 120, 220, 160],
+      ["buckwheat-dry", 40, 150, 100],
+      ["banana", 60, 140, 90],
+    ],
+  ],
+  [
+    "snack-yogurt-rice-apple",
+    "Йогурт с рисом и яблоком",
+    "yogurt|rice-apple|assemble",
+    [
+      ["greek-yogurt-lf", 120, 220, 160],
+      ["rice-white-dry", 40, 150, 100],
+      ["apple", 60, 140, 90],
+    ],
+  ],
+  [
+    "snack-cottage-lf-oats-berry",
+    "Безлактозный творог с овсянкой и ягодами",
+    "cottage|oats-berry|assemble",
+    [
+      ["cottage-cheese-lf", 100, 200, 150],
+      ["oats-dry", 40, 160, 110],
+      ["frozen-berry-mix", 40, 110, 70],
+    ],
+  ],
+  [
+    "snack-chicken-bread-banana",
+    "Хлеб с готовой курицей и бананом",
+    "chicken|bread-banana|assemble",
+    [
+      ["cooked-chicken-breast", 90, 180, 130],
+      ["wheat-bread", 40, 180, 110],
+      ["banana", 60, 140, 90],
+    ],
+  ],
+];
+
+const DENSE_DAYS: Array<[string, string, string, MealRole[], Ing[], string[]]> = [
+  [
+    "breakfast-beef-pasta-oil",
+    "Говядина с макаронами, яйцом и маслом",
+    "beef|pasta-oil|stew",
+    ["breakfast"],
+    [
+      ["beef-lean-raw", 100, 170, 126],
+      ["pasta-durum-dry", 90, 160, 120],
+      ["egg-whole", 90, 160, 131],
+      ["olive-oil", 6, 15, 13],
+    ],
+    ["Отварить макароны.", "Тушить говядину.", "Подать с яйцом и ложкой масла."],
+  ],
+  [
+    "breakfast-beef-rice-oil",
+    "Говядина с рисом, яйцом и маслом",
+    "beef|rice-oil|stew",
+    ["breakfast"],
+    [
+      ["beef-lean-raw", 100, 180, 135],
+      ["rice-white-dry", 90, 160, 120],
+      ["egg-whole", 90, 160, 124],
+      ["olive-oil", 6, 15, 13],
+    ],
+    ["Отварить рис.", "Тушить говядину.", "Подать с яйцом и ложкой масла."],
+  ],
+  [
+    "breakfast-beef-oats-oil",
+    "Говядина с овсянкой, яйцом и маслом",
+    "beef|oats-oil|stew",
+    ["breakfast"],
+    [
+      ["beef-lean-raw", 100, 170, 126],
+      ["oats-dry", 90, 160, 120],
+      ["egg-whole", 90, 160, 131],
+      ["olive-oil", 6, 15, 13],
+    ],
+    ["Сварить овсянку.", "Тушить говядину.", "Подать с яйцом и ложкой масла."],
+  ],
+  [
+    "breakfast-salmon-pasta-cheddar",
+    "Горбуша с макаронами и чеддером",
+    "salmon|pasta-cheddar|bake",
+    ["breakfast"],
+    [
+      ["pink-salmon-raw", 140, 200, 174],
+      ["pasta-durum-dry", 120, 200, 170],
+      ["egg-whole", 80, 200, 150],
+      ["cheddar-cheese", 30, 70, 54],
+      ["olive-oil", 6, 15, 15],
+    ],
+    ["Отварить макароны.", "Запечь горбушу.", "Подать с яйцом и ломтиками сыра."],
+  ],
+  [
+    "breakfast-thigh-pasta-cheddar",
+    "Бедро с макаронами и чеддером",
+    "chicken|thigh-cheddar|bake",
+    ["breakfast"],
+    [
+      ["chicken-thigh-raw", 140, 200, 174],
+      ["pasta-durum-dry", 120, 200, 170],
+      ["egg-whole", 80, 200, 150],
+      ["cheddar-cheese", 30, 70, 52],
+      ["olive-oil", 6, 15, 14],
+    ],
+    ["Отварить макароны.", "Запечь бедро.", "Подать с яйцом и ломтиками сыра."],
+  ],
+  [
+    "breakfast-turkey-pasta-cheddar",
+    "Индейка с макаронами и чеддером",
+    "turkey|pasta-cheddar|bake",
+    ["breakfast"],
+    [
+      ["ground-turkey-raw", 140, 200, 175],
+      ["pasta-durum-dry", 120, 200, 170],
+      ["egg-whole", 80, 200, 150],
+      ["cheddar-cheese", 30, 70, 40],
+      ["olive-oil", 6, 15, 15],
+    ],
+    ["Отварить макароны.", "Запечь индейку.", "Подать с яйцом и ломтиками сыра."],
+  ],
+  [
+    "breakfast-beef-couscous-oil",
+    "Говядина с кускусом, яйцом и маслом",
+    "beef|couscous-oil|stew",
+    ["breakfast"],
+    [
+      ["beef-lean-raw", 100, 180, 140],
+      ["couscous-dry", 90, 170, 130],
+      ["egg-whole", 90, 160, 130],
+      ["olive-oil", 6, 15, 13],
+    ],
+    ["Залить кускус кипятком.", "Тушить говядину.", "Подать с яйцом и ложкой масла."],
+  ],
+];
+
+const ROTATION_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
+  [
+    "breakfast-salmon-oats-plate",
+    "Горбуша с овсянкой и авокадо",
+    "salmon|oats-avocado|bake",
+    ["breakfast"],
+    [
+      ["pink-salmon-raw", 150, 240, 200],
+      ["oats-dry", 90, 180, 140],
+      ["avocado", 30, 90, 50],
+      ["egg-whole", 40, 100, 60],
+    ],
+  ],
+  [
+    "breakfast-turkey-couscous-plate",
+    "Индейка с кускусом и яйцом",
+    "turkey|couscous-egg|bake",
+    ["breakfast"],
+    [
+      ["turkey-breast-raw", 150, 280, 210],
+      ["couscous-dry", 90, 190, 150],
+      ["egg-whole", 40, 110, 70],
+      ["cucumber", 40, 120, 70],
+    ],
+  ],
+  [
+    "lunch-turkey-couscous-plate",
+    "Индейка с кускусом и сыром",
+    "turkey|couscous-cheddar|bake",
+    ["lunch"],
+    [
+      ["turkey-breast-raw", 150, 280, 210],
+      ["couscous-dry", 90, 190, 150],
+      ["cheddar-cheese", 25, 60, 40],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "lunch-salmon-oats-plate",
+    "Горбуша с овсянкой и сыром",
+    "salmon|oats-cheddar|bake",
+    ["lunch", "dinner"],
+    [
+      ["pink-salmon-raw", 150, 240, 190],
+      ["oats-dry", 90, 180, 140],
+      ["cheddar-cheese", 25, 60, 40],
+      ["cucumber", 40, 120, 70],
+    ],
+  ],
+  [
+    "lunch-beef-potato-bread",
+    "Говядина с картофелем и хлебом",
+    "beef|potato-bread|stew",
+    ["lunch", "dinner"],
+    [
+      ["beef-lean-raw", 120, 200, 160],
+      ["potato-raw", 250, 480, 360],
+      ["rye-bread", 40, 100, 60],
+      ["egg-whole", 40, 100, 60],
+    ],
+  ],
+  [
+    "dinner-chicken-couscous-plate",
+    "Курица с кускусом и авокадо",
+    "chicken|couscous-avocado|bake",
+    ["dinner", "lunch"],
+    [
+      ["chicken-breast-raw", 160, 300, 230],
+      ["couscous-dry", 90, 190, 150],
+      ["avocado", 30, 90, 50],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "dinner-turkey-potato-plate",
+    "Индейка с картофелем и сыром",
+    "turkey|potato-cheddar|bake",
+    ["dinner"],
+    [
+      ["turkey-breast-raw", 150, 280, 210],
+      ["potato-raw", 250, 480, 360],
+      ["cheddar-cheese", 25, 60, 40],
+      ["cucumber", 40, 120, 70],
+    ],
+  ],
+  [
+    "dinner-beef-oats-plate",
+    "Говядина с овсянкой и яйцом",
+    "beef|oats-dinner|stew",
+    ["dinner", "breakfast"],
+    [
+      ["beef-lean-raw", 120, 200, 160],
+      ["oats-dry", 90, 180, 140],
+      ["egg-whole", 40, 110, 70],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+];
+
+const LOW_CARB_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
+  [
+    "breakfast-chicken-veg-plate",
+    "Курица с огурцом и перцем",
+    "chicken|veg-plate|bake",
+    ["breakfast", "lunch"],
+    [
+      ["chicken-breast-raw", 90, 220, 140],
+      ["cucumber", 60, 180, 100],
+      ["bell-pepper", 40, 120, 70],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "breakfast-turkey-veg-plate",
+    "Индейка с помидором и огурцом",
+    "turkey|veg-plate|bake",
+    ["breakfast", "dinner"],
+    [
+      ["turkey-breast-raw", 90, 200, 140],
+      ["tomato", 50, 160, 90],
+      ["cucumber", 50, 160, 90],
+      ["bell-pepper", 30, 100, 60],
+    ],
+  ],
+  [
+    "breakfast-salmon-avocado-plate",
+    "Горбуша с авокадо и огурцом",
+    "salmon|avocado-plate|bake",
+    ["breakfast"],
+    [
+      ["pink-salmon-raw", 120, 220, 160],
+      ["avocado", 20, 70, 40],
+      ["cucumber", 50, 160, 90],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "breakfast-beef-tomato-plate",
+    "Говядина с помидором и перцем",
+    "beef|tomato-plate|stew",
+    ["breakfast", "dinner"],
+    [
+      ["beef-lean-raw", 80, 160, 120],
+      ["tomato", 50, 160, 90],
+      ["bell-pepper", 40, 120, 70],
+      ["cucumber", 40, 140, 80],
+    ],
+  ],
+  [
+    "lunch-turkey-cabbage-plate",
+    "Индейка с капустой и огурцом",
+    "turkey|cabbage-plate|bake",
+    ["lunch"],
+    [
+      ["turkey-breast-raw", 90, 200, 140],
+      ["white-cabbage", 80, 220, 140],
+      ["cucumber", 40, 140, 80],
+      ["carrot", 20, 60, 30],
+    ],
+  ],
+  [
+    "lunch-cod-tomato-plate",
+    "Треска с помидором и огурцом",
+    "whitefish|tomato-plate|bake",
+    ["lunch", "dinner"],
+    [
+      ["cod-raw", 100, 200, 140],
+      ["tomato", 50, 160, 90],
+      ["cucumber", 50, 160, 90],
+      ["bell-pepper", 30, 100, 60],
+    ],
+  ],
+  [
+    "dinner-hake-cucumber-plate",
+    "Хек с огурцом и перцем",
+    "whitefish|cucumber-plate|bake",
+    ["dinner", "lunch"],
+    [
+      ["hake-raw", 100, 200, 140],
+      ["cucumber", 50, 180, 100],
+      ["bell-pepper", 40, 120, 70],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "dinner-beef-pepper-plate",
+    "Говядина с перцем и капустой",
+    "beef|pepper-plate|stew",
+    ["dinner"],
+    [
+      ["beef-lean-raw", 80, 160, 120],
+      ["bell-pepper", 40, 140, 80],
+      ["white-cabbage", 60, 200, 120],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "breakfast-chicken-potato-light",
+    "Курица с небольшой картофельной порцией",
+    "chicken|potato-light|bake",
+    ["breakfast", "lunch"],
+    [
+      ["chicken-breast-raw", 90, 180, 130],
+      ["potato-raw", 120, 280, 180],
+      ["cucumber", 40, 140, 80],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "lunch-whitefish-potato-light",
+    "Минтай с небольшой картофельной порцией",
+    "whitefish|potato-light|bake",
+    ["lunch", "dinner"],
+    [
+      ["pollock-raw", 100, 200, 150],
+      ["potato-raw", 120, 280, 180],
+      ["cucumber", 40, 140, 80],
+      ["carrot", 20, 70, 40],
+    ],
+  ],
+  [
+    "dinner-salmon-potato-light",
+    "Горбуша с небольшой картофельной порцией",
+    "salmon|potato-light|bake",
+    ["dinner", "breakfast"],
+    [
+      ["pink-salmon-raw", 120, 200, 160],
+      ["potato-raw", 100, 240, 160],
+      ["cucumber", 40, 140, 80],
+      ["bell-pepper", 30, 90, 50],
+    ],
+  ],
+  [
+    "breakfast-beef-oats-light",
+    "Говядина с небольшой овсяной порцией",
+    "beef|oats-light|stew",
+    ["breakfast"],
+    [
+      ["beef-lean-raw", 80, 150, 110],
+      ["oats-dry", 25, 60, 40],
+      ["tomato", 40, 140, 80],
+      ["cucumber", 40, 140, 80],
+    ],
+  ],
+  [
+    "lunch-hake-buckwheat-light",
+    "Хек с небольшой гречкой",
+    "whitefish|buckwheat-light|bake",
+    ["lunch", "dinner"],
+    [
+      ["hake-raw", 100, 190, 140],
+      ["buckwheat-dry", 20, 50, 30],
+      ["cucumber", 40, 150, 90],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "dinner-chicken-buckwheat-light",
+    "Курица с небольшой гречкой",
+    "chicken|buckwheat-light|bake",
+    ["dinner", "lunch"],
+    [
+      ["chicken-breast-raw", 90, 180, 130],
+      ["buckwheat-dry", 20, 50, 30],
+      ["bell-pepper", 40, 120, 70],
+      ["cucumber", 40, 140, 80],
+    ],
+  ],
+  [
+    "breakfast-chicken-potato-large",
+    "Курица с большой порцией картофеля",
+    "chicken|potato-large|bake",
+    ["breakfast", "lunch"],
+    [
+      ["chicken-breast-raw", 110, 220, 160],
+      ["potato-raw", 280, 520, 420],
+      ["bell-pepper", 40, 100, 60],
+      ["cucumber", 40, 120, 70],
+    ],
+  ],
+  [
+    "lunch-salmon-potato-large",
+    "Горбуша с большой порцией картофеля",
+    "salmon|potato-large|bake",
+    ["lunch", "dinner"],
+    [
+      ["pink-salmon-raw", 120, 210, 160],
+      ["potato-raw", 280, 520, 400],
+      ["cucumber", 40, 140, 80],
+      ["tomato", 40, 110, 60],
+    ],
+  ],
+  [
+    "breakfast-cod-potato-large",
+    "Треска с большой порцией картофеля",
+    "whitefish|potato-large|bake",
+    ["breakfast", "dinner"],
+    [
+      ["cod-raw", 130, 220, 170],
+      ["potato-raw", 280, 500, 400],
+      ["carrot", 30, 80, 50],
+      ["cucumber", 40, 120, 70],
+    ],
+  ],
+  [
+    "lunch-beef-potato-large",
+    "Говядина с большой порцией картофеля",
+    "beef|potato-large|stew",
+    ["lunch", "breakfast"],
+    [
+      ["beef-lean-raw", 100, 180, 140],
+      ["potato-raw", 280, 520, 420],
+      ["bell-pepper", 40, 100, 60],
+      ["tomato", 40, 110, 70],
+    ],
+  ],
+  [
+    "breakfast-chicken-egg-potato",
+    "Курица с яйцом и картофелем",
+    "chicken|egg-potato|bake",
+    ["breakfast", "lunch"],
+    [
+      ["chicken-breast-raw", 100, 200, 150],
+      ["egg-whole", 40, 100, 60],
+      ["potato-raw", 180, 420, 280],
+      ["cucumber", 40, 120, 70],
+    ],
+  ],
+  [
+    "lunch-turkey-egg-potato",
+    "Индейка с яйцом и картофелем",
+    "turkey|egg-potato|bake",
+    ["lunch", "dinner"],
+    [
+      ["turkey-breast-raw", 100, 200, 150],
+      ["egg-whole", 40, 100, 60],
+      ["potato-raw", 180, 420, 280],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "breakfast-cod-egg-oats",
+    "Треска с яйцом и овсянкой",
+    "whitefish|egg-oats|bake",
+    ["breakfast", "dinner"],
+    [
+      ["cod-raw", 120, 210, 160],
+      ["egg-whole", 40, 100, 60],
+      ["oats-dry", 30, 80, 50],
+      ["cucumber", 40, 120, 70],
+    ],
+  ],
+  [
+    "lunch-salmon-cottage-potato",
+    "Горбуша с творогом и картофелем",
+    "salmon|cottage-potato|bake",
+    ["lunch", "breakfast"],
+    [
+      ["pink-salmon-raw", 110, 190, 150],
+      ["cottage-cheese-5", 60, 140, 90],
+      ["potato-raw", 160, 400, 260],
+      ["cucumber", 40, 120, 70],
+    ],
+  ],
+];
+
+for (const [slug, name, variant, roles, rows] of LOW_CARB_MAINS) {
+  EXPANSION_RECIPES.push(
+    main(
+      slug,
+      name,
+      roles,
+      rows,
+      ["Нарезать овощи.", "Приготовить белок.", "Подать без крупы."],
+      20,
+      {
+        cooking_method: variant.endsWith("bake") ? "bake" : "stew",
+        variant_group: variant,
+      },
+    ),
+  );
+}
+
+const LOW_CARB_SNACKS: Array<[string, string, string, Ing[]]> = [
+  [
+    "snack-chicken-tomato-cucumber",
+    "Готовая курица с помидором и огурцом",
+    "chicken|tomato-cucumber|assemble",
+    [
+      ["cooked-chicken-breast", 70, 150, 100],
+      ["tomato", 40, 140, 80],
+      ["cucumber", 40, 160, 90],
+    ],
+  ],
+  [
+    "snack-tuna-pepper-cottage",
+    "Тунец с перцем и творогом",
+    "tuna|pepper-cottage|assemble",
+    [
+      ["canned-tuna", 60, 140, 90],
+      ["cottage-cheese-5", 60, 140, 90],
+      ["bell-pepper", 30, 100, 60],
+    ],
+  ],
+  [
+    "snack-egg-cucumber-cheese",
+    "Яйцо с огурцом и чеддером",
+    "egg|cucumber-cheese|assemble",
+    [
+      ["egg-whole", 50, 110, 70],
+      ["cucumber", 40, 150, 80],
+      ["cheddar-cheese", 15, 40, 25],
+    ],
+  ],
+  [
+    "snack-chicken-yogurt-cucumber",
+    "Готовая курица с йогуртом и огурцом",
+    "chicken|yogurt-cucumber|assemble",
+    [
+      ["cooked-chicken-breast", 70, 150, 100],
+      ["greek-yogurt", 80, 160, 110],
+      ["cucumber", 40, 140, 80],
+    ],
+  ],
+];
+
+for (const [slug, name, variant, rows] of LOW_CARB_SNACKS) {
+  EXPANSION_RECIPES.push(
+    snack(
+      slug,
+      name,
+      rows,
+      ["Нарезать овощи.", "Смешать с белком.", "Подать холодным."],
+      false,
+      5,
+      { variant_group: variant },
+    ),
+  );
+}
+
+for (const [slug, name, variant, roles, rows] of ROTATION_MAINS) {
+  EXPANSION_RECIPES.push(
+    main(
+      slug,
+      name,
+      roles,
+      rows,
+      ["Приготовить крупу или картофель.", "Приготовить белок.", "Собрать тарелку."],
+      25,
+      {
+        cooking_method: variant.endsWith("bake") ? "bake" : "stew",
+        variant_group: variant,
+      },
+    ),
+  );
+}
+
+for (const [slug, name, variant, roles, rows, steps] of DENSE_DAYS) {
+  EXPANSION_RECIPES.push(
+    main(slug, name, roles, rows, steps, 25, {
+      cooking_method: variant.endsWith("bake") ? "bake" : "stew",
+      variant_group: variant,
+    }),
+  );
+}
+
+const DENSE_SNACKS: Array<[string, string, string, Ing[]]> = [
+  [
+    "snack-dense-chicken-wheat-pear",
+    "Хлеб с готовой курицей и грушей",
+    "chicken|wheat-pear|assemble",
+    [
+      ["cooked-chicken-breast", 80, 160, 110],
+      ["wheat-bread", 80, 160, 120],
+      ["pear-raw", 40, 140, 90],
+    ],
+  ],
+  [
+    "snack-dense-chicken-pasta-pear",
+    "Холодные макароны с курицей и грушей",
+    "chicken|pasta-pear|assemble",
+    [
+      ["cooked-chicken-breast", 80, 160, 110],
+      ["pasta-durum-dry", 80, 160, 120],
+      ["pear-raw", 40, 120, 80],
+    ],
+  ],
+  [
+    "snack-dense-chicken-oats-apple",
+    "Овсянка с готовой курицей и яблоком",
+    "chicken|oats-apple|assemble",
+    [
+      ["cooked-chicken-breast", 80, 160, 110],
+      ["oats-dry", 80, 160, 120],
+      ["apple", 40, 140, 90],
+    ],
+  ],
+  [
+    "snack-dense-chicken-rice-tomato",
+    "Холодный рис с готовой курицей",
+    "chicken|rice-tomato-dense|assemble",
+    [
+      ["cooked-chicken-breast", 80, 160, 110],
+      ["rice-white-dry", 80, 160, 120],
+      ["tomato", 40, 120, 70],
+    ],
+  ],
+  [
+    "snack-dense-tuna-oats-avocado",
+    "Овсянка с тунцом и авокадо",
+    "tuna|oats-avocado-dense|assemble",
+    [
+      ["canned-tuna", 90, 190, 165],
+      ["oats-dry", 80, 160, 120],
+      ["avocado", 30, 120, 90],
+    ],
+  ],
+  [
+    "snack-dense-tuna-buckwheat-avocado",
+    "Гречка с тунцом и авокадо",
+    "tuna|buckwheat-avocado|assemble",
+    [
+      ["canned-tuna", 90, 190, 150],
+      ["buckwheat-dry", 60, 150, 110],
+      ["avocado", 30, 120, 90],
+    ],
+  ],
+  [
+    "snack-dense-tuna-rice-avocado",
+    "Рис с тунцом и авокадо",
+    "tuna|rice-avocado-dense|assemble",
+    [
+      ["canned-tuna", 90, 190, 150],
+      ["rice-white-dry", 80, 160, 120],
+      ["avocado", 30, 120, 90],
+    ],
+  ],
+  [
+    "snack-dense-tuna-wheat-avocado",
+    "Хлеб с тунцом и авокадо, плотная порция",
+    "tuna|wheat-avocado-dense|assemble",
+    [
+      ["canned-tuna", 90, 190, 150],
+      ["wheat-bread", 80, 160, 120],
+      ["avocado", 30, 120, 80],
+    ],
+  ],
+  [
+    "snack-dense-cottage-rice-buckwheat",
+    "Творог с рисом, гречкой и орехом",
+    "cottage|rice-buckwheat|assemble",
+    [
+      ["cottage-cheese-5", 80, 180, 141],
+      ["rice-white-dry", 70, 150, 110],
+      ["buckwheat-dry", 60, 140, 100],
+      ["walnut", 6, 18, 12],
+    ],
+  ],
+  [
+    "snack-dense-cottage-oats-bread",
+    "Творог с овсянкой, хлебом и орехом",
+    "cottage|oats-bread|assemble",
+    [
+      ["cottage-cheese-5", 80, 180, 140],
+      ["oats-dry", 70, 150, 110],
+      ["rye-bread", 50, 130, 80],
+      ["walnut", 6, 18, 12],
+    ],
+  ],
+  [
+    "snack-dense-cottage-pasta-buckwheat",
+    "Творог с макаронами, гречкой и орехом",
+    "cottage|pasta-buckwheat|assemble",
+    [
+      ["cottage-cheese-5", 80, 180, 140],
+      ["pasta-durum-dry", 70, 150, 110],
+      ["buckwheat-dry", 50, 130, 90],
+      ["walnut", 6, 18, 12],
+    ],
+  ],
+  [
+    "snack-dense-cottage-lf-rice",
+    "Безлактозный творог с рисом и орехом",
+    "cottage|lf-rice-walnut|assemble",
+    [
+      ["cottage-cheese-lf", 80, 180, 141],
+      ["rice-white-dry", 70, 150, 120],
+      ["buckwheat-dry", 50, 130, 90],
+      ["walnut", 6, 18, 12],
+    ],
+  ],
+  [
+    "snack-dense-cheddar-rye-tomato",
+    "Ржаной хлеб с чеддером и помидором",
+    "cheese|rye-tomato|assemble",
+    [
+      ["cheddar-cheese", 30, 70, 45],
+      ["rye-bread", 70, 150, 110],
+      ["tomato", 40, 140, 80],
+      ["cucumber", 40, 120, 70],
+    ],
+  ],
+  [
+    "snack-dense-cheddar-wheat-cucumber",
+    "Пшеничный хлеб с чеддером и огурцом",
+    "cheese|wheat-cucumber|assemble",
+    [
+      ["cheddar-cheese", 30, 70, 45],
+      ["wheat-bread", 70, 160, 120],
+      ["cucumber", 40, 140, 80],
+    ],
+  ],
+  [
+    "snack-dense-tuna-couscous-avocado",
+    "Кускус с тунцом и авокадо",
+    "tuna|couscous-avocado|assemble",
+    [
+      ["canned-tuna", 90, 190, 150],
+      ["couscous-dry", 70, 160, 120],
+      ["avocado", 30, 120, 80],
+    ],
+  ],
+  [
+    "snack-dense-chicken-bulgur-cucumber",
+    "Булгур с готовой курицей и огурцом",
+    "chicken|bulgur-cucumber|assemble",
+    [
+      ["cooked-chicken-breast", 80, 160, 110],
+      ["bulgur-dry", 70, 160, 120],
+      ["cucumber", 40, 140, 80],
+    ],
+  ],
+  [
+    "snack-dense-egg-oats-bread",
+    "Овсянка с яйцом и хлебом",
+    "egg|oats-bread|assemble",
+    [
+      ["egg-whole", 50, 120, 80],
+      ["oats-dry", 70, 150, 110],
+      ["wheat-bread", 40, 100, 60],
+      ["tomato", 40, 100, 60],
+    ],
+  ],
+];
+
+for (const [slug, name, variant, rows] of DENSE_SNACKS) {
+  EXPANSION_RECIPES.push(
+    snack(
+      slug,
+      name,
+      rows,
+      ["Собрать из уже готовых продуктов.", "Разложить по миске.", "Подать холодным."],
+      false,
+      5,
+      {
+        variant_group: variant,
+        dietary_tags: slug.includes("-lf-") ? ["lactose_free"] : [],
+      },
+    ),
+  );
+}
+
+for (const [slug, name, variant, rows] of HEARTY_SNACKS) {
+  EXPANSION_RECIPES.push(
+    snack(
+      slug,
+      name,
+      rows,
+      ["Использовать уже готовую крупу, хлеб и белок.", "Смешать в миске.", "Подать холодным."],
+      false,
+      5,
+      {
+        variant_group: variant,
+        dietary_tags:
+          variant.startsWith("yogurt|rice") || slug.includes("-lf-") ? ["lactose_free"] : [],
+      },
+    ),
+  );
+}

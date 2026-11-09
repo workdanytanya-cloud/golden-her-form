@@ -5,7 +5,7 @@ import {
   recalculateConstructorDay,
   recalculateMealFromProducts,
 } from "@/lib/nutrition-constructor/calculator";
-import type { PlanSlot } from "@/lib/nutrition-constructor/config";
+import { OIL_GRAM_MAX, type PlanSlot } from "@/lib/nutrition-constructor/config";
 import {
   InvalidIngredientGramsError,
   normalizeMealPlanItem,
@@ -174,6 +174,145 @@ export function addIngredientToMeal(params: {
   return applyDayItems(params.day, items, params.products);
 }
 
+const GENERIC_NAME_STEMS = new Set(["филе", "сырое", "сухой", "сухая", "кожи"]);
+
+function renameDishText(text: string, sourceName: string, replacementName: string): string {
+  if (!text) return text;
+  if (text.includes(sourceName)) return text.split(sourceName).join(replacementName);
+  const stems = sourceName
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.replace(/[^a-zа-яё]/gi, ""))
+    .filter((word) => word.length >= 3 && !GENERIC_NAME_STEMS.has(word))
+    .map((word) => word.slice(0, 4))
+    .sort((a, b) => b.length - a.length);
+  for (const stem of stems) {
+    const pattern = new RegExp(`${stem}[a-zа-яё]*`, "i");
+    const matched = pattern.exec(text);
+    if (!matched || matched.index == null) continue;
+    const word = matched[0];
+    const replacement =
+      word[0] === word[0]?.toLowerCase()
+        ? replacementName.charAt(0).toLowerCase() + replacementName.slice(1)
+        : replacementName;
+    return text.slice(0, matched.index) + replacement + text.slice(matched.index + word.length);
+  }
+  return text;
+}
+
+function swapGap(before: MacroSnap, after: MacroSnap): number {
+  const over = (value: number, limit: number) => Math.max(0, Math.abs(value) - limit);
+  return (
+    over(after.kcal - before.kcal, 4.6) +
+    over(after.protein_g - before.protein_g, 0.85) +
+    over(after.fat_g - before.fat_g, 0.85) +
+    over(after.carbs_g - before.carbs_g, 0.85)
+  );
+}
+
+type MacroSnap = { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
+
+function balanceSwappedMeal(params: {
+  day: ConstructorDay;
+  slot: PlanSlot;
+  replacementId: string;
+  before: MacroSnap;
+  products: Map<string, FoodProduct>;
+}): ConstructorDay | null {
+  const item = params.day.items.find((row) => row.slot === params.slot);
+  if (!item) return null;
+  const adjustable = item.ingredients.filter((line) => line.product_id !== params.replacementId);
+  if (adjustable.length === 0) return null;
+  const grams = new Map(adjustable.map((line) => [line.product_id, Number(line.grams)]));
+  const original = new Map(grams);
+  const vectors = new Map(
+    adjustable.map((line) => [
+      line.product_id,
+      {
+        k: Number(line.kcal_per_100g) / 100,
+        p: Number(line.protein_per_100g) / 100,
+        f: Number(line.fat_per_100g) / 100,
+        c: Number(line.carbs_per_100g) / 100,
+      },
+    ]),
+  );
+  const allowed = (productId: string, next: number) => {
+    const start = original.get(productId) ?? next;
+    const product = params.products.get(productId);
+    if (!Number.isFinite(next) || next > 400) return false;
+    if (product && OIL_PRODUCT_SLUGS.has(product.slug)) return next >= 1 && next <= OIL_GRAM_MAX;
+    return next >= Math.max(5, start - 30) && next <= Math.min(400, start + 30);
+  };
+  const applyMoves = (base: MacroSnap, moves: Array<[string, number]>) => {
+    const next = { ...base };
+    for (const [id, shift] of moves) {
+      const vector = vectors.get(id);
+      if (!vector || shift === 0) continue;
+      next.kcal += shift * vector.k;
+      next.protein_g += shift * vector.p;
+      next.fat_g += shift * vector.f;
+      next.carbs_g += shift * vector.c;
+    }
+    return next;
+  };
+  let current: MacroSnap = {
+    kcal: Number(params.day.kcal),
+    protein_g: Number(params.day.protein_g),
+    fat_g: Number(params.day.fat_g),
+    carbs_g: Number(params.day.carbs_g),
+  };
+  const ids = [...vectors.keys()];
+  for (let step = 0; step < 6 && swapGap(params.before, current) > 0; step++) {
+    const best: {
+      current: { moves: Array<[string, number]>; next: MacroSnap; score: number } | null;
+    } = {
+      current: null,
+    };
+    const scoreNow = swapGap(params.before, current);
+    const consider = (moves: Array<[string, number]>) => {
+      if (moves.every(([, shift]) => shift === 0)) return;
+      for (const [id, shift] of moves) {
+        if (!allowed(id, Math.round((grams.get(id) ?? 0) + shift))) return;
+      }
+      const next = applyMoves(current, moves);
+      const score = swapGap(params.before, next);
+      if (!best.current || score < best.current.score) best.current = { moves, next, score };
+    };
+    for (const id of ids) {
+      for (let move = -30; move <= 30; move++) consider([[id, move]]);
+    }
+    for (let left = 0; left < ids.length; left++) {
+      for (let right = left + 1; right < ids.length; right++) {
+        const a = ids[left]!;
+        const b = ids[right]!;
+        for (let moveA = -30; moveA <= 30; moveA += 1) {
+          for (let moveB = -30; moveB <= 30; moveB += 1)
+            consider([
+              [a, moveA],
+              [b, moveB],
+            ]);
+        }
+      }
+    }
+    const chosen = best.current;
+    if (!chosen || chosen.score >= scoreNow) break;
+    for (const [id, shift] of chosen.moves) grams.set(id, Math.round((grams.get(id) ?? 0) + shift));
+    current = chosen.next;
+  }
+  if (swapGap(params.before, current) > 0) return null;
+  const items = params.day.items.map((row) => {
+    if (row.slot !== params.slot) return row;
+    const ingredients = row.ingredients.map((line) => {
+      const nextGrams = grams.get(line.product_id);
+      if (nextGrams == null || Math.abs(nextGrams - Number(line.grams)) < 0.5) return line;
+      const product = params.products.get(line.product_id);
+      return product ? buildIngredientLine(product, nextGrams, line.sort_order) : line;
+    });
+    return recalculateMealFromProducts({ ...row, ingredients }, params.products);
+  });
+  return applyDayItems(params.day, items, params.products);
+}
+
 export function replaceIngredientInMeal(params: {
   day: ConstructorDay;
   slot: PlanSlot;
@@ -237,26 +376,36 @@ export function replaceIngredientInMeal(params: {
         ? buildIngredientLine(params.replacement, suggestion.grams, ing.sort_order)
         : ing,
     );
-    const rename = (text: string) => text.split(source.name).join(params.replacement.name);
+    const rename = (text: string) => renameDishText(text, source.name, params.replacement.name);
     return recalculateMealFromProducts(
       {
         ...row,
-        recipe_name: rename(row.recipe_name),
-        steps: row.steps.map(rename),
+        recipe_name: rename(row.recipe_name ?? ""),
+        steps: (row.steps ?? []).map(rename),
         ingredients,
       },
       params.products,
     );
   });
-  const next = applyDayItems(params.day, items, params.products);
-  const after = {
-    kcal: Number(next.kcal),
-    protein_g: Number(next.protein_g),
-    fat_g: Number(next.fat_g),
-    carbs_g: Number(next.carbs_g),
-  };
-  if (swapMovesBeyondTolerance(before, after)) {
-    throw new ManualMealEditError(SWAP_TOLERANCE_MESSAGE);
+  let next = applyDayItems(params.day, items, params.products);
+  const afterOf = (day: ConstructorDay): MacroSnap => ({
+    kcal: Number(day.kcal),
+    protein_g: Number(day.protein_g),
+    fat_g: Number(day.fat_g),
+    carbs_g: Number(day.carbs_g),
+  });
+  if (swapMovesBeyondTolerance(before, afterOf(next))) {
+    const balanced = balanceSwappedMeal({
+      day: next,
+      slot: params.slot,
+      replacementId: params.replacement.id,
+      before,
+      products: params.products,
+    });
+    if (!balanced || swapMovesBeyondTolerance(before, afterOf(balanced))) {
+      throw new ManualMealEditError(SWAP_TOLERANCE_MESSAGE);
+    }
+    next = balanced;
   }
   return next;
 }

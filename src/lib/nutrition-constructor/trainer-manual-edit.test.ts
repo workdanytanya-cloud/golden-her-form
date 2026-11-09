@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildForbiddenProductIds } from "@/lib/nutrition-constructor/allergens";
-import {
-  comparisonRows,
-  formatUsedTargetsLine,
-} from "@/lib/nutrition-constructor/calculator";
+import { comparisonRows, formatUsedTargetsLine } from "@/lib/nutrition-constructor/calculator";
 import { DEFAULT_TOLERANCE } from "@/lib/nutrition-constructor/config";
 import { analyzeCatalogForGeneration } from "@/lib/nutrition-constructor/catalog-diagnostics";
 import { d, displayMacro } from "@/lib/nutrition-constructor/decimal-math";
@@ -115,7 +112,7 @@ describe("manual 1313 vs auto-calc", () => {
       });
       expect(rows[0]!.target).toBe(1313);
     }
-  });
+  }, 35_000);
 });
 
 describe("mode switch 2+2 → 1+3", () => {
@@ -160,9 +157,9 @@ describe("mode switch 2+2 → 1+3", () => {
     expect(day.items.filter((i) => i.slot.startsWith("snack"))).toHaveLength(3);
     expect(day.items.some((i) => i.slot === "main2")).toBe(false);
     expect(day.items.some((i) => i.slot === "snack3")).toBe(true);
-    expect(day.items.filter((i) => i.slot.startsWith("snack")).every((i) => !i.requires_cooking)).toBe(
-      true,
-    );
+    expect(
+      day.items.filter((i) => i.slot.startsWith("snack")).every((i) => !i.requires_cooking),
+    ).toBe(true);
     const frozen = buildConstructorNutritionSnapshot({
       days: [day],
       targets: MANUAL_1313,

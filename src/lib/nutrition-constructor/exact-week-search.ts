@@ -1,6 +1,14 @@
-import { slotsForMode, type MealScheduleMode, type PlanSlot } from "@/lib/nutrition-constructor/config";
+import {
+  slotsForMode,
+  type MealScheduleMode,
+  type PlanSlot,
+} from "@/lib/nutrition-constructor/config";
 import { buildIngredientLine, buildMealPlanItem } from "@/lib/nutrition-constructor/calculator";
-import { snapshotMacro, withinTolerance, type MacroBreakdown } from "@/lib/nutrition-constructor/decimal-math";
+import {
+  snapshotMacro,
+  withinTolerance,
+  type MacroBreakdown,
+} from "@/lib/nutrition-constructor/decimal-math";
 import { fitDayItems } from "@/lib/nutrition-constructor/macro-solver";
 import type { OptimizerContext } from "@/lib/nutrition-constructor/optimizer";
 import { isAutoGenerationEligible } from "@/lib/nutrition-constructor/recipe-selection";
@@ -16,7 +24,7 @@ export type ExactWeekResult = {
 };
 
 function fitsSlot(recipe: Recipe, slot: PlanSlot): boolean {
-  return recipe.meal_types.includes(slotMealRole(slot));
+  return (recipe.meal_types ?? []).includes(slotMealRole(slot));
 }
 
 function permutations<T>(items: T[]): T[][] {
@@ -52,7 +60,11 @@ function conflicts(recipes: Recipe[]): boolean {
       if (signatures.has(recipe.ingredient_signature)) return true;
       signatures.add(recipe.ingredient_signature);
     }
-    if (recipe.meal_type !== "snack" && recipe.primary_protein && recipe.primary_protein !== "none") {
+    if (
+      recipe.meal_type !== "snack" &&
+      recipe.primary_protein &&
+      recipe.primary_protein !== "none"
+    ) {
       if (proteins.includes(recipe.primary_protein)) return true;
       proteins.push(recipe.primary_protein);
     }
@@ -164,6 +176,7 @@ export function buildExactWeek(params: {
     if (conflicts(chosen)) return;
     if (!targetOk(chosen)) return;
     if (
+      !overlapMode &&
       chosen.some(
         (recipe) =>
           usedIds.has(recipe.id) ||
@@ -209,9 +222,9 @@ export function buildExactWeek(params: {
         }
         return Boolean(
           prevRecipe.primary_carb &&
-            nextRecipe.primary_carb &&
-            prevRecipe.primary_carb === nextRecipe.primary_carb &&
-            !["veg", "none"].includes(nextRecipe.primary_carb),
+          nextRecipe.primary_carb &&
+          prevRecipe.primary_carb === nextRecipe.primary_carb &&
+          !["veg", "none"].includes(nextRecipe.primary_carb),
         );
       });
     };
@@ -227,7 +240,10 @@ export function buildExactWeek(params: {
           index,
         ),
       );
-      if (slot.startsWith("main") && !lines.some((line) => line.product_name.toLowerCase().includes("масло"))) {
+      if (
+        slot.startsWith("main") &&
+        !lines.some((line) => line.product_name.toLowerCase().includes("масло"))
+      ) {
         const oil = [...params.ctx.products.values()].find(
           (product) => product.slug === "olive-oil" && !params.excluded.has(product.id),
         );
@@ -272,10 +288,32 @@ export function buildExactWeek(params: {
         }),
       ).length + (bySlot.get("main1")?.primary_protein === "egg" ? 1 : 0);
     if (eggBreakfasts > 3) return;
-    for (const recipe of chosen) {
-      usedIds.add(recipe.id);
-      if (recipe.variant_group) usedGroups.add(recipe.variant_group);
-      if (recipe.ingredient_signature) usedSignatures.add(recipe.ingredient_signature);
+    const slotOverused = [...bySlot.entries()].some(([slot, recipe]) => {
+      if (!slot.startsWith("main") || !recipe) return false;
+      const same = (kind: "protein" | "carb", value: string | null | undefined) => {
+        if (!value || value === "none" || value === "veg") return 0;
+        return pool.filter((day) =>
+          day.items.some((item) => {
+            if (item.slot !== slot) return false;
+            const previous = params.ctx.recipes.find((entry) => entry.id === item.recipe_id);
+            return kind === "protein"
+              ? previous?.primary_protein === value
+              : previous?.primary_carb === value;
+          }),
+        ).length;
+      };
+      const carbCap = snackSlots.length === 0 ? 2 : 3;
+      return (
+        same("protein", recipe.primary_protein) >= 3 || same("carb", recipe.primary_carb) >= carbCap
+      );
+    });
+    if (mainSlots.length >= 2 && goal.k >= 2600 && slotOverused) return;
+    if (!overlapMode) {
+      for (const recipe of chosen) {
+        usedIds.add(recipe.id);
+        if (recipe.variant_group) usedGroups.add(recipe.variant_group);
+        if (recipe.ingredient_signature) usedSignatures.add(recipe.ingredient_signature);
+      }
     }
     pool.push({
       day_index: pool.length,
@@ -319,6 +357,60 @@ export function buildExactWeek(params: {
     }
     return total;
   };
+  const rangeCache = new Map<string, { min: Macro4; max: Macro4 }>();
+  const rangeOf = (recipe: Recipe) => {
+    const cached = rangeCache.get(recipe.id);
+    if (cached) return cached;
+    const min = { k: 0, p: 0, f: 0, c: 0 };
+    const max = { k: 0, p: 0, f: 0, c: 0 };
+    for (const ingredient of params.ctx.recipeIngredients.get(recipe.id) ?? []) {
+      const rate = rateOf(ingredient.product_id);
+      if (!rate) continue;
+      const add = (target: Macro4, grams: number) => {
+        target.k += rate.kcal * grams;
+        target.p += rate.protein * grams;
+        target.f += rate.fat * grams;
+        target.c += rate.carbs * grams;
+      };
+      add(min, ingredient.min_g);
+      add(max, ingredient.max_g);
+    }
+    const value = { min, max };
+    rangeCache.set(recipe.id, value);
+    return value;
+  };
+  const span = (recipes: Recipe[], oilMains: number) => {
+    const min = { k: 0, p: 0, f: 0, c: 0 };
+    const max = { k: oilMains * 8.84 * 15, p: 0, f: oilMains * 15, c: 0 };
+    for (const recipe of recipes) {
+      const range = rangeOf(recipe);
+      min.k += range.min.k;
+      min.p += range.min.p;
+      min.f += range.min.f;
+      min.c += range.min.c;
+      max.k += range.max.k;
+      max.p += range.max.p;
+      max.f += range.max.f;
+      max.c += range.max.c;
+    }
+    return { min, max };
+  };
+  const bandScore = (recipes: Recipe[], oilMains: number) => {
+    const mid = distance(combine(recipes, oilMains));
+    const { min, max } = span(recipes, oilMains);
+    let penalty = mid;
+    if (goal.k >= 2600) {
+      if (max.p < goal.p - 4) penalty += (goal.p - max.p) * 12;
+      if (max.c < goal.c - 8) penalty += (goal.c - max.c) * 6;
+      if (max.k < goal.k - 40) penalty += (goal.k - max.k) / 18;
+      if (min.f > goal.f + 12) penalty += (min.f - goal.f) * 4;
+    } else if ((goal.k <= 1700 || (goal.p <= 100 && goal.k <= 1900)) && min.k > goal.k + 40) {
+      penalty += (min.k - goal.k) / 15;
+    }
+    if (goal.c < 140 && min.c > goal.c + 2) penalty += (min.c - goal.c) * 12;
+    if (goal.c < 140 && max.p + 2 < goal.p) penalty += (goal.p - max.p) * 8;
+    return penalty;
+  };
   const goal = {
     k: params.targets.kcal.toNumber(),
     p: params.targets.protein_g.toNumber(),
@@ -357,11 +449,13 @@ export function buildExactWeek(params: {
     const byPreference = rank(a) - rank(b);
     const preferKnownPlates = mainSlots.length === 1 && goal.k >= 1650 && goal.k <= 1950;
     if (preferKnownPlates && byPreference !== 0) return byPreference;
-    return distance(combine(a, mainSlots.length)) - distance(combine(b, mainSlots.length));
+    return bandScore(a, mainSlots.length) - bandScore(b, mainSlots.length);
   });
   const snackPlans = (mainCombo: Recipe[]): Recipe[][] => {
     if (snackSlots.length === 0) return [[]];
-    const eligible = snacks.filter((recipe) => !blocked(recipe) && !conflicts([...mainCombo, recipe]));
+    const eligible = snacks.filter(
+      (recipe) => (overlapMode || !blocked(recipe)) && !conflicts([...mainCombo, recipe]),
+    );
     const pick = (key: "p" | "f" | "c", count: number) =>
       [...eligible].sort((a, b) => midpoint(b)[key] - midpoint(a)[key]).slice(0, count);
     const perMacro = snackSlots.length >= 3 ? 6 : 4;
@@ -370,14 +464,49 @@ export function buildExactWeek(params: {
       shortlist.set(recipe.id, recipe);
     }
     const plans: Recipe[][] = [];
-    if (snackSlots.length >= 3) {
-      const sample = (key: "p" | "f" | "c", indexes: number[]) => {
-        const sorted = [...eligible].sort((a, b) => midpoint(b)[key] - midpoint(a)[key]);
-        return indexes.map((index) => sorted[index]).filter((recipe): recipe is Recipe => Boolean(recipe));
+    if (snackSlots.length >= 3 && goal.k >= 2400) {
+      const hearty = [...eligible]
+        .sort((a, b) => {
+          const score = (recipe: Recipe) => {
+            const macro = midpoint(recipe);
+            return macro.c * 5 + macro.p * 2 + macro.k / 40;
+          };
+          return score(b) - score(a);
+        })
+        .slice(0, goal.k >= 3200 ? 22 : 15);
+      for (const combo of combinations(hearty, snackSlots.length)) {
+        if (conflicts([...mainCombo, ...combo])) continue;
+        plans.push(combo);
+      }
+    } else if (snackSlots.length >= 3 && goal.c < 140) {
+      const lean = [...eligible]
+        .filter((recipe) => midpoint(recipe).c <= 16 && midpoint(recipe).p >= 6)
+        .sort((a, b) => midpoint(b).p - midpoint(a).p)
+        .slice(0, 8);
+      plans.push(
+        ...[...combinations(lean, 3)].filter((combo) => !conflicts([...mainCombo, ...combo])),
+      );
+    } else if (snackSlots.length >= 3) {
+      const light = goal.k <= 1700;
+      const sample = (key: "p" | "f" | "c", indexes: number[], ascending = false) => {
+        const sorted = [...eligible].sort((a, b) =>
+          ascending ? midpoint(a)[key] - midpoint(b)[key] : midpoint(b)[key] - midpoint(a)[key],
+        );
+        return indexes
+          .map((index) => sorted[index])
+          .filter((recipe): recipe is Recipe => Boolean(recipe));
       };
-      const proteins = sample("p", [0, 1, 2, 4, 7]);
-      const fats = sample("f", [1, 3, 5, 8, 12]);
-      const carbs = sample("c", [0, 1, 3, 6]);
+      const proteins = sample("p", light ? [1, 2, 4, 6, 8] : [0, 1, 2, 4, 7], light);
+      const fats = sample(
+        "f",
+        light ? [1, 3, 5, 8, 11] : goal.k >= 2600 ? [0, 1, 2, 4, 6] : [1, 3, 5, 8, 12],
+        light,
+      );
+      const carbs = sample(
+        "c",
+        light ? [1, 2, 4, 7] : goal.k >= 2600 ? [0, 1, 2, 4] : [0, 1, 3, 6],
+        light,
+      );
       for (const proteinSnack of proteins) {
         for (const fatSnack of fats) {
           for (const carbSnack of carbs) {
@@ -391,6 +520,25 @@ export function buildExactWeek(params: {
           }
         }
       }
+    } else if (snackSlots.length === 2 && (goal.k <= 1700 || (goal.p <= 100 && goal.k <= 1900))) {
+      const light = [...eligible]
+        .filter((recipe) => {
+          const macro = midpoint(recipe);
+          return (
+            macro.k <= 280 && macro.p >= 4 && macro.p <= 30 && (goal.c >= 140 || macro.c <= 35)
+          );
+        })
+        .sort((a, b) => midpoint(a).k - midpoint(b).k);
+      const varied = [
+        ...light.slice(0, 6),
+        ...[...light].sort((a, b) => midpoint(b).p - midpoint(a).p).slice(0, 6),
+      ];
+      const uniqueLight = [...new Map(varied.map((recipe) => [recipe.id, recipe])).values()];
+      plans.push(
+        ...[...combinations(uniqueLight, 2)].filter(
+          (combo) => !conflicts([...mainCombo, ...combo]),
+        ),
+      );
     } else {
       plans.push(
         ...[...combinations([...shortlist.values()], snackSlots.length)].filter(
@@ -400,40 +548,201 @@ export function buildExactWeek(params: {
     }
     plans.sort(
       (a, b) =>
-        distance(combine([...mainCombo, ...a], mainSlots.length)) -
-        distance(combine([...mainCombo, ...b], mainSlots.length)),
+        bandScore([...mainCombo, ...a], mainSlots.length) -
+        bandScore([...mainCombo, ...b], mainSlots.length),
     );
     const almost = pool.length >= params.days - 1;
-    return plans.slice(0, snackSlots.length >= 3 ? (almost ? 80 : 60) : almost ? 28 : 12);
+    return plans.slice(
+      0,
+      snackSlots.length >= 3
+        ? almost
+          ? 80
+          : goal.c < 140
+            ? 24
+            : 60
+        : almost
+          ? 16
+          : goal.c < 140
+            ? 12
+            : goal.k <= 1700
+              ? 6
+              : 14,
+    );
   };
 
+  let overlapMode = false;
+  const overlap: ConstructorDay[] = [];
+  const seenKeys = new Set<string>();
   const targetPool = params.days + 3;
-  for (let round = 0; round < 2 && pool.length < targetPool && Date.now() < params.deadlineMs; round++) {
+  const phase1Until = Math.min(params.deadlineMs, Date.now() + (goal.k >= 2800 ? 20_000 : 24_000));
+  const acceptKey = (chosen: Recipe[]) =>
+    chosen
+      .map((recipe) => recipe.id)
+      .sort()
+      .join("|");
+  const originalTry = tryRecipes;
+  const remember = (chosen: Recipe[]) => {
+    const key = acceptKey(chosen);
+    if (seenKeys.has(key)) return false;
+    seenKeys.add(key);
+    return true;
+  };
+  for (let round = 0; round < 2 && pool.length < targetPool && Date.now() < phase1Until; round++) {
     for (const mainCombo of mainCombos) {
-      if (Date.now() > params.deadlineMs || pool.length >= targetPool) break;
+      if (Date.now() > phase1Until || pool.length >= targetPool) break;
       if (mainCombo.some(blocked)) continue;
       const before = pool.length;
       if (snackSlots.length === 0) {
-        tryRecipes(mainCombo);
+        if (remember(mainCombo)) originalTry(mainCombo);
         continue;
       }
       for (const snackCombo of snackPlans(mainCombo)) {
-        if (Date.now() > params.deadlineMs || pool.length >= targetPool) break;
-        tryRecipes([...mainCombo, ...snackCombo]);
+        if (Date.now() > phase1Until || pool.length >= targetPool) break;
+        const chosen = [...mainCombo, ...snackCombo];
+        if (!remember(chosen)) continue;
+        originalTry(chosen);
         if (pool.length > before) break;
       }
     }
   }
+  const needsAlternatives =
+    pool.length < params.days ||
+    (pool.length >= params.days &&
+      orderExactDays(pool, params.ctx.recipes, params.days).length < params.days);
+  if (needsAlternatives && Date.now() < params.deadlineMs) {
+    overlapMode = true;
+    const savedPool = pool;
+    const poolRecipeIds = new Set(pool.flatMap((day) => day.items.map((item) => item.recipe_id)));
+    const capture = (chosen: Recipe[]) => {
+      if (overlap.length >= 24 || !remember(chosen)) return;
+      if (!chosen.some((recipe) => !poolRecipeIds.has(recipe.id))) return;
+      const before = savedPool.length;
+      originalTry(chosen);
+      if (savedPool.length > before) {
+        overlap.push(savedPool.pop()!);
+      }
+    };
+    for (const mainCombo of mainCombos) {
+      if (Date.now() > params.deadlineMs || overlap.length >= 16) break;
+      if (snackSlots.length === 0) {
+        capture(mainCombo);
+        continue;
+      }
+      let added = 0;
+      for (const snackCombo of snackPlans(mainCombo)) {
+        if (Date.now() > params.deadlineMs || overlap.length >= 24 || added >= 3) break;
+        const before = overlap.length;
+        capture([...mainCombo, ...snackCombo]);
+        if (overlap.length > before) added += 1;
+      }
+    }
+  }
+  const ordered = orderExactDays(pool, params.ctx.recipes, params.days);
+  const packed =
+    ordered.length === params.days
+      ? pool
+      : packDisjointDays([...pool, ...overlap], params.ctx.recipes, params.days);
 
   return {
-    days: pool,
+    days: packed.length > 0 ? packed : pool,
     checked,
-    exactDays: pool.length,
-    timedOut: Date.now() > params.deadlineMs && pool.length < params.days,
+    exactDays: Math.max(pool.length, packed.length),
+    timedOut:
+      Date.now() > params.deadlineMs && packed.length < params.days && pool.length < params.days,
   };
 }
 
-export function orderExactDays(days: ConstructorDay[], recipes: Recipe[], count: number): ConstructorDay[] {
+function packDisjointDays(
+  days: ConstructorDay[],
+  recipes: Recipe[],
+  count: number,
+): ConstructorDay[] {
+  if (days.length < count) return [];
+  const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
+  const chosen: ConstructorDay[] = [];
+  const usedDay = new Set<number>();
+  const ids = new Set<string>();
+  const groups = new Set<string>();
+  const signatures = new Set<string>();
+  let eggs = 0;
+  let nodes = 0;
+  const touches = (day: ConstructorDay, add: boolean) => {
+    for (const item of day.items) {
+      const recipe = byId.get(item.recipe_id);
+      if (add) ids.add(item.recipe_id);
+      else ids.delete(item.recipe_id);
+      if (recipe?.variant_group) {
+        if (add) groups.add(recipe.variant_group);
+        else groups.delete(recipe.variant_group);
+      }
+      if (recipe?.ingredient_signature) {
+        if (add) signatures.add(recipe.ingredient_signature);
+        else signatures.delete(recipe.ingredient_signature);
+      }
+      if (item.slot === "main1" && recipe?.primary_protein === "egg") eggs += add ? 1 : -1;
+    }
+  };
+  const fits = (day: ConstructorDay) => {
+    for (const item of day.items) {
+      const recipe = byId.get(item.recipe_id);
+      if (ids.has(item.recipe_id)) return false;
+      if (recipe?.variant_group && groups.has(recipe.variant_group)) return false;
+      if (recipe?.ingredient_signature && signatures.has(recipe.ingredient_signature)) return false;
+    }
+    const nextEggs =
+      eggs +
+      day.items.filter(
+        (item) => item.slot === "main1" && byId.get(item.recipe_id)?.primary_protein === "egg",
+      ).length;
+    if (nextEggs > 2) return false;
+    const prev = chosen[chosen.length - 1];
+    if (!prev) return true;
+    return !day.items.some((item) => {
+      if (!item.slot.startsWith("main")) return false;
+      const prevItem = prev.items.find((entry) => entry.slot === item.slot);
+      const prevRecipe = prevItem ? byId.get(prevItem.recipe_id) : undefined;
+      const recipe = byId.get(item.recipe_id);
+      if (!prevRecipe || !recipe) return false;
+      if (
+        prevRecipe.primary_protein &&
+        recipe.primary_protein &&
+        prevRecipe.primary_protein === recipe.primary_protein &&
+        recipe.primary_protein !== "none"
+      ) {
+        return true;
+      }
+      return Boolean(
+        recipe.primary_carb &&
+        prevRecipe.primary_carb &&
+        recipe.primary_carb === prevRecipe.primary_carb &&
+        !["veg", "none"].includes(recipe.primary_carb),
+      );
+    });
+  };
+  const visit = (): boolean => {
+    if (chosen.length === count) return true;
+    if (nodes++ > 40_000) return false;
+    for (let index = 0; index < days.length; index++) {
+      if (usedDay.has(index) || !fits(days[index]!)) continue;
+      usedDay.add(index);
+      chosen.push(days[index]!);
+      touches(days[index]!, true);
+      if (visit()) return true;
+      touches(days[index]!, false);
+      chosen.pop();
+      usedDay.delete(index);
+    }
+    return false;
+  };
+  if (!visit()) return [];
+  return chosen.map((day, index) => ({ ...day, day_index: index }));
+}
+
+export function orderExactDays(
+  days: ConstructorDay[],
+  recipes: Recipe[],
+  count: number,
+): ConstructorDay[] {
   const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
   const chosen: ConstructorDay[] = [];
   const used = new Set<number>();
@@ -457,9 +766,9 @@ export function orderExactDays(days: ConstructorDay[], recipes: Recipe[], count:
       }
       return Boolean(
         prevRecipe.primary_carb &&
-          recipe.primary_carb &&
-          prevRecipe.primary_carb === recipe.primary_carb &&
-          !["veg", "none"].includes(recipe.primary_carb),
+        recipe.primary_carb &&
+        prevRecipe.primary_carb === recipe.primary_carb &&
+        !["veg", "none"].includes(recipe.primary_carb),
       );
     });
   };
@@ -470,7 +779,9 @@ export function orderExactDays(days: ConstructorDay[], recipes: Recipe[], count:
       used.add(index);
       chosen.push({ ...days[index]!, day_index: chosen.length });
       const eggBreakfasts = chosen.filter((day) =>
-        day.items.some((item) => item.slot === "main1" && byId.get(item.recipe_id)?.primary_protein === "egg"),
+        day.items.some(
+          (item) => item.slot === "main1" && byId.get(item.recipe_id)?.primary_protein === "egg",
+        ),
       ).length;
       const ok = neighborOk() && eggBreakfasts <= 2;
       if (ok && visit()) return true;

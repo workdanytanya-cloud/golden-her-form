@@ -8,6 +8,7 @@ export type CookingMethod = "boil" | "bake" | "stew" | "pan" | "assemble" | "sou
 
 const PROTEIN_FAMILY: Record<string, string> = {
   "chicken-breast-raw": "chicken",
+  "cooked-chicken-breast": "chicken",
   "chicken-thigh-raw": "chicken",
   "turkey-breast-raw": "turkey",
   "ground-turkey-raw": "turkey",
@@ -26,6 +27,7 @@ const PROTEIN_FAMILY: Record<string, string> = {
   kefir: "kefir",
   "kefir-lf": "kefir",
   "hard-cheese": "cheese",
+  "cheddar-cheese": "cheese",
   "lactose-free-milk": "milk",
 };
 
