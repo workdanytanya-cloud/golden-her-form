@@ -237,7 +237,11 @@ export function assertPublishableTrainingDraft(input: {
   if (![3, 4].includes(Number(program.sessions_per_week))) {
     throw Object.assign(new Error("sessions_per_week должен быть 3 или 4"), { statusCode: 400 });
   }
-  if (!Number.isFinite(program.program_weeks) || program.program_weeks < 1 || program.program_weeks > 12) {
+  if (
+    !Number.isFinite(program.program_weeks) ||
+    program.program_weeks < 1 ||
+    program.program_weeks > 12
+  ) {
     throw Object.assign(new Error("program_weeks вне диапазона 1–12"), { statusCode: 400 });
   }
   if (!days.length) {
@@ -271,10 +275,9 @@ export function assertPublishableTrainingDraft(input: {
     for (const block of blocks) {
       for (const set of block.sets) {
         if (!set?.exercise_id || !uuidRe.test(String(set.exercise_id))) {
-          throw Object.assign(
-            new Error(`Некорректный exercise_id в ${block.name} дня ${key}`),
-            { statusCode: 400 },
-          );
+          throw Object.assign(new Error(`Некорректный exercise_id в ${block.name} дня ${key}`), {
+            statusCode: 400,
+          });
         }
         if (!Number.isFinite(Number(set.sets)) || Number(set.sets) < 0 || Number(set.sets) > 50) {
           throw Object.assign(new Error(`Некорректное число подходов в ${block.name}`), {
@@ -288,10 +291,9 @@ export function assertPublishableTrainingDraft(input: {
     }
     if (!day.is_rest) {
       if ((day.exercises ?? []).length === 0) {
-        throw Object.assign(
-          new Error(`Тренировочный день ${key} без упражнений в силовом блоке`),
-          { statusCode: 400 },
-        );
+        throw Object.assign(new Error(`Тренировочный день ${key} без упражнений в силовом блоке`), {
+          statusCode: 400,
+        });
       }
       trainingBlocks += 1;
     }
@@ -529,7 +531,9 @@ export async function saveTrainingDraftPg(
     }
     const loaded = await loadTrainingDraftPg(client, input.clientId, courseId);
     if (!loaded.program) {
-      throw Object.assign(new Error("Не удалось сохранить черновик тренировок"), { statusCode: 500 });
+      throw Object.assign(new Error("Не удалось сохранить черновик тренировок"), {
+        statusCode: 500,
+      });
     }
     return { program: loaded.program, days: loaded.days };
   };
@@ -537,7 +541,7 @@ export async function saveTrainingDraftPg(
   return isPoolClient(db) ? run(db) : withTransaction((client) => run(client));
 }
 
-async function loadPreviousTrainingContextPg(
+export async function loadPreviousTrainingContextPg(
   db: Queryable,
   clientId: string,
   targetCourseId: string,
@@ -582,14 +586,13 @@ async function loadPreviousTrainingContextPg(
   const previousProgram = published?.snapshot ?? draft.program;
   if (!previousProgram || previousDays.length === 0) return null;
 
-  const priorBlocks = courses.filter(
-    (c) => c.id !== targetCourseId && c.status !== "draft",
-  ).length;
+  const priorBlocks = courses.filter((c) => c.id !== targetCourseId && c.status !== "draft").length;
 
   return {
     days: previousDays,
     goal: ((previousProgram.goal as ProgramInput["goal"]) ?? "maintain") as ProgramInput["goal"],
-    level: ((previousProgram.level as ProgramInput["level"]) ?? "beginner") as ProgramInput["level"],
+    level: ((previousProgram.level as ProgramInput["level"]) ??
+      "beginner") as ProgramInput["level"],
     sessions_per_week: (Number(previousProgram.sessions_per_week) >= 4 ? 4 : 3) as 3 | 4,
     courseNumber: Math.max(2, priorBlocks + 1),
     sourceCourseTitle: sourceCourse.title,
@@ -736,7 +739,8 @@ export async function patchTrainingProgramPg(
       push("sessions_per_week", input.patch.sessions_per_week);
     if (input.patch.goal !== undefined) push("goal", input.patch.goal);
     if (input.patch.level !== undefined) push("level", input.patch.level);
-    if (input.patch.targets_manual !== undefined) push("targets_manual", input.patch.targets_manual);
+    if (input.patch.targets_manual !== undefined)
+      push("targets_manual", input.patch.targets_manual);
     if (input.patch.program_weeks !== undefined) push("program_weeks", input.patch.program_weeks);
     if (!fields.length) return { ok: true as const };
 

@@ -317,7 +317,8 @@ export async function listClientCoursesPg(
   clientId: string,
 ): Promise<ClientCourse[]> {
   const { rows } = await db.query(
-    `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope
+    `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope,
+            nutrition_generation_status, training_generation_status, nutrition_generation_error, training_generation_error
      FROM public.client_courses WHERE client_id = $1 ORDER BY start_date DESC`,
     [clientId],
   );
@@ -332,6 +333,10 @@ export async function listClientCoursesPg(
     created_by: row.created_by,
     notes: row.notes,
     program_scope: row.program_scope ?? "both",
+    nutrition_generation_status: row.nutrition_generation_status ?? null,
+    training_generation_status: row.training_generation_status ?? null,
+    nutrition_generation_error: row.nutrition_generation_error ?? null,
+    training_generation_error: row.training_generation_error ?? null,
   }));
 }
 

@@ -8,6 +8,7 @@ import {
   toISODate,
   type ClientCourseStatus,
 } from "@/lib/client-courses/format";
+import type { ProgramGenerationStatus } from "@/lib/client-courses/program-readiness";
 
 export type ClientCourse = {
   id: string;
@@ -20,6 +21,10 @@ export type ClientCourse = {
   created_by: string | null;
   notes: string | null;
   program_scope: "nutrition" | "training" | "both";
+  nutrition_generation_status?: ProgramGenerationStatus | null;
+  training_generation_status?: ProgramGenerationStatus | null;
+  nutrition_generation_error?: string | null;
+  training_generation_error?: string | null;
 };
 
 export { courseStatusLabel, formatCourseTitle, buildCourseTitleFromISO };

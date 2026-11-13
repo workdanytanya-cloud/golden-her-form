@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { PanelHeader } from "@/components/panel/PanelShell";
@@ -35,7 +35,17 @@ import {
 import { publishLegacyNutrition } from "@/lib/published-programs/repo";
 import { NutritionDocumentsPanel } from "@/components/panel/NutritionDocumentsPanel";
 import { PublishedNutritionPreview } from "@/components/panel/PublishedNutritionPreview";
-import { loadAdminNutritionState, withLoadingFinally } from "@/lib/admin-nutrition/load-state";
+import { loadAdminNutritionState } from "@/lib/admin-nutrition/load-state";
+import { listClientCourses } from "@/lib/client-courses";
+import {
+  emptyDraftGate,
+  finishLoading,
+  NO_COURSE_TEXT,
+  NUTRITION_OUT_OF_SCOPE_TEXT,
+  programPageGate,
+  selectCourse,
+  type ProgramPageGate,
+} from "@/lib/admin-program-page";
 import {
   loadPublishedNutritionFor,
   type PublishedNutritionView,
@@ -68,6 +78,10 @@ function AdminNutritionPage() {
   > | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [gate, setGate] = useState<ProgramPageGate>({ kind: "ready" });
+  const [resolvedCourseId, setResolvedCourseId] = useState<string | null>(courseId ?? null);
+  const [retrying, setRetrying] = useState(false);
+  const alive = useRef(true);
   const [published, setPublished] = useState<PublishedNutritionView | null>(null);
   const [showSetup, setShowSetup] = useState(false);
   const [nutritionMode, setNutritionMode] = useState<"legacy" | "constructor">("constructor");
@@ -75,10 +89,22 @@ function AdminNutritionPage() {
   const reload = async () => {
     setLoadError(null);
     try {
-      await withLoadingFinally(setLoading, async () => {
+      await finishLoading(setLoading, async () => {
+        const courses = await listClientCourses(id);
+        const course = selectCourse(courses, courseId);
+        if (!alive.current) return;
+        setResolvedCourseId(course?.id ?? null);
+        const nextGate = programPageGate(course, "nutrition");
+        if (nextGate.kind !== "ready") {
+          setGate(nextGate);
+          setPlan(null);
+          setDays([]);
+          setPublished(null);
+          return;
+        }
         const state = await loadAdminNutritionState(
-          () => loadPlanFor(id, courseId),
-          () => loadPublishedNutritionFor(id, courseId),
+          () => loadPlanFor(id, course?.id ?? courseId),
+          () => loadPublishedNutritionFor(id, course?.id ?? courseId),
         );
         const p = state.draft;
         const planIds = p.days.flatMap((day) => day.meals.map((meal) => meal.dish_id));
@@ -115,16 +141,58 @@ function AdminNutritionPage() {
         setTargetProfile(prof);
         setAutoExcluded(extractExcludedFromText(prof.allergies, prof.disliked_foods));
         setProfileName(fullName);
+        setGate(emptyDraftGate(Boolean(p.plan) || Boolean(state.published)));
       });
     } catch (error) {
-      setLoadError((error as Error).message || "Не удалось загрузить питание клиента");
+      if (!alive.current) return;
+      const message = (error as Error).message || "Не удалось загрузить питание клиента";
+      setLoadError(message);
+      setGate({ kind: "failed", message });
     }
   };
 
   useEffect(() => {
+    alive.current = true;
     void reload();
+    return () => {
+      alive.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, courseId]);
+
+  useEffect(() => {
+    if (gate.kind !== "generating") return;
+    const timer = setInterval(() => {
+      if (alive.current) void reload();
+    }, 3000);
+    const stop = setTimeout(() => {
+      if (!alive.current) return;
+      setGate({ kind: "failed", message: "Превышено время генерации. Повторите этап." });
+      setLoading(false);
+    }, 120_000);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(stop);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gate.kind, id, courseId]);
+
+  const retryGeneration = async () => {
+    if (!resolvedCourseId || retrying) return;
+    setRetrying(true);
+    try {
+      const { selfhostAdminRetryCourseGeneration } = await import("@/lib/selfhost/client-api");
+      await selfhostAdminRetryCourseGeneration(id, resolvedCourseId, "nutrition");
+      await reload();
+    } catch (error) {
+      setGate({
+        kind: "failed",
+        message: (error as Error).message || "Не удалось повторить генерацию",
+      });
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   const handleGenerate = async (opts: {
     mealsPerDay: 3 | 5;
@@ -229,6 +297,49 @@ function AdminNutritionPage() {
 
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем…</div>;
 
+  if (
+    gate.kind === "no_course" ||
+    gate.kind === "out_of_scope" ||
+    gate.kind === "generating" ||
+    gate.kind === "failed" ||
+    gate.kind === "missing_draft"
+  ) {
+    const message =
+      gate.kind === "no_course"
+        ? NO_COURSE_TEXT
+        : gate.kind === "out_of_scope"
+          ? NUTRITION_OUT_OF_SCOPE_TEXT
+          : gate.kind === "generating"
+            ? "Создаём черновик питания…"
+            : gate.kind === "failed"
+              ? gate.message
+              : "Питание для этого курса ещё не создано.";
+    return (
+      <div className="space-y-4 rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center">
+        <p className="text-sm text-warm-gray">{message}</p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Link
+            to="/admin/clients/$id"
+            params={{ id }}
+            className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-5 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
+          >
+            <ArrowLeft className="h-4 w-4" /> К карточке клиента
+          </Link>
+          {gate.kind === "failed" || gate.kind === "missing_draft" ? (
+            <button
+              type="button"
+              disabled={retrying || !resolvedCourseId}
+              onClick={() => void retryGeneration()}
+              className="rounded-full border border-gold/30 px-5 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10 disabled:opacity-50"
+            >
+              {gate.kind === "missing_draft" ? "Сформировать питание" : "Повторить генерацию"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   if (loadError) {
     return (
       <div className="space-y-4 rounded-3xl border border-coral/30 bg-surface/40 p-8 text-center">
@@ -271,7 +382,7 @@ function AdminNutritionPage() {
         }
       />
 
-      <NutritionDocumentsPanel clientId={id} courseId={courseId} />
+      <NutritionDocumentsPanel clientId={id} courseId={resolvedCourseId ?? courseId} />
 
       <div className="flex flex-wrap gap-2">
         <button
@@ -331,7 +442,7 @@ function AdminNutritionPage() {
       {nutritionMode === "constructor" && targetProfile && (
         <ConstructorAdminPanel
           userId={id}
-          courseId={courseId}
+          courseId={resolvedCourseId ?? courseId}
           profile={{
             gender: targetProfile.gender,
             birth_date: targetProfile.birth_date,

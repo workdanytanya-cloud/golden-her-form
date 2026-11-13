@@ -335,6 +335,15 @@ export async function selfhostAdminCourses(clientId: string): Promise<ClientCour
   return data.courses as ClientCourse[];
 }
 
+export type CourseProvisionResult = {
+  course: ClientCourse;
+  idempotent?: boolean;
+  stages?: {
+    nutrition: { status: string | null; error: string | null };
+    training: { status: string | null; error: string | null };
+  };
+};
+
 export async function selfhostAdminCreateCourse(
   clientId: string,
   payload: Record<string, unknown>,
@@ -348,6 +357,41 @@ export async function selfhostAdminCreateCourse(
   );
   const data = await readSelfhostJson(res);
   return data.course as ClientCourse;
+}
+
+export async function selfhostAdminProvisionCourse(
+  clientId: string,
+  payload: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<CourseProvisionResult> {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/clients/${encodeURIComponent(clientId)}/courses`,
+    {
+      method: "POST",
+      body: JSON.stringify({ ...payload, provisionDrafts: true }),
+      signal,
+    },
+  );
+  const data = await readSelfhostJson(res);
+  return data as unknown as CourseProvisionResult;
+}
+
+export async function selfhostAdminRetryCourseGeneration(
+  clientId: string,
+  courseId: string,
+  kind?: "nutrition" | "training",
+  signal?: AbortSignal,
+): Promise<CourseProvisionResult> {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/clients/${encodeURIComponent(clientId)}/courses/${encodeURIComponent(courseId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify({ op: "retry-generation", kind }),
+      signal,
+    },
+  );
+  const data = await readSelfhostJson(res);
+  return data as unknown as CourseProvisionResult;
 }
 
 export async function selfhostRenewCourse() {

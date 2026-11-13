@@ -124,6 +124,10 @@ import {
   resolveClientCourseIdPg,
 } from "@/lib/selfhost/postgres-courses";
 import {
+  provisionClientCoursePg,
+  retryCourseGenerationPg,
+} from "@/lib/selfhost/postgres-course-provision";
+import {
   acceptNutritionRecommendationPg,
   loadConstructorPlanPg,
   loadMealPreferencePg,
@@ -214,6 +218,22 @@ function dishesRepo(): PostgresDishRepository {
 
 function coursesRepo(): PostgresClientCourseRepository {
   return new PostgresClientCourseRepository(getPostgresPool());
+}
+
+async function courseScopeOrEmpty(
+  clientId: string,
+  courseId: string | null,
+  kind: "nutrition" | "training",
+): Promise<{ courseId: string | null; availability: "ready" | "no_course" | "out_of_scope" }> {
+  try {
+    const resolved = await assertCourseScopePg(getPostgresPool(), clientId, courseId, kind);
+    return { courseId: resolved, availability: "ready" };
+  } catch (error) {
+    const status = (error as { statusCode?: number }).statusCode;
+    if (status === 404) return { courseId: null, availability: "no_course" };
+    if (status === 403) return { courseId: null, availability: "out_of_scope" };
+    throw error;
+  }
 }
 
 function asClientIdParam(value: unknown): string | null {
@@ -720,15 +740,16 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
 
     if (url.pathname === "/api/selfhost/nutrition" && request.method === "GET") {
       const clientId = scopedClientId(session, url.searchParams.get("clientId"));
-      const courseId = await assertCourseScopePg(
-        getPostgresPool(),
+      const scoped = await courseScopeOrEmpty(
         clientId,
         url.searchParams.get("courseId"),
         "nutrition",
       );
+      if (!scoped.courseId) return json({ nutrition: null, availability: scoped.availability });
+      const courseId = scoped.courseId;
       const record = await getActivePublishedNutritionPg(getPostgresPool(), clientId, courseId);
       const view = await toPublishedNutritionView(record);
-      return json({ nutrition: view });
+      return json({ nutrition: view, availability: "ready" });
     }
 
     if (url.pathname === "/api/selfhost/nutrition/preference" && request.method === "GET") {
@@ -757,15 +778,19 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
 
     if (url.pathname === "/api/selfhost/training" && request.method === "GET") {
       const clientId = scopedClientId(session, url.searchParams.get("clientId"));
-      const courseId = await assertCourseScopePg(
-        getPostgresPool(),
+      const scoped = await courseScopeOrEmpty(
         clientId,
         url.searchParams.get("courseId"),
         "training",
       );
-      const record = await getActivePublishedTrainingPg(getPostgresPool(), clientId, courseId);
+      if (!scoped.courseId) return json({ training: null, availability: scoped.availability });
+      const record = await getActivePublishedTrainingPg(
+        getPostgresPool(),
+        clientId,
+        scoped.courseId,
+      );
       const view = await toPublishedTrainingView(getPostgresPool(), record);
-      return json({ training: view });
+      return json({ training: view, availability: "ready" });
     }
 
     if (url.pathname === "/api/selfhost/admin/exercises" && request.method === "GET") {
@@ -926,7 +951,9 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         const headers = pdfDownloadHeaders(kind, issuedAt, meta.clientName);
         return json({
           filename: headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)?.[1]
-            ? decodeURIComponent(headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)![1]!)
+            ? decodeURIComponent(
+                headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)![1]!,
+              )
             : headers["Content-Disposition"].match(/filename="([^"]+)"/)?.[1],
           contentType: headers["Content-Type"],
           pdfBase64: buffer.toString("base64"),
@@ -958,7 +985,9 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       const headers = pdfDownloadHeaders(kind, issuedAt, meta.clientName);
       return json({
         filename: headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)?.[1]
-          ? decodeURIComponent(headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)![1]!)
+          ? decodeURIComponent(
+              headers["Content-Disposition"].match(/filename\*=UTF-8''([^;]+)/)![1]!,
+            )
           : headers["Content-Disposition"].match(/filename="([^"]+)"/)?.[1],
         contentType: headers["Content-Type"],
         pdfBase64: buffer.toString("base64"),
@@ -1086,18 +1115,16 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       requireAdmin(session);
       const clientId = url.searchParams.get("clientId");
       if (!clientId) return errorJson("Не указан clientId", 400);
-      await assertCourseScopePg(
-        getPostgresPool(),
+      const scoped = await courseScopeOrEmpty(
         clientId,
         url.searchParams.get("courseId"),
         "nutrition",
       );
-      const loaded = await loadConstructorPlanPg(
-        getPostgresPool(),
-        clientId,
-        url.searchParams.get("courseId"),
-      );
-      return json(loaded);
+      if (!scoped.courseId) {
+        return json({ plan: null, days: [], availability: scoped.availability });
+      }
+      const loaded = await loadConstructorPlanPg(getPostgresPool(), clientId, scoped.courseId);
+      return json({ ...loaded, availability: loaded.plan ? "ready" : "missing_draft" });
     }
 
     if (url.pathname === "/api/selfhost/admin/nutrition/draft" && request.method === "POST") {
@@ -1245,18 +1272,16 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       requireAdmin(session);
       const clientId = url.searchParams.get("clientId");
       if (!clientId) return errorJson("Не указан clientId", 400);
-      await assertCourseScopePg(
-        getPostgresPool(),
+      const scoped = await courseScopeOrEmpty(
         clientId,
         url.searchParams.get("courseId"),
         "training",
       );
-      const loaded = await loadTrainingDraftPg(
-        getPostgresPool(),
-        clientId,
-        url.searchParams.get("courseId"),
-      );
-      return json(loaded);
+      if (!scoped.courseId) {
+        return json({ program: null, days: [], availability: scoped.availability });
+      }
+      const loaded = await loadTrainingDraftPg(getPostgresPool(), clientId, scoped.courseId);
+      return json({ ...loaded, availability: loaded.program ? "ready" : "missing_draft" });
     }
 
     if (url.pathname === "/api/selfhost/admin/training/draft" && request.method === "POST") {
@@ -1531,10 +1556,22 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       if (action === "courses" && !extra && request.method === "POST") {
         assertCsrf(request);
         const body = await readJson(request);
-        const created = await coursesRepo().create(
-          adminCourseCreateSchema.parse({ ...body, clientId, createdBy: session.userId }),
-          session.userId,
-        );
+        const parsed = adminCourseCreateSchema.parse({
+          ...body,
+          clientId,
+          createdBy: session.userId,
+        });
+        if (body.provisionDrafts === true) {
+          const result = await provisionClientCoursePg(getPostgresPool(), {
+            clientId,
+            programScope: parsed.programScope,
+            activate: parsed.activate,
+            actorId: session.userId,
+            startDate: parsed.startDate,
+          });
+          return json(result);
+        }
+        const created = await coursesRepo().create(parsed, session.userId);
         return json({ course: created });
       }
 
@@ -1561,6 +1598,16 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         if (op === "activate") {
           await coursesRepo().activate(extra, clientId);
           return json({ ok: true });
+        }
+        if (op === "retry-generation") {
+          const kind =
+            body.kind === "nutrition" || body.kind === "training" ? body.kind : undefined;
+          const result = await retryCourseGenerationPg(getPostgresPool(), {
+            clientId,
+            courseId: extra,
+            kind,
+          });
+          return json(result);
         }
         if (op === "archive") {
           await coursesRepo().archive(extra, clientId);
@@ -1602,6 +1649,10 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
     const status = pg.statusCode ?? 500;
     const message = error instanceof Error ? error.message : "Ошибка сервера";
     if (status >= 500) console.error("[selfhost]", message);
+    const missing = (error as { missing?: unknown }).missing;
+    if (status === 422 && Array.isArray(missing)) {
+      return json({ error: message, missing }, status);
+    }
     return errorJson(message, status);
   }
 }

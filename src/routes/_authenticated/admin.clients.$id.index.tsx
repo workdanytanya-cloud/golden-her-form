@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { StatCard } from "@/components/panel/PanelShell";
@@ -25,7 +25,12 @@ import {
   adminUpdateClientPassword,
   adminUpdateClientProfile,
 } from "@/lib/admin-clients.functions";
-import { AdminCourseManager } from "@/components/panel/AdminCourseManager";
+import {
+  AdminCourseManager,
+  type AdminCourseManagerHandle,
+} from "@/components/panel/AdminCourseManager";
+import { goalLabel } from "@/lib/client-courses/program-readiness";
+import type { ClientCourse } from "@/lib/client-courses";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/")({
   component: ClientDetail,
@@ -76,7 +81,11 @@ function ClientDetail() {
   const [access, setAccess] = useState<Access | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
   const [updatingAccess, setUpdatingAccess] = useState(false);
+  const [courseBusy, setCourseBusy] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [courses, setCourses] = useState<ClientCourse[]>([]);
+  const [onboardingGoal, setOnboardingGoal] = useState<string | null>(null);
+  const courseManager = useRef<AdminCourseManagerHandle>(null);
   const [localCircuit, setLocalCircuit] = useState(false);
   const [accountStatus, setAccountStatus] = useState<string>("active");
 
@@ -106,6 +115,8 @@ function ClientDetail() {
         });
         setAccountStatus(String(c.account_status ?? "active"));
         setOnboardingCompleted(Boolean(c.onboarding_completed_at));
+        const onboarding = c.onboarding as { goal_primary?: string | null } | null;
+        setOnboardingGoal(onboarding?.goal_primary ?? null);
         setItems((c.measurements as Measurement[]) ?? []);
         setLoading(false);
         return;
@@ -204,9 +215,8 @@ function ClientDetail() {
     e.preventDefault();
     setSaving(true);
     try {
-      const { usesLocalPostgresCircuit, selfhostCreateMeasurement } = await import(
-        "@/lib/selfhost/client-api"
-      );
+      const { usesLocalPostgresCircuit, selfhostCreateMeasurement } =
+        await import("@/lib/selfhost/client-api");
       if (await usesLocalPostgresCircuit()) {
         await selfhostCreateMeasurement({
           clientId: id,
@@ -246,9 +256,8 @@ function ClientDetail() {
 
   const remove = async (mid: string) => {
     try {
-      const { usesLocalPostgresCircuit, selfhostDeleteMeasurement } = await import(
-        "@/lib/selfhost/client-api"
-      );
+      const { usesLocalPostgresCircuit, selfhostDeleteMeasurement } =
+        await import("@/lib/selfhost/client-api");
       if (await usesLocalPostgresCircuit()) {
         await selfhostDeleteMeasurement(mid, id);
       } else {
@@ -288,7 +297,7 @@ function ClientDetail() {
           ) : null}
         </div>
         <p className="max-w-3xl text-base leading-relaxed text-warm-gray">
-          {profile?.goal?.replace(/\s+/g, " ").trim() || "Цель не задана"}
+          {goalLabel(profile?.goal) || goalLabel(onboardingGoal) || "Цель не задана"}
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -329,19 +338,25 @@ function ClientDetail() {
       </header>
 
       <AdminCourseManager
+        ref={courseManager}
         clientId={id}
         selectedCourseId={selectedCourseId}
         onSelectCourse={setSelectedCourseId}
         onChanged={load}
+        onCoursesChange={setCourses}
+        onBusyChange={setCourseBusy}
       />
 
       <AccessManager
         status={access?.status ?? null}
         activatedAt={access?.activated_at ?? null}
         onboardingCompleted={onboardingCompleted}
+        hasCourse={courses.length > 0}
+        hasActiveCourse={courses.some((course) => course.status === "active")}
         onGrant={grantAccess}
+        onCreateAndOpen={() => courseManager.current?.createAndActivate()}
         onRevoke={revokeAccess}
-        loading={updatingAccess}
+        loading={updatingAccess || courseBusy}
       />
 
       <ProfileEditor
@@ -519,14 +534,20 @@ function AccessManager({
   status,
   activatedAt,
   onboardingCompleted,
+  hasCourse,
+  hasActiveCourse,
   onGrant,
+  onCreateAndOpen,
   onRevoke,
   loading,
 }: {
   status: string | null;
   activatedAt: string | null;
   onboardingCompleted: boolean;
+  hasCourse: boolean;
+  hasActiveCourse: boolean;
   onGrant: () => void;
+  onCreateAndOpen: () => void;
   onRevoke: () => void;
   loading: boolean;
 }) {
@@ -574,8 +595,37 @@ function AccessManager({
           </p>
         )}
       </div>
-      <div className="flex flex-wrap gap-2">
-        {!isActive && (
+      <div className="flex flex-col items-start gap-2">
+        {!isActive && !hasCourse && !isSuspended && (
+          <>
+            <p className="text-sm text-warm-gray">Сначала создайте курс и выберите его состав.</p>
+            <button
+              type="button"
+              onClick={onCreateAndOpen}
+              disabled={loading || !onboardingCompleted}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Unlock className="h-4 w-4" />
+              {loading ? "Создаём курс…" : "Создать курс и открыть доступ"}
+            </button>
+          </>
+        )}
+        {!isActive && hasCourse && !hasActiveCourse && !isSuspended && (
+          <>
+            <p className="text-sm text-warm-gray">
+              Сначала активируйте курс в списке выше. Доступ без активного курса не открывается.
+            </p>
+            <button
+              type="button"
+              disabled
+              className="inline-flex cursor-not-allowed items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-sm font-medium text-background opacity-50"
+            >
+              <Unlock className="h-4 w-4" />
+              Открыть курс
+            </button>
+          </>
+        )}
+        {!isActive && (isSuspended || hasActiveCourse) && (
           <button
             onClick={onGrant}
             disabled={loading || (!onboardingCompleted && !isSuspended)}
@@ -671,9 +721,8 @@ function ProfileEditor({
     setSaving(true);
     try {
       if (localCircuit) {
-        const { selfhostAdminUpdateProfile, selfhostCreateMeasurement } = await import(
-          "@/lib/selfhost/client-api"
-        );
+        const { selfhostAdminUpdateProfile, selfhostCreateMeasurement } =
+          await import("@/lib/selfhost/client-api");
         await selfhostAdminUpdateProfile(clientId, {
           full_name: form.full_name.trim() || null,
           phone: form.phone.trim() || null,
@@ -911,8 +960,8 @@ function AdminActions({
           <h3 className="font-display text-lg">Сменить пароль</h3>
         </div>
         <p className="mt-1 text-xs text-warm-gray">
-          Задайте новый пароль. Сообщите его клиенту любым удобным способом. Все сессии клиента будут
-          отозваны.
+          Задайте новый пароль. Сообщите его клиенту любым удобным способом. Все сессии клиента
+          будут отозваны.
         </p>
         <form onSubmit={submitPassword} className="mt-4 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
@@ -989,8 +1038,7 @@ function AdminActions({
               disabled={archiveLoading}
               className="mt-4 inline-flex items-center gap-2 rounded-full border border-coral/40 px-5 py-3 text-sm text-coral transition-colors hover:bg-coral/15 disabled:opacity-60"
             >
-              <Archive className="h-4 w-4" />{" "}
-              {archiveLoading ? "Удаляем…" : "Удалить безвозвратно"}
+              <Archive className="h-4 w-4" /> {archiveLoading ? "Удаляем…" : "Удалить безвозвратно"}
             </button>
           </>
         )}

@@ -76,33 +76,40 @@ function NutritionInner() {
       return;
     }
     setLoading(true);
-    const [published, preference, products] = await Promise.all([
-      loadPublishedNutritionFor(effectiveUserId, selectedCourseId),
-      loadClientMealSchedulePreference({ userId: effectiveUserId, courseId: selectedCourseId }),
-      loadFoodProductsFromDb(),
-    ]);
-    setSwapCatalog(
-      products
-        .filter((p) => Number(p.kcal_per_100g) > 0)
-        .map((p) => ({
-          id: p.id,
-          name: p.name,
-          kcal_per_100g: Number(p.kcal_per_100g),
-          protein_per_100g: Number(p.protein_per_100g),
-          fat_per_100g: Number(p.fat_per_100g),
-          carbs_per_100g: Number(p.carbs_per_100g),
-        })),
-    );
-    setSnapshot(published?.snapshot ?? null);
-    if (preference) {
-      setPreferredMode(preference.mode);
-      setPreferredSlot(preference.primarySlot);
-    } else if (published?.snapshot?.kind === "constructor") {
-      const days = constructorDaysFromSnapshot(published.snapshot);
-      setPreferredMode(resolveDisplayMealScheduleMode(days, published.snapshot.meal_schedule_mode));
-      setPreferredSlot(published.snapshot.primary_meal_slot as PrimaryMealSlot);
+    try {
+      const [published, preference, products] = await Promise.all([
+        loadPublishedNutritionFor(effectiveUserId, selectedCourseId),
+        loadClientMealSchedulePreference({ userId: effectiveUserId, courseId: selectedCourseId }),
+        loadFoodProductsFromDb(),
+      ]);
+      setSwapCatalog(
+        products
+          .filter((p) => Number(p.kcal_per_100g) > 0)
+          .map((p) => ({
+            id: p.id,
+            name: p.name,
+            kcal_per_100g: Number(p.kcal_per_100g),
+            protein_per_100g: Number(p.protein_per_100g),
+            fat_per_100g: Number(p.fat_per_100g),
+            carbs_per_100g: Number(p.carbs_per_100g),
+          })),
+      );
+      setSnapshot(published?.snapshot ?? null);
+      if (preference) {
+        setPreferredMode(preference.mode);
+        setPreferredSlot(preference.primarySlot);
+      } else if (published?.snapshot?.kind === "constructor") {
+        const days = constructorDaysFromSnapshot(published.snapshot);
+        setPreferredMode(
+          resolveDisplayMealScheduleMode(days, published.snapshot.meal_schedule_mode),
+        );
+        setPreferredSlot(published.snapshot.primary_meal_slot as PrimaryMealSlot);
+      }
+    } catch {
+      setSnapshot(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {

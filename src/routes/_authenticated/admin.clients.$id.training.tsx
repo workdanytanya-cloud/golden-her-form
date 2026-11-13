@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { PanelHeader } from "@/components/panel/PanelShell";
@@ -29,6 +29,16 @@ import {
   adminPatchTrainingProgram,
   adminRegenerateTrainingProgram,
 } from "@/lib/training.functions";
+import { listClientCourses } from "@/lib/client-courses";
+import {
+  emptyDraftGate,
+  finishLoading,
+  NO_COURSE_TEXT,
+  programPageGate,
+  selectCourse,
+  TRAINING_OUT_OF_SCOPE_TEXT,
+  type ProgramPageGate,
+} from "@/lib/admin-program-page";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/training")({
   component: AdminTrainingPage,
@@ -62,6 +72,10 @@ function AdminTrainingPage() {
     gender: "female" | "male" | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [gate, setGate] = useState<ProgramPageGate>({ kind: "ready" });
+  const [resolvedCourseId, setResolvedCourseId] = useState<string | null>(courseId ?? null);
+  const [retrying, setRetrying] = useState(false);
+  const alive = useRef(true);
   const [dirtyDays, setDirtyDays] = useState<Set<string>>(() => new Set());
   const [savingDayKey, setSavingDayKey] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -70,58 +84,116 @@ function AdminTrainingPage() {
   const patchTrainingDay = useServerFn(adminPatchTrainingDay);
 
   const reload = async () => {
-    setLoading(true);
-    const { usesLocalPostgresCircuit, selfhostAdminClient } =
-      await import("@/lib/selfhost/client-api");
-    const local = await usesLocalPostgresCircuit();
-    const [ex, p, prof, published] = await Promise.all([
-      loadExercises(),
-      loadProgramFor(id, courseId),
-      loadProgramProfile(id),
-      loadPublishedTrainingFor(id, courseId),
-    ]);
-    let fullName = "Клиент";
-    if (local) {
-      try {
-        const { client } = await selfhostAdminClient(id);
-        if (typeof client.full_name === "string" && client.full_name.trim()) {
-          fullName = client.full_name;
+    try {
+      await finishLoading(setLoading, async () => {
+        const courses = await listClientCourses(id);
+        const course = selectCourse(courses, courseId);
+        if (!alive.current) return;
+        setResolvedCourseId(course?.id ?? null);
+        const nextGate = programPageGate(course, "training");
+        if (nextGate.kind !== "ready") {
+          setGate(nextGate);
+          setProgram(null);
+          setDays([]);
+          return;
         }
-      } catch {
-        /* имя опционально */
-      }
-    } else {
-      const profRow = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", id)
-        .maybeSingle();
-      fullName = profRow.data?.full_name ?? "Клиент";
+        const { usesLocalPostgresCircuit, selfhostAdminClient } =
+          await import("@/lib/selfhost/client-api");
+        const local = await usesLocalPostgresCircuit();
+        const [ex, p, prof, published] = await Promise.all([
+          loadExercises(),
+          loadProgramFor(id, course?.id ?? courseId),
+          loadProgramProfile(id),
+          loadPublishedTrainingFor(id, course?.id ?? courseId),
+        ]);
+        let fullName = "Клиент";
+        if (local) {
+          try {
+            const { client } = await selfhostAdminClient(id);
+            if (typeof client.full_name === "string" && client.full_name.trim()) {
+              fullName = client.full_name;
+            }
+          } catch {
+            /* имя опционально */
+          }
+        } else {
+          const profRow = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", id)
+            .maybeSingle();
+          fullName = profRow.data?.full_name ?? "Клиент";
+        }
+        setExercises(ex);
+        setProgram(p.program);
+        setDays(p.days);
+        setDirtyDays(new Set());
+        setPublishedVersion(published?.version?.version ?? null);
+        setProfile({
+          sessions_per_week: prof.sessions_per_week,
+          goal: prof.goal,
+          level: prof.level,
+          has_injuries: prof.has_injuries,
+          injuries_details: prof.injuries_details,
+          equipment: prof.equipment,
+          location: prof.location,
+          weight_kg: prof.weight_kg,
+          gender: prof.gender,
+        });
+        setProfileName(fullName);
+        setGate(emptyDraftGate(Boolean(p.program) || published != null));
+      });
+    } catch (error) {
+      if (!alive.current) return;
+      setGate({
+        kind: "failed",
+        message: (error as Error).message || "Не удалось загрузить тренировки",
+      });
     }
-    setExercises(ex);
-    setProgram(p.program);
-    setDays(p.days);
-    setDirtyDays(new Set());
-    setPublishedVersion(published?.version?.version ?? null);
-    setProfile({
-      sessions_per_week: prof.sessions_per_week,
-      goal: prof.goal,
-      level: prof.level,
-      has_injuries: prof.has_injuries,
-      injuries_details: prof.injuries_details,
-      equipment: prof.equipment,
-      location: prof.location,
-      weight_kg: prof.weight_kg,
-      gender: prof.gender,
-    });
-    setProfileName(fullName);
-    setLoading(false);
   };
 
   useEffect(() => {
+    alive.current = true;
     void reload();
+    return () => {
+      alive.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, courseId]);
+
+  useEffect(() => {
+    if (gate.kind !== "generating") return;
+    const timer = setInterval(() => {
+      if (alive.current) void reload();
+    }, 3000);
+    const stop = setTimeout(() => {
+      if (!alive.current) return;
+      setGate({ kind: "failed", message: "Превышено время генерации. Повторите этап." });
+      setLoading(false);
+    }, 120_000);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(stop);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gate.kind, id, courseId]);
+
+  const retryGeneration = async () => {
+    if (!resolvedCourseId || retrying) return;
+    setRetrying(true);
+    try {
+      const { selfhostAdminRetryCourseGeneration } = await import("@/lib/selfhost/client-api");
+      await selfhostAdminRetryCourseGeneration(id, resolvedCourseId, "training");
+      await reload();
+    } catch (error) {
+      setGate({
+        kind: "failed",
+        message: (error as Error).message || "Не удалось повторить генерацию",
+      });
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   const handleRegenerate = async (overrides?: Partial<ProgramInput>) => {
     if (!profile) {
@@ -393,6 +465,49 @@ function AdminTrainingPage() {
 
   if (loading) return <div className="py-10 text-center text-warm-gray">Загружаем…</div>;
 
+  if (
+    gate.kind === "no_course" ||
+    gate.kind === "out_of_scope" ||
+    gate.kind === "generating" ||
+    gate.kind === "failed" ||
+    gate.kind === "missing_draft"
+  ) {
+    const message =
+      gate.kind === "no_course"
+        ? NO_COURSE_TEXT
+        : gate.kind === "out_of_scope"
+          ? TRAINING_OUT_OF_SCOPE_TEXT
+          : gate.kind === "generating"
+            ? "Создаём черновик тренировок…"
+            : gate.kind === "failed"
+              ? gate.message
+              : "Тренировки для этого курса ещё не созданы.";
+    return (
+      <div className="space-y-4 rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center">
+        <p className="text-sm text-warm-gray">{message}</p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Link
+            to="/admin/clients/$id"
+            params={{ id }}
+            className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-5 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10"
+          >
+            <ArrowLeft className="h-4 w-4" /> К карточке клиента
+          </Link>
+          {gate.kind === "failed" || gate.kind === "missing_draft" ? (
+            <button
+              type="button"
+              disabled={retrying || !resolvedCourseId}
+              onClick={() => void retryGeneration()}
+              className="rounded-full border border-gold/30 px-5 py-2 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10 disabled:opacity-50"
+            >
+              {gate.kind === "missing_draft" ? "Сформировать тренировки" : "Повторить генерацию"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   const programDays: ProgramDay[] = days.map((d) => ({
     week_index: d.week_index,
     day_index: d.day_index,
@@ -446,7 +561,7 @@ function AdminTrainingPage() {
             </button>
             <SnapshotPdfButton
               kind="training"
-              courseId={courseId}
+              courseId={resolvedCourseId ?? courseId}
               clientId={id}
               disabled={publishedVersion == null}
             />

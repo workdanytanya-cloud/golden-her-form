@@ -56,17 +56,24 @@ function TrainingInner() {
       return;
     }
     setLoading(true);
-    const published = await loadPublishedTrainingFor(effectiveUserId, selectedCourseId);
-    if (published) {
-      setExercises(published.exercises);
-      setProgram(published.program);
-      setDays(published.days);
-    } else {
+    try {
+      const published = await loadPublishedTrainingFor(effectiveUserId, selectedCourseId);
+      if (published) {
+        setExercises(published.exercises);
+        setProgram(published.program);
+        setDays(published.days);
+      } else {
+        setExercises([]);
+        setProgram(null);
+        setDays([]);
+      }
+    } catch {
       setExercises([]);
       setProgram(null);
       setDays([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {

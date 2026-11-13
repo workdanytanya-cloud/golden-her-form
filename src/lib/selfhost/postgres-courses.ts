@@ -30,7 +30,14 @@ export const adminCourseUpdateSchema = z.object({
   program_scope: z.enum(["nutrition", "training", "both"]).optional(),
 });
 
-function mapCourse(row: Record<string, unknown>): ClientCourse {
+function generationStatus(value: unknown): ClientCourse["nutrition_generation_status"] {
+  if (value === "pending" || value === "generating" || value === "ready" || value === "failed") {
+    return value;
+  }
+  return null;
+}
+
+export function mapCourse(row: Record<string, unknown>): ClientCourse {
   return {
     id: String(row.id),
     client_id: String(row.client_id),
@@ -42,6 +49,10 @@ function mapCourse(row: Record<string, unknown>): ClientCourse {
     created_by: (row.created_by as string | null) ?? null,
     notes: (row.notes as string | null) ?? null,
     program_scope: (row.program_scope as ClientCourse["program_scope"] | null) ?? "both",
+    nutrition_generation_status: generationStatus(row.nutrition_generation_status),
+    training_generation_status: generationStatus(row.training_generation_status),
+    nutrition_generation_error: (row.nutrition_generation_error as string | null) ?? null,
+    training_generation_error: (row.training_generation_error as string | null) ?? null,
   };
 }
 
@@ -159,7 +170,7 @@ export class PostgresClientCourseRepository {
 
   async list(clientId: string): Promise<ClientCourse[]> {
     const { rows } = await this.db.query(
-      `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope
+      `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope, nutrition_generation_status, training_generation_status, nutrition_generation_error, training_generation_error
          FROM public.client_courses WHERE client_id = $1 ORDER BY start_date DESC`,
       [clientId],
     );
@@ -168,7 +179,7 @@ export class PostgresClientCourseRepository {
 
   async get(courseId: string): Promise<ClientCourse | null> {
     const { rows } = await this.db.query(
-      `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope
+      `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope, nutrition_generation_status, training_generation_status, nutrition_generation_error, training_generation_error
          FROM public.client_courses WHERE id = $1`,
       [courseId],
     );
@@ -209,7 +220,7 @@ export class PostgresClientCourseRepository {
           `course-draft:${data.clientId}:${startIso}`,
         ]);
         const existing = await client.query(
-          `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope
+          `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope, nutrition_generation_status, training_generation_status, nutrition_generation_error, training_generation_error
              FROM public.client_courses
             WHERE client_id = $1 AND status = 'draft' AND start_date = $2::date
             ORDER BY created_at DESC LIMIT 1`,
@@ -243,7 +254,7 @@ export class PostgresClientCourseRepository {
       const inserted = await client.query(
         `INSERT INTO public.client_courses (client_id, title, start_date, end_date, status, notes, created_by, program_scope)
          VALUES ($1,$2,$3::date,$4::date,$5,$6,$7,$8)
-         RETURNING id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope`,
+         RETURNING id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope, nutrition_generation_status, training_generation_status, nutrition_generation_error, training_generation_error`,
         [
           data.clientId,
           title,
@@ -326,7 +337,7 @@ export class PostgresClientCourseRepository {
          status = COALESCE($7, status),
          program_scope = COALESCE($8, program_scope)
        WHERE id = $1 AND client_id = $2
-       RETURNING id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope`,
+       RETURNING id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope, nutrition_generation_status, training_generation_status, nutrition_generation_error, training_generation_error`,
         [
           courseId,
           clientId,
