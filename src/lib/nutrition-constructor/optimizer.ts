@@ -1196,7 +1196,9 @@ export function generateConstructorPlan(
           days: input.days_count,
           seed: input.seed ?? 1,
           excluded,
-          deadlineMs: Date.now() + Math.min(input.search_timeout_ms ?? 28_000, 28_000),
+          deadlineMs:
+            Date.now() +
+            Math.min(input.search_timeout_ms ?? 28_000, input.search_timeout_ms ? 45_000 : 28_000),
         });
         const exactPool = built.days;
         poolElapsedMs = Date.now() - poolStarted;

@@ -12,6 +12,7 @@ import {
   mapGender,
   mapMealSchedule,
   mapPrimarySlot,
+  resolveProvisionMealSchedule,
   mapTrainingDays,
   mapTrainingGoal,
   mapTrainingLevel,
@@ -21,7 +22,7 @@ import {
   type ProgramScope,
 } from "@/lib/client-courses/program-readiness";
 import { buildForbiddenProductIds } from "@/lib/nutrition-constructor/allergens";
-import { checkAutoGenerationSafety } from "@/lib/nutrition-constructor/targets";
+import { calcMacroTargets, checkAutoGenerationSafety } from "@/lib/nutrition-constructor/targets";
 import { generateAndValidateConstructorPlan } from "@/lib/nutrition-constructor/repo";
 import { buildContinuationTrainingProgram } from "@/lib/course-continuation/training-continuation";
 import { defaultFaq, type ProgramInput } from "@/lib/training";
@@ -66,6 +67,7 @@ type Facts = {
   equipment: string[];
   location: string | null;
   mealSchedule: ReturnType<typeof mapMealSchedule>;
+  mealScheduleExplicit: boolean;
   primarySlot: ReturnType<typeof mapPrimarySlot>;
 };
 
@@ -142,6 +144,9 @@ async function loadFacts(db: Pool | PoolClient, clientId: string): Promise<Facts
     equipment: Array.isArray(row.equipment) ? (row.equipment as string[]) : [],
     location: (row.training_location as string | null) ?? null,
     mealSchedule: mapMealSchedule(schedule),
+    mealScheduleExplicit: Boolean(
+      schedule?.trim() && mapMealSchedule(schedule) === schedule.trim(),
+    ),
     primarySlot: mapPrimarySlot(slot),
   };
 }
@@ -299,28 +304,39 @@ async function generateFreshNutrition(clientId: string, courseId: string, facts:
     allergies: facts.allergies,
     disliked_foods: facts.dislikedFoods,
   });
+  const profile = {
+    gender: facts.gender,
+    birth_date: facts.birthDate,
+    height_cm: facts.heightCm,
+    weight_kg: facts.weightKg,
+    activity_level: facts.activityLevel,
+    goal_primary: facts.goal,
+    pregnancy_status: facts.pregnancyStatus,
+    health_conditions: facts.healthConditions,
+    profile_complete: true,
+  };
+  const calculated = calcMacroTargets(profile);
+  const schedule = resolveProvisionMealSchedule({
+    explicit: facts.mealScheduleExplicit,
+    storedMode: facts.mealSchedule,
+    carbsG: numeric(calculated.targets.carbs_g),
+  });
   const generated = await generateAndValidateConstructorPlan({
     clientId,
     courseId,
-    profile: {
-      gender: facts.gender,
-      birth_date: facts.birthDate,
-      height_cm: facts.heightCm,
-      weight_kg: facts.weightKg,
-      activity_level: facts.activityLevel,
-      goal_primary: facts.goal,
-      pregnancy_status: facts.pregnancyStatus,
-      health_conditions: facts.healthConditions,
-      profile_complete: true,
-    },
+    profile,
     days_count: 7,
     excluded_product_ids: [...forbiddenIds],
-    meal_schedule_mode: facts.mealSchedule,
+    meal_schedule_mode: schedule.mode,
     primary_meal_slot: facts.primarySlot,
+    search_timeout_ms: 45_000,
   });
   if (!generated.is_valid || generated.days.length === 0) {
     throw new Error(generated.message || "Не удалось собрать черновик питания");
   }
+  const lowCarbNote = schedule.adjustedForLowCarb
+    ? "Для этих КБЖУ схема из 5 приёмов не собирается: на перекусы не хватает углеводов. Черновик собран из трёх основных приёмов."
+    : null;
   await saveConstructorPlanPg(pool, {
     userId: clientId,
     courseId,
@@ -338,10 +354,10 @@ async function generateFreshNutrition(clientId: string, courseId: string, facts:
     calorie_adjustment_pct: generated.adjustment_pct,
     excluded_products: [...forbiddenIds],
     targets_manual: false,
-    meal_schedule_mode: facts.mealSchedule,
+    meal_schedule_mode: schedule.mode,
     primary_meal_slot: facts.primarySlot,
-    requires_manual_review: generated.requires_manual_review,
-    review_reason: generated.review_reason,
+    requires_manual_review: generated.requires_manual_review || schedule.adjustedForLowCarb,
+    review_reason: [generated.review_reason, lowCarbNote].filter(Boolean).join("\n") || null,
   });
 }
 

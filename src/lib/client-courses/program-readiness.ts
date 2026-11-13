@@ -91,6 +91,23 @@ export function mapMealSchedule(raw: string | null | undefined): MealScheduleMod
   return "three_main_two_snacks";
 }
 
+/** Ниже этого остатка углеводов схема «3 основных + 2 перекуса» не собирается в точных КБЖУ. */
+export const LOW_CARB_FIVE_MEAL_LIMIT_G = 140;
+
+export function resolveProvisionMealSchedule(input: {
+  explicit: boolean;
+  storedMode: MealScheduleMode | null;
+  carbsG: number;
+}): { mode: MealScheduleMode; adjustedForLowCarb: boolean } {
+  if (input.explicit && input.storedMode) {
+    return { mode: input.storedMode, adjustedForLowCarb: false };
+  }
+  if (input.carbsG < LOW_CARB_FIVE_MEAL_LIMIT_G) {
+    return { mode: "three_mains_only", adjustedForLowCarb: true };
+  }
+  return { mode: input.storedMode ?? "three_main_two_snacks", adjustedForLowCarb: false };
+}
+
 export function mapPrimarySlot(raw: string | null | undefined): PrimaryMealSlot {
   const value = raw?.trim();
   if (value && (PRIMARY_MEAL_SLOTS as readonly string[]).includes(value)) {

@@ -166,8 +166,7 @@ function seedToRecipe(r: SeedRecipe, productSlugs: Set<string>): Recipe | null {
   const requiredSlugs = r.ingredients
     .filter((ingredient) => ingredient.required !== false)
     .map((ingredient) => ingredient.product_slug);
-  const cookingMethod =
-    r.cooking_method ?? inferCookingMethod(r.steps, r.requires_cooking);
+  const cookingMethod = r.cooking_method ?? inferCookingMethod(r.steps, r.requires_cooking);
   const primaryProtein = r.primary_protein ?? inferPrimaryProtein(requiredSlugs);
   const primaryCarb = r.primary_carb ?? inferPrimaryCarb(requiredSlugs);
   const inferredGroup = buildVariantGroup(primaryProtein, primaryCarb, cookingMethod);
@@ -177,9 +176,7 @@ function seedToRecipe(r: SeedRecipe, productSlugs: Set<string>): Recipe | null {
   const steps = ensureReadableSteps(r.steps, slugs);
   const mealTypes: MealRole[] =
     r.meal_types ??
-    (r.meal_type === "snack"
-      ? ["snack"]
-      : (["breakfast", "lunch", "dinner"] as MealRole[]));
+    (r.meal_type === "snack" ? ["snack"] : (["breakfast", "lunch", "dinner"] as MealRole[]));
   // Активное время ≤20 мин; кипение крупы/мяса — в total_cook.
   const activePrep = r.active_time_minutes ?? Math.min(r.prep_time_min, 15);
   const totalCook = r.total_time_minutes ?? r.prep_time_min;
@@ -593,6 +590,7 @@ export async function generateAndValidateConstructorPlan(params: {
   tolerance?: typeof DEFAULT_TOLERANCE;
   meal_schedule_mode?: MealScheduleMode;
   primary_meal_slot?: PrimaryMealSlot;
+  search_timeout_ms?: number;
   targets_override?: {
     kcal: number;
     protein_g: number;
@@ -666,12 +664,9 @@ export async function generateAndValidateConstructorPlan(params: {
       const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
       if (await usesLocalPostgresCircuit()) {
         const { getPostgresPool } = await import("@/lib/selfhost/db");
-        const { getActivePublishedNutritionPg } = await import(
-          "@/lib/selfhost/postgres-published"
-        );
-        const { exclusionsFromPublishedNutrition } = await import(
-          "@/lib/nutrition-constructor/published-exclusions"
-        );
+        const { getActivePublishedNutritionPg } = await import("@/lib/selfhost/postgres-published");
+        const { exclusionsFromPublishedNutrition } =
+          await import("@/lib/nutrition-constructor/published-exclusions");
         const published = await getActivePublishedNutritionPg(
           getPostgresPool(),
           params.clientId,
@@ -699,6 +694,7 @@ export async function generateAndValidateConstructorPlan(params: {
     meal_schedule_mode: params.meal_schedule_mode ?? "two_main_two_snacks",
     primary_meal_slot: params.primary_meal_slot ?? "lunch",
     seed: params.seed,
+    search_timeout_ms: params.search_timeout_ms,
   });
   const reviewBits = [
     ...safety.reasons,

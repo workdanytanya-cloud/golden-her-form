@@ -4,6 +4,7 @@ import {
   goalLabel,
   missingProgramFields,
   missingProgramMessage,
+  resolveProvisionMealSchedule,
 } from "./program-readiness";
 
 const complete = {
@@ -31,10 +32,34 @@ describe("program readiness", () => {
     ).toBe("Для программы не хватает: дата рождения");
   });
 
+  it("uses three mains when a five-meal scheme was not chosen and carbs are too low", () => {
+    expect(
+      resolveProvisionMealSchedule({
+        explicit: false,
+        storedMode: "three_main_two_snacks",
+        carbsG: 107,
+      }),
+    ).toEqual({ mode: "three_mains_only", adjustedForLowCarb: true });
+    expect(
+      resolveProvisionMealSchedule({
+        explicit: true,
+        storedMode: "three_main_two_snacks",
+        carbsG: 107,
+      }),
+    ).toEqual({ mode: "three_main_two_snacks", adjustedForLowCarb: false });
+    expect(
+      resolveProvisionMealSchedule({
+        explicit: false,
+        storedMode: "three_main_two_snacks",
+        carbsG: 180,
+      }),
+    ).toEqual({ mode: "three_main_two_snacks", adjustedForLowCarb: false });
+  });
+
   it("checks only the selected scope", () => {
-    expect(missingProgramFields({ ...complete, birthDate: null, gender: null }, "training")).toEqual(
-      [],
-    );
+    expect(
+      missingProgramFields({ ...complete, birthDate: null, gender: null }, "training"),
+    ).toEqual([]);
     expect(missingProgramFields({ ...complete, trainingDays: null }, "nutrition")).toEqual([]);
     expect(missingProgramFields(complete, "both")).toEqual([]);
   });
