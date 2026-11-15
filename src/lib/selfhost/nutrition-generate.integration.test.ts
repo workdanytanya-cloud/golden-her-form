@@ -74,6 +74,41 @@ describe.runIf(run)("nutrition generate endpoint PostgreSQL integration", () => 
     await closePostgresPool();
   });
 
+  async function settleGenerate(response: Response | null) {
+    expect(response?.headers.get("content-type")).toContain("application/json");
+    expect(response?.status).toBe(202);
+    const started = (await response!.json()) as { job_id: string; status: string };
+    expect(started.job_id).toBeTruthy();
+    expect(["queued", "running"]).toContain(started.status);
+    type SettledJob = {
+      status: string;
+      error?: { message?: string; code?: string };
+      result?: {
+        is_valid: boolean;
+        days: ConstructorDay[];
+        draftId: string;
+        saved?: boolean;
+        message?: string;
+        diagnostics?: { pass_pool_size?: number };
+      };
+    };
+    let job: SettledJob | null = null;
+    for (let attempt = 0; attempt < 90; attempt += 1) {
+      const status = await handleSelfhostRequest(
+        new Request(`http://local.test/api/selfhost/admin/nutrition/generate/${started.job_id}`, {
+          headers: { cookie },
+        }),
+      );
+      expect(status?.headers.get("content-type")).toContain("application/json");
+      job = (await status!.json()) as SettledJob;
+      if (job.status === "completed" || job.status === "failed" || job.status === "cancelled")
+        break;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    expect(job?.status, JSON.stringify(job?.error ?? job)).toBe("completed");
+    return job!.result!;
+  }
+
   async function generate() {
     const response = await handleSelfhostRequest(
       new Request("http://local.test/api/selfhost/admin/nutrition/generate", {
@@ -100,13 +135,7 @@ describe.runIf(run)("nutrition generate endpoint PostgreSQL integration", () => 
         }),
       }),
     );
-    expect(response?.status).toBe(200);
-    return response!.json() as Promise<{
-      is_valid: boolean;
-      days: ConstructorDay[];
-      draftId: string;
-      diagnostics?: { pass_pool_size?: number };
-    }>;
+    return settleGenerate(response);
   }
 
   const stableContent = (value: unknown) =>
@@ -192,27 +221,10 @@ describe.runIf(run)("nutrition generate endpoint PostgreSQL integration", () => 
         }),
       }),
     );
-    expect(response?.headers.get("content-type")).toContain("application/json");
-    const text = await response!.text();
-    expect(text.trim().startsWith("<")).toBe(false);
-    const body = JSON.parse(text) as {
-      saved?: boolean;
-      is_valid?: boolean;
-      days?: ConstructorDay[];
-      message?: string;
-      error?: { message?: string };
-    };
-    expect(response?.status).toBe(200);
-    expect(
-      body.error,
-      JSON.stringify({ message: body.message, is_valid: body.is_valid }),
-    ).toBeUndefined();
-    const detail = body as {
-      message?: string;
-      reason_code?: string;
-      diagnostics?: { last_failure_reason?: string; timed_out?: boolean; search_stage?: string };
-    };
-    expect(body.saved, JSON.stringify(detail)).toBe(true);
+    const body = await settleGenerate(response);
+    expect(body.saved, JSON.stringify({ message: (body as { message?: string }).message })).toBe(
+      true,
+    );
     expect(body.is_valid).toBe(true);
     expect(body.days).toHaveLength(7);
     const loaded = await loadConstructorPlanPg(pool, CLIENT, COURSE);
@@ -254,10 +266,7 @@ describe.runIf(run)("nutrition generate endpoint PostgreSQL integration", () => 
         }),
       }),
     );
-    const againText = await again!.text();
-    expect(againText.trim().startsWith("<")).toBe(false);
-    const againBody = JSON.parse(againText) as { saved?: boolean; days?: ConstructorDay[] };
-    expect(again?.headers.get("content-type")).toContain("application/json");
+    const againBody = await settleGenerate(again);
     expect(againBody.saved).toBe(true);
     expect(againBody.days).toHaveLength(7);
     const reloaded = await loadConstructorPlanPg(pool, CLIENT, COURSE);

@@ -28,7 +28,6 @@ import {
 import { checkDayStructure } from "@/lib/nutrition-constructor/types";
 import { d, displayMacro } from "@/lib/nutrition-constructor/decimal-math";
 import {
-  generateAndValidateConstructorPlan,
   buildInMemoryCatalog,
   loadConstructorPlanFor,
   saveConstructorPlan,
@@ -117,6 +116,8 @@ export function ConstructorAdminPanel({
   const [scheduleMode, setScheduleMode] = useState<MealScheduleMode>("three_main_two_snacks");
   const [primarySlot, setPrimarySlot] = useState<PrimaryMealSlot>("lunch");
   const [loading, setLoading] = useState(false);
+  const [jobProgress, setJobProgress] = useState(0);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [cloning, setCloning] = useState(false);
   const [days, setDays] = useState<ConstructorDay[]>([]);
@@ -160,6 +161,14 @@ export function ConstructorAdminPanel({
   const catalog = useMemo(() => buildInMemoryCatalog(), []);
   const genToken = useRef(0);
   const replaceSeq = useRef(0);
+  const startLock = useRef(false);
+  const activeJobIdRef = useRef<string | null>(null);
+  const pendingGenerate = useRef<{
+    rebuilding: boolean;
+    beforeMeals: ConstructorDay[];
+    line: string;
+  } | null>(null);
+  const jobStorageKey = `panovapro-nutrition-job:${userId}:${courseId ?? "none"}`;
 
   const forbiddenIds = useMemo(() => {
     const { forbiddenIds: fromAnketa } = buildForbiddenProductIds([...catalog.products.values()], {
@@ -360,8 +369,127 @@ export function ConstructorAdminPanel({
     setVarietyLine(null);
   };
 
+  const applyGenerationResult = async (result: {
+    saved?: boolean;
+    days?: ConstructorDay[];
+    message?: string;
+    bmr?: unknown;
+    tdee?: unknown;
+    adjustment_pct?: number;
+    used_targets_line?: string;
+    targets?: Record<string, unknown>;
+    comparison?: Array<{ label: string; target: number; actual: number; diff: number }>;
+    is_valid?: boolean;
+    review_reason?: string | null;
+  }) => {
+    const seq = genToken.current;
+    const pending = pendingGenerate.current;
+    const rebuilding = pending?.rebuilding ?? false;
+    const beforeMeals = pending?.beforeMeals ?? [];
+    const line = pending?.line ?? null;
+    const toNum = (value: unknown): number => {
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      if (value && typeof value === "object" && "toNumber" in value) {
+        const fn = (value as { toNumber?: () => number }).toNumber;
+        if (typeof fn === "function") return fn.call(value);
+      }
+      return Number(value);
+    };
+    setMeta({
+      bmr: toNum(result.bmr),
+      tdee: toNum(result.tdee),
+      adjustment_pct: result.adjustment_pct,
+    });
+    setUsedTargetsLine(result.used_targets_line ?? line);
+    if (result.saved === false) {
+      const message =
+        result.message ??
+        "Новый отличающийся вариант найти не удалось. Текущий рацион сохранён без изменений.";
+      setGenerationError(message);
+      toast.message(message);
+      return;
+    }
+    if (
+      !result.days ||
+      result.days.length === 0 ||
+      !planStructureValid(result.days, scheduleMode)
+    ) {
+      const message = result.message ?? "Не удалось собрать рацион. Черновик не изменён.";
+      const exclusionNote =
+        forbiddenIds.size > 0
+          ? `\nИсключения применены: ${forbiddenIds.size}.`
+          : "\nИсключений нет.";
+      setGenerationError(`${message}${exclusionNote}\nЗамены не применялись. Черновик не изменён.`);
+      toast.error(message);
+      return;
+    }
+    const targetsRaw = (result.targets ?? {}) as Record<string, unknown>;
+    const targetMacro = {
+      kcal: d(toNum(targetsRaw.kcal)),
+      protein_g: d(toNum(targetsRaw.protein_g)),
+      fat_g: d(toNum(targetsRaw.fat_g)),
+      carbs_g: d(toNum(targetsRaw.carbs_g)),
+      fiber_g: d(toNum(targetsRaw.fiber_g ?? 0)),
+    };
+    const status = evaluatePlanKbjuStatus({
+      days: result.days,
+      targetMacro,
+      scheduleMode,
+      comparison: result.comparison ?? [],
+    });
+    if (!status.generationOk || !result.is_valid) {
+      setGenerationError(
+        (result.message ?? "Рацион не прошёл допуск KBJU — near-miss не применяется к черновику.") +
+          (status.precisionHint ? `\n${status.precisionHint}` : ""),
+      );
+      toast.error("KBJU вне допуска — черновик не изменён");
+      return;
+    }
+    setPreviewMode(scheduleMode);
+    applyDays(result.days);
+    setReviewReason(result.review_reason ?? null);
+    setGenerationError(null);
+    const summary = formatTrainerVarietyLine(result.days);
+    const exclusionNote =
+      forbiddenIds.size > 0 ? `Исключено продуктов: ${forbiddenIds.size}.` : "Исключений нет.";
+    setVarietyLine(`${summary}. ${exclusionNote} Замены не применялись.`);
+    setPlanStatus("validated");
+    const reloaded = await loadConstructorPlanFor(userId, courseId);
+    if (seq !== genToken.current) return;
+    if (!reloaded.plan || reloaded.days.length !== result.days.length) {
+      throw new Error("Черновик сохранён, но контрольное перечитывание не прошло");
+    }
+    const changedMeals = reloaded.days.reduce((count, day) => {
+      const previous = beforeMeals.find((item) => item.day_index === day.day_index);
+      return (
+        count +
+        day.items.filter((item) => {
+          const prev = previous?.items.find((meal) => meal.slot === item.slot);
+          return !prev || prev.recipe_id !== item.recipe_id;
+        }).length
+      );
+    }, 0);
+    const totalMeals = reloaded.days.reduce((count, day) => count + day.items.length, 0);
+    if (rebuilding && changedMeals === 0) {
+      toast.message(
+        "Новый отличающийся вариант найти не удалось. Текущий рацион сохранён без изменений.",
+      );
+      return;
+    }
+    applyDays(reloaded.days);
+    setDraftUpdatedAt(reloaded.plan.updated_at ?? null);
+    setUnpublishedChanges(true);
+    onSaved?.();
+    toast.success(
+      rebuilding
+        ? `Рацион пересобран: изменено ${changedMeals} из ${totalMeals} приёмов`
+        : formatTrainerVarietyLine(reloaded.days),
+    );
+  };
+
   const handleGenerate = async () => {
-    if (loading) return;
+    if (loading || activeJobIdRef.current || startLock.current) return;
+    startLock.current = true;
     const seq = ++genToken.current;
     const fieldTargets = {
       kcal: syncedKcal(targets.protein_g, targets.fat_g, targets.carbs_g),
@@ -371,13 +499,15 @@ export function ConstructorAdminPanel({
     };
     setTargets(fieldTargets);
     const rebuilding = visibleDays.length > 0;
-    const beforeMeals = visibleDays;
+    const line = formatUsedTargetsLine(fieldTargets);
+    pendingGenerate.current = { rebuilding, beforeMeals: visibleDays, line };
     setLoading(true);
     setGenerationError(null);
-    const line = formatUsedTargetsLine(fieldTargets);
+    setJobProgress(0);
     setUsedTargetsLine(line);
     try {
-      const result = await generateAndValidateConstructorPlan({
+      const { selfhostStartNutritionGeneration } = await import("@/lib/selfhost/client-api");
+      const started = await selfhostStartNutritionGeneration({
         clientId: userId,
         courseId,
         seed: rebuilding ? freshRebuildSeed() : undefined,
@@ -390,112 +520,101 @@ export function ConstructorAdminPanel({
         targets_override: fieldTargets,
       });
       if (seq !== genToken.current) return;
-      const savedFlag = (result as { saved?: boolean }).saved;
-      const toNum = (value: unknown): number => {
-        if (typeof value === "number" && Number.isFinite(value)) return value;
-        if (value && typeof value === "object" && "toNumber" in value) {
-          const fn = (value as { toNumber?: () => number }).toNumber;
-          if (typeof fn === "function") return fn.call(value);
-        }
-        return Number(value);
-      };
-      setMeta({
-        bmr: toNum(result.bmr),
-        tdee: toNum(result.tdee),
-        adjustment_pct: result.adjustment_pct,
-      });
-      setUsedTargetsLine(result.used_targets_line ?? line);
-      if (savedFlag === false) {
-        const message =
-          result.message ??
-          "Новый отличающийся вариант найти не удалось. Текущий рацион сохранён без изменений.";
-        setGenerationError(message);
-        toast.message(message);
-        return;
-      }
-      if (result.days.length === 0 || !planStructureValid(result.days, scheduleMode)) {
-        const message = result.message ?? "Не удалось собрать рацион. Черновик не изменён.";
-        const exclusionNote =
-          forbiddenIds.size > 0
-            ? `\nИсключения применены: ${forbiddenIds.size}.`
-            : "\nИсключений нет.";
-        setGenerationError(
-          `${message}${exclusionNote}\nЗамены не применялись. Черновик не изменён.`,
-        );
-        toast.error(message);
-        return;
-      }
-      const targetsRaw = (result.targets ?? {}) as Record<string, unknown>;
-      const targetMacro = {
-        kcal: d(toNum(targetsRaw.kcal)),
-        protein_g: d(toNum(targetsRaw.protein_g)),
-        fat_g: d(toNum(targetsRaw.fat_g)),
-        carbs_g: d(toNum(targetsRaw.carbs_g)),
-        fiber_g: d(toNum(targetsRaw.fiber_g ?? 0)),
-      };
-      const status = evaluatePlanKbjuStatus({
-        days: result.days,
-        targetMacro,
-        scheduleMode,
-        comparison: result.comparison,
-      });
-      if (!status.generationOk || !result.is_valid) {
-        setGenerationError(
-          (result.message ??
-            "Рацион не прошёл допуск KBJU — near-miss не применяется к черновику.") +
-            (status.precisionHint ? `\n${status.precisionHint}` : ""),
-        );
-        toast.error("KBJU вне допуска — черновик не изменён");
-        return;
-      }
-      setPreviewMode(scheduleMode);
-      applyDays(result.days);
-      setReviewReason(result.review_reason);
-      setGenerationError(null);
-      const summary = formatTrainerVarietyLine(result.days);
-      const exclusionNote =
-        forbiddenIds.size > 0 ? `Исключено продуктов: ${forbiddenIds.size}.` : "Исключений нет.";
-      setVarietyLine(`${summary}. ${exclusionNote} Замены не применялись.`);
-      setPlanStatus("validated");
-      const reloaded = await loadConstructorPlanFor(userId, courseId);
-      if (!reloaded.plan || reloaded.days.length !== result.days.length) {
-        throw new Error("Черновик сохранён, но контрольное перечитывание не прошло");
-      }
-      const changedMeals = reloaded.days.reduce((count, day) => {
-        const previous = beforeMeals.find((item) => item.day_index === day.day_index);
-        return (
-          count +
-          day.items.filter((item) => {
-            const prev = previous?.items.find((meal) => meal.slot === item.slot);
-            return !prev || prev.recipe_id !== item.recipe_id;
-          }).length
-        );
-      }, 0);
-      const totalMeals = reloaded.days.reduce((count, day) => count + day.items.length, 0);
-      if (rebuilding && changedMeals === 0) {
-        toast.message(
-          "Новый отличающийся вариант найти не удалось. Текущий рацион сохранён без изменений.",
-        );
-        return;
-      }
-      applyDays(reloaded.days);
-      setDraftUpdatedAt(reloaded.plan.updated_at ?? null);
-      setUnpublishedChanges(true);
-      onSaved?.();
-      toast.success(
-        rebuilding
-          ? `Рацион пересобран: изменено ${changedMeals} из ${totalMeals} приёмов`
-          : formatTrainerVarietyLine(reloaded.days),
-      );
+      sessionStorage.setItem(jobStorageKey, started.job_id);
+      activeJobIdRef.current = started.job_id;
+      setJobProgress(started.progress ?? 0);
+      setActiveJobId(started.job_id);
     } catch (e) {
       if (seq !== genToken.current) return;
       const message = (e as Error).message;
       setGenerationError(message);
       toast.error(message);
+      setLoading(false);
     } finally {
-      if (seq === genToken.current) setLoading(false);
+      startLock.current = false;
     }
   };
+
+  const handleCancelGeneration = async () => {
+    const jobId = activeJobIdRef.current;
+    if (!jobId) return;
+    try {
+      const { selfhostCancelNutritionJob } = await import("@/lib/selfhost/client-api");
+      await selfhostCancelNutritionJob(jobId);
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  };
+
+  useEffect(() => {
+    let stopped = false;
+    void (async () => {
+      if (activeJobIdRef.current) return;
+      const { selfhostActiveNutritionJob, selfhostNutritionJob } =
+        await import("@/lib/selfhost/client-api");
+      let job = await selfhostActiveNutritionJob(userId, courseId).catch(() => null);
+      if (!job) {
+        const stored = sessionStorage.getItem(jobStorageKey);
+        if (!stored) return;
+        job = await selfhostNutritionJob(stored).catch(() => null);
+        if (!job || (job.status !== "queued" && job.status !== "running")) {
+          sessionStorage.removeItem(jobStorageKey);
+          return;
+        }
+      }
+      if (stopped || activeJobIdRef.current) return;
+      sessionStorage.setItem(jobStorageKey, job.job_id);
+      activeJobIdRef.current = job.job_id;
+      setJobProgress(job.progress ?? 0);
+      setLoading(true);
+      setActiveJobId(job.job_id);
+    })();
+    return () => {
+      stopped = true;
+    };
+  }, [courseId, jobStorageKey, userId]);
+
+  useEffect(() => {
+    if (!activeJobId) return;
+    let stopped = false;
+    const tick = async () => {
+      const { selfhostNutritionJob } = await import("@/lib/selfhost/client-api");
+      const job = await selfhostNutritionJob(activeJobId).catch(() => null);
+      if (stopped || !job) return;
+      setJobProgress(job.progress ?? 0);
+      if (job.status === "queued" || job.status === "running") return;
+      stopped = true;
+      sessionStorage.removeItem(jobStorageKey);
+      activeJobIdRef.current = null;
+      setActiveJobId(null);
+      try {
+        if (job.status === "completed") {
+          await applyGenerationResult(
+            (job.result ?? {}) as Parameters<typeof applyGenerationResult>[0],
+          );
+        } else {
+          const message = job.error?.message ?? "Черновик не изменён.";
+          setGenerationError(message);
+          if (job.status === "cancelled") toast.message(message);
+          else toast.error(message);
+        }
+      } catch (error) {
+        const message = (error as Error).message;
+        setGenerationError(message);
+        toast.error(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    void tick();
+    const timer = setInterval(() => void tick(), 2000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+    // applyGenerationResult читает актуальное состояние на момент завершения job.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeJobId, jobStorageKey]);
 
   const handleSave = async (assign: boolean) => {
     if (visibleDays.length === 0) return;
@@ -1054,6 +1173,13 @@ export function ConstructorAdminPanel({
         </p>
       )}
 
+      {loading && (
+        <p className="rounded-xl border border-gold/20 bg-gold/5 px-4 py-3 text-sm text-ivory">
+          Рацион рассчитывается{jobProgress > 0 ? ` · ${jobProgress}%` : ""}. Страницу можно
+          обновить — расчёт продолжится, второй запуск не начнётся.
+        </p>
+      )}
+
       {generationError && (
         <p className="rounded-xl border border-coral/20 bg-coral/5 px-4 py-3 text-sm text-warm-gray">
           {generationError}
@@ -1080,11 +1206,20 @@ export function ConstructorAdminPanel({
         >
           <Sparkles className="h-4 w-4" />
           {loading
-            ? "Пересобираем…"
+            ? "Рацион рассчитывается"
             : visibleDays.length > 0
               ? "Пересобрать рацион"
               : "Сгенерировать рацион"}
         </button>
+        {loading && activeJobId && (
+          <button
+            type="button"
+            onClick={() => void handleCancelGeneration()}
+            className="inline-flex items-center gap-2 rounded-full border border-coral/40 px-5 py-2.5 text-xs uppercase tracking-widest text-coral hover:bg-coral/10"
+          >
+            Отменить расчёт
+          </button>
+        )}
         {visibleDays.length > 0 && (
           <>
             <button

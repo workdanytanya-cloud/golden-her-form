@@ -634,25 +634,61 @@ export async function selfhostSaveNutritionDraft(payload: Record<string, unknown
   }>;
 }
 
-export async function selfhostGenerateNutrition(payload: Record<string, unknown>) {
-  // 28 дней two_main_two_snacks могут занимать 1–3 мин; контролируемый abort вместо «вечного» зависания.
-  const timeoutMs = 300_000;
+export type NutritionJobView = {
+  job_id: string;
+  status: "queued" | "running" | "completed" | "failed" | "cancelled";
+  progress: number;
+  error?: { message: string; code: string } | null;
+  result?: Record<string, unknown>;
+};
+
+export async function selfhostStartNutritionGeneration(payload: Record<string, unknown>) {
   const res = await selfhostFetch("/api/selfhost/admin/nutrition/generate", {
     method: "POST",
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(timeoutMs),
-  }).catch((error: unknown) => {
-    if (error instanceof DOMException && error.name === "TimeoutError") {
-      throw new Error(`Таймаут генерации рациона (${Math.round(timeoutMs / 1000)} с)`);
-    }
-    if (error instanceof Error && /aborted|timeout/i.test(error.message)) {
-      throw new Error(`Таймаут генерации рациона (${Math.round(timeoutMs / 1000)} с)`);
-    }
-    throw error;
   });
   return readSelfhostJson(res, {
     nonJsonMessage: payload.rebuild ? rebuildFailureMessage(res.status) : undefined,
+  }) as Promise<{ job_id: string; status: string; progress: number }>;
+}
+
+export async function selfhostNutritionJob(jobId: string) {
+  const res = await fetch(`/api/selfhost/admin/nutrition/generate/${jobId}`, {
+    credentials: "include",
   });
+  return readSelfhostJson(res) as Promise<NutritionJobView>;
+}
+
+export async function selfhostActiveNutritionJob(clientId: string, courseId?: string | null) {
+  const params = new URLSearchParams({ clientId });
+  if (courseId) params.set("courseId", courseId);
+  const res = await fetch(`/api/selfhost/admin/nutrition/generate?${params}`, {
+    credentials: "include",
+  });
+  const data = (await readSelfhostJson(res)) as { job?: NutritionJobView | null };
+  return data.job ?? null;
+}
+
+export async function selfhostCancelNutritionJob(jobId: string) {
+  const res = await selfhostFetch(`/api/selfhost/admin/nutrition/generate/${jobId}/cancel`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  return readSelfhostJson(res) as Promise<NutritionJobView>;
+}
+
+export async function selfhostGenerateNutrition(payload: Record<string, unknown>) {
+  const started = await selfhostStartNutritionGeneration(payload);
+  const deadline = Date.now() + 190_000;
+  while (Date.now() < deadline) {
+    const job = await selfhostNutritionJob(started.job_id);
+    if (job.status === "completed") return job.result ?? {};
+    if (job.status === "failed" || job.status === "cancelled") {
+      throw new Error(job.error?.message || "Не удалось рассчитать рацион. Черновик не изменён.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+  throw new Error("Таймаут генерации рациона. Прежний черновик сохранён.");
 }
 
 export async function selfhostReplaceMeal(payload: {

@@ -129,11 +129,7 @@ import {
   retryCourseGenerationPg,
 } from "@/lib/selfhost/postgres-course-provision";
 import { revealCourseOnAccessPg } from "@/lib/selfhost/postgres-course-access";
-import {
-  MealReplaceError,
-  loadRebuildExclusions,
-  replaceDraftMealPg,
-} from "@/lib/selfhost/postgres-meal-replace";
+import { MealReplaceError, replaceDraftMealPg } from "@/lib/selfhost/postgres-meal-replace";
 import {
   addDraftMealPg,
   deleteDraftMealPg,
@@ -144,18 +140,12 @@ import {
   validateDraftPg,
 } from "@/lib/selfhost/postgres-draft-edit";
 import {
-  countReplacedMeals,
-  freshRebuildSeed,
-  rebuildSaveDecision,
-} from "@/lib/nutrition-constructor/meal-replace";
-import {
   acceptNutritionRecommendationPg,
   loadConstructorPlanPg,
   loadMealPreferencePg,
   loadOptimizerContextPg,
   loadPendingNutritionRecommendationPg,
   nutritionDraftSaveSchema,
-  nutritionGenerateSchema,
   nutritionPreferenceSchema,
   nutritionPublishSchema,
   publishNutritionVersionPg,
@@ -175,7 +165,7 @@ import {
   trainingProgramPatchSchema,
   trainingPublishSchema,
 } from "@/lib/selfhost/postgres-training";
-import { generateAndValidateConstructorPlan } from "@/lib/nutrition-constructor/repo";
+import { nutritionJobs } from "@/lib/selfhost/nutrition-generation-jobs";
 import {
   archiveNutritionDocument,
   createNutritionDocumentDraft,
@@ -1397,187 +1387,44 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       }
     }
 
-    if (url.pathname === "/api/selfhost/admin/nutrition/generate" && request.method === "POST") {
+    const generatePath = url.pathname.match(
+      /^\/api\/selfhost\/admin\/nutrition\/generate(?:\/([0-9a-f-]{36})(\/cancel)?)?$/i,
+    );
+    if (generatePath) {
       requireAdmin(session);
-      assertCsrf(request);
-      const body = nutritionGenerateSchema.parse(await readJson(request));
-      const generateWith = (extra: {
-        seed?: number;
-        excluded_recipe_ids?: string[];
-        excluded_variant_groups?: string[];
-        excluded_ingredient_signatures?: string[];
-        search_timeout_ms?: number;
-        catalog?: "postgres" | "memory";
-      }) =>
-        generateAndValidateConstructorPlan({
-          clientId: body.clientId,
-          courseId: body.courseId,
-          seed: extra.seed ?? body.seed,
-          profile: body.profile as never,
-          days_count: body.days_count,
-          excluded_product_ids: body.excluded_product_ids,
-          excluded_recipe_ids: extra.excluded_recipe_ids ?? body.excluded_recipe_ids,
-          excluded_variant_groups: extra.excluded_variant_groups ?? body.excluded_variant_groups,
-          excluded_ingredient_signatures:
-            extra.excluded_ingredient_signatures ?? body.excluded_ingredient_signatures,
-          allow_repeats: body.allow_repeats,
-          meal_schedule_mode: body.meal_schedule_mode,
-          primary_meal_slot: body.primary_meal_slot,
-          targets_override: body.targets_override,
-          search_timeout_ms: extra.search_timeout_ms ?? body.search_timeout_ms,
-          catalog: extra.catalog,
-        });
-      const generated = await (async () => {
-        if (!body.rebuild || !body.clientId) return generateWith({});
-        const exclusions = await loadRebuildExclusions(
-          getPostgresPool(),
-          body.clientId,
-          body.courseId,
-        );
-        const before = await loadConstructorPlanPg(getPostgresPool(), body.clientId, body.courseId);
-        const timeout = body.search_timeout_ms ?? 40_000;
-        const targetSeed = Math.round(body.targets_override?.kcal ?? 0) || undefined;
-        const seeds = [
-          targetSeed,
-          freshRebuildSeed(undefined, targetSeed),
-          freshRebuildSeed(Date.now() + 104729, targetSeed),
-        ].filter(
-          (value, index, all): value is number => value != null && all.indexOf(value) === index,
-        );
-        let fallback: ReturnType<typeof Object.assign> | null = null;
-        for (let index = 0; index < seeds.length; index += 1) {
-          const seed = seeds[index]!;
-          const pass = await generateWith({
-            seed,
-            excluded_recipe_ids:
-              index === 0
-                ? [...new Set([...body.excluded_recipe_ids, ...exclusions.recipeIds])]
-                : body.excluded_recipe_ids,
-            excluded_variant_groups:
-              index === 0
-                ? [...new Set([...body.excluded_variant_groups, ...exclusions.variantGroups])]
-                : body.excluded_variant_groups,
-            excluded_ingredient_signatures:
-              index === 0
-                ? [...new Set([...body.excluded_ingredient_signatures, ...exclusions.signatures])]
-                : body.excluded_ingredient_signatures,
-            search_timeout_ms: timeout,
-          });
-          const diff = countReplacedMeals(before.days, pass.days);
-          const annotated = Object.assign(pass, {
-            changed: diff.changed,
-            total: diff.total,
-            hadDraft: exclusions.hadDraft,
-          });
-          const useful =
-            pass.is_valid && pass.days.length > 0 && (!exclusions.hadDraft || diff.changed > 0);
-          if (useful) return annotated;
-          if (!fallback || (pass.is_valid && pass.days.length > 0)) fallback = annotated;
-          if (pass.reason_code === "INSUFFICIENT_VARIETY" || pass.reason_code === "INFEASIBLE")
-            break;
-        }
-        const memory = await generateWith({
-          catalog: "memory",
-          seed: targetSeed ?? seeds[0],
-          search_timeout_ms: timeout,
-          excluded_recipe_ids: body.excluded_recipe_ids,
-          excluded_variant_groups: body.excluded_variant_groups,
-          excluded_ingredient_signatures: body.excluded_ingredient_signatures,
-        });
-        const memoryDiff = countReplacedMeals(before.days, memory.days);
-        if (
-          memory.is_valid &&
-          memory.days.length > 0 &&
-          (!exclusions.hadDraft || memoryDiff.changed > 0)
-        ) {
-          return Object.assign(memory, {
-            changed: memoryDiff.changed,
-            total: memoryDiff.total,
-            hadDraft: exclusions.hadDraft,
-          });
-        }
-        return fallback ?? memory;
-      })();
-      const changed = (generated as { changed?: number }).changed ?? generated.days.length;
-      const total = (generated as { total?: number }).total ?? generated.days.length;
-      const hadDraft = (generated as { hadDraft?: boolean }).hadDraft ?? false;
-      const decision = body.rebuild
-        ? rebuildSaveDecision({
-            valid: Boolean(generated.is_valid && generated.days.length > 0),
-            changed,
-            total,
-            hadDraft,
-          })
-        : {
-            save: Boolean(generated.is_valid && generated.days.length > 0),
-            success: Boolean(generated.is_valid && generated.days.length > 0),
-            message: generated.message ?? "",
-          };
-      if (!decision.save) {
-        return json({
-          ...generated,
-          saved: false,
-          changed,
-          total,
-          message: body.rebuild ? decision.message : generated.message,
-        });
+      const jobId = generatePath[1];
+      const cancel = Boolean(generatePath[2]);
+      if (request.method === "GET" && !jobId) {
+        const clientId = url.searchParams.get("clientId") ?? "";
+        const courseId = url.searchParams.get("courseId");
+        if (!clientId) return errorJson("Не указан clientId", 400);
+        return json({ job: nutritionJobs.active(clientId, courseId) });
       }
-      if (!body.clientId) return errorJson("Не указан clientId для сохранения черновика", 400);
-      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "nutrition");
-      const beforeSave = body.rebuild
-        ? await loadConstructorPlanPg(getPostgresPool(), body.clientId, body.courseId)
-        : null;
-      const targets = body.targets_override ?? {
-        kcal: Number(generated.targets.kcal),
-        protein_g: Number(generated.targets.protein_g),
-        fat_g: Number(generated.targets.fat_g),
-        carbs_g: Number(generated.targets.carbs_g),
-      };
-      const saved = await saveConstructorPlanPg(getPostgresPool(), {
-        userId: body.clientId,
-        courseId: body.courseId,
-        days: generated.days,
-        targets,
-        plan_days_count: body.days_count,
-        plan_status: "validated",
-        bmr: Number(generated.bmr),
-        tdee: Number(generated.tdee),
-        calorie_adjustment_pct: generated.adjustment_pct,
-        excluded_products: body.excluded_product_ids,
-        targets_manual: Boolean(body.targets_override),
-        meal_schedule_mode: body.meal_schedule_mode,
-        primary_meal_slot: body.primary_meal_slot,
-        requires_manual_review: generated.requires_manual_review,
-        review_reason: generated.review_reason,
-      });
-      const confirmed = beforeSave
-        ? countReplacedMeals(beforeSave.days, saved.days)
-        : {
-            changed: saved.days.flatMap((day) => day.items).length,
-            total: saved.days.flatMap((day) => day.items).length,
-          };
-      if (body.rebuild && confirmed.changed === 0) {
-        return json({
-          ...generated,
-          saved: false,
-          changed: 0,
-          total: confirmed.total,
-          days: beforeSave?.days ?? [],
-          message:
-            "Новый отличающийся вариант найти не удалось. Текущий рацион сохранён без изменений.",
-        });
+      if (request.method === "GET" && jobId) {
+        const job = nutritionJobs.get(jobId);
+        if (!job) return errorJson("Расчёт не найден", 404, "JOB_NOT_FOUND");
+        return json(job);
       }
-      return json({
-        ...generated,
-        saved: true,
-        changed: body.rebuild ? confirmed.changed : saved.days.flatMap((day) => day.items).length,
-        total: body.rebuild ? confirmed.total : saved.days.flatMap((day) => day.items).length,
-        message: body.rebuild
-          ? `Рацион пересобран: изменено ${confirmed.changed} из ${confirmed.total} приёмов`
-          : generated.message,
-        draftId: saved.plan.id,
-        days: saved.days,
-      });
+      if (request.method === "POST" && jobId && cancel) {
+        assertCsrf(request);
+        const job = nutritionJobs.cancel(jobId);
+        if (!job) return errorJson("Расчёт не найден", 404, "JOB_NOT_FOUND");
+        return json(job);
+      }
+      if (request.method === "POST" && !jobId) {
+        assertCsrf(request);
+        const { nutritionGenerateSchema } = await import("@/lib/selfhost/postgres-nutrition");
+        const body = nutritionGenerateSchema.parse(await readJson(request));
+        try {
+          const job = nutritionJobs.enqueue(body);
+          return json({ job_id: job.job_id, status: job.status, progress: job.progress }, 202);
+        } catch (error) {
+          const status = (error as { statusCode?: number }).statusCode ?? 500;
+          const code = (error as { code?: string }).code;
+          return errorJson((error as Error).message, status, code);
+        }
+      }
+      return errorJson("Метод не поддерживается", 405);
     }
 
     if (url.pathname === "/api/selfhost/admin/nutrition/publish" && request.method === "POST") {
