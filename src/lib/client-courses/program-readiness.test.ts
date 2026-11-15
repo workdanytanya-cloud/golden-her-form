@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   decideGenerationStage,
+  trainingDraftNeedsRebuild,
   goalLabel,
   missingProgramFields,
   missingProgramMessage,
@@ -24,7 +25,6 @@ describe("program readiness", () => {
     expect(goalLabel("weight_loss")).toBe("Снижение веса");
     expect(goalLabel("Своя формулировка")).toBe("Своя формулировка");
     expect(missingProgramFields({ ...complete, goal: null, birthDate: null }, "both")).toEqual([
-      "цель",
       "дата рождения",
     ]);
     expect(
@@ -62,6 +62,39 @@ describe("program readiness", () => {
     ).toEqual([]);
     expect(missingProgramFields({ ...complete, trainingDays: null }, "nutrition")).toEqual([]);
     expect(missingProgramFields(complete, "both")).toEqual([]);
+  });
+
+  it("rebuilds a training draft when direction or level changes", () => {
+    const stored = {
+      goal: "tone",
+      level: "intermediate",
+      sessions: 3,
+      notes: "Направленность: Общая физическая подготовка.",
+    };
+    expect(
+      trainingDraftNeedsRebuild(stored, {
+        goal: "tone",
+        level: "intermediate",
+        sessions: 3,
+        directionLabel: "Общая физическая подготовка",
+      }),
+    ).toBe(false);
+    expect(
+      trainingDraftNeedsRebuild(stored, {
+        goal: "muscle_gain",
+        level: "advanced",
+        sessions: 4,
+        directionLabel: "Укрепление мышц",
+      }),
+    ).toBe(true);
+    expect(
+      trainingDraftNeedsRebuild(null, {
+        goal: "tone",
+        level: "beginner",
+        sessions: 3,
+        directionLabel: "Общая физическая подготовка",
+      }),
+    ).toBe(false);
   });
 
   it("runs a failed stage again and leaves a ready stage alone", () => {

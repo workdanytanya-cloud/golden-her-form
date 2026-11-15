@@ -153,6 +153,7 @@ async function loadAssignmentVersionId(
      FROM public.client_program_assignments a
      LEFT JOIN public.client_courses c ON c.id = a.course_id
      WHERE a.client_id = $1 AND a.kind = $2
+       AND (c.id IS NULL OR c.status <> 'draft')
      ORDER BY CASE WHEN c.status = 'active' THEN 0 ELSE 1 END, c.start_date DESC NULLS LAST, a.updated_at DESC
      LIMIT 1`,
     [clientId, kind],
@@ -292,7 +293,8 @@ export async function getPdfAccessMetaPg(
     : await db.query(
         `SELECT title, start_date::text AS start_date, end_date::text AS end_date
          FROM public.client_courses
-         WHERE client_id = $1 ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, start_date DESC LIMIT 1`,
+         WHERE client_id = $1 AND status <> 'draft'
+         ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, start_date DESC LIMIT 1`,
         [clientId],
       );
   const row = course.rows[0] as

@@ -25,6 +25,8 @@ export type ClientCourse = {
   training_generation_status?: ProgramGenerationStatus | null;
   nutrition_generation_error?: string | null;
   training_generation_error?: string | null;
+  nutrition_published?: boolean;
+  training_published?: boolean;
 };
 
 export { courseStatusLabel, formatCourseTitle, buildCourseTitleFromISO };

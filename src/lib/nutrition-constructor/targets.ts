@@ -61,8 +61,8 @@ function ageFromBirthDate(birth_date: string | null | undefined): number | null 
 
 export function inferGoalKind(goal_primary: string | null | undefined): GoalKind {
   const g = (goal_primary ?? "").toLowerCase();
-  if (/(похуд|снижен|жир|weight_loss|lose)/.test(g)) return "weight_loss";
-  if (/(набор|мышц|gain|muscle)/.test(g)) return "muscle_gain";
+  if (/(похуд|снижен|жир|weight_loss|lose|минус|\d+\s*кг)/.test(g)) return "weight_loss";
+  if (/(набор|мышц|gain|muscle|укреп|сил)/.test(g)) return "muscle_gain";
   return "maintain";
 }
 

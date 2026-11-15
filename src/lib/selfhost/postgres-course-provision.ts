@@ -9,12 +9,12 @@ import {
 import type { ClientCourse } from "@/lib/client-courses/repo";
 import {
   decideGenerationStage,
+  trainingDraftNeedsRebuild,
   mapGender,
   mapMealSchedule,
   mapPrimarySlot,
   resolveProvisionMealSchedule,
   mapTrainingDays,
-  mapTrainingGoal,
   mapTrainingLevel,
   missingProgramFields,
   missingProgramMessage,
@@ -24,8 +24,24 @@ import {
 import { buildForbiddenProductIds } from "@/lib/nutrition-constructor/allergens";
 import { calcMacroTargets, checkAutoGenerationSafety } from "@/lib/nutrition-constructor/targets";
 import { generateAndValidateConstructorPlan } from "@/lib/nutrition-constructor/repo";
-import { buildContinuationTrainingProgram } from "@/lib/course-continuation/training-continuation";
-import { defaultFaq, type ProgramInput } from "@/lib/training";
+import {
+  GOAL_FALLBACK_MESSAGE,
+  resolveClientGoal,
+  TRAINING_DIRECTION_LABELS,
+  type TrainingDirection,
+} from "@/lib/client-courses/goal-source";
+import {
+  assessTrainingVariety,
+  INSUFFICIENT_EXERCISE_VARIETY,
+  INSUFFICIENT_EXERCISE_VARIETY_MESSAGE,
+} from "@/lib/course-continuation/training-variety";
+import {
+  defaultFaq,
+  generateMultiWeekProgram,
+  type ProgramGoal,
+  type ProgramInput,
+  type ProgramLevel,
+} from "@/lib/training";
 import { getPostgresPool } from "@/lib/selfhost/db";
 import { mapCourse } from "@/lib/selfhost/postgres-courses";
 import {
@@ -48,6 +64,7 @@ export type CourseProvisionResult = {
   course: ClientCourse;
   idempotent: boolean;
   stages: Record<StageName, { status: ProgramGenerationStatus | null; error: string | null }>;
+  goalFallback: boolean;
 };
 
 type Facts = {
@@ -69,6 +86,24 @@ type Facts = {
   mealSchedule: ReturnType<typeof mapMealSchedule>;
   mealScheduleExplicit: boolean;
   primarySlot: ReturnType<typeof mapPrimarySlot>;
+  goalText: string | null;
+  goalFallback: boolean;
+  direction: TrainingDirection;
+  pregnancyLimitsLoad: boolean;
+  chosenLevel?: ProgramLevel;
+  chosenSessions?: 3 | 4;
+  chosenDuration?: number | null;
+  chosenLocation?: string | null;
+  chosenEquipment?: string[];
+};
+
+export type TrainingProvisionChoices = {
+  direction?: TrainingDirection;
+  level?: ProgramLevel;
+  sessionsPerWeek?: 3 | 4;
+  durationMin?: number | null;
+  location?: string | null;
+  equipment?: string[];
 };
 
 export type CourseProvisionDeps = {
@@ -99,7 +134,7 @@ function clipError(error: unknown): string {
 
 async function loadFacts(db: Pool | PoolClient, clientId: string): Promise<Facts> {
   const { rows } = await db.query(
-    `SELECT COALESCE(NULLIF(btrim(p.goal), ''), NULLIF(btrim(o.goal_primary), '')) AS goal,
+    `SELECT p.goal AS profile_goal, o.goal_primary, o.goal_details,
             p.height_cm, p.gender, p.birth_date::text AS birth_date, p.preferred_meal_schedule,
             o.activity_level, o.training_days_per_week, o.allergies, o.disliked_foods,
             o.pregnancy_status, o.health_conditions, o.has_injuries, o.injuries_details,
@@ -119,13 +154,25 @@ async function loadFacts(db: Pool | PoolClient, clientId: string): Promise<Facts
     [clientId],
   );
   const extra = (row.extra as Record<string, unknown> | null) ?? {};
+  const extraGoal = [extra.goal, extra.goal_text, extra.desired_result].find(
+    (value) => typeof value === "string" && value.trim(),
+  );
+  const resolved = resolveClientGoal({
+    profileGoal: (row.profile_goal as string | null) ?? null,
+    goalPrimary: (row.goal_primary as string | null) ?? null,
+    goalDetails: (row.goal_details as string | null) ?? null,
+    extraGoal: typeof extraGoal === "string" ? extraGoal : null,
+  });
+  const pregnancy = String(row.pregnancy_status ?? "")
+    .trim()
+    .toLowerCase();
   const schedule =
     (typeof row.preferred_meal_schedule === "string" ? row.preferred_meal_schedule : null) ??
     (typeof extra.meal_schedule_mode === "string" ? extra.meal_schedule_mode : null) ??
     (typeof extra.preferred_meal_schedule === "string" ? extra.preferred_meal_schedule : null);
   const slot = typeof extra.primary_meal_slot === "string" ? extra.primary_meal_slot : null;
   return {
-    goal: (row.goal as string | null) ?? null,
+    goal: resolved.text ?? resolved.direction,
     heightCm: row.height_cm == null ? null : Number(row.height_cm),
     weightKg:
       weight.rows[0]?.weight_kg == null
@@ -148,6 +195,10 @@ async function loadFacts(db: Pool | PoolClient, clientId: string): Promise<Facts
       schedule?.trim() && mapMealSchedule(schedule) === schedule.trim(),
     ),
     primarySlot: mapPrimarySlot(slot),
+    goalText: resolved.text,
+    goalFallback: resolved.fallback,
+    direction: resolved.direction,
+    pregnancyLimitsLoad: Boolean(pregnancy) && !/^(none|no|нет|отсутствует)$/.test(pregnancy),
   };
 }
 
@@ -361,25 +412,35 @@ async function generateFreshNutrition(clientId: string, courseId: string, facts:
   });
 }
 
+function programGoalFor(direction: TrainingDirection): ProgramGoal {
+  if (direction === "weight_loss") return "weight_loss";
+  if (direction === "strength") return "muscle_gain";
+  if (direction === "mobility") return "rehab";
+  if (direction === "endurance") return "weight_loss";
+  return "tone";
+}
+
 async function generateTrainingDraft(
   clientId: string,
   courseId: string,
   facts: Facts,
   sourceCourseId: string | null,
 ) {
-  const goal = mapTrainingGoal(facts.goal ?? "");
-  if (!goal) throw new Error(missingProgramMessage(["цель"]));
-  if (!facts.activityLevel || facts.trainingDays == null || facts.weightKg == null) {
-    throw new Error("Для тренировок не хватает параметров анкеты");
+  if (facts.weightKg == null) {
+    throw new Error(missingProgramMessage(["вес"]));
   }
+  const direction = facts.direction;
+  const contraindicated = facts.hasInjuries || facts.pregnancyLimitsLoad;
+  const requestedLevel = facts.chosenLevel ?? mapTrainingLevel(facts.activityLevel ?? "low");
+  const level: ProgramLevel = contraindicated ? "beginner" : requestedLevel;
   const input: ProgramInput = {
-    sessions_per_week: mapTrainingDays(facts.trainingDays),
-    goal,
-    level: mapTrainingLevel(facts.activityLevel),
-    has_injuries: facts.hasInjuries,
+    sessions_per_week: facts.chosenSessions ?? mapTrainingDays(facts.trainingDays ?? 3),
+    goal: programGoalFor(direction),
+    level,
+    has_injuries: facts.hasInjuries || facts.pregnancyLimitsLoad,
     injuries_details: facts.injuriesDetails,
-    equipment: facts.equipment,
-    location: facts.location,
+    equipment: facts.chosenEquipment ?? facts.equipment,
+    location: facts.chosenLocation ?? facts.location,
     weight_kg: facts.weightKg,
     gender: facts.gender,
   };
@@ -388,7 +449,35 @@ async function generateTrainingDraft(
   const previous = sourceCourseId
     ? await loadPreviousTrainingContextPg(pool, clientId, courseId, sourceCourseId)
     : null;
-  const plan = buildContinuationTrainingProgram(exercises, input, previous);
+  const previousIds = new Set(
+    (previous?.days ?? []).flatMap((day) => day.exercises.map((item) => item.exercise_id)),
+  );
+  const available =
+    previousIds.size > 0
+      ? exercises.filter((exercise) => !previousIds.has(exercise.id))
+      : exercises;
+  if (previousIds.size > 0 && available.length < 8) {
+    throw Object.assign(new Error(INSUFFICIENT_EXERCISE_VARIETY_MESSAGE), {
+      code: INSUFFICIENT_EXERCISE_VARIETY,
+    });
+  }
+  const days = generateMultiWeekProgram(available, input, 4);
+  const variety = assessTrainingVariety(days, previous?.days ?? null);
+  if (!variety.ok) {
+    throw Object.assign(new Error(INSUFFICIENT_EXERCISE_VARIETY_MESSAGE), {
+      code: INSUFFICIENT_EXERCISE_VARIETY,
+    });
+  }
+  const notes = [
+    facts.goalFallback ? GOAL_FALLBACK_MESSAGE : null,
+    `Направленность: ${TRAINING_DIRECTION_LABELS[direction]}.`,
+    contraindicated && requestedLevel !== "beginner"
+      ? "Ограничения анкеты важнее выбранного уровня: оставлен начальный."
+      : null,
+    facts.chosenDuration ? `Длительность тренировки: ${facts.chosenDuration} мин.` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
   await saveTrainingDraftPg(pool, {
     clientId,
     courseId,
@@ -399,11 +488,11 @@ async function generateTrainingDraft(
     injuries_details: input.injuries_details ?? null,
     equipment: input.equipment ?? [],
     location: input.location ?? null,
-    notes: plan.coachNotes,
+    notes,
     faq: defaultFaq(input),
     targets_manual: false,
-    program_weeks: plan.programWeeks,
-    days: plan.days.map((day) => ({
+    program_weeks: 4,
+    days: days.map((day) => ({
       week_index: day.week_index ?? 0,
       day_index: day.day_index,
       is_rest: day.is_rest,
@@ -456,6 +545,61 @@ async function reloadCourse(db: Pool | PoolClient, courseId: string): Promise<Cl
   return mapCourse(rows[0] as Record<string, unknown>);
 }
 
+async function refreshTrainingDraftIfChoicesChanged(
+  db: Pool,
+  courseId: string,
+  facts: Facts,
+): Promise<void> {
+  const published = await db.query(
+    `SELECT EXISTS (
+       SELECT 1 FROM public.training_program_versions
+        WHERE course_id = $1 AND status = 'published'
+     ) AS published`,
+    [courseId],
+  );
+  if (published.rows[0]?.published) return;
+  const { rows } = await db.query(
+    `SELECT goal, level, sessions_per_week, notes
+       FROM public.training_programs
+      WHERE course_id = $1`,
+    [courseId],
+  );
+  const row = rows[0] as
+    | {
+        goal: string | null;
+        level: string | null;
+        sessions_per_week: number | null;
+        notes: string | null;
+      }
+    | undefined;
+  const contraindicated = facts.hasInjuries || facts.pregnancyLimitsLoad;
+  const needs = trainingDraftNeedsRebuild(
+    row
+      ? {
+          goal: row.goal,
+          level: row.level,
+          sessions: row.sessions_per_week,
+          notes: row.notes,
+        }
+      : null,
+    {
+      goal: programGoalFor(facts.direction),
+      level: contraindicated
+        ? "beginner"
+        : (facts.chosenLevel ?? mapTrainingLevel(facts.activityLevel ?? "low")),
+      sessions: facts.chosenSessions ?? mapTrainingDays(facts.trainingDays ?? 3),
+      directionLabel: TRAINING_DIRECTION_LABELS[facts.direction],
+    },
+  );
+  if (!needs) return;
+  await db.query(
+    `UPDATE public.client_courses
+        SET training_generation_status = 'pending', training_generation_error = NULL
+      WHERE id = $1 AND training_generation_status = 'ready'`,
+    [courseId],
+  );
+}
+
 function stagesOf(course: ClientCourse): CourseProvisionResult["stages"] {
   return {
     nutrition: {
@@ -469,27 +613,15 @@ function stagesOf(course: ClientCourse): CourseProvisionResult["stages"] {
   };
 }
 
-async function openAccess(db: PoolClient, clientId: string, actorId: string): Promise<void> {
-  await db.query(
-    `INSERT INTO public.client_access (user_id, status, activated_at, activated_by, updated_at)
-     VALUES ($1, 'active', (now() AT TIME ZONE 'utc'), $2, (now() AT TIME ZONE 'utc'))
-     ON CONFLICT (user_id) DO UPDATE SET
-       status = 'active',
-       activated_at = COALESCE(public.client_access.activated_at, EXCLUDED.activated_at),
-       activated_by = COALESCE(public.client_access.activated_by, EXCLUDED.activated_by),
-       updated_at = (now() AT TIME ZONE 'utc')`,
-    [clientId, actorId],
-  );
-}
-
 export async function provisionClientCoursePg(
   pool: Pool,
   input: {
     clientId: string;
     programScope: ProgramScope;
-    activate: boolean;
+    activate?: boolean;
     actorId: string;
     startDate?: string;
+    training?: TrainingProvisionChoices;
   },
   deps: CourseProvisionDeps = defaultDeps,
 ): Promise<CourseProvisionResult> {
@@ -510,7 +642,7 @@ export async function provisionClientCoursePg(
         `SELECT ${COURSE_RETURNING}
            FROM public.client_courses
           WHERE client_id = $1 AND start_date = $2::date AND program_scope = $3
-            AND status IN ('draft', 'active')
+            AND status = 'draft'
           ORDER BY created_at DESC
           LIMIT 1
           FOR UPDATE`,
@@ -531,7 +663,7 @@ export async function provisionClientCoursePg(
             buildCourseTitleFromISO(startIso),
             startIso,
             endIso,
-            input.activate ? "active" : "draft",
+            "draft",
             input.actorId,
             input.programScope,
             input.programScope === "training" ? null : "pending",
@@ -540,33 +672,38 @@ export async function provisionClientCoursePg(
         );
         created = mapCourse(inserted.rows[0] as Record<string, unknown>);
       }
-      if (input.activate && created.status !== "active") {
-        await client.query(
-          `UPDATE public.client_courses SET status = 'completed'
-            WHERE client_id = $1 AND status = 'active' AND id <> $2`,
-          [input.clientId, created.id],
-        );
-        await client.query(
-          `UPDATE public.client_courses SET status = 'active' WHERE id = $1 AND client_id = $2`,
-          [created.id, input.clientId],
-        );
-        created = { ...created, status: "active" };
-      }
-      if (input.activate) await openAccess(client, input.clientId, input.actorId);
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
     }
+    const trainingFacts: Facts = {
+      ...facts,
+      direction: input.training?.direction ?? facts.direction,
+      goalFallback: input.training?.direction ? false : facts.goalFallback,
+      chosenLevel: input.training?.level,
+      chosenSessions: input.training?.sessionsPerWeek,
+      chosenDuration: input.training?.durationMin,
+      chosenLocation: input.training?.location,
+      chosenEquipment: input.training?.equipment,
+    };
     const source = await sourceCourseId(pool, input.clientId, created.id);
     if (created.program_scope !== "training") {
-      await runStage(pool, created, facts, "nutrition", deps, source);
+      await runStage(pool, created, trainingFacts, "nutrition", deps, source);
     }
     if (created.program_scope !== "nutrition") {
-      await runStage(pool, created, facts, "training", deps, source);
+      if (input.training) {
+        await refreshTrainingDraftIfChoicesChanged(pool, created.id, trainingFacts);
+      }
+      await runStage(pool, created, trainingFacts, "training", deps, source);
     }
     const course = await reloadCourse(pool, created.id);
-    return { course, idempotent, stages: stagesOf(course) };
+    return {
+      course,
+      idempotent,
+      stages: stagesOf(course),
+      goalFallback: trainingFacts.goalFallback,
+    };
   } finally {
     await client.query(`SELECT pg_advisory_unlock(hashtext($1))`, [lockKey]).catch(() => undefined);
     client.release();
@@ -605,7 +742,12 @@ export async function retryCourseGenerationPg(
       await runStage(pool, course, facts, kind, deps, source);
     }
     const next = await reloadCourse(pool, course.id);
-    return { course: next, idempotent: true, stages: stagesOf(next) };
+    return {
+      course: next,
+      idempotent: true,
+      stages: stagesOf(next),
+      goalFallback: facts.goalFallback,
+    };
   } finally {
     await client.query(`SELECT pg_advisory_unlock(hashtext($1))`, [lockKey]).catch(() => undefined);
     client.release();

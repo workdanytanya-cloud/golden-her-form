@@ -17,8 +17,22 @@ export const adminCourseCreateSchema = z.object({
   startDate: z.string().optional(),
   notes: z.string().max(2000).nullable().optional(),
   activate: z.boolean().optional().default(false),
+  active: z.boolean().optional(),
+  access_status: z.string().optional(),
   cloneFromCourseId: z.string().uuid().nullable().optional(),
   programScope: z.enum(["nutrition", "training", "both"]).optional().default("both"),
+  training: z
+    .object({
+      direction: z
+        .enum(["weight_loss", "general_fitness", "strength", "endurance", "mobility"])
+        .optional(),
+      level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+      sessionsPerWeek: z.union([z.literal(3), z.literal(4)]).optional(),
+      durationMin: z.number().int().min(20).max(120).nullable().optional(),
+      location: z.string().max(80).nullable().optional(),
+      equipment: z.array(z.string().max(40)).max(12).optional(),
+    })
+    .optional(),
 });
 
 export const adminCourseUpdateSchema = z.object({
@@ -48,6 +62,8 @@ export function mapCourse(row: Record<string, unknown>): ClientCourse {
     created_at: new Date(row.created_at as string | Date).toISOString(),
     created_by: (row.created_by as string | null) ?? null,
     notes: (row.notes as string | null) ?? null,
+    nutrition_published: Boolean(row.nutrition_published),
+    training_published: Boolean(row.training_published),
     program_scope: (row.program_scope as ClientCourse["program_scope"] | null) ?? "both",
     nutrition_generation_status: generationStatus(row.nutrition_generation_status),
     training_generation_status: generationStatus(row.training_generation_status),
@@ -75,11 +91,13 @@ export async function resolveClientCourseIdPg(
     [clientId],
   );
   if (active.rows[0]) return (active.rows[0] as { id: string }).id;
-  const any = await db.query(
-    `SELECT id FROM public.client_courses WHERE client_id = $1 ORDER BY start_date DESC LIMIT 1`,
+  const visible = await db.query(
+    `SELECT id FROM public.client_courses
+      WHERE client_id = $1 AND status <> 'draft'
+      ORDER BY start_date DESC LIMIT 1`,
     [clientId],
   );
-  return (any.rows[0] as { id: string } | undefined)?.id ?? null;
+  return (visible.rows[0] as { id: string } | undefined)?.id ?? null;
 }
 
 export async function assertCourseScopePg(
@@ -170,7 +188,9 @@ export class PostgresClientCourseRepository {
 
   async list(clientId: string): Promise<ClientCourse[]> {
     const { rows } = await this.db.query(
-      `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope, nutrition_generation_status, training_generation_status, nutrition_generation_error, training_generation_error
+      `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope, nutrition_generation_status, training_generation_status, nutrition_generation_error, training_generation_error,
+              EXISTS (SELECT 1 FROM public.nutrition_plan_versions v WHERE v.course_id = client_courses.id AND v.status = 'published') AS nutrition_published,
+              EXISTS (SELECT 1 FROM public.training_program_versions v WHERE v.course_id = client_courses.id AND v.status = 'published') AS training_published
          FROM public.client_courses WHERE client_id = $1 ORDER BY start_date DESC`,
       [clientId],
     );
@@ -212,10 +232,10 @@ export class PostgresClientCourseRepository {
     const startIso = toISODate(start);
     const endIso = toISODate(courseEndDate(start));
     const title = buildCourseTitleFromISO(startIso);
-    const status: ClientCourseStatus = data.activate ? "active" : "draft";
+    const status: ClientCourseStatus = "draft";
 
     return withTransaction(async (client) => {
-      if (!data.activate) {
+      {
         await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
           `course-draft:${data.clientId}:${startIso}`,
         ]);
@@ -244,13 +264,6 @@ export class PostgresClientCourseRepository {
         }
       }
 
-      if (data.activate) {
-        await client.query(
-          `UPDATE public.client_courses SET status = 'completed'
-            WHERE client_id = $1 AND status = 'active'`,
-          [data.clientId],
-        );
-      }
       const inserted = await client.query(
         `INSERT INTO public.client_courses (client_id, title, start_date, end_date, status, notes, created_by, program_scope)
          VALUES ($1,$2,$3::date,$4::date,$5,$6,$7,$8)
@@ -353,20 +366,55 @@ export class PostgresClientCourseRepository {
     return mapCourse(updated.rows[0] as Record<string, unknown>);
   }
 
-  async activate(courseId: string, clientId: string): Promise<void> {
+  async activate(courseId: string, clientId: string, actorId?: string | null): Promise<void> {
+    const course = await this.get(courseId);
+    if (!course || course.client_id !== clientId) {
+      throw Object.assign(new Error("Курс не найден"), { statusCode: 404 });
+    }
+    if (course.status === "active") return;
+    const published = await this.db.query(
+      `SELECT
+         EXISTS (
+           SELECT 1 FROM public.nutrition_plan_versions
+            WHERE course_id = $1 AND client_id = $2 AND status = 'published'
+         ) AS nutrition,
+         EXISTS (
+           SELECT 1 FROM public.training_program_versions
+            WHERE course_id = $1 AND client_id = $2 AND status = 'published'
+         ) AS training`,
+      [courseId, clientId],
+    );
+    const row = published.rows[0] as { nutrition: boolean; training: boolean };
+    const needsNutrition = course.program_scope !== "training";
+    const needsTraining = course.program_scope !== "nutrition";
+    if ((needsNutrition && !row.nutrition) || (needsTraining && !row.training)) {
+      const message =
+        needsNutrition && needsTraining
+          ? "Сначала опубликуйте питание и тренировки"
+          : needsNutrition
+            ? "Сначала опубликуйте питание"
+            : "Сначала опубликуйте тренировки";
+      throw Object.assign(new Error(message), { statusCode: 422 });
+    }
     await withTransaction(async (client) => {
-      const found = await client.query(
-        `SELECT id FROM public.client_courses WHERE id = $1 AND client_id = $2`,
-        [courseId, clientId],
-      );
-      if (!found.rowCount) throw Object.assign(new Error("Курс не найден"), { statusCode: 404 });
       await client.query(
-        `UPDATE public.client_courses SET status = 'completed' WHERE client_id = $1 AND status = 'active' AND id <> $2`,
+        `UPDATE public.client_courses SET status = 'completed'
+          WHERE client_id = $1 AND status = 'active' AND id <> $2`,
         [clientId, courseId],
       );
       await client.query(
         `UPDATE public.client_courses SET status = 'active' WHERE id = $1 AND client_id = $2`,
         [courseId, clientId],
+      );
+      await client.query(
+        `INSERT INTO public.client_access (user_id, status, activated_at, activated_by, updated_at)
+         VALUES ($1, 'active', (now() AT TIME ZONE 'utc'), $2, (now() AT TIME ZONE 'utc'))
+         ON CONFLICT (user_id) DO UPDATE SET
+           status = 'active',
+           activated_at = COALESCE(public.client_access.activated_at, EXCLUDED.activated_at),
+           activated_by = COALESCE(public.client_access.activated_by, EXCLUDED.activated_by),
+           updated_at = (now() AT TIME ZONE 'utc')`,
+        [clientId, actorId ?? null],
       );
     });
   }

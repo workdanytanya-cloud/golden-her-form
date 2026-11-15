@@ -1565,7 +1565,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       jar: adminJar,
       body: JSON.stringify({ op: "activate" }),
     });
-    expect(act.status).toBe(200);
+    expect(act.status).toBe(422);
     const courses = await (
       await req(`/api/selfhost/admin/clients/${CLIENT_A}/courses`, { jar: adminJar })
     ).json();
@@ -3599,15 +3599,15 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       jar: adminJar,
       body: JSON.stringify({ op: "activate" }),
     });
-    expect(act.status).toBe(200);
+    expect(act.status).toBe(422);
     expect(
       (await pool.query(`SELECT status FROM client_courses WHERE id = $1`, [draftId])).rows[0]
         .status,
-    ).toBe("active");
+    ).toBe("draft");
     expect(
       (await pool.query(`SELECT status FROM client_courses WHERE id = $1`, [COURSE_A1])).rows[0]
         .status,
-    ).toBe("completed");
+    ).toBe("active");
 
     const secondWave = await req("/api/selfhost/courses/renew", {
       method: "POST",
@@ -3616,8 +3616,8 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     });
     expect(secondWave.status).toBe(200);
     const secondBody = await secondWave.json();
-    expect(secondBody.idempotent).toBe(false);
-    expect(secondBody.course.id).not.toBe(draftId);
+    expect(secondBody.idempotent).toBe(true);
+    expect(secondBody.course.id).toBe(draftId);
     expect(secondBody.course.status).toBe("draft");
   });
 

@@ -1,5 +1,6 @@
 import type { MealScheduleMode, PrimaryMealSlot } from "@/lib/nutrition-constructor/config";
 import { MEAL_SCHEDULE_MODES, PRIMARY_MEAL_SLOTS } from "@/lib/nutrition-constructor/config";
+import { directionFromGoalText } from "@/lib/client-courses/goal-source";
 import type { ProgramGoal, ProgramLevel } from "@/lib/training";
 
 export type ProgramScope = "nutrition" | "training" | "both";
@@ -35,7 +36,6 @@ export function missingProgramFields(input: ProgramReadinessInput, scope: Progra
   const missing: string[] = [];
   const nutrition = scope === "nutrition" || scope === "both";
   const training = scope === "training" || scope === "both";
-  if (!input.goal?.trim()) missing.push("цель");
   if (nutrition && input.heightCm == null) missing.push("рост");
   if ((nutrition || training) && input.weightKg == null) missing.push("вес");
   if (nutrition && !mapGender(input.gender)) missing.push("пол");
@@ -62,12 +62,11 @@ export function mapNutritionGoal(raw: string): string {
 }
 
 export function mapTrainingGoal(raw: string): ProgramGoal | null {
-  const value = raw.toLowerCase();
-  if (/(похуд|снижен|жир|weight_loss|lose)/.test(value)) return "weight_loss";
-  if (/(набор|мышц|gain|muscle)/.test(value)) return "muscle_gain";
-  if (/(реабилит|восстанов|rehab|injur)/.test(value)) return "rehab";
-  if (/(тонус|форм|подтян|tone)/.test(value)) return "tone";
-  if (/(поддержан|maintain)/.test(value)) return "maintain";
+  const direction = directionFromGoalText(raw);
+  if (direction === "weight_loss") return "weight_loss";
+  if (direction === "strength") return "muscle_gain";
+  if (direction === "mobility") return "rehab";
+  if (direction === "endurance" || direction === "general_fitness") return "tone";
   return null;
 }
 
@@ -114,6 +113,22 @@ export function mapPrimarySlot(raw: string | null | undefined): PrimaryMealSlot 
     return value as PrimaryMealSlot;
   }
   return "lunch";
+}
+
+export function trainingDraftNeedsRebuild(
+  stored: {
+    goal: string | null;
+    level: string | null;
+    sessions: number | null;
+    notes: string | null;
+  } | null,
+  requested: { goal: string; level: string; sessions: number; directionLabel: string },
+): boolean {
+  if (!stored) return false;
+  if (stored.goal !== requested.goal) return true;
+  if (stored.level !== requested.level) return true;
+  if (stored.sessions !== requested.sessions) return true;
+  return !String(stored.notes ?? "").includes(requested.directionLabel);
 }
 
 export type StageDecision = "run" | "skip";

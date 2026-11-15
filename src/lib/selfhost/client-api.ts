@@ -349,6 +349,7 @@ export type CourseProvisionResult = {
     nutrition: { status: string | null; error: string | null };
     training: { status: string | null; error: string | null };
   };
+  goalFallback?: boolean;
 };
 
 export async function selfhostAdminCreateCourse(

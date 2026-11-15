@@ -30,6 +30,7 @@ import {
   type AdminCourseManagerHandle,
 } from "@/components/panel/AdminCourseManager";
 import { goalLabel } from "@/lib/client-courses/program-readiness";
+import { resolveClientGoal } from "@/lib/client-courses/goal-source";
 import type { ClientCourse } from "@/lib/client-courses";
 
 export const Route = createFileRoute("/_authenticated/admin/clients/$id/")({
@@ -115,8 +116,17 @@ function ClientDetail() {
         });
         setAccountStatus(String(c.account_status ?? "active"));
         setOnboardingCompleted(Boolean(c.onboarding_completed_at));
-        const onboarding = c.onboarding as { goal_primary?: string | null } | null;
-        setOnboardingGoal(onboarding?.goal_primary ?? null);
+        const onboarding = c.onboarding as {
+          goal_primary?: string | null;
+          goal_details?: string | null;
+        } | null;
+        setOnboardingGoal(
+          resolveClientGoal({
+            profileGoal: (c.goal as string | null) ?? null,
+            goalPrimary: onboarding?.goal_primary,
+            goalDetails: onboarding?.goal_details,
+          }).text,
+        );
         setItems((c.measurements as Measurement[]) ?? []);
         setLoading(false);
         return;
@@ -314,7 +324,9 @@ function ClientDetail() {
           ) : null}
         </div>
         <p className="max-w-3xl text-base leading-relaxed text-warm-gray">
-          {goalLabel(profile?.goal) || goalLabel(onboardingGoal) || "Цель не задана"}
+          {goalLabel(
+            resolveClientGoal({ profileGoal: profile?.goal, goalPrimary: onboardingGoal }).text,
+          ) || "Цель не задана"}
         </p>
         <div className="flex flex-wrap gap-2">
           <button

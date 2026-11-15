@@ -540,7 +540,13 @@ function pickExerciseForSlot(
     }
     return true;
   });
-  if (pool.length === 0) {
+  const selectable =
+    input.level === "advanced" && !jointCare
+      ? pool.some((exercise) => exercise.difficulty !== "beginner")
+        ? pool.filter((exercise) => exercise.difficulty !== "beginner")
+        : pool
+      : pool;
+  if (selectable.length === 0) {
     // relax used-in-day, но сохраняем запрет ударных при jointCare и пол демо
     const relaxed = exercises.filter((e) => {
       if (!isExerciseAllowedForClientGender(e, input.gender)) return false;
@@ -555,7 +561,7 @@ function pickExerciseForSlot(
     return genderedRelaxed[Math.floor(Math.random() * genderedRelaxed.length)];
   }
 
-  const scored = pool.map((e) => {
+  const scored = selectable.map((e) => {
     let s = Math.random();
     if (slot.muscleHint) {
       const hits = slot.muscleHint.reduce(
@@ -584,6 +590,20 @@ function pickExerciseForSlot(
   return scored[0].e;
 }
 
+export function levelTrainingLoad(
+  level: ProgramLevel,
+  sets: number,
+  rest: number,
+  contraindicated: boolean,
+): { sets: number; rest: number; tempo: string | null } {
+  const effective = contraindicated ? "beginner" : level;
+  if (effective === "beginner") return { sets: Math.min(sets, 3), rest: rest + 20, tempo: "3-1-3" };
+  if (effective === "advanced") {
+    return { sets: Math.min(6, sets + 1), rest: Math.max(30, rest - 15), tempo: "2-0-2" };
+  }
+  return { sets, rest, tempo: null };
+}
+
 function toSet(e: Exercise, slot: SlotSpec, input: ProgramInput): ExerciseSet {
   // Reps by goal
   let reps = slot.reps ?? e.default_reps;
@@ -604,14 +624,25 @@ function toSet(e: Exercise, slot: SlotSpec, input: ProgramInput): ExerciseSet {
     } else if (input.goal === "tone") {
       reps = "10-12";
     }
-    if (input.level === "beginner") sets = Math.min(sets, 3);
+    const load = levelTrainingLoad(input.level, sets, rest, needsJointCare(input));
+    sets = load.sets;
+    rest = load.rest;
+    return {
+      exercise_id: e.id,
+      sets,
+      reps,
+      rest_seconds: rest,
+      tempo: load.tempo ?? slot.tempo ?? e.tempo,
+      note: null,
+    };
   }
+  const load = levelTrainingLoad(input.level, sets, rest, needsJointCare(input));
   return {
     exercise_id: e.id,
-    sets,
+    sets: load.sets,
     reps,
-    rest_seconds: rest,
-    tempo: slot.tempo ?? e.tempo,
+    rest_seconds: load.rest,
+    tempo: load.tempo ?? slot.tempo ?? e.tempo,
     note: null,
   };
 }
@@ -624,26 +655,26 @@ export function generateProgram(exercises: Exercise[], input: ProgramInput): Pro
 
 const WEEK_PROGRESSION_META = [
   {
-    title: "Неделя 1 — освоение",
-    focus: "Техника и привыкание к ритму.",
+    title: "Неделя 1 — знакомство",
+    focus: "Знакомство с упражнениями и техникой.",
     setBonus: 0,
     note: "Освойте технику по видео. Веса комфортные.",
   },
   {
     title: "Неделя 2 — объём",
-    focus: "Чуть больше подходов при той же технике.",
+    focus: "Умеренное увеличение объёма.",
     setBonus: 1,
     note: "Добавьте подход в основных упражнениях, если техника стабильна.",
   },
   {
-    title: "Неделя 3 — вариации",
-    focus: "Новые углы нагрузки, контроль негатива.",
+    title: "Неделя 3 — основная нагрузка",
+    focus: "Основная нагрузка блока.",
     setBonus: 0,
     note: "Медленнее негатив (3 секунды вниз). Можно заменить часть упражнений.",
   },
   {
-    title: "Неделя 4 — пик",
-    focus: "Максимум блока: качество важнее скорости.",
+    title: "Неделя 4 — закрепление",
+    focus: "Закрепление результата без копирования предыдущих дней.",
     setBonus: 1,
     note: "Пиковая неделя. Без читинга, полный контроль.",
   },
@@ -667,6 +698,7 @@ export function generateMultiWeekProgram(
   for (let week = 0; week < weekCount; week++) {
     const meta = WEEK_PROGRESSION_META[week] ?? WEEK_PROGRESSION_META[0];
     const weekUse = new Map<string, number>();
+    const seenThisWeek = new Set<string>();
     // На неделях 3–4 слегка «перемешиваем» пул, исключая уже часто использованные
     const preferFresh = week >= 2;
 
@@ -701,6 +733,26 @@ export function generateMultiWeekProgram(
         return out;
       };
 
+      const main = build(template.main, "main");
+      const signature = [...main.map((item) => item.exercise_id)].sort().join("|");
+      if (signature && seenThisWeek.has(signature)) {
+        const used = new Set(main.map((item) => item.exercise_id));
+        for (let index = main.length - 1; index >= 0; index -= 1) {
+          const current = catalog.find((exercise) => exercise.id === main[index].exercise_id);
+          if (!current) continue;
+          const alternative = catalog.find((exercise) => {
+            if (exercise.category !== current.category || used.has(exercise.id)) return false;
+            if (input.level === "beginner" && exercise.difficulty === "advanced") return false;
+            if (needsJointCare(input) && exercise.difficulty === "advanced") return false;
+            return true;
+          });
+          if (!alternative) continue;
+          main[index] = { ...main[index], exercise_id: alternative.id };
+          break;
+        }
+      }
+      const nextSignature = [...main.map((item) => item.exercise_id)].sort().join("|");
+      if (nextSignature) seenThisWeek.add(nextSignature);
       allDays.push({
         week_index: week,
         day_index: d,
@@ -709,7 +761,7 @@ export function generateMultiWeekProgram(
         focus: meta.focus,
         description: template.description,
         warmup: build(template.warmup, "warmup"),
-        exercises: build(template.main, "main"),
+        exercises: main,
         cooldown: build(template.cooldown, "cooldown"),
         day_note: meta.note,
       });

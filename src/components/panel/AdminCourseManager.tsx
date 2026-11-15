@@ -1,5 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarPlus, CheckCircle2, Play, Trash2, Archive } from "lucide-react";
+import { CalendarPlus, CheckCircle2, Trash2, Archive } from "lucide-react";
+import {
+  directionFromGoalText,
+  GOAL_FALLBACK_MESSAGE,
+  TRAINING_DIRECTION_LABELS,
+  type TrainingDirection,
+} from "@/lib/client-courses/goal-source";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -17,6 +23,16 @@ import { errorMessage } from "@/lib/error-message";
 import type { CourseProvisionResult } from "@/lib/selfhost/client-api";
 
 const PROVISION_WAIT_MS = 100_000;
+
+function accessBlockReason(course: ClientCourse): string | null {
+  if (course.status === "active") return null;
+  const needsNutrition = course.program_scope !== "training" && !course.nutrition_published;
+  const needsTraining = course.program_scope !== "nutrition" && !course.training_published;
+  if (needsNutrition && needsTraining) return "Сначала опубликуйте питание и тренировки";
+  if (needsNutrition) return "Сначала опубликуйте питание";
+  if (needsTraining) return "Сначала опубликуйте тренировки";
+  return null;
+}
 
 export type CourseNotice = {
   created: boolean;
@@ -49,8 +65,15 @@ export const AdminCourseManager = forwardRef<
   const [courses, setCourses] = useState<ClientCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [settingsReady, setSettingsReady] = useState(false);
   const [schemaReady, setSchemaReady] = useState(true);
   const [newProgramScope, setNewProgramScope] = useState<ClientCourse["program_scope"]>("both");
+  const [direction, setDirection] = useState<TrainingDirection>("general_fitness");
+  const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
+  const [sessionsPerWeek, setSessionsPerWeek] = useState<3 | 4>(3);
+  const [durationMin, setDurationMin] = useState(45);
+  const [location, setLocation] = useState("");
+  const [equipment, setEquipment] = useState("");
   const [notice, setNotice] = useState<CourseNotice | null>(null);
   const lock = useRef(false);
 
@@ -81,6 +104,39 @@ export const AdminCourseManager = forwardRef<
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
+  useEffect(() => {
+    void (async () => {
+      const { selfhostAdminClient } = await import("@/lib/selfhost/client-api");
+      const { client } = await selfhostAdminClient(clientId);
+      const card = client as {
+        goal?: string | null;
+        onboarding?: {
+          goal_primary?: string | null;
+          goal_details?: string | null;
+          training_days_per_week?: number | null;
+          training_location?: string | null;
+          session_duration_min?: number | null;
+          equipment?: string[] | null;
+          activity_level?: string | null;
+        } | null;
+      };
+      const text = card.goal || card.onboarding?.goal_details || card.onboarding?.goal_primary;
+      const inferred = directionFromGoalText(text);
+      if (inferred) setDirection(inferred);
+      const days = card.onboarding?.training_days_per_week;
+      if (days != null) setSessionsPerWeek(days >= 4 ? 4 : 3);
+      if (card.onboarding?.training_location) setLocation(card.onboarding.training_location);
+      if (card.onboarding?.session_duration_min)
+        setDurationMin(card.onboarding.session_duration_min);
+      if (card.onboarding?.equipment?.length) setEquipment(card.onboarding.equipment.join(", "));
+      const activity = card.onboarding?.activity_level ?? "";
+      if (/high|advanced/.test(activity)) setLevel("advanced");
+      else if (/moderate|medium/.test(activity)) setLevel("intermediate");
+      else if (activity) setLevel("beginner");
+      setSettingsReady(true);
+    })().catch(() => setSettingsReady(true));
   }, [clientId]);
 
   const applyResult = async (result: CourseProvisionResult) => {
@@ -118,6 +174,7 @@ export const AdminCourseManager = forwardRef<
     if (nutrition?.status === "ready") toast.success("Питание готово к проверке");
     if (training?.status === "ready") toast.success("Тренировки готовы к проверке");
     if (failedMessage) toast.error(failedMessage);
+    if (result.goalFallback) toast.message(GOAL_FALLBACK_MESSAGE, { duration: 8000 });
     onSelectCourse(result.course.id);
     await load();
     onChanged();
@@ -159,7 +216,7 @@ export const AdminCourseManager = forwardRef<
     return false;
   };
 
-  const createNew = async (activate: boolean) => {
+  const createNew = async () => {
     if (lock.current || busy) return;
     lock.current = true;
     setBusy(true);
@@ -171,9 +228,22 @@ export const AdminCourseManager = forwardRef<
       const result = await selfhostAdminProvisionCourse(
         clientId,
         {
-          activate,
           programScope: newProgramScope,
           createdBy: user?.id ?? null,
+          training:
+            newProgramScope === "nutrition"
+              ? undefined
+              : {
+                  direction,
+                  level,
+                  sessionsPerWeek,
+                  durationMin,
+                  location: location.trim() || null,
+                  equipment: equipment
+                    .split(",")
+                    .map((item) => item.trim())
+                    .filter(Boolean),
+                },
         },
         controller.signal,
       );
@@ -181,7 +251,7 @@ export const AdminCourseManager = forwardRef<
     } catch (e) {
       const aborted = controller.signal.aborted || (e instanceof Error && e.name === "AbortError");
       if (aborted) {
-        const settled = await pollProvision(activate);
+        const settled = await pollProvision(false);
         if (!settled) {
           setNotice({
             created: false,
@@ -222,7 +292,7 @@ export const AdminCourseManager = forwardRef<
   };
 
   useImperativeHandle(ref, () => ({
-    createAndActivate: () => createNew(true),
+    createAndActivate: () => createNew(),
   }));
 
   const changeScope = async (course: ClientCourse, programScope: ClientCourse["program_scope"]) => {
@@ -240,10 +310,11 @@ export const AdminCourseManager = forwardRef<
   };
 
   const activate = async (courseId: string) => {
+    if (!window.confirm("Клиент увидит опубликованную программу курса. Открыть доступ?")) return;
     setBusy(true);
     try {
       await activateClientCourse(courseId, clientId);
-      toast.success("Курс активирован");
+      toast.success("Курс активирован. Доступ клиента открыт");
       await load();
       onChanged();
     } catch (e) {
@@ -327,24 +398,91 @@ export const AdminCourseManager = forwardRef<
           </label>
           <button
             type="button"
-            disabled={busy}
-            onClick={() => void createNew(false)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gold/25 px-3 py-1.5 text-sm hover:bg-gold/10 disabled:opacity-50"
-          >
-            <CalendarPlus className="h-4 w-4" />
-            {busy ? "Создаём курс…" : "Новый курс"}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void createNew(true)}
+            disabled={busy || !settingsReady}
+            onClick={() => void createNew()}
             className="inline-flex items-center gap-1.5 rounded-lg bg-gold px-3 py-1.5 text-sm font-medium text-background hover:bg-gold/90 disabled:opacity-50"
           >
-            <Play className="h-4 w-4" />
-            {busy ? "Создаём курс…" : "Новый + активировать"}
+            <CalendarPlus className="h-4 w-4" />
+            {busy ? "Создаём курс…" : "Создать курс"}
           </button>
         </div>
       </div>
+      {newProgramScope !== "nutrition" ? (
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <label className="text-xs text-warm-gray">
+            Направленность
+            <select
+              value={direction}
+              disabled={busy}
+              onChange={(event) => setDirection(event.target.value as TrainingDirection)}
+              className="mt-1 w-full rounded-lg border border-gold/25 bg-background px-2 py-1.5 text-sm text-foreground"
+            >
+              {(Object.keys(TRAINING_DIRECTION_LABELS) as TrainingDirection[]).map((key) => (
+                <option key={key} value={key}>
+                  {TRAINING_DIRECTION_LABELS[key]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs text-warm-gray">
+            Уровень сложности
+            <select
+              value={level}
+              disabled={busy}
+              onChange={(event) =>
+                setLevel(event.target.value as "beginner" | "intermediate" | "advanced")
+              }
+              className="mt-1 w-full rounded-lg border border-gold/25 bg-background px-2 py-1.5 text-sm text-foreground"
+            >
+              <option value="beginner">Начальный</option>
+              <option value="intermediate">Средний</option>
+              <option value="advanced">Продвинутый</option>
+            </select>
+          </label>
+          <label className="text-xs text-warm-gray">
+            Тренировок в неделю
+            <select
+              value={sessionsPerWeek}
+              disabled={busy}
+              onChange={(event) => setSessionsPerWeek(Number(event.target.value) as 3 | 4)}
+              className="mt-1 w-full rounded-lg border border-gold/25 bg-background px-2 py-1.5 text-sm text-foreground"
+            >
+              <option value={3}>3</option>
+              <option value={4}>4</option>
+            </select>
+          </label>
+          <label className="text-xs text-warm-gray">
+            Длительность, мин
+            <input
+              type="number"
+              min={20}
+              max={90}
+              value={durationMin}
+              disabled={busy}
+              onChange={(event) => setDurationMin(Number(event.target.value) || 45)}
+              className="mt-1 w-full rounded-lg border border-gold/25 bg-background px-2 py-1.5 text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-warm-gray">
+            Место занятий
+            <input
+              value={location}
+              disabled={busy}
+              onChange={(event) => setLocation(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-gold/25 bg-background px-2 py-1.5 text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-warm-gray">
+            Инвентарь через запятую
+            <input
+              value={equipment}
+              disabled={busy}
+              onChange={(event) => setEquipment(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-gold/25 bg-background px-2 py-1.5 text-sm text-foreground"
+            />
+          </label>
+        </div>
+      ) : null}
 
       {notice ? (
         <div className="space-y-2 rounded-xl border border-gold/20 bg-background/40 p-3 text-sm">
@@ -409,6 +547,28 @@ export const AdminCourseManager = forwardRef<
                     <p className="text-xs text-warm-gray">
                       {courseStatusLabel(c.status)} · {c.start_date} — {c.end_date}
                     </p>
+                    <p className="text-xs text-warm-gray">Курс создан</p>
+                    {c.program_scope !== "training" ? (
+                      <p className="text-xs text-warm-gray">
+                        {c.nutrition_generation_status === "ready"
+                          ? "Питание готово к проверке"
+                          : c.nutrition_generation_status === "failed"
+                            ? "Питание: ошибка генерации"
+                            : "Питание готовится"}
+                      </p>
+                    ) : null}
+                    {c.program_scope !== "nutrition" ? (
+                      <p className="text-xs text-warm-gray">
+                        {c.training_generation_status === "ready"
+                          ? "Тренировки готовы к проверке"
+                          : c.training_generation_status === "failed"
+                            ? "Тренировки: ошибка генерации"
+                            : "Тренировки готовятся"}
+                      </p>
+                    ) : null}
+                    {c.status !== "active" ? (
+                      <p className="text-xs text-warm-gray">Доступ клиенту закрыт</p>
+                    ) : null}
                   </button>
                   <div className="flex flex-wrap gap-2">
                     <select
@@ -425,15 +585,21 @@ export const AdminCourseManager = forwardRef<
                       <option value="both">Питание + тренировки</option>
                     </select>
                     {c.status !== "active" ? (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void activate(c.id)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-gold/25 px-2.5 py-1 text-xs hover:bg-gold/10"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Активировать
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          disabled={busy || Boolean(accessBlockReason(c))}
+                          title={accessBlockReason(c) ?? undefined}
+                          onClick={() => void activate(c.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gold/25 px-2.5 py-1 text-xs hover:bg-gold/10 disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Открыть доступ клиенту
+                        </button>
+                        {accessBlockReason(c) ? (
+                          <span className="text-xs text-warm-gray">{accessBlockReason(c)}</span>
+                        ) : null}
+                      </>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-700">
                         <CheckCircle2 className="h-3.5 w-3.5" />
@@ -467,7 +633,7 @@ export const AdminCourseManager = forwardRef<
                       search={{ course: c.id }}
                       className="rounded-lg border border-gold/25 px-2.5 py-1 text-xs hover:bg-gold/10"
                     >
-                      Тренировки
+                      Открыть тренировки
                     </Link>
                     <Link
                       to="/admin/clients/$id/nutrition"
@@ -475,7 +641,7 @@ export const AdminCourseManager = forwardRef<
                       search={{ course: c.id }}
                       className="rounded-lg border border-gold/25 px-2.5 py-1 text-xs hover:bg-gold/10"
                     >
-                      Питание
+                      Открыть питание
                     </Link>
                   </div>
                 </li>

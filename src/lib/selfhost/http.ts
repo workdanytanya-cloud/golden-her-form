@@ -1943,14 +1943,12 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
           const result = await provisionClientCoursePg(getPostgresPool(), {
             clientId,
             programScope: parsed.programScope,
-            activate: parsed.activate,
+            activate: false,
             actorId: session.userId,
             startDate: parsed.startDate,
+            training: parsed.training,
           });
-          const revealed = parsed.activate
-            ? await revealCourseOnAccessPg(getPostgresPool(), clientId, session.userId)
-            : null;
-          return json({ ...result, revealed });
+          return json(result);
         }
         const created = await coursesRepo().create(parsed, session.userId);
         return json({ course: created });
@@ -1977,13 +1975,8 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         const body = await readJson(request);
         const op = typeof body.op === "string" ? body.op : url.searchParams.get("op");
         if (op === "activate") {
-          await coursesRepo().activate(extra, clientId);
-          const revealed = await revealCourseOnAccessPg(
-            getPostgresPool(),
-            clientId,
-            session.userId,
-          );
-          return json({ ok: true, revealed });
+          await coursesRepo().activate(extra, clientId, session.userId);
+          return json({ ok: true, message: "Курс активирован. Доступ клиента открыт" });
         }
         if (op === "retry-generation") {
           const kind =

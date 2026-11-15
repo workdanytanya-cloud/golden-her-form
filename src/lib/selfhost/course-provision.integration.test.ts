@@ -27,12 +27,30 @@ describe.runIf(run)("course provision PostgreSQL integration", () => {
         plan.rows[0].id,
       ]);
     },
-    generateTraining: async (clientId: string, courseId: string) => {
+    generateTraining: async (
+      clientId: string,
+      courseId: string,
+      facts: { direction: string; chosenLevel?: string; chosenSessions?: number },
+    ) => {
       calls.training += 1;
+      await pool.query(`DELETE FROM training_programs WHERE course_id = $1`, [courseId]);
+      const goal =
+        facts.direction === "strength"
+          ? "muscle_gain"
+          : facts.direction === "weight_loss"
+            ? "weight_loss"
+            : "tone";
       const program = await pool.query(
-        `INSERT INTO training_programs (user_id, course_id, sessions_per_week, goal, level)
-         VALUES ($1,$2,3,'tone','beginner') RETURNING id`,
-        [clientId, courseId],
+        `INSERT INTO training_programs (user_id, course_id, sessions_per_week, goal, level, notes)
+         VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+        [
+          clientId,
+          courseId,
+          facts.chosenSessions ?? 3,
+          goal,
+          facts.chosenLevel ?? "beginner",
+          `Направленность: ${facts.direction === "strength" ? "Укрепление мышц" : "Общая физическая подготовка"}.`,
+        ],
       );
       await pool.query(
         `INSERT INTO training_program_days (program_id, week_index, day_index, title)
@@ -72,6 +90,12 @@ describe.runIf(run)("course provision PostgreSQL integration", () => {
       `INSERT INTO measurements (user_id, measured_on, weight_kg) VALUES ($1,'2026-11-01',62), ($2,'2026-11-01',62)`,
       [CLIENT, INCOMPLETE],
     );
+    await pool.query(`DELETE FROM client_courses WHERE client_id = ANY($1::uuid[])`, [
+      [CLIENT, INCOMPLETE],
+    ]);
+    await pool.query(`DELETE FROM client_access WHERE user_id = ANY($1::uuid[])`, [
+      [CLIENT, INCOMPLETE],
+    ]);
   });
 
   afterAll(async () => {
@@ -124,13 +148,13 @@ describe.runIf(run)("course provision PostgreSQL integration", () => {
       },
       deps,
     );
-    expect(first.course.status).toBe("active");
+    expect(first.course.status).toBe("draft");
     expect(first.stages.training.status).toBe("ready");
     expect(first.stages.nutrition.status).toBe("failed");
     const access = await pool.query(`SELECT status FROM client_access WHERE user_id = $1`, [
       CLIENT,
     ]);
-    expect(access.rows[0].status).toBe("active");
+    expect(access.rowCount).toBe(0);
 
     const again = await provisionClientCoursePg(
       pool,
@@ -175,5 +199,35 @@ describe.runIf(run)("course provision PostgreSQL integration", () => {
       CLIENT,
     ]);
     expect(passwordAfter.rows[0].password_hash).toBe(passwordBefore.rows[0].password_hash);
+
+    const rebuilt = await provisionClientCoursePg(
+      pool,
+      {
+        clientId: CLIENT,
+        programScope: "both",
+        activate: false,
+        actorId: ADMIN,
+        startDate: "2026-11-13",
+        training: { direction: "strength", level: "advanced", sessionsPerWeek: 4 },
+      },
+      deps,
+    );
+    expect(rebuilt.course.id).toBe(first.course.id);
+    expect(rebuilt.idempotent).toBe(true);
+    expect(calls.training).toBe(3);
+    const stored = await pool.query(
+      `SELECT goal, level, sessions_per_week FROM training_programs WHERE course_id = $1`,
+      [first.course.id],
+    );
+    expect(stored.rows[0]).toEqual({
+      goal: "muscle_gain",
+      level: "advanced",
+      sessions_per_week: 4,
+    });
+    const stillOne = await pool.query(
+      `SELECT count(*)::int AS n FROM client_courses WHERE client_id = $1`,
+      [CLIENT],
+    );
+    expect(stillOne.rows[0].n).toBe(1);
   });
 });
