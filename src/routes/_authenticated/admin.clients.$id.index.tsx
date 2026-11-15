@@ -169,7 +169,24 @@ function ClientDetail() {
     try {
       if (localCircuit) {
         const { selfhostAdminSetAccess } = await import("@/lib/selfhost/client-api");
-        await selfhostAdminSetAccess(id, { status: "active" });
+        const opened = await selfhostAdminSetAccess(id, { status: "active" });
+        const revealed = opened.revealed as
+          | {
+              shifted?: boolean;
+              nutritionError?: string | null;
+              trainingError?: string | null;
+              nutrition?: string;
+              training?: string;
+            }
+          | null
+          | undefined;
+        if (revealed?.shifted) {
+          toast.success("Срок курса начат с даты открытия доступа");
+        }
+        if (revealed?.nutrition === "published") toast.success("Питание опубликовано клиенту");
+        if (revealed?.training === "published") toast.success("Тренировки опубликованы клиенту");
+        if (revealed?.nutritionError) toast.error(revealed.nutritionError);
+        if (revealed?.trainingError) toast.error(revealed.trainingError);
       } else {
         const { supabase } = await import("@/integrations/supabase/client");
         const { error } = await supabase.from("client_access").upsert(

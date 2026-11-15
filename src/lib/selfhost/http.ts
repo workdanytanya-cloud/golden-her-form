@@ -127,6 +127,7 @@ import {
   provisionClientCoursePg,
   retryCourseGenerationPg,
 } from "@/lib/selfhost/postgres-course-provision";
+import { revealCourseOnAccessPg } from "@/lib/selfhost/postgres-course-access";
 import {
   MealReplaceError,
   loadRebuildExclusions,
@@ -1848,12 +1849,13 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       if (action === "access" && request.method === "POST") {
         assertCsrf(request);
         const body = await readJson(request);
-        await adminClients().setAccess(
-          clientId,
-          adminClientAccessSchema.parse(body),
-          session.userId,
-        );
-        return json({ ok: true });
+        const access = adminClientAccessSchema.parse(body);
+        await adminClients().setAccess(clientId, access, session.userId);
+        const revealed =
+          access.status === "active"
+            ? await revealCourseOnAccessPg(getPostgresPool(), clientId, session.userId)
+            : null;
+        return json({ ok: true, revealed });
       }
 
       if (action === "password" && request.method === "POST") {
@@ -1908,7 +1910,10 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
             actorId: session.userId,
             startDate: parsed.startDate,
           });
-          return json(result);
+          const revealed = parsed.activate
+            ? await revealCourseOnAccessPg(getPostgresPool(), clientId, session.userId)
+            : null;
+          return json({ ...result, revealed });
         }
         const created = await coursesRepo().create(parsed, session.userId);
         return json({ course: created });
@@ -1936,7 +1941,12 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         const op = typeof body.op === "string" ? body.op : url.searchParams.get("op");
         if (op === "activate") {
           await coursesRepo().activate(extra, clientId);
-          return json({ ok: true });
+          const revealed = await revealCourseOnAccessPg(
+            getPostgresPool(),
+            clientId,
+            session.userId,
+          );
+          return json({ ok: true, revealed });
         }
         if (op === "retry-generation") {
           const kind =

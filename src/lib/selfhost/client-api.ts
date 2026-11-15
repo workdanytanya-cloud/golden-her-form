@@ -291,7 +291,7 @@ export async function selfhostAdminSetAccess(id: string, payload: Record<string,
     method: "POST",
     body: JSON.stringify(payload),
   });
-  await readSelfhostJson(res);
+  return readSelfhostJson(res);
 }
 
 export async function selfhostAdminSetClientPassword(id: string, password: string) {
