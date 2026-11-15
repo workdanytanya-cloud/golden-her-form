@@ -145,10 +145,10 @@ export function nutritionPdfBlocks(snapshot: NutritionSnapshot, meta: PdfClientM
         `Даты курса: ${safeStart} — ${safeEnd}`,
         `Дата выдачи: ${safeIssued}`,
         `Целевые КБЖУ: ${formatMacroLine(
-          String(snapshot.targets.kcal),
-          String(snapshot.targets.protein_g),
-          String(snapshot.targets.fat_g),
-          String(snapshot.targets.carbs_g),
+          String(snapshot.targets?.kcal ?? 0),
+          String(snapshot.targets?.protein_g ?? 0),
+          String(snapshot.targets?.fat_g ?? 0),
+          String(snapshot.targets?.carbs_g ?? 0),
         )}`,
       ],
     },
@@ -180,6 +180,7 @@ export function nutritionPdfBlocks(snapshot: NutritionSnapshot, meta: PdfClientM
         const mealLines = [
           `${slotLabel(item.slot)}: ${item.recipe_name}`,
           `  КБЖУ: ${formatMacroLine(item.kcal, item.protein_g, item.fat_g, item.carbs_g)}`,
+          "  Ингредиенты:",
         ];
         for (const ing of item.ingredients) {
           const title = displayProductName({
@@ -199,8 +200,9 @@ export function nutritionPdfBlocks(snapshot: NutritionSnapshot, meta: PdfClientM
           );
         }
         if (item.steps?.length) {
+          mealLines.push("  Как приготовить:");
           for (const step of item.steps) {
-            mealLines.push(`  Инструкция: ${step}`);
+            mealLines.push(`  ${step}`);
           }
         }
         if (item.prep_time_min != null) {

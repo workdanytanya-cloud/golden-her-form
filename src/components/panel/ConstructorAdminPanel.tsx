@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { ConstructorNutritionView } from "@/components/panel/ConstructorNutritionView";
+import { MealDraftEditor } from "@/components/panel/MealDraftEditor";
 import { SnapshotPdfButton } from "@/components/panel/SnapshotPdfButton";
 import {
   TrainerMealEditor,
@@ -52,12 +53,10 @@ import { shoppingListFromDays } from "@/lib/nutrition-constructor/ingredient-nor
 import { proposeDayCorrections } from "@/lib/nutrition-constructor/deviation-suggestions";
 import {
   addMealToDay,
-  deleteMealFromDay,
   mealItemFromProducts,
   mealItemFromRecipe,
   ManualMealEditError,
   replaceDaysDay,
-  setIngredientGrams,
   ZERO_GRAMS_FORBIDDEN_MESSAGE,
 } from "@/lib/nutrition-constructor/manual-meals";
 import { planSlotForTrainerChoice } from "@/lib/nutrition-constructor/trainer-slots";
@@ -76,6 +75,7 @@ type Props = {
   };
   restrictions?: { allergies?: string | null; disliked_foods?: string | null };
   excludedProductIds?: string[];
+  clientName?: string;
   onSaved?: () => void;
 };
 
@@ -109,6 +109,7 @@ export function ConstructorAdminPanel({
   profile,
   restrictions = {},
   excludedProductIds = [],
+  clientName,
   onSaved,
 }: Props) {
   const autoCalc = useMemo(() => displayMacro(calcMacroTargets(profile).targets), [profile]);
@@ -135,7 +136,6 @@ export function ConstructorAdminPanel({
   const [planStatus, setPlanStatus] = useState<"draft" | "validated" | "assigned">("draft");
   const [reviewReason, setReviewReason] = useState<string | null>(null);
   const [meta, setMeta] = useState<{ bmr?: number; tdee?: number; adjustment_pct?: number }>({});
-  const [forcePublish, setForcePublish] = useState(false);
   const [publishedVersion, setPublishedVersion] = useState<number | null>(null);
   const [editor, setEditor] = useState<{
     open: boolean;
@@ -152,6 +152,11 @@ export function ConstructorAdminPanel({
   const [replaceError, setReplaceError] = useState<string | null>(null);
   const [replaceSuggestions, setReplaceSuggestions] = useState<MealReplacePreview[]>([]);
   const [unpublishedChanges, setUnpublishedChanges] = useState(false);
+  const [editTarget, setEditTarget] = useState<{ dayIndex: number; slot: PlanSlot } | null>(null);
+  const [editBusy, setEditBusy] = useState(false);
+  const [checkIssues, setCheckIssues] = useState<
+    Array<{ dayIndex: number; slot: string | null; message: string }>
+  >([]);
   const catalog = useMemo(() => buildInMemoryCatalog(), []);
   const genToken = useRef(0);
   const replaceSeq = useRef(0);
@@ -317,6 +322,13 @@ export function ConstructorAdminPanel({
     });
     setPlanStatus(status.generationOk ? "validated" : "draft");
     return status;
+  };
+
+  const applyServerDays = (result: { days?: ConstructorDay[]; updatedAt?: string | null }) => {
+    if (result.days) applyDays(result.days);
+    if (result.updatedAt) setDraftUpdatedAt(result.updatedAt);
+    setUnpublishedChanges(true);
+    setPlanStatus("draft");
   };
 
   const persistDraft = async (nextDays: ConstructorDay[], status = planStatus) => {
@@ -488,44 +500,32 @@ export function ConstructorAdminPanel({
   const handleSave = async (assign: boolean) => {
     if (visibleDays.length === 0) return;
     const status = applyDays(visibleDays);
-    if (assign && !status.acceptable && !forcePublish) {
-      toast.error("Нельзя назначить: KBJU вне допуска режима. Нужно подтверждение тренера.");
+    if (assign && !status.acceptable) {
+      toast.error("Нельзя опубликовать: день выходит за разрешённые КБЖУ");
       return;
     }
     setSaving(true);
     try {
       if (assign) {
-        const { requireSelfhostAdminSession, usesLocalPostgresCircuit } =
-          await import("@/lib/selfhost/client-api");
-        if (await usesLocalPostgresCircuit()) {
-          // Cookie-сессия могла смениться (клиент в той же вкладке) при живом React-state тренера.
-          await requireSelfhostAdminSession();
+        if (!planStructureValid(visibleDays, scheduleMode)) {
+          toast.error("Нельзя опубликовать: есть незаполненный обязательный приём");
+          return;
         }
-        const result = await publishConstructorNutrition({
-          userId,
-          courseId,
-          days: visibleDays,
-          plan: {
-            target_kcal: targets.kcal,
-            target_protein_g: targets.protein_g,
-            target_fat_g: targets.fat_g,
-            target_carbs_g: targets.carbs_g,
-            bmr: meta.bmr ?? null,
-            tdee: meta.tdee ?? null,
-            calorie_adjustment_pct: meta.adjustment_pct ?? null,
-            meal_schedule_mode: scheduleMode,
-            primary_meal_slot: primarySlot,
-            notes: null,
-            plan_days_count: daysCount,
-          },
-          reason: publishedVersion ? "Опубликована новая версия меню" : "Первое назначение клиенту",
-        });
+        const { requireSelfhostAdminSession, selfhostPublishAndOpen, usesLocalPostgresCircuit } =
+          await import("@/lib/selfhost/client-api");
+        if (await usesLocalPostgresCircuit()) await requireSelfhostAdminSession();
+        const result = (await selfhostPublishAndOpen({ clientId: userId, courseId })) as {
+          message?: string;
+          issues?: Array<{ dayIndex: number; slot: string | null; message: string }>;
+        };
+        if (result.issues && result.issues.length > 0) {
+          setCheckIssues(result.issues);
+          toast.error(result.message ?? "Рацион нельзя опубликовать, пока в проверке есть ошибки");
+          return;
+        }
         setPlanStatus("assigned");
-        toast.success(
-          result.usedRpc
-            ? "Меню опубликовано клиенту (неизменяемая версия)"
-            : "Рацион назначен (миграция версий ещё не применена — выполните SQL)",
-        );
+        setUnpublishedChanges(false);
+        toast.success(result.message ?? "Программа опубликована. Доступ клиента открыт");
         const pub = await loadPublishedNutritionFor(userId, courseId);
         setPublishedVersion(pub?.version?.version ?? publishedVersion);
       } else {
@@ -534,7 +534,96 @@ export function ConstructorAdminPanel({
       }
       onSaved?.();
     } catch (e) {
+      const issues = (
+        e as { issues?: Array<{ dayIndex: number; slot: string | null; message: string }> }
+      ).issues;
+      if (issues && issues.length > 0) setCheckIssues(issues);
       toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCheck = async () => {
+    setSaving(true);
+    try {
+      const { selfhostValidateDraft } = await import("@/lib/selfhost/client-api");
+      const result = (await selfhostValidateDraft({ clientId: userId, courseId })) as {
+        ok?: boolean;
+        message?: string;
+        issues?: Array<{ dayIndex: number; slot: string | null; message: string }>;
+      };
+      setCheckIssues(result.issues ?? []);
+      if (result.ok) toast.success(result.message ?? "Рацион можно публиковать");
+      else toast.error(result.message ?? "В рационе есть ошибки");
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRefreshText = async () => {
+    setSaving(true);
+    try {
+      const { selfhostDraftText } = await import("@/lib/selfhost/client-api");
+      const preview = (await selfhostDraftText({
+        clientId: userId,
+        courseId,
+        expectedUpdatedAt: draftUpdatedAt,
+        apply: false,
+      })) as {
+        names?: number;
+        instructions?: number;
+        changes?: Array<{ dayIndex: number; from: string; to: string; manual?: boolean }>;
+      };
+      const manualCount = (preview.changes ?? []).filter((row) => row.manual).length;
+      const sample = (preview.changes ?? [])
+        .slice(0, 8)
+        .map((row) => `день ${row.dayIndex + 1}: ${row.from} → ${row.to}`)
+        .join("\n");
+      const overwrite =
+        manualCount > 0 &&
+        window.confirm(
+          `Названий: ${preview.names ?? 0}. Инструкций: ${preview.instructions ?? 0}.\n${sample}\n\nЕсть ручные инструкции: ${manualCount}. Заменить и их?`,
+        );
+      const confirmed = window.confirm(
+        `Исправить названия и инструкции?\nНазваний: ${preview.names ?? 0}\nИнструкций: ${preview.instructions ?? 0}\n${sample}`,
+      );
+      if (!confirmed) return;
+      const applied = (await selfhostDraftText({
+        clientId: userId,
+        courseId,
+        expectedUpdatedAt: draftUpdatedAt,
+        apply: true,
+        overwriteManual: overwrite,
+      })) as { days?: ConstructorDay[]; updatedAt?: string | null; message?: string };
+      applyServerDays(applied);
+      toast.success(applied.message ?? "Названия и инструкции обновлены");
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteDraft = async () => {
+    const confirmed = window.confirm(
+      `Удалить черновик рациона?\nКлиент: ${clientName || "текущий"}\nКурс: текущий\nДней: ${visibleDays.length}\n\nОпубликованная программа не изменится.`,
+    );
+    if (!confirmed) return;
+    setSaving(true);
+    try {
+      const { selfhostDeleteDraft } = await import("@/lib/selfhost/client-api");
+      const result = (await selfhostDeleteDraft({ clientId: userId, courseId })) as {
+        message?: string;
+      };
+      setDays([]);
+      setDraftUpdatedAt(null);
+      setUnpublishedChanges(false);
+      toast.success(result.message ?? "Черновик удалён. Опубликованная программа не изменилась.");
+    } catch (error) {
+      toast.error((error as Error).message);
     } finally {
       setSaving(false);
     }
@@ -565,18 +654,34 @@ export function ConstructorAdminPanel({
     productId: string,
     grams: number,
   ) => {
+    const current = visibleDays.find((day) => day.day_index === dayIndex);
+    const item = current?.items.find((meal) => meal.slot === slot);
+    if (!current || !item?.id) return;
+    if (!Number.isFinite(grams) || grams <= 0) {
+      toast.error(ZERO_GRAMS_FORBIDDEN_MESSAGE);
+      return;
+    }
     try {
-      const current = visibleDays.find((day) => day.day_index === dayIndex);
-      if (!current) return;
-      const nextDay = setIngredientGrams({
-        day: current,
+      const { selfhostDraftMeal } = await import("@/lib/selfhost/client-api");
+      const result = (await selfhostDraftMeal({
+        action: "update",
+        clientId: userId,
+        courseId,
+        dayIndex,
         slot,
-        productId,
-        grams,
-        products: catalog.products,
-      });
-      applyDays(replaceDaysDay(visibleDays, nextDay, catalog.products));
-      toast.message("Граммовка изменена, день пересчитан");
+        mealItemId: item.id,
+        expectedUpdatedAt: draftUpdatedAt,
+        name: item.recipe_name,
+        steps: item.steps ?? [],
+        prepTimeMin: item.prep_time_min,
+        note: item.weighing_note,
+        lines: item.ingredients.map((line) => ({
+          productId: line.product_id,
+          grams: line.product_id === productId ? grams : Number(line.grams),
+        })),
+      })) as { days?: ConstructorDay[]; updatedAt?: string | null; message?: string };
+      applyServerDays(result);
+      toast.success(result.message ?? "Изменения сохранены. Есть неопубликованные изменения.");
     } catch (e) {
       toast.error((e as Error).message || ZERO_GRAMS_FORBIDDEN_MESSAGE);
     }
@@ -723,7 +828,7 @@ export function ConstructorAdminPanel({
     draftUpdatedAt,
   ]);
 
-  const handleEditorSubmit = (value: MealEditorSubmit) => {
+  const handleEditorSubmit = async (value: MealEditorSubmit) => {
     if (!editorDay) return;
     if (editor.mode === "replace") {
       if (!editor.slot || replaceBusy) return;
@@ -759,9 +864,42 @@ export function ConstructorAdminPanel({
               });
         nextDay = addMealToDay({ day: editorDay, item, products: catalog.products });
       }
-      applyDays(replaceDaysDay(visibleDays, nextDay, catalog.products));
+      if (editor.slot && value.kind !== "suggest") {
+        const added = nextDay.items.find((meal) => meal.slot === editor.slot);
+        if (!added) return;
+        const { selfhostDraftMeal } = await import("@/lib/selfhost/client-api");
+        const result = (await selfhostDraftMeal({
+          action: "add",
+          clientId: userId,
+          courseId,
+          dayIndex: editor.dayIndex,
+          slot: editor.slot,
+          expectedUpdatedAt: draftUpdatedAt,
+          name: added.recipe_name,
+          steps: added.steps ?? [],
+          prepTimeMin: added.prep_time_min,
+          note: added.weighing_note,
+          recipeId: added.recipe_id,
+          lines: added.ingredients.map((line) => ({
+            productId: line.product_id,
+            grams: Number(line.grams),
+          })),
+        })) as { days?: ConstructorDay[]; updatedAt?: string | null; message?: string };
+        applyServerDays(result);
+        setEditor((cur) => ({ ...cur, open: false }));
+        toast.success(result.message ?? "Приём добавлен");
+        return;
+      }
+      const nextDays = replaceDaysDay(visibleDays, nextDay, catalog.products);
+      await persistDraft(nextDays, "draft");
+      const reloaded = await loadConstructorPlanFor(userId, courseId);
+      if (!reloaded.plan) throw new Error("Черновик не подтверждён повторным чтением");
+      applyDays(reloaded.days);
+      setDraftUpdatedAt(reloaded.plan.updated_at ?? null);
+      setUnpublishedChanges(true);
+      setPlanStatus("draft");
       setEditor((cur) => ({ ...cur, open: false }));
-      toast.success("День пересчитан");
+      toast.success("Приём добавлен");
     } catch (e) {
       toast.error(e instanceof ManualMealEditError ? e.message : (e as Error).message);
     }
@@ -960,11 +1098,35 @@ export function ConstructorAdminPanel({
             </button>
             <button
               type="button"
-              disabled={saving || (!kbjuStatus.acceptable && !forcePublish)}
+              disabled={saving || !planStructureValid(visibleDays, scheduleMode)}
+              onClick={() => void handleCheck()}
+              className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-5 py-2.5 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10 disabled:opacity-50"
+            >
+              Проверить рацион
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void handleRefreshText()}
+              className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-5 py-2.5 text-xs uppercase tracking-widest text-ivory hover:bg-gold/10 disabled:opacity-50"
+            >
+              Исправить названия и инструкции
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void handleDeleteDraft()}
+              className="inline-flex items-center gap-2 rounded-full border border-coral/40 px-5 py-2.5 text-xs uppercase tracking-widest text-coral hover:bg-coral/10 disabled:opacity-50"
+            >
+              Удалить черновик рациона
+            </button>
+            <button
+              type="button"
+              disabled={saving || !planStructureValid(visibleDays, scheduleMode)}
               onClick={() => void handleSave(true)}
               className="inline-flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-5 py-2.5 text-xs uppercase tracking-widest text-ivory disabled:opacity-40"
             >
-              {publishedVersion != null ? "Опубликовать новую версию" : "Назначить клиенту"}
+              Опубликовать и открыть доступ
             </button>
             <SnapshotPdfButton
               kind="nutrition"
@@ -976,16 +1138,24 @@ export function ConstructorAdminPanel({
         )}
       </div>
 
-      {visibleDays.length > 0 && !kbjuStatus.acceptable && (
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-warm-gray">
-          <input
-            type="checkbox"
-            checked={forcePublish}
-            onChange={(e) => setForcePublish(e.target.checked)}
-            className="accent-gold"
-          />
-          Опубликовать с текущими отклонениями (тренер подтверждает допуск)
-        </label>
+      {checkIssues.length > 0 && (
+        <ul className="space-y-1 rounded-2xl border border-coral/30 bg-coral/5 p-4 text-sm text-coral">
+          {checkIssues.map((issue, index) => (
+            <li key={`${issue.dayIndex}-${issue.slot}-${index}`}>
+              <button
+                type="button"
+                className="text-left hover:underline"
+                onClick={() => {
+                  const view = document.querySelector("[data-constructor-day]");
+                  view?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                День {issue.dayIndex + 1}
+                {issue.slot ? ` · ${issue.slot}` : ""}: {issue.message}
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
 
       {visibleDays.length > 0 && (
@@ -1015,7 +1185,9 @@ export function ConstructorAdminPanel({
           <p className="sm:col-span-2 text-xs text-warm-gray">
             Статус:{" "}
             <span className={kbjuStatus.acceptable ? "text-gold" : "text-coral"}>
-              {kbjuStatusLabel(kbjuStatus)}
+              {!planStructureValid(visibleDays, scheduleMode)
+                ? "Не завершён"
+                : kbjuStatusLabel(kbjuStatus)}
             </span>
             {!structureOk &&
               ` · структура: ${checks.mains.actual}/${expectedMainCount(scheduleMode)} основных, ${checks.snacks.actual}/${expectedSnackCount(scheduleMode)} перекусов`}
@@ -1065,7 +1237,8 @@ export function ConstructorAdminPanel({
           primaryMealSlot={primarySlot}
           editable
           onIngredientGramsChange={handleGramsChange}
-          onAddMeal={(dayIndex) => setEditor({ open: true, mode: "add", dayIndex })}
+          onAddMeal={(dayIndex, slot) => setEditor({ open: true, mode: "add", dayIndex, slot })}
+          onEditMeal={(dayIndex, slot) => setEditTarget({ dayIndex, slot })}
           onReplaceMeal={(dayIndex, slot) => {
             const current = visibleDays.find((day) => day.day_index === dayIndex);
             const item = current?.items.find((meal) => meal.slot === slot);
@@ -1083,14 +1256,31 @@ export function ConstructorAdminPanel({
           }}
           onDeleteMeal={(dayIndex, slot) => {
             const current = visibleDays.find((day) => day.day_index === dayIndex);
-            if (!current) return;
-            applyDays(
-              replaceDaysDay(
-                visibleDays,
-                deleteMealFromDay({ day: current, slot, products: catalog.products }),
-                catalog.products,
-              ),
+            const item = current?.items.find((meal) => meal.slot === slot);
+            if (!item?.id) return;
+            const label = slotLabel(slot, scheduleMode, primarySlot);
+            const confirmed = window.confirm(
+              `Удалить «${item.recipe_name}»?\nДень ${dayIndex + 1} · ${label}`,
             );
+            if (!confirmed) return;
+            void (async () => {
+              try {
+                const { selfhostDraftMeal } = await import("@/lib/selfhost/client-api");
+                const result = (await selfhostDraftMeal({
+                  action: "delete",
+                  clientId: userId,
+                  courseId,
+                  dayIndex,
+                  slot,
+                  mealItemId: item.id,
+                  expectedUpdatedAt: draftUpdatedAt,
+                })) as { days?: ConstructorDay[]; updatedAt?: string | null; message?: string };
+                applyServerDays(result);
+                toast.success(result.message ?? "Приём удалён");
+              } catch (error) {
+                toast.error((error as Error).message);
+              }
+            })();
           }}
           onSuggestVariants={(dayIndex) => setEditor({ open: true, mode: "suggest", dayIndex })}
         />
@@ -1126,6 +1316,56 @@ export function ConstructorAdminPanel({
         targetMacro={targets}
         onClose={() => setEditor((cur) => ({ ...cur, open: false }))}
         onSubmit={handleEditorSubmit}
+      />
+      <MealDraftEditor
+        open={editTarget != null}
+        title={
+          editTarget
+            ? `День ${editTarget.dayIndex + 1} · ${slotLabel(editTarget.slot, scheduleMode, primarySlot)}`
+            : ""
+        }
+        item={
+          editTarget
+            ? (visibleDays
+                .find((day) => day.day_index === editTarget.dayIndex)
+                ?.items.find((meal) => meal.slot === editTarget.slot) ?? null)
+            : null
+        }
+        products={[...catalog.products.values()]}
+        busy={editBusy}
+        onClose={() => setEditTarget(null)}
+        onSave={(value) => {
+          if (!editTarget) return;
+          const item = visibleDays
+            .find((day) => day.day_index === editTarget.dayIndex)
+            ?.items.find((meal) => meal.slot === editTarget.slot);
+          if (!item?.id) return;
+          setEditBusy(true);
+          void (async () => {
+            try {
+              const { selfhostDraftMeal } = await import("@/lib/selfhost/client-api");
+              const result = (await selfhostDraftMeal({
+                action: "update",
+                clientId: userId,
+                courseId,
+                dayIndex: editTarget.dayIndex,
+                slot: editTarget.slot,
+                mealItemId: item.id,
+                expectedUpdatedAt: draftUpdatedAt,
+                ...value,
+              })) as { days?: ConstructorDay[]; updatedAt?: string | null; message?: string };
+              applyServerDays(result);
+              setEditTarget(null);
+              toast.success(
+                result.message ?? "Изменения сохранены. Есть неопубликованные изменения.",
+              );
+            } catch (error) {
+              toast.error((error as Error).message);
+            } finally {
+              setEditBusy(false);
+            }
+          })();
+        }}
       />
     </section>
   );

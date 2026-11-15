@@ -83,8 +83,9 @@ async function readSelfhostJson(res: Response): Promise<Record<string, unknown>>
     }
     const err = new Error(
       res.status === 401 ? `${message}. Войдите снова в кабинет.` : message,
-    ) as Error & { statusCode?: number };
+    ) as Error & { statusCode?: number; issues?: unknown };
     err.statusCode = res.status;
+    if (Array.isArray(data.issues)) err.issues = data.issues;
     throw err;
   }
   return data;
@@ -648,6 +649,52 @@ export async function selfhostReplaceMeal(payload: {
   manual?: { name: string; lines: Array<{ productId: string; grams: number }> } | null;
 }) {
   const res = await selfhostFetch("/api/selfhost/admin/nutrition/draft/replace-meal", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res);
+}
+
+export async function selfhostDraftMeal(payload: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/admin/nutrition/draft/meal", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res);
+}
+
+export async function selfhostDraftText(payload: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/admin/nutrition/draft/text", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res);
+}
+
+export async function selfhostValidateDraft(payload: {
+  clientId: string;
+  courseId?: string | null;
+}) {
+  const res = await selfhostFetch("/api/selfhost/admin/nutrition/draft/validate", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res);
+}
+
+export async function selfhostDeleteDraft(payload: { clientId: string; courseId?: string | null }) {
+  const res = await selfhostFetch("/api/selfhost/admin/nutrition/draft", {
+    method: "DELETE",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res);
+}
+
+export async function selfhostPublishAndOpen(payload: {
+  clientId: string;
+  courseId?: string | null;
+}) {
+  const res = await selfhostFetch("/api/selfhost/admin/nutrition/publish-access", {
     method: "POST",
     body: JSON.stringify(payload),
   });

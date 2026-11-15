@@ -5,6 +5,7 @@ import {
   recalculateConstructorDay,
   recalculateMealFromProducts,
 } from "@/lib/nutrition-constructor/calculator";
+import { composeRecipeSteps } from "@/lib/nutrition-constructor/recipe-instructions";
 import { OIL_GRAM_MAX, type PlanSlot } from "@/lib/nutrition-constructor/config";
 import {
   InvalidIngredientGramsError,
@@ -406,12 +407,47 @@ export function replaceIngredientInMeal(params: {
       before,
       products: params.products,
     });
-    if (!balanced || swapMovesBeyondTolerance(before, afterOf(balanced))) {
-      throw new ManualMealEditError(SWAP_TOLERANCE_MESSAGE);
+    if (balanced && !swapMovesBeyondTolerance(before, afterOf(balanced))) {
+      next = balanced;
+    } else {
+      next = { ...next, is_valid: false };
     }
-    next = balanced;
   }
-  return next;
+  return rewriteMealSteps(next, params.slot, params.products);
+}
+
+function rewriteMealSteps(
+  day: ConstructorDay,
+  slot: PlanSlot,
+  products: Map<string, FoodProduct>,
+): ConstructorDay {
+  return {
+    ...day,
+    items: day.items.map((item) => {
+      if (item.slot !== slot) return item;
+      const ingredients = item.ingredients.flatMap((line) => {
+        const product = products.get(line.product_id);
+        if (!product) return [];
+        return [
+          {
+            slug: product.slug,
+            name: product.name,
+            category: product.category,
+            state: product.state,
+            requiresCooking: product.requires_cooking,
+          },
+        ];
+      });
+      return {
+        ...item,
+        steps: composeRecipeSteps({
+          name: item.recipe_name,
+          requiresCooking: item.requires_cooking,
+          ingredients,
+        }).steps,
+      };
+    }),
+  };
 }
 
 export function removeIngredientFromMeal(params: {

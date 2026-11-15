@@ -194,6 +194,7 @@ describe.runIf(run)("meal replace PostgreSQL integration", () => {
         body: JSON.stringify(body),
       }),
     );
+    if (!response) throw new Error("Маршрут не обработан");
     const payload = (await response.json()) as Record<string, unknown>;
     return { status: response.status, payload };
   }

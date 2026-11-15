@@ -455,6 +455,7 @@ function AdminNutritionPage() {
             allergies: targetProfile.allergies,
             disliked_foods: targetProfile.disliked_foods,
           }}
+          clientName={profileName}
           onSaved={() => void reload()}
         />
       )}

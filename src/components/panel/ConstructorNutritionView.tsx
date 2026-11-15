@@ -1,5 +1,14 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, ChefHat, Info, Scale, Plus, RefreshCw, Trash2, Lightbulb } from "lucide-react";
+import {
+  AlertTriangle,
+  ChefHat,
+  Info,
+  Scale,
+  Plus,
+  RefreshCw,
+  Trash2,
+  Lightbulb,
+} from "lucide-react";
 import {
   displayOrderForPlan,
   mealScheduleClientLabel,
@@ -41,7 +50,8 @@ type Props = {
     productId: string,
     grams: number,
   ) => Promise<void>;
-  onAddMeal?: (dayIndex: number) => void;
+  onAddMeal?: (dayIndex: number, slot?: PlanSlot) => void;
+  onEditMeal?: (dayIndex: number, slot: PlanSlot) => void;
   onReplaceMeal?: (dayIndex: number, slot: PlanSlot) => void;
   onDeleteMeal?: (dayIndex: number, slot: PlanSlot) => void;
   onSuggestVariants?: (dayIndex: number) => void;
@@ -62,6 +72,7 @@ export function ConstructorNutritionView({
   editable = false,
   onIngredientGramsChange,
   onAddMeal,
+  onEditMeal,
   onReplaceMeal,
   onDeleteMeal,
   onSuggestVariants,
@@ -192,11 +203,11 @@ export function ConstructorNutritionView({
                 key={slot}
                 className="rounded-2xl border border-dashed border-gold/20 p-5 text-warm-gray"
               >
-                <p>{slotLabel(slot, mealScheduleMode, primaryMealSlot)} — не задано</p>
+                <p>Приём не заполнен</p>
                 {editable && (
                   <button
                     type="button"
-                    onClick={() => onAddMeal?.(day.day_index)}
+                    onClick={() => onAddMeal?.(day.day_index, slot)}
                     className="mt-3 inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-gold hover:underline"
                   >
                     <Plus className="h-3.5 w-3.5" /> Добавить приём
@@ -214,6 +225,7 @@ export function ConstructorNutritionView({
               dayIndex={day.day_index}
               editable={editable}
               onIngredientGramsChange={onIngredientGramsChange}
+              onEditMeal={onEditMeal}
               onReplaceMeal={onReplaceMeal}
               onDeleteMeal={onDeleteMeal}
               swapCatalog={swapCatalog}
@@ -246,37 +258,37 @@ function MacroComparisonTable({
   return (
     <div className="space-y-1">
       <div className="overflow-x-auto rounded-2xl border border-gold/15">
-      <table className="w-full min-w-[320px] text-sm">
-        <thead>
-          <tr className="border-b border-gold/10 text-left text-xs uppercase tracking-widest text-warm-gray">
-            <th className="px-4 py-3">Показатель</th>
-            <th className="px-4 py-3 text-right">Цель</th>
-            <th className="px-4 py-3 text-right">Фактически</th>
-            <th className="px-4 py-3 text-right">Разница</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.label} className="border-b border-gold/5">
-              <td className="px-4 py-3 text-ivory">{row.label}</td>
-              <td className="px-4 py-3 text-right text-warm-gray">{row.target}</td>
-              <td className="px-4 py-3 text-right text-ivory">{row.actual}</td>
-              <td
-                className={[
-                  "px-4 py-3 text-right font-medium",
-                  row.diff === 0
-                    ? "text-gold"
-                    : Math.abs(row.diff) <= 5
-                      ? "text-warm-gray"
-                      : "text-coral",
-                ].join(" ")}
-              >
-                {formatMacroDeviationPhrase(row)}
-              </td>
+        <table className="w-full min-w-[320px] text-sm">
+          <thead>
+            <tr className="border-b border-gold/10 text-left text-xs uppercase tracking-widest text-warm-gray">
+              <th className="px-4 py-3">Показатель</th>
+              <th className="px-4 py-3 text-right">Цель</th>
+              <th className="px-4 py-3 text-right">Фактически</th>
+              <th className="px-4 py-3 text-right">Разница</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label} className="border-b border-gold/5">
+                <td className="px-4 py-3 text-ivory">{row.label}</td>
+                <td className="px-4 py-3 text-right text-warm-gray">{row.target}</td>
+                <td className="px-4 py-3 text-right text-ivory">{row.actual}</td>
+                <td
+                  className={[
+                    "px-4 py-3 text-right font-medium",
+                    row.diff === 0
+                      ? "text-gold"
+                      : Math.abs(row.diff) <= 5
+                        ? "text-warm-gray"
+                        : "text-coral",
+                  ].join(" ")}
+                >
+                  {formatMacroDeviationPhrase(row)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
       {precisionHint ? (
         <p className="px-1 text-[10px] leading-relaxed text-warm-gray/80">
@@ -311,6 +323,7 @@ function MealCard({
   dayIndex,
   editable,
   onIngredientGramsChange,
+  onEditMeal,
   onReplaceMeal,
   onDeleteMeal,
   swapCatalog,
@@ -321,6 +334,7 @@ function MealCard({
   dayIndex: number;
   editable?: boolean;
   onIngredientGramsChange?: Props["onIngredientGramsChange"];
+  onEditMeal?: Props["onEditMeal"];
   onReplaceMeal?: Props["onReplaceMeal"];
   onDeleteMeal?: Props["onDeleteMeal"];
   swapCatalog?: ProductMacros[];
@@ -363,6 +377,13 @@ function MealCard({
             <div className="mt-2 flex flex-col items-end gap-1">
               <button
                 type="button"
+                onClick={() => onEditMeal?.(dayIndex, slot)}
+                className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-gold hover:underline"
+              >
+                Редактировать
+              </button>
+              <button
+                type="button"
                 onClick={() => onReplaceMeal?.(dayIndex, slot)}
                 className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-gold hover:underline"
               >
@@ -382,7 +403,9 @@ function MealCard({
 
       <ul className="mt-4 space-y-2">
         {editable && onIngredientGramsChange && (
-          <li className="text-[10px] uppercase tracking-widest text-warm-gray">Изменить граммовки</li>
+          <li className="text-[10px] uppercase tracking-widest text-warm-gray">
+            Изменить граммовки
+          </li>
         )}
         {displayIngredients.map((ing) => {
           const productTitle = displayProductName({
@@ -396,45 +419,45 @@ function MealCard({
             weighing_note: ing.weighing_note,
           });
           return (
-          <li
-            key={ing.product_id}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-background/40 px-3 py-2 text-sm"
-          >
-            <div className="min-w-0">
-              <span className="text-ivory">{productTitle}</span>
-              {weighingNote ? (
-                <span className="ml-2 text-xs text-warm-gray">({weighingNote})</span>
-              ) : null}
-            </div>
-            {editable && onIngredientGramsChange ? (
-              <input
-                type="number"
-                min={1}
-                max={600}
-                step={1}
-                defaultValue={displayGrams(ing.grams)}
-                className="w-20 rounded-lg border border-gold/20 bg-surface px-2 py-1 text-right text-ivory"
-                onBlur={(e) => {
-                  const g = Number(e.target.value);
-                  if (Number.isFinite(g)) {
-                    void onIngredientGramsChange(dayIndex, slot, ing.product_id, g);
-                  }
-                }}
-              />
-            ) : (
-              <span className="font-medium text-gold">{displayGrams(ing.grams)} г</span>
-            )}
-            {!editable && swapCatalog && swapCatalog.length > 0 && (
-              <div className="w-full">
-                <IngredientSwapHint
-                  productId={ing.product_id}
-                  productName={productTitle}
-                  grams={displayGrams(ing.grams)}
-                  catalog={swapCatalog}
-                />
+            <li
+              key={ing.product_id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-background/40 px-3 py-2 text-sm"
+            >
+              <div className="min-w-0">
+                <span className="text-ivory">{productTitle}</span>
+                {weighingNote ? (
+                  <span className="ml-2 text-xs text-warm-gray">({weighingNote})</span>
+                ) : null}
               </div>
-            )}
-          </li>
+              {editable && onIngredientGramsChange ? (
+                <input
+                  type="number"
+                  min={1}
+                  max={600}
+                  step={1}
+                  defaultValue={displayGrams(ing.grams)}
+                  className="w-20 rounded-lg border border-gold/20 bg-surface px-2 py-1 text-right text-ivory"
+                  onBlur={(e) => {
+                    const g = Number(e.target.value);
+                    if (Number.isFinite(g)) {
+                      void onIngredientGramsChange(dayIndex, slot, ing.product_id, g);
+                    }
+                  }}
+                />
+              ) : (
+                <span className="font-medium text-gold">{displayGrams(ing.grams)} г</span>
+              )}
+              {!editable && swapCatalog && swapCatalog.length > 0 && (
+                <div className="w-full">
+                  <IngredientSwapHint
+                    productId={ing.product_id}
+                    productName={productTitle}
+                    grams={displayGrams(ing.grams)}
+                    catalog={swapCatalog}
+                  />
+                </div>
+              )}
+            </li>
           );
         })}
       </ul>

@@ -28,6 +28,7 @@ import {
   type OptimizerContext,
 } from "@/lib/nutrition-constructor/optimizer";
 import { inferRecipeMeta, snackActionForRecipe } from "@/lib/nutrition-constructor/recipe-meta";
+import { canonicalizeRecipes } from "@/lib/nutrition-constructor/recipe-instructions";
 import {
   ARCHIVED_DUPLICATE_SLUGS,
   clientProductName,
@@ -283,6 +284,8 @@ export function buildInMemoryCatalog(options: BuildCatalogOptions = {}): Optimiz
       })),
     );
   }
+
+  canonicalizeRecipes(recipes, recipeIngredients, products);
 
   return {
     products,

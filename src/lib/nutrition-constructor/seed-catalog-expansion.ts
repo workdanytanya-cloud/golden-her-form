@@ -2228,7 +2228,7 @@ export const EXPANSION_RECIPES: ExpandedSeedRecipe[] = [
   ),
   main(
     "lunch-cod-zucchini-rice",
-    "Треска с кабачком и небольшим рисом",
+    "Треска с кабачком и рисом",
     ["lunch", "dinner"],
     [
       ["cod-raw", 90, 180, 130],
@@ -2236,7 +2236,7 @@ export const EXPANSION_RECIPES: ExpandedSeedRecipe[] = [
       ["rice-white-dry", 25, 70, 40],
       ["bell-pepper", 40, 100, 60],
     ],
-    ["Отварить небольшую порцию риса.", "Запечь треску с кабачком.", "Подать с перцем."],
+    ["Рис промыть и отварить до готовности.", "Запечь треску с кабачком.", "Подать с перцем."],
     25,
     { cooking_method: "bake", variant_group: "whitefish|zucchini-rice|bake" },
   ),
@@ -3006,7 +3006,7 @@ const LOW_CARB_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
   ],
   [
     "breakfast-chicken-potato-light",
-    "Курица с небольшой картофельной порцией",
+    "Куриная грудка с картофелем и овощами",
     "chicken|potato-light|bake",
     ["breakfast", "lunch"],
     [
@@ -3018,7 +3018,7 @@ const LOW_CARB_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
   ],
   [
     "lunch-whitefish-potato-light",
-    "Минтай с небольшой картофельной порцией",
+    "Минтай с картофелем и овощами",
     "whitefish|potato-light|bake",
     ["lunch", "dinner"],
     [
@@ -3030,7 +3030,7 @@ const LOW_CARB_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
   ],
   [
     "dinner-salmon-potato-light",
-    "Горбуша с небольшой картофельной порцией",
+    "Горбуша с картофелем и овощами",
     "salmon|potato-light|bake",
     ["dinner", "breakfast"],
     [
@@ -3042,7 +3042,7 @@ const LOW_CARB_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
   ],
   [
     "breakfast-beef-oats-light",
-    "Говядина с небольшой овсяной порцией",
+    "Говядина с овсянкой и овощами",
     "beef|oats-light|stew",
     ["breakfast"],
     [
@@ -3054,7 +3054,7 @@ const LOW_CARB_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
   ],
   [
     "lunch-hake-buckwheat-light",
-    "Хек с небольшой гречкой",
+    "Хек с гречкой и свежими овощами",
     "whitefish|buckwheat-light|bake",
     ["lunch", "dinner"],
     [
@@ -3066,7 +3066,7 @@ const LOW_CARB_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
   ],
   [
     "dinner-chicken-buckwheat-light",
-    "Курица с небольшой гречкой",
+    "Куриная грудка с гречкой и свежими овощами",
     "chicken|buckwheat-light|bake",
     ["dinner", "lunch"],
     [
@@ -3078,7 +3078,7 @@ const LOW_CARB_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
   ],
   [
     "breakfast-chicken-potato-large",
-    "Курица с большой порцией картофеля",
+    "Куриная грудка с картофелем и перцем",
     "chicken|potato-large|bake",
     ["breakfast", "lunch"],
     [
@@ -3090,7 +3090,7 @@ const LOW_CARB_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
   ],
   [
     "lunch-salmon-potato-large",
-    "Горбуша с большой порцией картофеля",
+    "Горбуша с картофелем",
     "salmon|potato-large|bake",
     ["lunch", "dinner"],
     [
@@ -3102,7 +3102,7 @@ const LOW_CARB_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
   ],
   [
     "breakfast-cod-potato-large",
-    "Треска с большой порцией картофеля",
+    "Треска с картофелем",
     "whitefish|potato-large|bake",
     ["breakfast", "dinner"],
     [
@@ -3114,7 +3114,7 @@ const LOW_CARB_MAINS: Array<[string, string, string, MealRole[], Ing[]]> = [
   ],
   [
     "lunch-beef-potato-large",
-    "Говядина с большой порцией картофеля",
+    "Говядина с картофелем",
     "beef|potato-large|stew",
     ["lunch", "breakfast"],
     [
@@ -3347,7 +3347,7 @@ const DENSE_SNACKS: Array<[string, string, string, Ing[]]> = [
   ],
   [
     "snack-dense-tuna-wheat-avocado",
-    "Хлеб с тунцом и авокадо, плотная порция",
+    "Хлеб с тунцом и авокадо",
     "tuna|wheat-avocado-dense|assemble",
     [
       ["canned-tuna", 90, 190, 150],

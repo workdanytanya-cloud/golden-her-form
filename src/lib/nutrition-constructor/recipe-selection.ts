@@ -9,6 +9,7 @@ import {
   type MacroBreakdown,
 } from "@/lib/nutrition-constructor/decimal-math";
 import { NUT_SEED_PRODUCT_SLUGS, PROTEIN_MAIN_PRODUCT_SLUGS, PROTEIN_SNACK_PRODUCT_SLUGS } from "@/lib/nutrition-constructor/recipe-meta";
+import { technicalNameReason } from "@/lib/nutrition-constructor/recipe-names";
 import type { FoodProduct, Recipe, RecipeIngredient } from "@/lib/nutrition-constructor/types";
 
 export type RecipeSelectionContext = {
@@ -82,6 +83,7 @@ function initialGrams(ri: RecipeIngredient): number {
 export function isAutoGenerationEligible(recipe: Recipe): boolean {
   if (!recipe.is_active) return false;
   if (recipe.dietitian_approved === false) return false;
+  if (technicalNameReason(recipe.name)) return false;
   if (recipe.is_nutritionally_complete === false) return false;
   const steps = recipe.steps?.length ?? 0;
   if (steps < 3 || steps > 7) return false;

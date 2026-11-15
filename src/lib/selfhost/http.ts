@@ -127,7 +127,20 @@ import {
   provisionClientCoursePg,
   retryCourseGenerationPg,
 } from "@/lib/selfhost/postgres-course-provision";
-import { loadRebuildExclusions, replaceDraftMealPg } from "@/lib/selfhost/postgres-meal-replace";
+import {
+  MealReplaceError,
+  loadRebuildExclusions,
+  replaceDraftMealPg,
+} from "@/lib/selfhost/postgres-meal-replace";
+import {
+  addDraftMealPg,
+  deleteDraftMealPg,
+  deleteNutritionDraftPg,
+  publishAndOpenAccessPg,
+  refreshDraftTextPg,
+  updateDraftMealPg,
+  validateDraftPg,
+} from "@/lib/selfhost/postgres-draft-edit";
 import {
   countReplacedMeals,
   freshRebuildSeed,
@@ -1202,6 +1215,179 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         manual: body.manual,
       });
       return json(result);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/nutrition/draft/meal" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = z
+        .object({
+          action: z.enum(["add", "update", "delete"]),
+          clientId: z.string().uuid(),
+          courseId: z.string().uuid().nullable().optional(),
+          dayIndex: z.number().int().nonnegative(),
+          slot: z.enum(["main1", "main2", "main3", "snack1", "snack2", "snack3"]),
+          mealItemId: z.string().uuid().nullable().optional(),
+          expectedUpdatedAt: z.string().nullable().optional(),
+          name: z.string().max(200).optional(),
+          steps: z.array(z.string().max(400)).max(7).optional(),
+          prepTimeMin: z.number().int().nonnegative().max(180).nullable().optional(),
+          note: z.string().max(500).nullable().optional(),
+          recipeId: z.string().min(1).nullable().optional(),
+          lines: z
+            .array(z.object({ productId: z.string().min(1), grams: z.number().positive() }))
+            .max(12)
+            .optional(),
+        })
+        .parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "nutrition");
+      try {
+        if (body.action === "delete") {
+          if (!body.mealItemId) return errorJson("Не указан приём", 400);
+          return json(
+            await deleteDraftMealPg(getPostgresPool(), {
+              userId: body.clientId,
+              courseId: body.courseId,
+              dayIndex: body.dayIndex,
+              slot: body.slot,
+              mealItemId: body.mealItemId,
+              expectedUpdatedAt: body.expectedUpdatedAt,
+            }),
+          );
+        }
+        if (body.action === "update") {
+          if (!body.mealItemId) return errorJson("Не указан приём", 400);
+          return json(
+            await updateDraftMealPg(getPostgresPool(), {
+              userId: body.clientId,
+              courseId: body.courseId,
+              dayIndex: body.dayIndex,
+              slot: body.slot,
+              mealItemId: body.mealItemId,
+              expectedUpdatedAt: body.expectedUpdatedAt,
+              name: body.name ?? "",
+              steps: body.steps ?? [],
+              prepTimeMin: body.prepTimeMin,
+              note: body.note,
+              lines: body.lines ?? [],
+            }),
+          );
+        }
+        return json(
+          await addDraftMealPg(getPostgresPool(), {
+            userId: body.clientId,
+            courseId: body.courseId,
+            dayIndex: body.dayIndex,
+            slot: body.slot,
+            expectedUpdatedAt: body.expectedUpdatedAt,
+            name: body.name ?? "",
+            steps: body.steps ?? [],
+            prepTimeMin: body.prepTimeMin,
+            note: body.note,
+            lines: body.lines ?? [],
+            recipeId: body.recipeId,
+          }),
+        );
+      } catch (error) {
+        if (error instanceof MealReplaceError) return errorJson(error.message, error.statusCode);
+        console.error("[draft-meal]");
+        return errorJson("Не удалось сохранить изменения. Обновите страницу и повторите.", 500);
+      }
+    }
+
+    if (url.pathname === "/api/selfhost/admin/nutrition/draft/text" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = z
+        .object({
+          clientId: z.string().uuid(),
+          courseId: z.string().uuid().nullable().optional(),
+          expectedUpdatedAt: z.string().nullable().optional(),
+          apply: z.boolean(),
+          overwriteManual: z.boolean().optional(),
+        })
+        .parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "nutrition");
+      return json(
+        await refreshDraftTextPg(getPostgresPool(), {
+          userId: body.clientId,
+          courseId: body.courseId,
+          expectedUpdatedAt: body.expectedUpdatedAt,
+          apply: body.apply,
+          overwriteManual: body.overwriteManual,
+        }),
+      );
+    }
+
+    if (
+      url.pathname === "/api/selfhost/admin/nutrition/draft/validate" &&
+      request.method === "POST"
+    ) {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = z
+        .object({
+          clientId: z.string().uuid(),
+          courseId: z.string().uuid().nullable().optional(),
+        })
+        .parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "nutrition");
+      return json(
+        await validateDraftPg(getPostgresPool(), {
+          userId: body.clientId,
+          courseId: body.courseId,
+        }),
+      );
+    }
+
+    if (url.pathname === "/api/selfhost/admin/nutrition/draft" && request.method === "DELETE") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = z
+        .object({
+          clientId: z.string().uuid(),
+          courseId: z.string().uuid().nullable().optional(),
+        })
+        .parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "nutrition");
+      return json(
+        await deleteNutritionDraftPg(getPostgresPool(), {
+          userId: body.clientId,
+          courseId: body.courseId,
+        }),
+      );
+    }
+
+    if (
+      url.pathname === "/api/selfhost/admin/nutrition/publish-access" &&
+      request.method === "POST"
+    ) {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = z
+        .object({
+          clientId: z.string().uuid(),
+          courseId: z.string().uuid().nullable().optional(),
+          reason: z.string().max(2000).nullable().optional(),
+        })
+        .parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "nutrition");
+      try {
+        return json(
+          await publishAndOpenAccessPg(getPostgresPool(), {
+            userId: body.clientId,
+            courseId: body.courseId,
+            actorId: session.userId,
+            reason: body.reason,
+          }),
+        );
+      } catch (error) {
+        if (error instanceof MealReplaceError) {
+          const issues = (error as MealReplaceError & { issues?: unknown }).issues;
+          return json({ error: error.message, issues: issues ?? [] }, error.statusCode);
+        }
+        throw error;
+      }
     }
 
     if (url.pathname === "/api/selfhost/admin/nutrition/generate" && request.method === "POST") {
