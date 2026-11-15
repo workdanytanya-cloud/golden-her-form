@@ -8,6 +8,7 @@ import argon2 from "argon2";
 import { applyMigrations } from "@/lib/selfhost/migrate";
 import { closePostgresPool } from "@/lib/selfhost/db";
 import { handleSelfhostRequest } from "@/lib/selfhost/http";
+import { apiErrorMessage } from "@/lib/selfhost/api-error";
 import {
   importClients,
   normalizeExportPayload,
@@ -705,7 +706,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       body: JSON.stringify({ email: "client-b@example.test", password: "nope-nope" }),
     });
     const wrongJson = await wrong.json();
-    expect(badJson.error).toBe(wrongJson.error);
+    expect(apiErrorMessage(badJson)).toBe(apiErrorMessage(wrongJson));
     const ok = await req("/api/selfhost/login", {
       method: "POST",
       jar: jar2,
@@ -2517,7 +2518,8 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       await req(`/api/selfhost/training?courseId=${COURSE_A2}`, { jar: clientJar })
     ).json();
     expect(view.training.version.id).toBe(pubBody.versionId);
-    const videoUrl = view.training.exercises?.[0]?.video?.url ?? view.training.exercises?.[0]?.video_url;
+    const videoUrl =
+      view.training.exercises?.[0]?.video?.url ?? view.training.exercises?.[0]?.video_url;
     expect(String(videoUrl)).toContain("trainOverlay1");
 
     // concurrent publish → one live published
@@ -3034,10 +3036,10 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     const guestWrong = new CookieJar();
     await req("/api/selfhost/csrf", { jar: guestWrong });
     const raceCode = "PP-RACE01";
-    await pool.query(
-      `INSERT INTO promo_codes (code, status, created_by) VALUES ($1,'unused',$2)`,
-      [raceCode, ADMIN_ID],
-    );
+    await pool.query(`INSERT INTO promo_codes (code, status, created_by) VALUES ($1,'unused',$2)`, [
+      raceCode,
+      ADMIN_ID,
+    ]);
     const wrongPw = await req("/api/selfhost/signup-promo", {
       method: "POST",
       jar: guestWrong,
@@ -3057,10 +3059,10 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     // Конкурентное использование последнего кода
     resetLoginRateLimitForTests();
     const lastCode = "PP-LAST01";
-    await pool.query(
-      `INSERT INTO promo_codes (code, status, created_by) VALUES ($1,'unused',$2)`,
-      [lastCode, ADMIN_ID],
-    );
+    await pool.query(`INSERT INTO promo_codes (code, status, created_by) VALUES ($1,'unused',$2)`, [
+      lastCode,
+      ADMIN_ID,
+    ]);
     const g1 = new CookieJar();
     const g2 = new CookieJar();
     await req("/api/selfhost/csrf", { jar: g1 });
@@ -3120,7 +3122,9 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     const onbBody = await onb.json();
     expect(onbBody.autogenSkipped).toBe(true);
 
-    const clients = await (await req("/api/selfhost/admin/clients?q=Новый", { jar: adminJar })).json();
+    const clients = await (
+      await req("/api/selfhost/admin/clients?q=Новый", { jar: adminJar })
+    ).json();
     expect(clients.items.some((c: { email: string }) => c.email === "promo-new@example.test")).toBe(
       true,
     );
@@ -3163,7 +3167,9 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     };
     expect(captured.to).toBe("client-a@example.test");
     expect(captured.note).toContain("LOCAL_MAIL_CATCHER");
-    const linkMatch = captured.text.match(/http:\/\/selfhost\.local\/reset-password\?token=([^\s]+)/);
+    const linkMatch = captured.text.match(
+      /http:\/\/selfhost\.local\/reset-password\?token=([^\s]+)/,
+    );
     expect(linkMatch).toBeTruthy();
     const token = decodeURIComponent(linkMatch![1]);
 
@@ -3246,9 +3252,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     });
     const expFile = fs.readdirSync(mailDir)[0];
     const expText = JSON.parse(fs.readFileSync(path.join(mailDir, expFile), "utf8")).text as string;
-    const expToken = decodeURIComponent(
-      expText.match(/reset-password\?token=([^\s]+)/)![1],
-    );
+    const expToken = decodeURIComponent(expText.match(/reset-password\?token=([^\s]+)/)![1]);
     await pool.query(
       `UPDATE password_reset_tokens SET expires_at = now() - interval '1 minute'
         WHERE used_at IS NULL`,
@@ -3271,9 +3275,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     const raceText = JSON.parse(
       fs.readFileSync(path.join(mailDir, fs.readdirSync(mailDir)[0]), "utf8"),
     ).text as string;
-    const raceToken = decodeURIComponent(
-      raceText.match(/reset-password\?token=([^\s]+)/)![1],
-    );
+    const raceToken = decodeURIComponent(raceText.match(/reset-password\?token=([^\s]+)/)![1]);
     const c1 = new CookieJar();
     const c2 = new CookieJar();
     await req("/api/selfhost/csrf", { jar: c1 });
@@ -3466,16 +3468,16 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
         WHERE client_id = $1 ORDER BY kind, course_id`,
       [CLIENT_A],
     );
-    const activeBefore = await pool.query(
-      `SELECT id, status FROM client_courses WHERE id = $1`,
-      [COURSE_A1],
-    );
+    const activeBefore = await pool.query(`SELECT id, status FROM client_courses WHERE id = $1`, [
+      COURSE_A1,
+    ]);
     expect(activeBefore.rows[0].status).toBe("active");
 
     const guest = new CookieJar();
     await req("/api/selfhost/csrf", { jar: guest });
-    expect((await req("/api/selfhost/courses/renew", { method: "POST", jar: guest, body: "{}" }))
-      .status).toBe(401);
+    expect(
+      (await req("/api/selfhost/courses/renew", { method: "POST", jar: guest, body: "{}" })).status,
+    ).toBe(401);
 
     const otherJar = new CookieJar();
     await req("/api/selfhost/csrf", { jar: otherJar });
@@ -3502,7 +3504,8 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
       body: JSON.stringify({ email: "trainer-admin@example.test", password: "Passw0rd!" }),
     });
     expect(
-      (await req("/api/selfhost/courses/renew", { method: "POST", jar: adminJar, body: "{}" })).status,
+      (await req("/api/selfhost/courses/renew", { method: "POST", jar: adminJar, body: "{}" }))
+        .status,
     ).toBe(403);
 
     const clientJar = new CookieJar();
@@ -3581,12 +3584,8 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     );
     expect(JSON.stringify(assignAfter.rows)).toBe(JSON.stringify(assignBefore.rows));
     expect(
-      (
-        await pool.query(
-          `SELECT 1 FROM client_program_assignments WHERE course_id = $1`,
-          [draftId],
-        )
-      ).rowCount,
+      (await pool.query(`SELECT 1 FROM client_program_assignments WHERE course_id = $1`, [draftId]))
+        .rowCount,
     ).toBe(0);
 
     // Тренер видит draft и активирует — после этого можно снова продлить
@@ -3902,9 +3901,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     const preMail = JSON.parse(fs.readFileSync(path.join(mailDir, preFiles[0]), "utf8")) as {
       text: string;
     };
-    const preToken = decodeURIComponent(
-      preMail.text.match(/reset-password\?token=([^\s]+)/)![1],
-    );
+    const preToken = decodeURIComponent(preMail.text.match(/reset-password\?token=([^\s]+)/)![1]);
 
     const arch = await req(`/api/selfhost/admin/clients/${CLIENT_A}/archive`, {
       method: "POST",
@@ -3972,7 +3969,9 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     );
     expect(accessAfter.rows[0].status).toBe(accessBefore.rows[0].status);
     expect(accessAfter.rows[0].unlock_source).toBe(accessBefore.rows[0].unlock_source);
-    expect(String(accessAfter.rows[0].activated_at)).toBe(String(accessBefore.rows[0].activated_at));
+    expect(String(accessAfter.rows[0].activated_at)).toBe(
+      String(accessBefore.rows[0].activated_at),
+    );
 
     const hashesAfter = await pool.query(
       `SELECT id, content_hash FROM nutrition_plan_versions WHERE client_id = $1

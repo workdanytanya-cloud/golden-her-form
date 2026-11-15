@@ -148,4 +148,125 @@ describe.runIf(run)("nutrition generate endpoint PostgreSQL integration", () => 
     );
     expect(after.rows[0]).toEqual(before.rows[0]);
   }, 120_000);
+
+  it("answers the rebuild endpoint with JSON and stores one 1710 draft", async () => {
+    const denied = await handleSelfhostRequest(
+      new Request("http://local.test/api/selfhost/admin/nutrition/generate", { method: "POST" }),
+    );
+    expect(denied?.headers.get("content-type")).toContain("application/json");
+    const deniedText = await denied!.text();
+    expect(deniedText.trim().startsWith("<")).toBe(false);
+    const deniedBody = JSON.parse(deniedText) as { error: { code: string; message: string } };
+    expect(deniedBody.error.code).toBeTruthy();
+    expect(deniedBody.error.message).not.toMatch(/Unexpected token|<html/i);
+
+    await pool.query(`DELETE FROM nutrition_plans WHERE user_id = $1 AND course_id = $2`, [
+      CLIENT,
+      COURSE,
+    ]);
+    const publishedBefore = await pool.query(
+      `SELECT count(*)::int AS n FROM nutrition_plan_versions`,
+    );
+    const response = await handleSelfhostRequest(
+      new Request("http://local.test/api/selfhost/admin/nutrition/generate", {
+        method: "POST",
+        headers: { "content-type": "application/json", cookie, "x-csrf-token": csrf },
+        body: JSON.stringify({
+          clientId: CLIENT,
+          courseId: COURSE,
+          rebuild: true,
+          profile: {
+            gender: "female",
+            birth_date: "1990-04-04",
+            height_cm: 168,
+            weight_kg: 72,
+            activity_level: "moderate",
+            goal_primary: "weight_loss",
+            profile_complete: true,
+          },
+          days_count: 7,
+          excluded_product_ids: [],
+          meal_schedule_mode: "three_main_two_snacks",
+          primary_meal_slot: "lunch",
+          targets_override: { kcal: 1710, protein_g: 150, fat_g: 70, carbs_g: 120 },
+        }),
+      }),
+    );
+    expect(response?.headers.get("content-type")).toContain("application/json");
+    const text = await response!.text();
+    expect(text.trim().startsWith("<")).toBe(false);
+    const body = JSON.parse(text) as {
+      saved?: boolean;
+      is_valid?: boolean;
+      days?: ConstructorDay[];
+      message?: string;
+      error?: { message?: string };
+    };
+    expect(response?.status).toBe(200);
+    expect(
+      body.error,
+      JSON.stringify({ message: body.message, is_valid: body.is_valid }),
+    ).toBeUndefined();
+    const detail = body as {
+      message?: string;
+      reason_code?: string;
+      diagnostics?: { last_failure_reason?: string; timed_out?: boolean; search_stage?: string };
+    };
+    expect(body.saved, JSON.stringify(detail)).toBe(true);
+    expect(body.is_valid).toBe(true);
+    expect(body.days).toHaveLength(7);
+    const loaded = await loadConstructorPlanPg(pool, CLIENT, COURSE);
+    expect(loaded.days).toHaveLength(7);
+    expect(loaded.plan?.id).toBeTruthy();
+    const plans = await pool.query(
+      `SELECT count(*)::int AS count FROM nutrition_plans WHERE user_id = $1 AND course_id = $2`,
+      [CLIENT, COURSE],
+    );
+    expect(plans.rows[0].count).toBe(1);
+    const publishedAfter = await pool.query(
+      `SELECT count(*)::int AS n FROM nutrition_plan_versions`,
+    );
+    expect(publishedAfter.rows[0].n).toBe(publishedBefore.rows[0].n);
+
+    const firstKey = loaded.days.map((day) => fingerprintExactDay(day)).join("\n");
+    const again = await handleSelfhostRequest(
+      new Request("http://local.test/api/selfhost/admin/nutrition/generate", {
+        method: "POST",
+        headers: { "content-type": "application/json", cookie, "x-csrf-token": csrf },
+        body: JSON.stringify({
+          clientId: CLIENT,
+          courseId: COURSE,
+          rebuild: true,
+          profile: {
+            gender: "female",
+            birth_date: "1990-04-04",
+            height_cm: 168,
+            weight_kg: 72,
+            activity_level: "moderate",
+            goal_primary: "weight_loss",
+            profile_complete: true,
+          },
+          days_count: 7,
+          excluded_product_ids: [],
+          meal_schedule_mode: "three_main_two_snacks",
+          primary_meal_slot: "lunch",
+          targets_override: { kcal: 1710, protein_g: 150, fat_g: 70, carbs_g: 120 },
+        }),
+      }),
+    );
+    const againText = await again!.text();
+    expect(againText.trim().startsWith("<")).toBe(false);
+    const againBody = JSON.parse(againText) as { saved?: boolean; days?: ConstructorDay[] };
+    expect(again?.headers.get("content-type")).toContain("application/json");
+    expect(againBody.saved).toBe(true);
+    expect(againBody.days).toHaveLength(7);
+    const reloaded = await loadConstructorPlanPg(pool, CLIENT, COURSE);
+    const secondKey = reloaded.days.map((day) => fingerprintExactDay(day)).join("\n");
+    expect(secondKey).not.toBe(firstKey);
+    const plansAfter = await pool.query(
+      `SELECT count(*)::int AS count FROM nutrition_plans WHERE user_id = $1 AND course_id = $2`,
+      [CLIENT, COURSE],
+    );
+    expect(plansAfter.rows[0].count).toBe(1);
+  }, 180_000);
 });

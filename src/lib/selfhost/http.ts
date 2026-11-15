@@ -1,4 +1,5 @@
 import { z, ZodError } from "zod";
+import { jsonApiError, logServerError } from "@/lib/selfhost/api-error";
 import {
   getAuthBackend,
   getDataBackend,
@@ -191,8 +192,13 @@ function json(data: unknown, status = 200, extraHeaders?: Record<string, string>
   });
 }
 
-function errorJson(message: string, status: number): Response {
-  return json({ error: message }, status);
+function errorJson(
+  message: string,
+  status: number,
+  code?: string,
+  extra?: Record<string, unknown>,
+): Response {
+  return jsonApiError(status, message, code, extra);
 }
 
 async function readJson(request: Request): Promise<Record<string, unknown>> {
@@ -1385,7 +1391,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       } catch (error) {
         if (error instanceof MealReplaceError) {
           const issues = (error as MealReplaceError & { issues?: unknown }).issues;
-          return json({ error: error.message, issues: issues ?? [] }, error.statusCode);
+          return errorJson(error.message, error.statusCode, undefined, { issues: issues ?? [] });
         }
         throw error;
       }
@@ -1401,6 +1407,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         excluded_variant_groups?: string[];
         excluded_ingredient_signatures?: string[];
         search_timeout_ms?: number;
+        catalog?: "postgres" | "memory";
       }) =>
         generateAndValidateConstructorPlan({
           clientId: body.clientId,
@@ -1418,6 +1425,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
           primary_meal_slot: body.primary_meal_slot,
           targets_override: body.targets_override,
           search_timeout_ms: extra.search_timeout_ms ?? body.search_timeout_ms,
+          catalog: extra.catalog,
         });
       const generated = await (async () => {
         if (!body.rebuild || !body.clientId) return generateWith({});
@@ -1426,40 +1434,69 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
           body.clientId,
           body.courseId,
         );
-        const seed = freshRebuildSeed();
-        const first = await generateWith({
-          seed,
-          excluded_recipe_ids: [...new Set([...body.excluded_recipe_ids, ...exclusions.recipeIds])],
-          excluded_variant_groups: [
-            ...new Set([...body.excluded_variant_groups, ...exclusions.variantGroups]),
-          ],
-          excluded_ingredient_signatures: [
-            ...new Set([...body.excluded_ingredient_signatures, ...exclusions.signatures]),
-          ],
-          search_timeout_ms: body.search_timeout_ms ?? 45_000,
-        });
         const before = await loadConstructorPlanPg(getPostgresPool(), body.clientId, body.courseId);
-        const firstDiff = countReplacedMeals(before.days, first.days);
-        if (first.is_valid && first.days.length > 0 && firstDiff.changed > 0) {
-          return Object.assign(first, {
-            changed: firstDiff.changed,
-            total: firstDiff.total,
+        const timeout = body.search_timeout_ms ?? 40_000;
+        const targetSeed = Math.round(body.targets_override?.kcal ?? 0) || undefined;
+        const seeds = [
+          targetSeed,
+          freshRebuildSeed(undefined, targetSeed),
+          freshRebuildSeed(Date.now() + 104729, targetSeed),
+        ].filter(
+          (value, index, all): value is number => value != null && all.indexOf(value) === index,
+        );
+        let fallback: ReturnType<typeof Object.assign> | null = null;
+        for (let index = 0; index < seeds.length; index += 1) {
+          const seed = seeds[index]!;
+          const pass = await generateWith({
+            seed,
+            excluded_recipe_ids:
+              index === 0
+                ? [...new Set([...body.excluded_recipe_ids, ...exclusions.recipeIds])]
+                : body.excluded_recipe_ids,
+            excluded_variant_groups:
+              index === 0
+                ? [...new Set([...body.excluded_variant_groups, ...exclusions.variantGroups])]
+                : body.excluded_variant_groups,
+            excluded_ingredient_signatures:
+              index === 0
+                ? [...new Set([...body.excluded_ingredient_signatures, ...exclusions.signatures])]
+                : body.excluded_ingredient_signatures,
+            search_timeout_ms: timeout,
+          });
+          const diff = countReplacedMeals(before.days, pass.days);
+          const annotated = Object.assign(pass, {
+            changed: diff.changed,
+            total: diff.total,
+            hadDraft: exclusions.hadDraft,
+          });
+          const useful =
+            pass.is_valid && pass.days.length > 0 && (!exclusions.hadDraft || diff.changed > 0);
+          if (useful) return annotated;
+          if (!fallback || (pass.is_valid && pass.days.length > 0)) fallback = annotated;
+          if (pass.reason_code === "INSUFFICIENT_VARIETY" || pass.reason_code === "INFEASIBLE")
+            break;
+        }
+        const memory = await generateWith({
+          catalog: "memory",
+          seed: targetSeed ?? seeds[0],
+          search_timeout_ms: timeout,
+          excluded_recipe_ids: body.excluded_recipe_ids,
+          excluded_variant_groups: body.excluded_variant_groups,
+          excluded_ingredient_signatures: body.excluded_ingredient_signatures,
+        });
+        const memoryDiff = countReplacedMeals(before.days, memory.days);
+        if (
+          memory.is_valid &&
+          memory.days.length > 0 &&
+          (!exclusions.hadDraft || memoryDiff.changed > 0)
+        ) {
+          return Object.assign(memory, {
+            changed: memoryDiff.changed,
+            total: memoryDiff.total,
             hadDraft: exclusions.hadDraft,
           });
         }
-        const second = await generateWith({
-          seed: freshRebuildSeed(Date.now() + 104729, seed),
-          search_timeout_ms: body.search_timeout_ms ?? 45_000,
-        });
-        const secondDiff = countReplacedMeals(before.days, second.days);
-        const chosen =
-          second.is_valid && second.days.length > 0 && secondDiff.changed > 0 ? second : first;
-        const diff = chosen === second ? secondDiff : firstDiff;
-        return Object.assign(chosen, {
-          changed: diff.changed,
-          total: diff.total,
-          hadDraft: exclusions.hadDraft,
-        });
+        return fallback ?? memory;
       })();
       const changed = (generated as { changed?: number }).changed ?? generated.days.length;
       const total = (generated as { total?: number }).total ?? generated.days.length;
@@ -1997,10 +2034,10 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
     }
     const status = pg.statusCode ?? 500;
     const message = error instanceof Error ? error.message : "Ошибка сервера";
-    if (status >= 500) console.error("[selfhost]", message);
+    if (status >= 500) logServerError(error);
     const missing = (error as { missing?: unknown }).missing;
     if (status === 422 && Array.isArray(missing)) {
-      return json({ error: message, missing }, status);
+      return errorJson(message, status, undefined, { missing });
     }
     return errorJson(message, status);
   }

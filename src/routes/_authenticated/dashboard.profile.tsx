@@ -6,8 +6,14 @@ import { PanelHeader } from "@/components/panel/PanelShell";
 import { SectionHint, FieldHint } from "@/components/panel/Hints";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
-import { isHeightCmInRange, isRuNumberInRange, parseHeightCm, parseRuNumber } from "@/lib/ru-number";
+import {
+  isHeightCmInRange,
+  isRuNumberInRange,
+  parseHeightCm,
+  parseRuNumber,
+} from "@/lib/ru-number";
 import { JOINT_CARE_WEIGHT_KG } from "@/lib/training";
+import { apiErrorMessage } from "@/lib/selfhost/api-error";
 
 export const Route = createFileRoute("/_authenticated/dashboard/profile")({
   component: ProfilePage,
@@ -40,9 +46,8 @@ function ProfilePage() {
   useEffect(() => {
     if (!effectiveUserId) return;
     void (async () => {
-      const { usesLocalPostgresCircuit, selfhostMeasurements } = await import(
-        "@/lib/selfhost/client-api"
-      );
+      const { usesLocalPostgresCircuit, selfhostMeasurements } =
+        await import("@/lib/selfhost/client-api");
       if (await usesLocalPostgresCircuit()) {
         const [{ profile }, meas] = await Promise.all([
           (async () => {
@@ -50,8 +55,14 @@ function ProfilePage() {
               `/api/selfhost/profile?clientId=${encodeURIComponent(effectiveUserId)}`,
               { credentials: "include" },
             );
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Не удалось загрузить профиль");
+            if (!res.headers.get("content-type")?.includes("application/json")) {
+              throw new Error(`Не удалось загрузить профиль. Сервер вернул ошибку ${res.status}.`);
+            }
+            const data = (await res.json()) as {
+              error?: unknown;
+              profile?: Record<string, unknown> | null;
+            };
+            if (!res.ok) throw new Error(apiErrorMessage(data, "Не удалось загрузить профиль"));
             return data as { profile: Record<string, unknown> | null };
           })(),
           selfhostMeasurements(effectiveUserId),
@@ -105,9 +116,8 @@ function ProfilePage() {
 
   const saveWeight = async (userId: string, weight: number, idempotencyKey: string) => {
     const measuredOn = new Date().toISOString().slice(0, 10);
-    const { usesLocalPostgresCircuit, selfhostCreateMeasurement } = await import(
-      "@/lib/selfhost/client-api"
-    );
+    const { usesLocalPostgresCircuit, selfhostCreateMeasurement } =
+      await import("@/lib/selfhost/client-api");
     if (await usesLocalPostgresCircuit()) {
       await selfhostCreateMeasurement({
         clientId: userId,
@@ -148,9 +158,8 @@ function ProfilePage() {
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `profile-w-${Date.now()}`;
-      const { usesLocalPostgresCircuit, selfhostSaveProfile } = await import(
-        "@/lib/selfhost/client-api"
-      );
+      const { usesLocalPostgresCircuit, selfhostSaveProfile } =
+        await import("@/lib/selfhost/client-api");
       if (await usesLocalPostgresCircuit()) {
         await selfhostSaveProfile({
           clientId: effectiveUserId,
@@ -201,7 +210,10 @@ function ProfilePage() {
       {loading ? (
         <p className="text-warm-gray">Загрузка…</p>
       ) : (
-        <form onSubmit={save} className="max-w-2xl space-y-5 rounded-3xl border border-gold/15 bg-surface/40 p-6">
+        <form
+          onSubmit={save}
+          className="max-w-2xl space-y-5 rounded-3xl border border-gold/15 bg-surface/40 p-6"
+        >
           <Field label="Имя" htmlFor="profile-name">
             <input
               id="profile-name"
@@ -269,8 +281,8 @@ function ProfilePage() {
                 />
               </Field>
               <FieldHint>
-                При весе выше {JOINT_CARE_WEIGHT_KG} кг в тренировках автоматически убираются прыжки и
-                ударные нагрузки на суставы.
+                При весе выше {JOINT_CARE_WEIGHT_KG} кг в тренировках автоматически убираются прыжки
+                и ударные нагрузки на суставы.
               </FieldHint>
             </div>
           </div>
@@ -286,8 +298,8 @@ function ProfilePage() {
             />
           </Field>
           <FieldHint>
-            Формулируйте конкретно: «минус 6 кг к июню», «поднять 60 кг в приседе», «прийти в форму к
-            отпуску». Конкретная цель проще отслеживается.
+            Формулируйте конкретно: «минус 6 кг к июню», «поднять 60 кг в приседе», «прийти в форму
+            к отпуску». Конкретная цель проще отслеживается.
           </FieldHint>
 
           <button

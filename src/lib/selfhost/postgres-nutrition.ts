@@ -468,10 +468,21 @@ export async function loadOptimizerContextPg(db: Queryable): Promise<OptimizerCo
   }
   const recipes = (recipesRows.rows as Record<string, unknown>[]).map(mapRecipe);
   const recipeIngredients = new Map<string, RecipeIngredient[]>();
-  for (const ri of ingsRows.rows as RecipeIngredient[]) {
-    const list = recipeIngredients.get(ri.recipe_id) ?? [];
-    list.push(ri);
-    recipeIngredients.set(ri.recipe_id, list);
+  for (const row of ingsRows.rows as Record<string, unknown>[]) {
+    const ingredient: RecipeIngredient = {
+      id: String(row.id ?? ""),
+      recipe_id: String(row.recipe_id),
+      product_id: String(row.product_id),
+      min_g: num(row.min_g),
+      max_g: num(row.max_g),
+      default_g: row.default_g == null ? null : num(row.default_g),
+      is_scalable: row.is_scalable !== false,
+      sort_order: num(row.sort_order),
+      optional: Boolean(row.optional),
+    };
+    const list = recipeIngredients.get(ingredient.recipe_id) ?? [];
+    list.push(ingredient);
+    recipeIngredients.set(ingredient.recipe_id, list);
   }
   return {
     products,

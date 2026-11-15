@@ -520,7 +520,7 @@ export function buildExactWeek(params: {
           }
         }
       }
-    } else if (snackSlots.length === 2 && (goal.k <= 1700 || (goal.p <= 100 && goal.k <= 1900))) {
+    } else if (snackSlots.length === 2 && (goal.k <= 1850 || (goal.p <= 100 && goal.k <= 1900))) {
       const light = [...eligible]
         .filter((recipe) => {
           const macro = midpoint(recipe);

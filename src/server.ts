@@ -5,6 +5,7 @@ loadSelfhostEnvFiles();
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { coerceJsonApiResponse, jsonApiError, logServerError } from "./lib/selfhost/api-error";
 import { handleSelfhostRequest } from "./lib/selfhost/http";
 
 type ServerEntry = {
@@ -50,14 +51,17 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    const isApi = new URL(request.url).pathname.startsWith("/api/");
     try {
       const selfhost = await handleSelfhostRequest(request);
-      if (selfhost) return selfhost;
+      if (selfhost) return isApi ? coerceJsonApiResponse(selfhost) : selfhost;
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+      return isApi ? coerceJsonApiResponse(normalized) : normalized;
     } catch (error) {
-      console.error(error);
+      logServerError(error);
+      if (isApi) return jsonApiError(500, "Ошибка сервера", "internal");
       return new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },

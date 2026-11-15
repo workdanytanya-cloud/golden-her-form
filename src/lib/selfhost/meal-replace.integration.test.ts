@@ -16,6 +16,7 @@ import {
   SAME_RECIPE_MESSAGE,
 } from "@/lib/nutrition-constructor/meal-replace";
 import type { ConstructorDay } from "@/lib/nutrition-constructor/types";
+import { apiErrorMessage } from "@/lib/selfhost/api-error";
 
 const url = process.env.MEAL_REPLACE_TEST_DATABASE_URL;
 const run = Boolean(url);
@@ -234,7 +235,7 @@ describe.runIf(run)("meal replace PostgreSQL integration", () => {
       recipeId: probeId,
     });
     expect(same.status).toBe(400);
-    expect(same.payload.error).toBe(SAME_RECIPE_MESSAGE);
+    expect(apiErrorMessage(same.payload)).toBe(SAME_RECIPE_MESSAGE);
     const conflict = await post({
       clientId: CLIENT,
       courseId: COURSE,
@@ -246,7 +247,7 @@ describe.runIf(run)("meal replace PostgreSQL integration", () => {
       recipeId: sourceId,
     });
     expect(conflict.status).toBe(409);
-    expect(conflict.payload.error).toBe(DRAFT_CONFLICT_MESSAGE);
+    expect(apiErrorMessage(conflict.payload)).toBe(DRAFT_CONFLICT_MESSAGE);
     const unfit = await post({
       clientId: CLIENT,
       courseId: COURSE,
@@ -257,7 +258,7 @@ describe.runIf(run)("meal replace PostgreSQL integration", () => {
       action: "preview",
       recipeId: sourceId,
     });
-    if (unfit.status === 422) expect(String(unfit.payload.error)).toContain(CANNOT_FIT_RECIPE);
+    if (unfit.status === 422) expect(apiErrorMessage(unfit.payload)).toContain(CANNOT_FIT_RECIPE);
     const still = await loadConstructorPlanPg(pool, CLIENT, COURSE);
     expect(still.days[0]!.items.find((meal) => meal.slot === "main1")!.recipe_id).toBe(probeId);
     const versionsAfter = Number(

@@ -500,7 +500,10 @@ export async function loadFoodProductsFromDb(): Promise<FoodProduct[]> {
   return (data ?? []).map(mapFoodProductRow);
 }
 
-export async function loadOptimizerContext(): Promise<OptimizerContext> {
+export async function loadOptimizerContext(
+  source?: "postgres" | "memory",
+): Promise<OptimizerContext> {
+  if (source === "memory") return buildInMemoryCatalog();
   if (typeof window !== "undefined") {
     const { usesLocalPostgresCircuit } = await import("@/lib/selfhost/client-api");
     if (await usesLocalPostgresCircuit()) {
@@ -597,6 +600,8 @@ export async function generateAndValidateConstructorPlan(params: {
   primary_meal_slot?: PrimaryMealSlot;
   search_timeout_ms?: number;
   rebuild?: boolean;
+  /** Обход каталога PostgreSQL, если он не собирает полную неделю. */
+  catalog?: "postgres" | "memory";
   targets_override?: {
     kcal: number;
     protein_g: number;
@@ -661,7 +666,7 @@ export async function generateAndValidateConstructorPlan(params: {
     const { selfhostGenerateNutrition } = await import("@/lib/selfhost/client-api");
     return (await selfhostGenerateNutrition(params as unknown as Record<string, unknown>)) as never;
   }
-  const ctx = await loadOptimizerContext();
+  const ctx = await loadOptimizerContext(params.catalog);
   let excludedRecipeIds = [...(params.excluded_recipe_ids ?? [])];
   let excludedVariantGroups = [...(params.excluded_variant_groups ?? [])];
   let publishedWarning: string | null = null;

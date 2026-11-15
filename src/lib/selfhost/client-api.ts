@@ -1,3 +1,4 @@
+import { apiErrorMessage, readApiPayload, rebuildFailureMessage } from "@/lib/selfhost/api-error";
 import type { RuntimePublicConfig } from "@/lib/selfhost/config";
 import { getAuthBackend, getDataBackend, getMediaBackend } from "@/lib/selfhost/config";
 import type { ClientCourse } from "@/lib/client-courses/repo";
@@ -62,10 +63,15 @@ export async function usesLocalLinksMedia(): Promise<boolean> {
   );
 }
 
-async function readSelfhostJson(res: Response): Promise<Record<string, unknown>> {
-  const data = (await res.json()) as Record<string, unknown>;
+async function readSelfhostJson(
+  res: Response,
+  options?: { nonJsonMessage?: string },
+): Promise<Record<string, unknown>> {
+  const fallback =
+    options?.nonJsonMessage ?? `Сервер вернул ошибку ${res.status}. Повторите попытку`;
+  const data = await readApiPayload(res, fallback);
   if (!res.ok) {
-    const message = typeof data.error === "string" ? data.error : "Ошибка сервера";
+    const message = apiErrorMessage(data);
     // 401: сессия отсутствует/истекла (часто после смены пользователя в той же вкладке).
     // 403 CSRF: in-memory токен рассинхронизирован с cookie — сбрасываем кэш.
     if (res.status === 401 || (res.status === 403 && /csrf/i.test(message))) {
@@ -542,8 +548,18 @@ export async function selfhostLogin(email: string, password: string) {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Неверный email или пароль");
+  let data: Record<string, unknown>;
+  try {
+    data = await readSelfhostJson(res);
+  } catch (error) {
+    if (!res.ok) {
+      const message = error instanceof Error ? error.message : "";
+      throw new Error(
+        message && message !== "Ошибка сервера" ? message : "Неверный email или пароль",
+      );
+    }
+    throw error;
+  }
   if (typeof data.csrf === "string") csrfToken = data.csrf;
   return data as { userId: string; role: "admin" | "client"; accessStatus: string | null };
 }
@@ -570,8 +586,7 @@ export async function selfhostCourses(clientId: string): Promise<ClientCourse[]>
   const res = await fetch(`/api/selfhost/courses?clientId=${encodeURIComponent(clientId)}`, {
     credentials: "include",
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Не удалось загрузить курсы");
+  const data = await readSelfhostJson(res);
   return data.courses as ClientCourse[];
 }
 
@@ -634,7 +649,9 @@ export async function selfhostGenerateNutrition(payload: Record<string, unknown>
     }
     throw error;
   });
-  return readSelfhostJson(res);
+  return readSelfhostJson(res, {
+    nonJsonMessage: payload.rebuild ? rebuildFailureMessage(res.status) : undefined,
+  });
 }
 
 export async function selfhostReplaceMeal(payload: {
@@ -1001,8 +1018,7 @@ export async function selfhostNutrition(
   const params = new URLSearchParams({ clientId });
   if (courseId) params.set("courseId", courseId);
   const res = await fetch(`/api/selfhost/nutrition?${params}`, { credentials: "include" });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Не удалось загрузить питание");
+  const data = await readSelfhostJson(res);
   return data.nutrition as PublishedNutritionView | null;
 }
 
@@ -1013,8 +1029,7 @@ export async function selfhostTraining(
   const params = new URLSearchParams({ clientId });
   if (courseId) params.set("courseId", courseId);
   const res = await fetch(`/api/selfhost/training?${params}`, { credentials: "include" });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Не удалось загрузить тренировки");
+  const data = await readSelfhostJson(res);
   return data.training as PublishedTrainingView | null;
 }
 
@@ -1027,8 +1042,7 @@ export async function selfhostDownloadPdf(input: {
     method: "POST",
     body: JSON.stringify(input),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Не удалось скачать PDF");
+  const data = await readSelfhostJson(res);
   return data as { filename: string; contentType: string; pdfBase64: string };
 }
 
@@ -1165,8 +1179,7 @@ export async function selfhostSignupPromo(input: {
     method: "POST",
     body: JSON.stringify(input),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Не удалось активировать промокод");
+  const data = await readSelfhostJson(res);
   if (typeof data.csrf === "string") csrfToken = data.csrf;
   return data as {
     ok: true;
