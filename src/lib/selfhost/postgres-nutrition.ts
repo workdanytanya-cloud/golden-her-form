@@ -91,7 +91,10 @@ export const nutritionGenerateSchema = z.object({
   excluded_product_ids: z.array(z.string()).default([]),
   excluded_recipe_ids: z.array(z.string()).default([]),
   excluded_variant_groups: z.array(z.string()).default([]),
+  excluded_ingredient_signatures: z.array(z.string()).default([]),
   allow_repeats: z.boolean().default(false),
+  rebuild: z.boolean().optional(),
+  search_timeout_ms: z.number().int().positive().max(45_000).optional(),
   meal_schedule_mode: z
     .enum([
       "three_main_two_snacks",
@@ -523,6 +526,7 @@ function mapPlan(row: Record<string, unknown>): ConstructorPlanRow {
     targets_manual: Boolean(row.targets_manual),
     notes: (row.notes as string | null) ?? null,
     excluded_products: (row.excluded_products as string[]) ?? [],
+    updated_at: row.updated_at == null ? null : new Date(row.updated_at as string).toISOString(),
     meal_schedule_mode: row.meal_schedule_mode as ConstructorPlanRow["meal_schedule_mode"],
     primary_meal_slot: row.primary_meal_slot as ConstructorPlanRow["primary_meal_slot"],
   };

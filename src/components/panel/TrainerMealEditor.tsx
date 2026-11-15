@@ -1,12 +1,8 @@
-import { useMemo, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useEffect, useMemo, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { comparisonRows } from "@/lib/nutrition-constructor/calculator";
 import type { PlanSlot } from "@/lib/nutrition-constructor/config";
+import type { MealReplacePreview } from "@/lib/nutrition-constructor/meal-replace";
 import { d, displayMacro } from "@/lib/nutrition-constructor/decimal-math";
 import type { DeviationProposal } from "@/lib/nutrition-constructor/deviation-suggestions";
 import {
@@ -50,6 +46,18 @@ type Props = {
   ctx: OptimizerContext;
   forbiddenIds: Set<string>;
   defaultSlot?: PlanSlot;
+  replaceTarget?: {
+    dayIndex: number;
+    slot: PlanSlot;
+    label: string;
+    recipeName: string;
+  } | null;
+  suggestions?: MealReplacePreview[];
+  preview?: MealReplacePreview | null;
+  previewError?: string | null;
+  busy?: boolean;
+  usedRecipeNames?: string[];
+  onSelectRecipe?: (recipe: Recipe) => void;
   proposals?: DeviationProposal[];
   targetMacro: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
   onClose: () => void;
@@ -62,6 +70,13 @@ export function TrainerMealEditor({
   day,
   ctx,
   forbiddenIds,
+  replaceTarget = null,
+  suggestions = [],
+  preview = null,
+  previewError = null,
+  busy = false,
+  usedRecipeNames = [],
+  onSelectRecipe,
   proposals = [],
   targetMacro,
   onClose,
@@ -73,18 +88,29 @@ export function TrainerMealEditor({
   const [mealKind, setMealKind] = useState<TrainerMealKind>("snack");
   const [clock, setClock] = useState<TrainerClockSlot>("snack3");
   const [recipeId, setRecipeId] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setRecipeId("");
+    setSource(mode === "assemble" ? "manual" : "suggest");
+  }, [open, mode, replaceTarget?.dayIndex, replaceTarget?.slot]);
   const [name, setName] = useState("");
   const [picked, setPicked] = useState<Array<{ productId: string; grams: string }>>([
     { productId: "", grams: "" },
   ]);
 
+  const activeKind: TrainerMealKind = replaceTarget
+    ? replaceTarget.slot.startsWith("snack")
+      ? "snack"
+      : "main"
+    : mealKind;
   const recipes = useMemo(
-    () => eligibleRecipesForManualPick({ ctx, forbiddenIds, mealKind }),
-    [ctx, forbiddenIds, mealKind],
+    () => eligibleRecipesForManualPick({ ctx, forbiddenIds, mealKind: activeKind }),
+    [ctx, forbiddenIds, activeKind],
   );
   const products = useMemo(
-    () => allowedProductsForManualMeal({ ctx, forbiddenIds, mealKind }),
-    [ctx, forbiddenIds, mealKind],
+    () => allowedProductsForManualMeal({ ctx, forbiddenIds, mealKind: activeKind }),
+    [ctx, forbiddenIds, activeKind],
   );
 
   const previewLines = picked
@@ -121,14 +147,37 @@ export function TrainerMealEditor({
     { kcal: 0, protein_g: 0, fat_g: 0, carbs_g: 0 },
   );
 
-  const dayPreview = day
+  const currentMeal = replaceTarget
+    ? day?.items.find((item) => item.slot === replaceTarget.slot)
+    : null;
+  const dayBase = day
     ? {
-        kcal: Number(day.kcal) + mealPreview.kcal,
-        protein_g: Number(day.protein_g) + mealPreview.protein_g,
-        fat_g: Number(day.fat_g) + mealPreview.fat_g,
-        carbs_g: Number(day.carbs_g) + mealPreview.carbs_g,
+        kcal: Number(day.kcal) - (currentMeal ? Number(currentMeal.kcal) : 0),
+        protein_g: Number(day.protein_g) - (currentMeal ? Number(currentMeal.protein_g) : 0),
+        fat_g: Number(day.fat_g) - (currentMeal ? Number(currentMeal.fat_g) : 0),
+        carbs_g: Number(day.carbs_g) - (currentMeal ? Number(currentMeal.carbs_g) : 0),
       }
-    : mealPreview;
+    : { kcal: 0, protein_g: 0, fat_g: 0, carbs_g: 0 };
+  const dayPreview = {
+    kcal:
+      (mode === "replace" ? dayBase.kcal : Number(day?.kcal ?? 0)) +
+      (mode === "replace" || !day ? mealPreview.kcal : mealPreview.kcal),
+    protein_g:
+      (mode === "replace" ? dayBase.protein_g : Number(day?.protein_g ?? 0)) +
+      mealPreview.protein_g,
+    fat_g: (mode === "replace" ? dayBase.fat_g : Number(day?.fat_g ?? 0)) + mealPreview.fat_g,
+    carbs_g:
+      (mode === "replace" ? dayBase.carbs_g : Number(day?.carbs_g ?? 0)) + mealPreview.carbs_g,
+  };
+  const selectedRecipe = recipes.find((recipe) => recipe.id === recipeId) ?? null;
+  const sameRecipe = Boolean(
+    replaceTarget && selectedRecipe && selectedRecipe.name === replaceTarget.recipeName,
+  );
+  const confirmLabel = busy
+    ? "Заменяем…"
+    : mode === "replace"
+      ? "Заменить приём"
+      : "Добавить рецепт";
 
   const title =
     mode === "replace"
@@ -143,6 +192,14 @@ export function TrainerMealEditor({
         <DialogHeader>
           <DialogTitle className="font-display text-xl">{title}</DialogTitle>
         </DialogHeader>
+        {replaceTarget && (
+          <div className="rounded-xl border border-gold/20 bg-gold/5 px-3 py-2 text-sm text-ivory">
+            <p>
+              День {replaceTarget.dayIndex + 1} · {replaceTarget.label}
+            </p>
+            <p className="text-warm-gray">Сейчас: {replaceTarget.recipeName}</p>
+          </div>
+        )}
 
         {mode !== "suggest" && (
           <div className="space-y-3">
@@ -171,44 +228,95 @@ export function TrainerMealEditor({
               ))}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block text-sm">
-                <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">
-                  Тип
-                </span>
-                <select
-                  value={mealKind}
-                  onChange={(e) => setMealKind(e.target.value as TrainerMealKind)}
-                  className="w-full rounded-lg border border-gold/20 bg-background px-3 py-2 text-sm"
-                >
-                  {(Object.keys(TRAINER_MEAL_KIND_LABELS) as TrainerMealKind[]).map((kind) => (
-                    <option key={kind} value={kind}>
-                      {TRAINER_MEAL_KIND_LABELS[kind]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">
-                  Слот
-                </span>
-                <select
-                  value={clock}
-                  onChange={(e) => setClock(e.target.value as TrainerClockSlot)}
-                  className="w-full rounded-lg border border-gold/20 bg-background px-3 py-2 text-sm"
-                >
-                  {TRAINER_CLOCK_SLOTS.map((slot) => (
-                    <option key={slot.id} value={slot.id}>
-                      {slot.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            {!replaceTarget && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-sm">
+                  <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">
+                    Тип
+                  </span>
+                  <select
+                    value={mealKind}
+                    onChange={(e) => setMealKind(e.target.value as TrainerMealKind)}
+                    className="w-full rounded-lg border border-gold/20 bg-background px-3 py-2 text-sm"
+                  >
+                    {(Object.keys(TRAINER_MEAL_KIND_LABELS) as TrainerMealKind[]).map((kind) => (
+                      <option key={kind} value={kind}>
+                        {TRAINER_MEAL_KIND_LABELS[kind]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-[10px] uppercase tracking-widest text-warm-gray">
+                    Слот
+                  </span>
+                  <select
+                    value={clock}
+                    onChange={(e) => setClock(e.target.value as TrainerClockSlot)}
+                    className="w-full rounded-lg border border-gold/20 bg-background px-3 py-2 text-sm"
+                  >
+                    {TRAINER_CLOCK_SLOTS.map((slot) => (
+                      <option key={slot.id} value={slot.id}>
+                        {slot.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
           </div>
         )}
 
-        {(mode === "suggest" || source === "suggest") && (
+        {(mode === "suggest" || source === "suggest") && mode === "replace" && (
+          <div className="space-y-3">
+            {suggestions.length === 0 ? (
+              <p className="text-sm text-warm-gray">
+                Нет рецептов, которые точно вписываются в оставшиеся КБЖУ этого приёма.
+              </p>
+            ) : (
+              suggestions.map((option) => (
+                <div
+                  key={option.recipeId}
+                  className="space-y-2 rounded-2xl border border-gold/20 bg-surface/30 p-4 text-sm"
+                >
+                  <p className="font-medium text-ivory">{option.recipeName}</p>
+                  <p className="text-warm-gray">
+                    {option.oldName} → {option.recipeName}
+                  </p>
+                  <p className="text-warm-gray">
+                    {option.grams.map((line) => `${line.name} ${line.grams} г`).join(" · ")}
+                  </p>
+                  <p className="text-ivory">
+                    День до: {Math.round(option.before.kcal)} ккал · Б
+                    {option.before.protein_g.toFixed(1)} · Ж{option.before.fat_g.toFixed(1)} · У
+                    {option.before.carbs_g.toFixed(1)}
+                  </p>
+                  <p className="text-ivory">
+                    День после: {Math.round(option.after.kcal)} ккал · Б
+                    {option.after.protein_g.toFixed(1)} · Ж{option.after.fat_g.toFixed(1)} · У
+                    {option.after.carbs_g.toFixed(1)}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      const recipe = ctx.recipes.find(
+                        (item) => item.id === option.recipeId || item.name === option.recipeName,
+                      );
+                      if (!recipe) return;
+                      onSubmit({ kind: "recipe", recipe, mealKind, clock });
+                    }}
+                    className="rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-[10px] uppercase tracking-widest text-background disabled:opacity-40"
+                  >
+                    {confirmLabel}
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {(mode === "suggest" || source === "suggest") && mode !== "replace" && (
           <div className="space-y-3">
             {proposals.length === 0 ? (
               <p className="text-sm text-warm-gray">
@@ -272,20 +380,63 @@ export function TrainerMealEditor({
               </span>
               <select
                 value={recipeId}
-                onChange={(e) => setRecipeId(e.target.value)}
+                onChange={(e) => {
+                  const nextId = e.target.value;
+                  setRecipeId(nextId);
+                  const recipe = recipes.find((item) => item.id === nextId);
+                  if (recipe && mode === "replace") onSelectRecipe?.(recipe);
+                }}
                 className="w-full rounded-lg border border-gold/20 bg-background px-3 py-2 text-sm"
               >
                 <option value="">Выберите рецепт</option>
-                {recipes.map((recipe) => (
-                  <option key={recipe.id} value={recipe.id}>
-                    {recipe.name}
-                  </option>
-                ))}
+                {recipes.map((recipe) => {
+                  const used =
+                    usedRecipeNames.includes(recipe.name) &&
+                    recipe.name !== replaceTarget?.recipeName;
+                  const current = recipe.name === replaceTarget?.recipeName;
+                  return (
+                    <option key={recipe.id} value={recipe.id} disabled={used}>
+                      {recipe.name}
+                      {current ? " — текущий" : used ? " — уже в неделе" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </label>
+            {sameRecipe && (
+              <p className="text-sm text-warm-gray">Это уже текущий рецепт этого приёма.</p>
+            )}
+            {usedRecipeNames.includes(selectedRecipe?.name ?? "") && !sameRecipe && (
+              <p className="text-sm text-warm-gray">Это блюдо уже используется в текущей неделе.</p>
+            )}
+            {previewError && <p className="text-sm text-coral">{previewError}</p>}
+            {preview && selectedRecipe && preview.recipeName === selectedRecipe.name && (
+              <div className="rounded-xl border border-gold/15 p-3 text-sm text-warm-gray">
+                <p>
+                  {preview.oldName} → {preview.recipeName}
+                </p>
+                <p>{preview.grams.map((line) => `${line.name} ${line.grams} г`).join(" · ")}</p>
+                <p>
+                  День до: {Math.round(preview.before.kcal)} ккал · Б
+                  {preview.before.protein_g.toFixed(1)} · Ж{preview.before.fat_g.toFixed(1)} · У
+                  {preview.before.carbs_g.toFixed(1)}
+                </p>
+                <p>
+                  День после: {Math.round(preview.after.kcal)} ккал · Б
+                  {preview.after.protein_g.toFixed(1)} · Ж{preview.after.fat_g.toFixed(1)} · У
+                  {preview.after.carbs_g.toFixed(1)}
+                </p>
+              </div>
+            )}
             <button
               type="button"
-              disabled={!recipeId}
+              disabled={
+                busy ||
+                !recipeId ||
+                sameRecipe ||
+                (mode === "replace" &&
+                  (!preview || !selectedRecipe || preview.recipeName !== selectedRecipe.name))
+              }
               onClick={() => {
                 const recipe = recipes.find((r) => r.id === recipeId);
                 if (!recipe) return;
@@ -293,7 +444,7 @@ export function TrainerMealEditor({
               }}
               className="rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-[10px] uppercase tracking-widest text-background disabled:opacity-40"
             >
-              Добавить рецепт
+              {confirmLabel}
             </button>
           </div>
         )}
@@ -316,7 +467,10 @@ export function TrainerMealEditor({
               const grams = Number(row.grams);
               const factor = Number.isFinite(grams) && grams > 0 ? grams / 100 : 0;
               return (
-                <div key={idx} className="grid gap-2 rounded-xl border border-gold/15 p-3 sm:grid-cols-2">
+                <div
+                  key={idx}
+                  className="grid gap-2 rounded-xl border border-gold/15 p-3 sm:grid-cols-2"
+                >
                   <select
                     value={row.productId}
                     onChange={(e) =>
@@ -341,7 +495,9 @@ export function TrainerMealEditor({
                     value={row.grams}
                     onChange={(e) =>
                       setPicked((cur) =>
-                        cur.map((item, i) => (i === idx ? { ...item, grams: e.target.value } : item)),
+                        cur.map((item, i) =>
+                          i === idx ? { ...item, grams: e.target.value } : item,
+                        ),
                       )
                     }
                     className="rounded-lg border border-gold/20 bg-background px-3 py-2 text-sm"
@@ -374,8 +530,8 @@ export function TrainerMealEditor({
             </button>
             <div className="rounded-xl border border-gold/15 p-3 text-sm text-warm-gray">
               <p>
-                Приём: {Math.round(mealPreview.kcal)} ккал · Б {mealPreview.protein_g.toFixed(1)} · Ж{" "}
-                {mealPreview.fat_g.toFixed(1)} · У {mealPreview.carbs_g.toFixed(1)}
+                Приём: {Math.round(mealPreview.kcal)} ккал · Б {mealPreview.protein_g.toFixed(1)} ·
+                Ж {mealPreview.fat_g.toFixed(1)} · У {mealPreview.carbs_g.toFixed(1)}
               </p>
               <p>
                 Итог дня с этим приёмом: {Math.round(dayPreview.kcal)} ккал · Б{" "}
@@ -400,7 +556,7 @@ export function TrainerMealEditor({
               }
               className="rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-[10px] uppercase tracking-widest text-background"
             >
-              Сохранить приём
+              {mode === "replace" ? confirmLabel : "Сохранить приём"}
             </button>
           </div>
         )}

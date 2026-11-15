@@ -993,6 +993,7 @@ export function generateConstructorPlan(
     const excluded = new Set(input.excluded_product_ids);
     const excludedRecipes = new Set(input.excluded_recipe_ids ?? []);
     const excludedVariantGroups = new Set(input.excluded_variant_groups ?? []);
+    const excludedSignatures = new Set(input.excluded_ingredient_signatures ?? []);
     const allowRepeats = input.allow_repeats === true;
     let generationCtx: OptimizerContext =
       excluded.size === 0
@@ -1004,6 +1005,9 @@ export function generateConstructorPlan(
     const recipeCatalogAllowed = (recipe: Recipe) => {
       if (excludedRecipes.has(recipe.id) || excludedRecipes.has(recipe.slug)) return false;
       if (recipe.variant_group && excludedVariantGroups.has(recipe.variant_group)) return false;
+      if (recipe.ingredient_signature && excludedSignatures.has(recipe.ingredient_signature)) {
+        return false;
+      }
       if (excluded.size === 0) return true;
       return (ctx.recipeIngredients.get(recipe.id) ?? []).every(
         (ingredient) => !excluded.has(ingredient.product_id),

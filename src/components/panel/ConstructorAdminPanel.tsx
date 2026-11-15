@@ -17,6 +17,7 @@ import {
   PRIMARY_MEAL_SLOTS,
   expectedMainCount,
   expectedSnackCount,
+  slotLabel,
   toleranceForMode,
   type MealScheduleMode,
   type PlanDaysCount,
@@ -42,6 +43,10 @@ import { formatMacroDeviationSummary } from "@/lib/nutrition-constructor/validat
 import { calcMacroTargets, type TargetProfileInput } from "@/lib/nutrition-constructor/targets";
 import { formatUsedTargetsLine } from "@/lib/nutrition-constructor/calculator";
 import { formatTrainerVarietyLine } from "@/lib/nutrition-constructor/catalog-policy";
+import {
+  freshRebuildSeed,
+  type MealReplacePreview,
+} from "@/lib/nutrition-constructor/meal-replace";
 import { buildForbiddenProductIds } from "@/lib/nutrition-constructor/allergens";
 import { shoppingListFromDays } from "@/lib/nutrition-constructor/ingredient-normalize";
 import { proposeDayCorrections } from "@/lib/nutrition-constructor/deviation-suggestions";
@@ -52,7 +57,6 @@ import {
   mealItemFromRecipe,
   ManualMealEditError,
   replaceDaysDay,
-  replaceMealInDay,
   setIngredientGrams,
   ZERO_GRAMS_FORBIDDEN_MESSAGE,
 } from "@/lib/nutrition-constructor/manual-meals";
@@ -138,9 +142,19 @@ export function ConstructorAdminPanel({
     mode: MealEditorMode;
     dayIndex: number;
     slot?: PlanSlot;
+    itemId?: string;
+    recipeId?: string;
+    recipeName?: string;
   }>({ open: false, mode: "add", dayIndex: 0 });
+  const [draftUpdatedAt, setDraftUpdatedAt] = useState<string | null>(null);
+  const [replaceBusy, setReplaceBusy] = useState(false);
+  const [replacePreview, setReplacePreview] = useState<MealReplacePreview | null>(null);
+  const [replaceError, setReplaceError] = useState<string | null>(null);
+  const [replaceSuggestions, setReplaceSuggestions] = useState<MealReplacePreview[]>([]);
+  const [unpublishedChanges, setUnpublishedChanges] = useState(false);
   const catalog = useMemo(() => buildInMemoryCatalog(), []);
   const genToken = useRef(0);
+  const replaceSeq = useRef(0);
 
   const forbiddenIds = useMemo(() => {
     const { forbiddenIds: fromAnketa } = buildForbiddenProductIds([...catalog.products.values()], {
@@ -165,6 +179,7 @@ export function ConstructorAdminPanel({
         carbs_g: plan.target_carbs_g,
       });
       setPlanStatus(plan.plan_status);
+      setDraftUpdatedAt(plan.updated_at ?? null);
       setDaysCount((plan.plan_days_count as PlanDaysCount) || 7);
       setPrimarySlot(plan.primary_meal_slot ?? "lunch");
       const mapped = loaded.map((row) => ({
@@ -343,6 +358,8 @@ export function ConstructorAdminPanel({
       carbs_g: targets.carbs_g,
     };
     setTargets(fieldTargets);
+    const rebuilding = visibleDays.length > 0;
+    const beforeMeals = visibleDays;
     setLoading(true);
     setGenerationError(null);
     const line = formatUsedTargetsLine(fieldTargets);
@@ -351,7 +368,8 @@ export function ConstructorAdminPanel({
       const result = await generateAndValidateConstructorPlan({
         clientId: userId,
         courseId,
-        seed: 20261022,
+        seed: rebuilding ? freshRebuildSeed() : undefined,
+        rebuild: rebuilding,
         profile: { ...profile, profile_complete: true },
         days_count: daysCount,
         excluded_product_ids: [...forbiddenIds],
@@ -360,6 +378,7 @@ export function ConstructorAdminPanel({
         targets_override: fieldTargets,
       });
       if (seq !== genToken.current) return;
+      const savedFlag = (result as { saved?: boolean }).saved;
       const toNum = (value: unknown): number => {
         if (typeof value === "number" && Number.isFinite(value)) return value;
         if (value && typeof value === "object" && "toNumber" in value) {
@@ -374,6 +393,14 @@ export function ConstructorAdminPanel({
         adjustment_pct: result.adjustment_pct,
       });
       setUsedTargetsLine(result.used_targets_line ?? line);
+      if (savedFlag === false) {
+        const message =
+          result.message ??
+          "Новый отличающийся вариант найти не удалось. Текущий рацион сохранён без изменений.";
+        setGenerationError(message);
+        toast.message(message);
+        return;
+      }
       if (result.days.length === 0 || !planStructureValid(result.days, scheduleMode)) {
         const message = result.message ?? "Не удалось собрать рацион. Черновик не изменён.";
         const exclusionNote =
@@ -422,9 +449,32 @@ export function ConstructorAdminPanel({
       if (!reloaded.plan || reloaded.days.length !== result.days.length) {
         throw new Error("Черновик сохранён, но контрольное перечитывание не прошло");
       }
+      const changedMeals = reloaded.days.reduce((count, day) => {
+        const previous = beforeMeals.find((item) => item.day_index === day.day_index);
+        return (
+          count +
+          day.items.filter((item) => {
+            const prev = previous?.items.find((meal) => meal.slot === item.slot);
+            return !prev || prev.recipe_id !== item.recipe_id;
+          }).length
+        );
+      }, 0);
+      const totalMeals = reloaded.days.reduce((count, day) => count + day.items.length, 0);
+      if (rebuilding && changedMeals === 0) {
+        toast.message(
+          "Новый отличающийся вариант найти не удалось. Текущий рацион сохранён без изменений.",
+        );
+        return;
+      }
       applyDays(reloaded.days);
+      setDraftUpdatedAt(reloaded.plan.updated_at ?? null);
+      setUnpublishedChanges(true);
       onSaved?.();
-      toast.success(formatTrainerVarietyLine(reloaded.days));
+      toast.success(
+        rebuilding
+          ? `Рацион пересобран: изменено ${changedMeals} из ${totalMeals} приёмов`
+          : formatTrainerVarietyLine(reloaded.days),
+      );
     } catch (e) {
       if (seq !== genToken.current) return;
       const message = (e as Error).message;
@@ -532,8 +582,154 @@ export function ConstructorAdminPanel({
     }
   };
 
+  const replaceCurrentMeal = async (value: MealEditorSubmit) => {
+    if (!editor.slot || editor.mode !== "replace") return;
+    if (value.kind === "suggest") return;
+    if (value.kind === "recipe" && value.recipe.name === editor.recipeName) {
+      setReplaceError("Это уже текущий рецепт этого приёма.");
+      return;
+    }
+    const seq = ++replaceSeq.current;
+    setReplaceBusy(true);
+    setReplaceError(null);
+    try {
+      const { selfhostReplaceMeal } = await import("@/lib/selfhost/client-api");
+      const result = (await selfhostReplaceMeal({
+        clientId: userId,
+        courseId,
+        dayIndex: editor.dayIndex,
+        slot: editor.slot,
+        mealItemId: editor.itemId,
+        expectedUpdatedAt: draftUpdatedAt,
+        action: "apply",
+        recipeId: value.kind === "recipe" ? value.recipe.id : null,
+        manual:
+          value.kind === "manual"
+            ? {
+                name: value.name,
+                lines: value.lines.map((line) => ({
+                  productId: line.product.id,
+                  grams: line.grams,
+                })),
+              }
+            : null,
+      })) as {
+        replaced?: boolean;
+        createdDraft?: boolean;
+        message?: string;
+        updatedAt?: string | null;
+        days?: ConstructorDay[];
+      };
+      if (seq !== replaceSeq.current) return;
+      const reloaded = await loadConstructorPlanFor(userId, courseId);
+      if (seq !== replaceSeq.current) return;
+      const days = reloaded.days.length > 0 ? reloaded.days : (result.days ?? []);
+      const savedMeal = days
+        .find((day) => day.day_index === editor.dayIndex)
+        ?.items.find((item) => item.slot === editor.slot);
+      const changed =
+        value.kind === "manual"
+          ? savedMeal?.recipe_name === value.name
+          : Boolean(savedMeal && savedMeal.recipe_id !== editor.recipeId);
+      if (!result.replaced || !savedMeal || !changed) {
+        toast.error("Повторное чтение не подтвердило замену");
+        return;
+      }
+      applyDays(days);
+      setDraftUpdatedAt(reloaded.plan?.updated_at ?? result.updatedAt ?? null);
+      setPlanStatus("draft");
+      setUnpublishedChanges(true);
+      setEditor((cur) => ({ ...cur, open: false }));
+      setReplacePreview(null);
+      toast.success(
+        result.createdDraft
+          ? "Создан новый черновик. Клиент продолжает видеть опубликованную версию."
+          : "Приём заменён. Есть неопубликованные изменения.",
+      );
+      onSaved?.();
+    } catch (error) {
+      if (seq !== replaceSeq.current) return;
+      const message = (error as Error).message;
+      setReplaceError(message);
+      toast.error(message);
+    } finally {
+      if (seq === replaceSeq.current) setReplaceBusy(false);
+    }
+  };
+
+  const requestReplacePreview = async (recipe: { id: string; name: string }) => {
+    if (!editor.slot) return;
+    if (recipe.name === editor.recipeName) {
+      setReplacePreview(null);
+      setReplaceError("Это уже текущий рецепт этого приёма.");
+      return;
+    }
+    const seq = ++replaceSeq.current;
+    setReplaceError(null);
+    setReplacePreview(null);
+    try {
+      const { selfhostReplaceMeal } = await import("@/lib/selfhost/client-api");
+      const result = (await selfhostReplaceMeal({
+        clientId: userId,
+        courseId,
+        dayIndex: editor.dayIndex,
+        slot: editor.slot,
+        mealItemId: editor.itemId,
+        expectedUpdatedAt: draftUpdatedAt,
+        action: "preview",
+        recipeId: recipe.id,
+      })) as { preview?: MealReplacePreview };
+      if (seq !== replaceSeq.current) return;
+      setReplacePreview(result.preview ?? null);
+    } catch (error) {
+      if (seq !== replaceSeq.current) return;
+      setReplacePreview(null);
+      setReplaceError((error as Error).message);
+    }
+  };
+
+  useEffect(() => {
+    if (!editor.open || editor.mode !== "replace" || !editor.slot) return;
+    const seq = ++replaceSeq.current;
+    setReplacePreview(null);
+    setReplaceError(null);
+    void (async () => {
+      try {
+        const { selfhostReplaceMeal } = await import("@/lib/selfhost/client-api");
+        const result = (await selfhostReplaceMeal({
+          clientId: userId,
+          courseId,
+          dayIndex: editor.dayIndex,
+          slot: editor.slot!,
+          mealItemId: editor.itemId,
+          expectedUpdatedAt: draftUpdatedAt,
+          action: "suggest",
+        })) as { options?: MealReplacePreview[] };
+        if (seq !== replaceSeq.current) return;
+        setReplaceSuggestions(result.options ?? []);
+      } catch {
+        if (seq !== replaceSeq.current) return;
+        setReplaceSuggestions([]);
+      }
+    })();
+  }, [
+    editor.open,
+    editor.mode,
+    editor.dayIndex,
+    editor.slot,
+    editor.itemId,
+    courseId,
+    userId,
+    draftUpdatedAt,
+  ]);
+
   const handleEditorSubmit = (value: MealEditorSubmit) => {
     if (!editorDay) return;
+    if (editor.mode === "replace") {
+      if (!editor.slot || replaceBusy) return;
+      void replaceCurrentMeal(value);
+      return;
+    }
     try {
       let nextDay = editorDay;
       if (value.kind === "suggest") {
@@ -561,10 +757,7 @@ export function ConstructorAdminPanel({
                 lines: value.lines,
                 forbiddenIds,
               });
-        nextDay =
-          editor.mode === "replace"
-            ? replaceMealInDay({ day: editorDay, item, products: catalog.products })
-            : addMealToDay({ day: editorDay, item, products: catalog.products });
+        nextDay = addMealToDay({ day: editorDay, item, products: catalog.products });
       }
       applyDays(replaceDaysDay(visibleDays, nextDay, catalog.products));
       setEditor((cur) => ({ ...cur, open: false }));
@@ -592,6 +785,12 @@ export function ConstructorAdminPanel({
           <p className="mt-2 rounded-xl border border-gold/20 bg-gold/5 px-3 py-2 text-xs text-warm-gray">
             Клиент видит опубликованную версию v{publishedVersion}. Черновик и пересборка не меняют
             её, пока не нажмёте «Опубликовать новую версию».
+            {unpublishedChanges ? " Есть неопубликованные изменения." : ""}
+          </p>
+        )}
+        {publishedVersion == null && unpublishedChanges && (
+          <p className="mt-2 rounded-xl border border-gold/20 bg-gold/5 px-3 py-2 text-xs text-warm-gray">
+            Есть неопубликованные изменения.
           </p>
         )}
       </div>
@@ -742,7 +941,11 @@ export function ConstructorAdminPanel({
           className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-5 py-2.5 text-xs uppercase tracking-widest text-background disabled:opacity-50"
         >
           <Sparkles className="h-4 w-4" />
-          {loading ? "Сборка…" : "Сгенерировать рацион"}
+          {loading
+            ? "Пересобираем…"
+            : visibleDays.length > 0
+              ? "Пересобрать рацион"
+              : "Сгенерировать рацион"}
         </button>
         {visibleDays.length > 0 && (
           <>
@@ -863,9 +1066,21 @@ export function ConstructorAdminPanel({
           editable
           onIngredientGramsChange={handleGramsChange}
           onAddMeal={(dayIndex) => setEditor({ open: true, mode: "add", dayIndex })}
-          onReplaceMeal={(dayIndex, slot) =>
-            setEditor({ open: true, mode: "replace", dayIndex, slot })
-          }
+          onReplaceMeal={(dayIndex, slot) => {
+            const current = visibleDays.find((day) => day.day_index === dayIndex);
+            const item = current?.items.find((meal) => meal.slot === slot);
+            setReplacePreview(null);
+            setReplaceError(null);
+            setEditor({
+              open: true,
+              mode: "replace",
+              dayIndex,
+              slot,
+              itemId: item?.id,
+              recipeId: item?.recipe_id,
+              recipeName: item?.recipe_name ?? "",
+            });
+          }}
           onDeleteMeal={(dayIndex, slot) => {
             const current = visibleDays.find((day) => day.day_index === dayIndex);
             if (!current) return;
@@ -887,6 +1102,26 @@ export function ConstructorAdminPanel({
         day={editorDay}
         ctx={catalog}
         forbiddenIds={forbiddenIds}
+        replaceTarget={
+          editor.mode === "replace" && editor.slot
+            ? {
+                dayIndex: editor.dayIndex,
+                slot: editor.slot,
+                label: slotLabel(editor.slot, scheduleMode, primarySlot),
+                recipeName: editor.recipeName ?? "",
+              }
+            : null
+        }
+        suggestions={replaceSuggestions}
+        preview={replacePreview}
+        previewError={replaceError}
+        busy={replaceBusy}
+        usedRecipeNames={visibleDays.flatMap((day) =>
+          day.items
+            .filter((item) => !(day.day_index === editor.dayIndex && item.slot === editor.slot))
+            .map((item) => item.recipe_name),
+        )}
+        onSelectRecipe={(recipe) => void requestReplacePreview(recipe)}
         proposals={proposals}
         targetMacro={targets}
         onClose={() => setEditor((cur) => ({ ...cur, open: false }))}

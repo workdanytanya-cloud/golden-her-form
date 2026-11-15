@@ -1,4 +1,4 @@
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 import {
   getAuthBackend,
   getDataBackend,
@@ -127,6 +127,12 @@ import {
   provisionClientCoursePg,
   retryCourseGenerationPg,
 } from "@/lib/selfhost/postgres-course-provision";
+import { loadRebuildExclusions, replaceDraftMealPg } from "@/lib/selfhost/postgres-meal-replace";
+import {
+  countReplacedMeals,
+  freshRebuildSeed,
+  rebuildSaveDecision,
+} from "@/lib/nutrition-constructor/meal-replace";
 import {
   acceptNutritionRecommendationPg,
   loadConstructorPlanPg,
@@ -1156,27 +1162,147 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       return json(saved);
     }
 
+    if (
+      url.pathname === "/api/selfhost/admin/nutrition/draft/replace-meal" &&
+      request.method === "POST"
+    ) {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = z
+        .object({
+          clientId: z.string().uuid(),
+          courseId: z.string().uuid().nullable().optional(),
+          dayIndex: z.number().int().nonnegative(),
+          slot: z.enum(["main1", "main2", "main3", "snack1", "snack2", "snack3"]),
+          mealItemId: z.string().uuid().nullable().optional(),
+          expectedUpdatedAt: z.string().nullable().optional(),
+          action: z.enum(["preview", "apply", "suggest"]),
+          recipeId: z.string().min(1).nullable().optional(),
+          manual: z
+            .object({
+              name: z.string().max(200),
+              lines: z
+                .array(z.object({ productId: z.string().min(1), grams: z.number().positive() }))
+                .max(12),
+            })
+            .nullable()
+            .optional(),
+        })
+        .parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "nutrition");
+      const result = await replaceDraftMealPg(getPostgresPool(), {
+        userId: body.clientId,
+        courseId: body.courseId,
+        dayIndex: body.dayIndex,
+        slot: body.slot,
+        mealItemId: body.mealItemId,
+        expectedUpdatedAt: body.expectedUpdatedAt,
+        action: body.action,
+        recipeId: body.recipeId,
+        manual: body.manual,
+      });
+      return json(result);
+    }
+
     if (url.pathname === "/api/selfhost/admin/nutrition/generate" && request.method === "POST") {
       requireAdmin(session);
       assertCsrf(request);
       const body = nutritionGenerateSchema.parse(await readJson(request));
-      const generated = await generateAndValidateConstructorPlan({
-        clientId: body.clientId,
-        courseId: body.courseId,
-        seed: body.seed,
-        profile: body.profile as never,
-        days_count: body.days_count,
-        excluded_product_ids: body.excluded_product_ids,
-        excluded_recipe_ids: body.excluded_recipe_ids,
-        excluded_variant_groups: body.excluded_variant_groups,
-        allow_repeats: body.allow_repeats,
-        meal_schedule_mode: body.meal_schedule_mode,
-        primary_meal_slot: body.primary_meal_slot,
-        targets_override: body.targets_override,
-      });
-      if (!generated.is_valid || generated.days.length === 0) return json(generated);
+      const generateWith = (extra: {
+        seed?: number;
+        excluded_recipe_ids?: string[];
+        excluded_variant_groups?: string[];
+        excluded_ingredient_signatures?: string[];
+        search_timeout_ms?: number;
+      }) =>
+        generateAndValidateConstructorPlan({
+          clientId: body.clientId,
+          courseId: body.courseId,
+          seed: extra.seed ?? body.seed,
+          profile: body.profile as never,
+          days_count: body.days_count,
+          excluded_product_ids: body.excluded_product_ids,
+          excluded_recipe_ids: extra.excluded_recipe_ids ?? body.excluded_recipe_ids,
+          excluded_variant_groups: extra.excluded_variant_groups ?? body.excluded_variant_groups,
+          excluded_ingredient_signatures:
+            extra.excluded_ingredient_signatures ?? body.excluded_ingredient_signatures,
+          allow_repeats: body.allow_repeats,
+          meal_schedule_mode: body.meal_schedule_mode,
+          primary_meal_slot: body.primary_meal_slot,
+          targets_override: body.targets_override,
+          search_timeout_ms: extra.search_timeout_ms ?? body.search_timeout_ms,
+        });
+      const generated = await (async () => {
+        if (!body.rebuild || !body.clientId) return generateWith({});
+        const exclusions = await loadRebuildExclusions(
+          getPostgresPool(),
+          body.clientId,
+          body.courseId,
+        );
+        const seed = freshRebuildSeed();
+        const first = await generateWith({
+          seed,
+          excluded_recipe_ids: [...new Set([...body.excluded_recipe_ids, ...exclusions.recipeIds])],
+          excluded_variant_groups: [
+            ...new Set([...body.excluded_variant_groups, ...exclusions.variantGroups]),
+          ],
+          excluded_ingredient_signatures: [
+            ...new Set([...body.excluded_ingredient_signatures, ...exclusions.signatures]),
+          ],
+          search_timeout_ms: body.search_timeout_ms ?? 45_000,
+        });
+        const before = await loadConstructorPlanPg(getPostgresPool(), body.clientId, body.courseId);
+        const firstDiff = countReplacedMeals(before.days, first.days);
+        if (first.is_valid && first.days.length > 0 && firstDiff.changed > 0) {
+          return Object.assign(first, {
+            changed: firstDiff.changed,
+            total: firstDiff.total,
+            hadDraft: exclusions.hadDraft,
+          });
+        }
+        const second = await generateWith({
+          seed: freshRebuildSeed(Date.now() + 104729, seed),
+          search_timeout_ms: body.search_timeout_ms ?? 45_000,
+        });
+        const secondDiff = countReplacedMeals(before.days, second.days);
+        const chosen =
+          second.is_valid && second.days.length > 0 && secondDiff.changed > 0 ? second : first;
+        const diff = chosen === second ? secondDiff : firstDiff;
+        return Object.assign(chosen, {
+          changed: diff.changed,
+          total: diff.total,
+          hadDraft: exclusions.hadDraft,
+        });
+      })();
+      const changed = (generated as { changed?: number }).changed ?? generated.days.length;
+      const total = (generated as { total?: number }).total ?? generated.days.length;
+      const hadDraft = (generated as { hadDraft?: boolean }).hadDraft ?? false;
+      const decision = body.rebuild
+        ? rebuildSaveDecision({
+            valid: Boolean(generated.is_valid && generated.days.length > 0),
+            changed,
+            total,
+            hadDraft,
+          })
+        : {
+            save: Boolean(generated.is_valid && generated.days.length > 0),
+            success: Boolean(generated.is_valid && generated.days.length > 0),
+            message: generated.message ?? "",
+          };
+      if (!decision.save) {
+        return json({
+          ...generated,
+          saved: false,
+          changed,
+          total,
+          message: body.rebuild ? decision.message : generated.message,
+        });
+      }
       if (!body.clientId) return errorJson("Не указан clientId для сохранения черновика", 400);
       await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "nutrition");
+      const beforeSave = body.rebuild
+        ? await loadConstructorPlanPg(getPostgresPool(), body.clientId, body.courseId)
+        : null;
       const targets = body.targets_override ?? {
         kcal: Number(generated.targets.kcal),
         protein_g: Number(generated.targets.protein_g),
@@ -1200,7 +1326,34 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         requires_manual_review: generated.requires_manual_review,
         review_reason: generated.review_reason,
       });
-      return json({ ...generated, draftId: saved.plan.id, days: saved.days });
+      const confirmed = beforeSave
+        ? countReplacedMeals(beforeSave.days, saved.days)
+        : {
+            changed: saved.days.flatMap((day) => day.items).length,
+            total: saved.days.flatMap((day) => day.items).length,
+          };
+      if (body.rebuild && confirmed.changed === 0) {
+        return json({
+          ...generated,
+          saved: false,
+          changed: 0,
+          total: confirmed.total,
+          days: beforeSave?.days ?? [],
+          message:
+            "Новый отличающийся вариант найти не удалось. Текущий рацион сохранён без изменений.",
+        });
+      }
+      return json({
+        ...generated,
+        saved: true,
+        changed: body.rebuild ? confirmed.changed : saved.days.flatMap((day) => day.items).length,
+        total: body.rebuild ? confirmed.total : saved.days.flatMap((day) => day.items).length,
+        message: body.rebuild
+          ? `Рацион пересобран: изменено ${confirmed.changed} из ${confirmed.total} приёмов`
+          : generated.message,
+        draftId: saved.plan.id,
+        days: saved.days,
+      });
     }
 
     if (url.pathname === "/api/selfhost/admin/nutrition/publish" && request.method === "POST") {

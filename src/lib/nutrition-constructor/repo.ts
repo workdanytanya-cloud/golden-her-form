@@ -84,6 +84,7 @@ export type ConstructorPlanRow = {
   targets_manual: boolean;
   notes: string | null;
   excluded_products: string[];
+  updated_at?: string | null;
   meal_schedule_mode: MealScheduleMode;
   primary_meal_slot: PrimaryMealSlot;
 };
@@ -586,11 +587,13 @@ export async function generateAndValidateConstructorPlan(params: {
   excluded_product_ids: string[];
   excluded_recipe_ids?: string[];
   excluded_variant_groups?: string[];
+  excluded_ingredient_signatures?: string[];
   allow_repeats?: boolean;
   tolerance?: typeof DEFAULT_TOLERANCE;
   meal_schedule_mode?: MealScheduleMode;
   primary_meal_slot?: PrimaryMealSlot;
   search_timeout_ms?: number;
+  rebuild?: boolean;
   targets_override?: {
     kcal: number;
     protein_g: number;
@@ -689,6 +692,7 @@ export async function generateAndValidateConstructorPlan(params: {
     excluded_product_ids: params.excluded_product_ids,
     excluded_recipe_ids: excludedRecipeIds,
     excluded_variant_groups: excludedVariantGroups,
+    excluded_ingredient_signatures: params.excluded_ingredient_signatures,
     allow_repeats: params.allow_repeats === true,
     tolerance: params.tolerance ?? DEFAULT_TOLERANCE,
     meal_schedule_mode: params.meal_schedule_mode ?? "two_main_two_snacks",

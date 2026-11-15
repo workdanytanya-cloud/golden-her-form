@@ -107,9 +107,13 @@ export function replaceMealInDay(params: {
   item: MealPlanItem;
   products: Map<string, FoodProduct>;
 }): ConstructorDay {
-  const items = params.day.items.some((item) => item.slot === params.item.slot)
-    ? params.day.items.map((item) => (item.slot === params.item.slot ? params.item : item))
-    : [...params.day.items, params.item];
+  const exists = params.day.items.some((item) => item.slot === params.item.slot);
+  if (!exists) {
+    throw new ManualMealEditError("В этом дне нет выбранного приёма. Обновите страницу.");
+  }
+  const items = params.day.items.map((item) =>
+    item.slot === params.item.slot ? params.item : item,
+  );
   return applyDayItems(params.day, items, params.products);
 }
 

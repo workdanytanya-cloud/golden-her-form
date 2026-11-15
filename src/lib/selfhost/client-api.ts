@@ -636,6 +636,24 @@ export async function selfhostGenerateNutrition(payload: Record<string, unknown>
   return readSelfhostJson(res);
 }
 
+export async function selfhostReplaceMeal(payload: {
+  clientId: string;
+  courseId?: string | null;
+  dayIndex: number;
+  slot: string;
+  mealItemId?: string | null;
+  expectedUpdatedAt?: string | null;
+  action: "preview" | "apply" | "suggest";
+  recipeId?: string | null;
+  manual?: { name: string; lines: Array<{ productId: string; grams: number }> } | null;
+}) {
+  const res = await selfhostFetch("/api/selfhost/admin/nutrition/draft/replace-meal", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res);
+}
+
 export async function selfhostPublishNutrition(payload: {
   clientId: string;
   courseId?: string | null;

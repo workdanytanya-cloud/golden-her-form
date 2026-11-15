@@ -234,6 +234,8 @@ export type GenerateConstructorPlanInput = {
   excluded_recipe_ids?: string[];
   /** Исключить variant_group из активной published программы. */
   excluded_variant_groups?: string[];
+  /** Исключить тот же набор ингредиентов, что уже стоит в черновике. */
+  excluded_ingredient_signatures?: string[];
   /** По умолчанию false — повторы запрещены. */
   allow_repeats?: boolean;
 };
