@@ -7,7 +7,7 @@ export const MEAL_SCHEDULE_MODES_CLIENT = [
   "one_main_three_snacks",
 ] as const;
 
-/** Legacy 2+2 — только для уже опубликованных планов и ручного выбора тренера. */
+/** Исторический код схемы 2+2. Новые черновики считают его тем же генератором, без отдельного алгоритма. */
 export const MEAL_SCHEDULE_MODE_LEGACY = "two_main_two_snacks" as const;
 
 export const MEAL_SCHEDULE_MODES = [
@@ -32,21 +32,21 @@ export const MEAL_SCHEDULE_LABELS: Record<MealScheduleMode, string> = {
   three_main_two_snacks: "Полноценный рацион (3 основных + 2 перекуса)",
   three_mains_only: "Три полноценных приёма без перекусов",
   one_main_three_snacks: "1 основной + 3 перекуса без готовки",
-  two_main_two_snacks: "Legacy: 2 основных + 2 перекуса",
+  two_main_two_snacks: "2 основных приёма + 2 перекуса",
 };
 
 export const MEAL_SCHEDULE_CLIENT_LABELS: Record<MealScheduleMode, string> = {
   three_main_two_snacks: "5 приёмов",
   three_mains_only: "3 полноценных приёма",
   one_main_three_snacks: "1 основной + 3 перекуса",
-  two_main_two_snacks: "Классический (legacy)",
+  two_main_two_snacks: "2 основных + 2 перекуса",
 };
 
 export const MEAL_SCHEDULE_TAGLINES: Record<MealScheduleMode, string> = {
   three_main_two_snacks: "Завтрак, обед, ужин и 2 полезных перекуса",
   three_mains_only: "Только завтрак, обед и ужин — без перекусов",
   one_main_three_snacks: "Один полноценный приём и 3 перекуса без готовки",
-  two_main_two_snacks: "2 полноценных приёма и 2 перекуса (старый формат)",
+  two_main_two_snacks: "Два полноценных приёма и два перекуса",
 };
 
 export const MEAL_SCHEDULE_DESCRIPTIONS: Record<MealScheduleMode, string> = {
@@ -56,7 +56,8 @@ export const MEAL_SCHEDULE_DESCRIPTIONS: Record<MealScheduleMode, string> = {
     "Три полноценных приёма без перекусов. Удобно, если вы предпочитаете есть реже, но сытно.",
   one_main_three_snacks:
     "Для плотного графика: один полноценный приём в удобное время и три перекуса, которые собираются за 1–3 минуты и их можно взять с собой.",
-  two_main_two_snacks: "Прежний формат программы. Сохранён для уже назначенных рационов.",
+  two_main_two_snacks:
+    "Два полноценных приёма и два перекуса. Подходит, если нужен более спокойный ритм питания.",
 };
 
 export function mealScheduleClientLabel(mode: MealScheduleMode): string {

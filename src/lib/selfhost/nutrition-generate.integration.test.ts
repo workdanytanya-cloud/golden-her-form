@@ -278,4 +278,79 @@ describe.runIf(run)("nutrition generate endpoint PostgreSQL integration", () => 
     );
     expect(plansAfter.rows[0].count).toBe(1);
   }, 180_000);
+
+  it("changes only the draft and leaves the published course untouched", async () => {
+    const draftCourse = "32000000-0000-4000-8000-000000000099";
+    await pool.query(
+      `INSERT INTO client_courses
+       (id,client_id,title,start_date,end_date,status,created_by,program_scope)
+       VALUES ($1,$2,'Draft only','2026-11-01','2026-11-28','draft',$3,'nutrition')
+       ON CONFLICT (id) DO UPDATE SET status='draft'`,
+      [draftCourse, CLIENT, ADMIN],
+    );
+    const version = await pool.query<{ id: string }>(
+      `INSERT INTO nutrition_plan_versions
+       (client_id,course_id,version,status,snapshot,content_hash,published_at,published_by)
+       VALUES ($1,$2,90,'published','{"frozen":true}'::jsonb,'frozen-range-hash',now(),$3)
+       ON CONFLICT (client_id, version) DO UPDATE SET content_hash=nutrition_plan_versions.content_hash
+       RETURNING id`,
+      [CLIENT, draftCourse, ADMIN],
+    );
+    await pool.query(
+      `INSERT INTO client_program_assignments
+       (client_id,kind,course_id,active_version_id,updated_by)
+       VALUES ($1,'nutrition',$2,$3,$4)
+       ON CONFLICT (client_id, kind, course_id) DO NOTHING`,
+      [CLIENT, draftCourse, version.rows[0]!.id, ADMIN],
+    );
+    const fingerprint = async () =>
+      (
+        await pool.query(
+          `SELECT
+           (SELECT content_hash FROM nutrition_plan_versions WHERE id=$1) AS content_hash,
+           (SELECT snapshot::text FROM nutrition_plan_versions WHERE id=$1) AS snapshot,
+           (SELECT status FROM client_courses WHERE id=$2) AS course_status,
+           (SELECT active_version_id::text FROM client_program_assignments WHERE course_id=$2 AND kind='nutrition') AS assignment,
+           (SELECT count(*)::int FROM client_notifications WHERE user_id=$3) AS client_notes,
+           (SELECT count(*)::int FROM admin_notifications WHERE client_id=$3) AS admin_notes,
+           (SELECT password_hash FROM users WHERE id=$3) AS client_password,
+           (SELECT password_hash FROM users WHERE id=$4) AS admin_password,
+           (SELECT string_agg(token_hash || ':' || coalesce(revoked_at::text,''), ',' ORDER BY id) FROM sessions) AS sessions`,
+          [version.rows[0]!.id, draftCourse, CLIENT, ADMIN],
+        )
+      ).rows[0];
+    const before = await fingerprint();
+    const response = await handleSelfhostRequest(
+      new Request("http://local.test/api/selfhost/admin/nutrition/generate", {
+        method: "POST",
+        headers: { "content-type": "application/json", cookie, "x-csrf-token": csrf },
+        body: JSON.stringify({
+          clientId: CLIENT,
+          courseId: draftCourse,
+          seed: 1500,
+          profile: {
+            gender: "female",
+            birth_date: "1992-02-02",
+            height_cm: 170,
+            weight_kg: 68,
+            activity_level: "moderate",
+            goal_primary: "weight_loss",
+            profile_complete: true,
+          },
+          days_count: 7,
+          excluded_product_ids: [],
+          meal_schedule_mode: "three_mains_only",
+          primary_meal_slot: "lunch",
+          targets_override: { kcal: 1710, protein_g: 150, fat_g: 70, carbs_g: 120 },
+        }),
+      }),
+    );
+    const body = await settleGenerate(response);
+    expect(body.saved).toBe(true);
+    const loaded = await loadConstructorPlanPg(pool, CLIENT, draftCourse);
+    expect(loaded.days).toHaveLength(7);
+    const again = await loadConstructorPlanPg(pool, CLIENT, draftCourse);
+    expect(again.days).toEqual(loaded.days);
+    expect(await fingerprint()).toEqual(before);
+  }, 120_000);
 });

@@ -38,6 +38,18 @@ type Queryable = Pool | PoolClient;
 
 const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const mealScheduleModeField = z.preprocess(
+  (value) => (value === "legacy_two_main_two_snacks" ? "two_main_two_snacks" : value),
+  z
+    .enum([
+      "three_main_two_snacks",
+      "three_mains_only",
+      "one_main_three_snacks",
+      "two_main_two_snacks",
+    ])
+    .optional(),
+);
+
 export const nutritionPublishSchema = z.object({
   clientId: z.string().uuid(),
   courseId: z.string().uuid().nullable().optional(),
@@ -66,14 +78,7 @@ export const nutritionDraftSaveSchema = z
     notes: z.string().max(8000).nullable().optional(),
     excluded_products: z.array(z.string()).optional(),
     targets_manual: z.boolean().optional(),
-    meal_schedule_mode: z
-      .enum([
-        "three_main_two_snacks",
-        "three_mains_only",
-        "one_main_three_snacks",
-        "two_main_two_snacks",
-      ])
-      .optional(),
+    meal_schedule_mode: mealScheduleModeField,
     primary_meal_slot: z.enum(["breakfast", "lunch", "dinner"]).optional(),
     requires_manual_review: z.boolean().optional(),
     review_reason: z.string().max(4000).nullable().optional(),
@@ -94,15 +99,8 @@ export const nutritionGenerateSchema = z.object({
   excluded_ingredient_signatures: z.array(z.string()).default([]),
   allow_repeats: z.boolean().default(false),
   rebuild: z.boolean().optional(),
-  search_timeout_ms: z.number().int().positive().max(45_000).optional(),
-  meal_schedule_mode: z
-    .enum([
-      "three_main_two_snacks",
-      "three_mains_only",
-      "one_main_three_snacks",
-      "two_main_two_snacks",
-    ])
-    .optional(),
+  search_timeout_ms: z.number().int().positive().max(90_000).optional(),
+  meal_schedule_mode: mealScheduleModeField,
   primary_meal_slot: z.enum(["breakfast", "lunch", "dinner"]).optional(),
   targets_override: z
     .object({

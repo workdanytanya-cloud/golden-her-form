@@ -89,7 +89,7 @@ describe("nutrition job queue", () => {
       courseId: null,
     });
     await vi.waitFor(() => expect(timed.get(timedJob.job_id)?.status).toBe("failed"));
-    expect(timed.get(timedJob.job_id)?.error?.code).toBe("TIMEOUT");
+    expect(timed.get(timedJob.job_id)?.error?.code).toBe("timeout");
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -120,6 +120,66 @@ describe("nutrition job queue", () => {
     expect(cancelled?.status).toBe("cancelled");
     expect(save).not.toHaveBeenCalled();
     expect(compute).toHaveBeenCalledTimes(1);
+  });
+
+  it("names cancel, restart, variety and a lost worker separately", async () => {
+    const save = vi.fn();
+    const cancelled = createNutritionJobQueue({
+      compute: (_body, signal) => new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(Object.assign(new Error("stop"), { code: "aborted" })));
+      }),
+      save,
+    });
+    const running = cancelled.enqueue({
+      clientId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+      courseId: null,
+    });
+    await vi.waitFor(() => expect(cancelled.get(running.job_id)?.status).toBe("running"));
+    expect(cancelled.cancel(running.job_id)?.error?.code).toBe("cancelled_by_user");
+
+    const restarted = createNutritionJobQueue({
+      compute: async () => {
+        throw Object.assign(new Error("процесс закрылся"), { code: "worker_restart" });
+      },
+      save,
+    });
+    const restartJob = restarted.enqueue({
+      clientId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
+      courseId: null,
+    });
+    await vi.waitFor(() => expect(restarted.get(restartJob.job_id)?.status).toBe("failed"));
+    expect(restarted.get(restartJob.job_id)?.error?.code).toBe("worker_restart");
+
+    const variety = createNutritionJobQueue({
+      compute: async () =>
+        payload({
+          is_valid: false,
+          days: [],
+          reason_code: "INSUFFICIENT_VARIETY",
+          message: "Точных дней без повтора блюда: 7 из 28",
+        }),
+      save,
+    });
+    const varietyJob = variety.enqueue({
+      clientId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee3",
+      courseId: null,
+    });
+    await vi.waitFor(() => expect(variety.get(varietyJob.job_id)?.status).toBe("failed"));
+    expect(variety.get(varietyJob.job_id)?.error?.code).toBe("insufficient_variety");
+
+    const lost = createNutritionJobQueue({
+      compute: () => new Promise(() => {}),
+      save,
+      leaseMs: 20,
+    });
+    const lostJob = lost.enqueue({
+      clientId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee4",
+      courseId: null,
+    });
+    await vi.waitFor(() => expect(lost.get(lostJob.job_id)?.error?.code).toBe("lease_expired"), {
+      timeout: 4000,
+    });
+    expect(save).not.toHaveBeenCalled();
   });
 
   it("keeps an invalid result out of the draft decision", () => {

@@ -29,6 +29,12 @@ export type NutritionJobView = {
   job_id: string;
   status: NutritionJobStatus;
   progress: number;
+  current_stage: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  last_heartbeat_at: string | null;
+  error_code: string | null;
+  error_message: string | null;
   error: NutritionJobError | null;
   result?: Record<string, unknown>;
 };
@@ -46,7 +52,12 @@ type JobRecord<Body> = {
   cancelRequested: boolean;
   saving: boolean;
   timedOut: boolean;
+  leaseExpired: boolean;
+  workerRestart: boolean;
   startedAt: number | null;
+  finishedAt: number | null;
+  lastHeartbeatAt: number | null;
+  stage: string | null;
 };
 
 export function nutritionSaveDecision(
@@ -81,14 +92,25 @@ function unsavedResult(payload: NutritionComputePayload, message: string): Recor
 }
 
 export function createNutritionJobQueue<Body extends NutritionGenerateJobBody>(options: {
-  compute: (body: Body, signal: AbortSignal) => Promise<NutritionComputePayload>;
+  compute: (
+    body: Body,
+    signal: AbortSignal,
+    report?: (update: {
+      stage: string;
+      progress: number;
+      found?: number;
+      total?: number;
+    }) => void,
+  ) => Promise<NutritionComputePayload>;
   save: (body: Body, payload: NutritionComputePayload) => Promise<Record<string, unknown>>;
   timeoutMs?: number;
+  leaseMs?: number;
   maxActive?: number;
   now?: () => number;
   createId?: () => string;
 }) {
   const timeoutMs = options.timeoutMs ?? NUTRITION_JOB_TIMEOUT_MS;
+  const leaseMs = options.leaseMs ?? 25_000;
   const maxActive = options.maxActive ?? NUTRITION_MAX_ACTIVE_JOBS;
   const now = options.now ?? Date.now;
   const createId = options.createId ?? (() => crypto.randomUUID());
@@ -103,12 +125,20 @@ export function createNutritionJobQueue<Body extends NutritionGenerateJobBody>(o
     return { clientId: body.clientId, courseId: body.courseId ?? null };
   }
 
+  const iso = (value: number | null) => (value == null ? null : new Date(value).toISOString());
+
   function view(job: JobRecord<Body>): NutritionJobView {
     const showResult = job.status === "completed" && job.result != null;
     return {
       job_id: job.job_id,
       status: job.status,
       progress: job.progress,
+      current_stage: job.stage,
+      started_at: iso(job.startedAt),
+      finished_at: iso(job.finishedAt),
+      last_heartbeat_at: iso(job.lastHeartbeatAt),
+      error_code: job.error?.code ?? null,
+      error_message: job.error?.message ?? null,
       error: job.error,
       ...(showResult ? { result: job.result ?? undefined } : {}),
     };
@@ -138,10 +168,24 @@ export function createNutritionJobQueue<Body extends NutritionGenerateJobBody>(o
       for (const job of jobs.values()) {
         if (job.status !== "running" || job.startedAt == null) continue;
         busy = true;
-        job.progress = Math.min(
-          95,
-          Math.max(1, Math.round(((current - job.startedAt) / timeoutMs) * 100)),
-        );
+        if (job.stage == null) {
+          job.progress = Math.min(
+            95,
+            Math.max(job.progress, Math.round(((current - job.startedAt) / timeoutMs) * 100)),
+          );
+        }
+        const heartbeat = job.lastHeartbeatAt ?? job.startedAt;
+        if (!job.leaseExpired && current - heartbeat > leaseMs) {
+          job.leaseExpired = true;
+          job.status = "failed";
+          job.progress = 100;
+          job.finishedAt = current;
+          job.error = {
+            code: "lease_expired",
+            message: "Расчёт перестал отвечать и был остановлен. Черновик не изменён.",
+          };
+          job.abort.abort();
+        }
       }
       if (!busy && progressTimer) {
         clearInterval(progressTimer);
@@ -168,6 +212,8 @@ export function createNutritionJobQueue<Body extends NutritionGenerateJobBody>(o
     if (job.status !== "queued") return;
     job.status = "running";
     job.startedAt = now();
+    job.lastHeartbeatAt = now();
+    job.stage = "Подготовка каталога";
     job.progress = 1;
     ensureProgressTimer();
     const timer = setTimeout(() => {
@@ -175,7 +221,16 @@ export function createNutritionJobQueue<Body extends NutritionGenerateJobBody>(o
       job.abort.abort();
     }, timeoutMs);
     try {
-      const payload = await options.compute(job.body, job.abort.signal);
+      const payload = await options.compute(job.body, job.abort.signal, (update) => {
+        if (job.status !== "running") return;
+        job.lastHeartbeatAt = now();
+        if (update.stage) job.stage = update.stage;
+        if (typeof update.progress === "number") job.progress = update.progress;
+        if (update.found != null && update.total != null) {
+          job.stage = `${update.stage}: ${update.found} из ${update.total}`;
+        }
+      });
+      if (job.status !== "running") return;
       if (job.cancelRequested || job.timedOut || job.abort.signal.aborted) {
         throw Object.assign(new Error("cancelled"), {
           code: job.cancelRequested ? "CANCELLED" : "TIMEOUT",
@@ -188,39 +243,88 @@ export function createNutritionJobQueue<Body extends NutritionGenerateJobBody>(o
         });
       }
       if (!decision.save) {
+        const reason = String(payload.generated.reason_code ?? "");
+        if (reason === "INSUFFICIENT_VARIETY" || reason === "TIMEOUT" || reason === "INFEASIBLE") {
+          job.status = "failed";
+          job.progress = 100;
+          job.finishedAt = now();
+          job.error = {
+            code:
+              reason === "TIMEOUT"
+                ? "timeout"
+                : reason === "INSUFFICIENT_VARIETY"
+                  ? "insufficient_variety"
+                  : "generation_failed",
+            message:
+              payload.generated.message ||
+              (reason === "TIMEOUT"
+                ? "Расчёт прерван по времени. Прежний черновик сохранён."
+                : "Не удалось рассчитать рацион. Черновик не изменён."),
+          };
+          return;
+        }
         job.result = unsavedResult(
           payload,
           job.body.rebuild ? decision.message : payload.generated.message || decision.message,
         );
         job.status = "completed";
         job.progress = 100;
+        job.finishedAt = now();
+        job.stage = "Сохранение черновика";
         return;
       }
       job.saving = true;
+      job.stage = "Сохранение черновика";
       job.result = await options.save(job.body, payload);
       job.status = "completed";
       job.progress = 100;
+      job.finishedAt = now();
     } catch (error) {
-      if (job.cancelRequested || (error as { code?: string }).code === "CANCELLED") {
+      const code = (error as { code?: string }).code;
+      job.progress = 100;
+      job.finishedAt = now();
+      if (job.cancelRequested || code === "cancelled_by_user") {
         job.status = "cancelled";
-        job.progress = 100;
-        job.error = { code: "CANCELLED", message: "Расчёт отменён. Черновик не изменён." };
+        job.error = {
+          code: "cancelled_by_user",
+          message: "Расчёт отменён. Черновик не изменён.",
+        };
         return;
       }
-      const timedOut = job.timedOut || (error as { code?: string }).code === "TIMEOUT";
+      if (job.leaseExpired || code === "lease_expired") {
+        job.status = "failed";
+        job.error = {
+          code: "lease_expired",
+          message: "Расчёт перестал отвечать и был остановлен. Черновик не изменён.",
+        };
+        return;
+      }
+      if (job.timedOut || code === "timeout" || code === "TIMEOUT") {
+        job.status = "failed";
+        job.error = {
+          code: "timeout",
+          message: "Расчёт прерван по времени. Прежний черновик сохранён.",
+        };
+        return;
+      }
+      if (job.workerRestart || code === "worker_restart") {
+        job.status = "failed";
+        job.error = {
+          code: "worker_restart",
+          message: "Процесс расчёта остановился. Черновик не изменён.",
+        };
+        return;
+      }
+      const message = error instanceof Error ? error.message : "";
       job.status = "failed";
-      job.progress = 100;
-      job.error = timedOut
+      job.error = /INSUFFICIENT_VARIETY|не хватило разных|без повтора/i.test(message)
         ? {
-            code: "TIMEOUT",
-            message: "Расчёт рациона прерван по времени. Прежний черновик сохранён.",
+            code: "insufficient_variety",
+            message: message || "Не хватило разных блюд. Черновик не изменён.",
           }
         : {
-            code: "GENERATE_FAILED",
-            message:
-              error instanceof Error && error.message
-                ? error.message
-                : "Не удалось рассчитать рацион. Черновик не изменён.",
+            code: "generation_failed",
+            message: message || "Не удалось рассчитать рацион. Черновик не изменён.",
           };
     } finally {
       clearTimeout(timer);
@@ -251,7 +355,12 @@ export function createNutritionJobQueue<Body extends NutritionGenerateJobBody>(o
         cancelRequested: false,
         saving: false,
         timedOut: false,
+        leaseExpired: false,
+        workerRestart: false,
         startedAt: null,
+        finishedAt: null,
+        lastHeartbeatAt: null,
+        stage: null,
       };
       jobs.set(job.job_id, job);
       pump();
@@ -273,7 +382,11 @@ export function createNutritionJobQueue<Body extends NutritionGenerateJobBody>(o
         job.abort.abort();
         job.status = "cancelled";
         job.progress = 100;
-        job.error = { code: "CANCELLED", message: "Расчёт отменён. Черновик не изменён." };
+        job.finishedAt = now();
+        job.error = {
+          code: "cancelled_by_user",
+          message: "Расчёт отменён. Черновик не изменён.",
+        };
       }
       return view(job);
     },

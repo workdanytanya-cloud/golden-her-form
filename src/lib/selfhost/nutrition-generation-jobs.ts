@@ -31,6 +31,7 @@ export function resolveNutritionWorkerEntry(): { entry: string; execArgv: string
 export function forkNutritionCompute(
   body: NutritionGenerateBody,
   signal: AbortSignal,
+  report?: (update: { stage: string; progress: number; found?: number; total?: number }) => void,
 ): Promise<NutritionComputePayload> {
   const { entry, execArgv } = resolveNutritionWorkerEntry();
   return new Promise((resolve, reject) => {
@@ -60,7 +61,7 @@ export function forkNutritionCompute(
     };
     const onAbort = () => {
       kill();
-      finish(Object.assign(new Error("Расчёт отменён"), { code: "CANCELLED" }));
+      finish(Object.assign(new Error("Расчёт остановлен"), { code: "aborted" }));
     };
     if (signal.aborted) {
       onAbort();
@@ -72,7 +73,25 @@ export function forkNutritionCompute(
     });
     child.on(
       "message",
-      (message: { ok?: boolean; payload?: NutritionComputePayload; message?: string }) => {
+      (message: {
+        type?: string;
+        ok?: boolean;
+        payload?: NutritionComputePayload;
+        message?: string;
+        stage?: string;
+        progress?: number;
+        found?: number;
+        total?: number;
+      }) => {
+        if (message?.type === "progress" && message.stage) {
+          report?.({
+            stage: message.stage,
+            progress: message.progress ?? 0,
+            found: message.found,
+            total: message.total,
+          });
+          return;
+        }
         if (message?.ok && message.payload) finish(undefined, message.payload);
         else
           finish(new Error(redact(message?.message || "Расчёт рациона завершился без результата")));
@@ -85,12 +104,15 @@ export function forkNutritionCompute(
       if (settled || signal.aborted) return;
       const detail = stderr ? ` ${stderr}` : "";
       finish(
-        new Error(
-          redact(
-            code === 0
-              ? "Процесс расчёта закрылся без ответа"
-              : `Процесс расчёта завершился с кодом ${code ?? "unknown"}.${detail}`,
+        Object.assign(
+          new Error(
+            redact(
+              code === 0
+                ? "Процесс расчёта закрылся без ответа"
+                : `Процесс расчёта завершился с кодом ${code ?? "unknown"}.${detail}`,
+            ),
           ),
+          { code: "worker_restart" },
         ),
       );
     });

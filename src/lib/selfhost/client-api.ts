@@ -638,6 +638,12 @@ export type NutritionJobView = {
   job_id: string;
   status: "queued" | "running" | "completed" | "failed" | "cancelled";
   progress: number;
+  current_stage?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  last_heartbeat_at?: string | null;
+  error_code?: string | null;
+  error_message?: string | null;
   error?: { message: string; code: string } | null;
   result?: Record<string, unknown>;
 };

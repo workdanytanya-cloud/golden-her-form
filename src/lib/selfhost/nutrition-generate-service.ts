@@ -79,7 +79,7 @@ export async function computeNutritionGenerate(input: unknown): Promise<Nutritio
 
   const exclusions = await loadRebuildExclusions(getPostgresPool(), body.clientId, body.courseId);
   const before = await loadConstructorPlanPg(getPostgresPool(), body.clientId, body.courseId);
-  const timeout = body.search_timeout_ms ?? 40_000;
+  const timeout = body.search_timeout_ms ?? (body.days_count > 7 ? 80_000 : 40_000);
   const targetSeed = Math.round(body.targets_override?.kcal ?? 0) || undefined;
   const seeds = [
     targetSeed,

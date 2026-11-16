@@ -12,9 +12,20 @@ if (process.env.NUTRITION_WORKER === "1") {
   }
 
   const { computeNutritionGenerate } = await import("@/lib/selfhost/nutrition-generate-service");
+  const { setNutritionProgressSink } = await import("@/lib/nutrition-constructor/nutrition-progress");
 
   process.on("message", (message: { body?: unknown }) => {
     void (async () => {
+      let stage = "Подготовка каталога";
+      let progress = 1;
+      setNutritionProgressSink((update) => {
+        stage = update.stage;
+        progress = update.progress;
+        process.send?.({ type: "progress", ...update });
+      });
+      const beat = setInterval(() => {
+        process.send?.({ type: "progress", stage, progress });
+      }, 4000);
       try {
         const payload = await computeNutritionGenerate(message?.body);
         const safe = JSON.parse(JSON.stringify(payload)) as unknown;
@@ -25,6 +36,7 @@ if (process.env.NUTRITION_WORKER === "1") {
         );
         process.send?.({ ok: false, message: messageText });
       } finally {
+        clearInterval(beat);
         process.exit(0);
       }
     })();

@@ -117,6 +117,9 @@ export function ConstructorAdminPanel({
   const [primarySlot, setPrimarySlot] = useState<PrimaryMealSlot>("lunch");
   const [loading, setLoading] = useState(false);
   const [jobProgress, setJobProgress] = useState(0);
+  const [jobStage, setJobStage] = useState<string | null>(null);
+  const [jobStartedAt, setJobStartedAt] = useState<number | null>(null);
+  const [elapsedLabel, setElapsedLabel] = useState("");
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [cloning, setCloning] = useState(false);
@@ -566,6 +569,8 @@ export function ConstructorAdminPanel({
       sessionStorage.setItem(jobStorageKey, job.job_id);
       activeJobIdRef.current = job.job_id;
       setJobProgress(job.progress ?? 0);
+      setJobStage(job.current_stage ?? null);
+      setJobStartedAt(job.started_at ? Date.parse(job.started_at) : Date.now());
       setLoading(true);
       setActiveJobId(job.job_id);
     })();
@@ -575,6 +580,21 @@ export function ConstructorAdminPanel({
   }, [courseId, jobStorageKey, userId]);
 
   useEffect(() => {
+    if (!loading || jobStartedAt == null) {
+      setElapsedLabel("");
+      return;
+    }
+    const tick = () => {
+      const seconds = Math.max(0, Math.floor((Date.now() - jobStartedAt) / 1000));
+      const minutes = Math.floor(seconds / 60);
+      setElapsedLabel(minutes > 0 ? `${minutes} мин ${seconds % 60} с` : `${seconds} с`);
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [jobStartedAt, loading]);
+
+  useEffect(() => {
     if (!activeJobId) return;
     let stopped = false;
     const tick = async () => {
@@ -582,6 +602,8 @@ export function ConstructorAdminPanel({
       const job = await selfhostNutritionJob(activeJobId).catch(() => null);
       if (stopped || !job) return;
       setJobProgress(job.progress ?? 0);
+      setJobStage(job.current_stage ?? null);
+      if (job.started_at) setJobStartedAt(Date.parse(job.started_at));
       if (job.status === "queued" || job.status === "running") return;
       stopped = true;
       sessionStorage.removeItem(jobStorageKey);
@@ -593,7 +615,7 @@ export function ConstructorAdminPanel({
             (job.result ?? {}) as Parameters<typeof applyGenerationResult>[0],
           );
         } else {
-          const message = job.error?.message ?? "Черновик не изменён.";
+          const message = job.error_message ?? job.error?.message ?? "Черновик не изменён.";
           setGenerationError(message);
           if (job.status === "cancelled") toast.message(message);
           else toast.error(message);
@@ -1175,8 +1197,10 @@ export function ConstructorAdminPanel({
 
       {loading && (
         <p className="rounded-xl border border-gold/20 bg-gold/5 px-4 py-3 text-sm text-ivory">
-          Рацион рассчитывается{jobProgress > 0 ? ` · ${jobProgress}%` : ""}. Страницу можно
-          обновить — расчёт продолжится, второй запуск не начнётся.
+          {jobStage || "Рацион рассчитывается"}
+          {jobProgress > 0 ? ` · ${jobProgress}%` : ""}
+          {elapsedLabel ? ` · ${elapsedLabel}` : ""}. Страницу можно обновить — расчёт
+          продолжится, второй запуск не начнётся.
         </p>
       )}
 
@@ -1257,7 +1281,13 @@ export function ConstructorAdminPanel({
             </button>
             <button
               type="button"
-              disabled={saving || !planStructureValid(visibleDays, scheduleMode)}
+              disabled={
+                saving ||
+                loading ||
+                !planStructureValid(visibleDays, scheduleMode) ||
+                !kbjuStatus.acceptable ||
+                kbjuStatus.invalidDayCount > 0
+              }
               onClick={() => void handleSave(true)}
               className="inline-flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-5 py-2.5 text-xs uppercase tracking-widest text-ivory disabled:opacity-40"
             >
@@ -1328,8 +1358,8 @@ export function ConstructorAdminPanel({
               ` · структура: ${checks.mains.actual}/${expectedMainCount(scheduleMode)} основных, ${checks.snacks.actual}/${expectedSnackCount(scheduleMode)} перекусов`}
             {kbjuStatus.invalidDayCount > 0 ? (
               <span className="mt-1 block text-coral">
-                {kbjuStatus.invalidDayCount} из {visibleDays.length} дней вне допуска — каждый день
-                проверяется отдельно, без усреднения за период.
+                Рацион нельзя опубликовать: {kbjuStatus.invalidDayCount} из {visibleDays.length}{" "}
+                проверенных вариантов дней вне допуска.
               </span>
             ) : null}
             {!kbjuStatus.generationOk && deviationSummary ? (

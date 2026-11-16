@@ -71,6 +71,7 @@ import {
   tileConstructorWeek,
 } from "@/lib/nutrition-constructor/week-cycle";
 import { buildExactWeek, orderExactDays } from "@/lib/nutrition-constructor/exact-week-search";
+import { planRotatingWeeks } from "@/lib/nutrition-constructor/month-plan";
 import {
   reasonFromDiagnostics,
   userMessageForReason,
@@ -982,11 +983,31 @@ export function generateConstructorPlan(
       throw new Error("forced internal error");
     }
 
+    if ((input.meal_schedule_mode as string) === "legacy_two_main_two_snacks") {
+      input = { ...input, meal_schedule_mode: "two_main_two_snacks" };
+    }
+
     const targetCheck = validateMacroTargets(input.targets);
     if (!targetCheck.ok) {
       return emptyFail(
         "INVALID_TARGET",
         userMessageForReason("INVALID_TARGET", targetCheck.detail),
+      );
+    }
+    const kcal = input.targets.kcal.toNumber();
+    const protein = input.targets.protein_g.toNumber();
+    const fat = input.targets.fat_g.toNumber();
+    const carbs = input.targets.carbs_g.toNumber();
+    if (kcal < 1200 || kcal > 3000) {
+      return emptyFail(
+        "INVALID_TARGET",
+        `Калорийность ${Math.round(kcal)} ккал вне диапазона 1200–3000. Измените цель до запуска поиска.`,
+      );
+    }
+    if (protein * 4 > kcal * 0.6 || fat * 9 > kcal * 0.6 || carbs * 4 > kcal * 0.8) {
+      return emptyFail(
+        "INVALID_TARGET",
+        "Такое соотношение белков, жиров и углеводов нельзя собрать нормальными порциями. Измените цель до запуска поиска.",
       );
     }
 
@@ -1192,6 +1213,59 @@ export function generateConstructorPlan(
         lastFailureReason = null;
       } else {
         const poolStarted = Date.now();
+        const weekBudgetMs = Math.min(
+          input.search_timeout_ms ?? (input.days_count > 7 ? 80_000 : 28_000),
+          input.days_count > 7 ? 90_000 : input.search_timeout_ms ? 45_000 : 28_000,
+        );
+        if (input.days_count === 14 || input.days_count === 28) {
+          const planned = planRotatingWeeks({
+            ctx: generationCtx,
+            mode,
+            targets: input.targets,
+            tolerance,
+            days: input.days_count,
+            seed: input.seed ?? 1,
+            excluded,
+            deadlineMs: Date.now() + weekBudgetMs,
+          });
+          poolElapsedMs = Date.now() - poolStarted;
+          totalCombinations += planned.checked;
+          timedOut = timedOut || planned.timedOut;
+          passPoolSize = planned.days.length;
+          searchStage = "week_tile";
+          if (!planned.ok) {
+            lastFailureReason = planned.message;
+            return failureResult(
+              lastFailureReason,
+              planned.timedOut,
+              null,
+              Math.max(planned.days.length, 1),
+              planned.timedOut ? "TIMEOUT" : "INSUFFICIENT_VARIETY",
+            );
+          }
+          days.push(...planned.days);
+          const recipeByIdForMonth = new Map(
+            generationCtx.recipes.map((recipe) => [recipe.id, recipe] as const),
+          );
+          for (let offset = 0; offset < planned.days.length; offset += 7) {
+            const violation = evaluateStrictWeekVariety(
+              planned.days.slice(offset, offset + 7),
+              recipeByIdForMonth,
+              { allowRepeats: false },
+            );
+            if (violation) {
+              lastFailureReason = formatInsufficientVarietyMessage(violation);
+              return failureResult(
+                lastFailureReason,
+                timedOut,
+                null,
+                planned.days.length,
+                "INSUFFICIENT_VARIETY",
+              );
+            }
+          }
+          lastFailureReason = null;
+        } else {
         const built = buildExactWeek({
           ctx: generationCtx,
           mode,
@@ -1200,9 +1274,7 @@ export function generateConstructorPlan(
           days: input.days_count,
           seed: input.seed ?? 1,
           excluded,
-          deadlineMs:
-            Date.now() +
-            Math.min(input.search_timeout_ms ?? 28_000, input.search_timeout_ms ? 45_000 : 28_000),
+          deadlineMs: Date.now() + weekBudgetMs,
         });
         const exactPool = built.days;
         poolElapsedMs = Date.now() - poolStarted;
@@ -1264,6 +1336,7 @@ export function generateConstructorPlan(
           }
         }
         lastFailureReason = null;
+        }
       }
     } else {
       const enforceWeek = !allowRepeats && input.days_count >= 7;
