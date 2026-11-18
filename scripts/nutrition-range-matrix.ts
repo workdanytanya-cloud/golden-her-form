@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { DEFAULT_TOLERANCE, slotsForMode, type MealScheduleMode } from "@/lib/nutrition-constructor/config";
 import { d } from "@/lib/nutrition-constructor/decimal-math";
-import { dayMenuKey, mealDifferenceRatio } from "@/lib/nutrition-constructor/month-plan";
+import { dayMenuKey, repeatSpacingIssues } from "@/lib/nutrition-constructor/month-plan";
 import { generateConstructorPlan } from "@/lib/nutrition-constructor/optimizer";
 import { evaluateStrictWeekVariety } from "@/lib/nutrition-constructor/recipe-variety";
 import { validateRecipeInstruction } from "@/lib/nutrition-constructor/recipe-instructions";
@@ -152,10 +152,9 @@ function inspect(spec: CaseSpec, days: ConstructorDay[], target: ReturnType<type
   for (let week = 0; week < days.length / 7; week += 1) {
     const slice = days.slice(week * 7, week * 7 + 7);
     if (evaluateStrictWeekVariety(slice, recipes as never, { allowRepeats: false })) intraWeekRepeats += 1;
-    if (week > 0 && mealDifferenceRatio(days.slice((week - 1) * 7, week * 7), slice) < 0.75) {
-      reasons.push(`неделя ${week + 1} слишком похожа`);
-    }
   }
+  const spacing = repeatSpacingIssues(days);
+  if (spacing) reasons.push(spacing);
   const seen = new Set<string>();
   for (const day of days) {
     const key = dayMenuKey(day);
@@ -259,15 +258,19 @@ function main() {
     products: ctx.products.size,
     recipes: ctx.recipes.filter((recipe) => recipe.is_active).length,
   };
-  const only = process.env.NUTRITION_MATRIX_FILTER ?? "";
+  const only = (process.env.NUTRITION_MATRIX_FILTER ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const rerun = process.env.NUTRITION_MATRIX_RERUN === "1";
   for (const spec of specs) {
-    if (only && !spec.id.includes(only)) {
+    if (only.length > 0 && !only.some((part) => spec.id.includes(part))) {
       const kept = (previous.results ?? []).find((row) => row.id === spec.id);
       if (kept) results.push(kept);
       continue;
     }
     const cached = done.get(spec.id);
-    if (cached) {
+    if (cached && !rerun) {
       results.push(cached);
       writeFileSync(outFile, JSON.stringify({ roles, results }, null, 2));
       continue;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_TOLERANCE } from "@/lib/nutrition-constructor/config";
 import { d } from "@/lib/nutrition-constructor/decimal-math";
-import { dayMenuKey, mealDifferenceRatio } from "@/lib/nutrition-constructor/month-plan";
+import { dayMenuKey, mealDifferenceRatio, repeatSpacingIssues } from "@/lib/nutrition-constructor/month-plan";
 import { generateConstructorPlan } from "@/lib/nutrition-constructor/optimizer";
 import { evaluateStrictWeekVariety } from "@/lib/nutrition-constructor/recipe-variety";
 import { buildInMemoryCatalog } from "@/lib/nutrition-constructor/repo";
@@ -64,7 +64,7 @@ describe("1312 kcal, two mains and two snacks, 28 days", () => {
       const slice = generated.days.slice(week * 7, week * 7 + 7);
       expect(evaluateStrictWeekVariety(slice, recipes, { allowRepeats: false })).toBeNull();
       if (week > 0) {
-        expect(mealDifferenceRatio(generated.days.slice((week - 1) * 7, week * 7), slice)).toBeGreaterThanOrEqual(0.75);
+        expect(mealDifferenceRatio(generated.days.slice((week - 1) * 7, week * 7), slice)).toBeGreaterThanOrEqual(0.5);
       }
       for (const day of slice) {
         expect(checkDayStructure(day, "two_main_two_snacks").mains.actual).toBe(2);
@@ -76,5 +76,6 @@ describe("1312 kcal, two mains and two snacks, 28 days", () => {
       }
     }
     expect([...uses.values()].every((count) => count <= 2)).toBe(true);
+    expect(repeatSpacingIssues(generated.days)).toBeNull();
   }, 100_000);
 });

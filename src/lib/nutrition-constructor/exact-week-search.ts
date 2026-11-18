@@ -16,6 +16,8 @@ import { slotMealRole } from "@/lib/nutrition-constructor/recipe-variety";
 import { seededShuffle } from "@/lib/nutrition-constructor/target-validation";
 import type { ConstructorDay, Recipe } from "@/lib/nutrition-constructor/types";
 
+const scoredMainComboCache = new WeakMap<OptimizerContext, Map<string, Recipe[][]>>();
+
 export type ExactWeekResult = {
   days: ConstructorDay[];
   checked: number;
@@ -118,6 +120,7 @@ export function buildExactWeek(params: {
   blockedRecipeIds?: Set<string>;
   allowedRecipeIds?: Set<string>;
   forbiddenDayKeys?: Set<string>;
+  previousDay?: ConstructorDay;
   onFound?: (count: number) => void;
 }): ExactWeekResult {
   const slots = slotsForMode(params.mode);
@@ -127,7 +130,6 @@ export function buildExactWeek(params: {
   const allowed = (recipe: Recipe) => {
     if (!recipe.is_active || !isAutoGenerationEligible(recipe)) return false;
     if (!recipe.allowed_schedule_modes.includes(params.mode)) return false;
-    if (params.blockedRecipeIds?.has(recipe.id)) return false;
     if (params.allowedRecipeIds && !params.allowedRecipeIds.has(recipe.id)) return false;
     return (params.ctx.recipeIngredients.get(recipe.id) ?? []).every(
       (ingredient) => !params.excluded.has(ingredient.product_id),
@@ -136,7 +138,10 @@ export function buildExactWeek(params: {
   const mains = seededShuffle(params.ctx.mainRecipes.filter(allowed), params.seed);
   const snacks = seededShuffle(
     params.ctx.snackRecipes.filter(
-      (recipe) => allowed(recipe) && (!noCookSnacksOnly || !recipe.requires_cooking),
+      (recipe) =>
+        allowed(recipe) &&
+        !params.blockedRecipeIds?.has(recipe.id) &&
+        (!noCookSnacksOnly || !recipe.requires_cooking),
     ),
     params.seed + 17,
   );
@@ -200,8 +205,14 @@ export function buildExactWeek(params: {
       c <= range.maxC + 2
     );
   };
+  const acceptedKeys = new Set<string>();
   const tryRecipes = (chosen: Recipe[]) => {
     if (conflicts(chosen)) return;
+    const dayKey = chosen
+      .map((recipe) => recipe.id)
+      .sort()
+      .join("|");
+    if (params.forbiddenDayKeys?.has(dayKey) || acceptedKeys.has(dayKey)) return;
     if (!targetOk(chosen)) return;
     if (
       !overlapMode &&
@@ -233,7 +244,7 @@ export function buildExactWeek(params: {
       }
     }
     const neighborOk = (bySlot: Map<PlanSlot, Recipe>) => {
-      const previous = pool[pool.length - 1];
+      const previous = pool[pool.length - 1] ?? params.previousDay;
       if (!previous) return true;
       return !mainSlots.some((slot) => {
         const prevItem = previous.items.find((item) => item.slot === slot);
@@ -256,7 +267,9 @@ export function buildExactWeek(params: {
         );
       });
     };
-    const bySlot = plans.find((plan) => pool.length >= params.days - 1 || neighborOk(plan));
+    const bySlot = plans.find((plan) =>
+      params.previousDay && pool.length === 0 ? neighborOk(plan) : pool.length >= params.days - 1 || neighborOk(plan),
+    );
     if (!bySlot) return;
     checked += 1;
     const items = slots.map((slot) => {
@@ -336,12 +349,8 @@ export function buildExactWeek(params: {
       );
     });
     if (mainSlots.length >= 2 && goal.k >= 2600 && slotOverused) return;
-    const dayKey = chosen
-      .map((recipe) => recipe.id)
-      .sort()
-      .join("|");
-    if (params.forbiddenDayKeys?.has(dayKey)) return;
     if (portionIsUnreasonable(positiveItems)) return;
+    acceptedKeys.add(dayKey);
     if (!overlapMode) {
       for (const recipe of chosen) {
         usedIds.add(recipe.id);
@@ -461,12 +470,20 @@ export function buildExactWeek(params: {
     usedIds.has(recipe.id) ||
     (recipe.variant_group ? usedGroups.has(recipe.variant_group) : false) ||
     (recipe.ingredient_signature ? usedSignatures.has(recipe.ingredient_signature) : false);
-  const mainCombos: Recipe[][] = [];
-  for (const combo of combinations(mains, mainSlots.length)) {
-    if (conflicts(combo) || !assignSlots(combo, mainSlots)) continue;
-    mainCombos.push(combo);
+  const comboCacheKey = `${params.mode}|${mainSlots.join(",")}|${goal.k}|${goal.p}|${goal.f}|${goal.c}|${mains.length}`;
+  let comboCache = scoredMainComboCache.get(params.ctx);
+  if (!comboCache) {
+    comboCache = new Map();
+    scoredMainComboCache.set(params.ctx, comboCache);
   }
-  const preferredMains = [
+  let mainCombos = comboCache.get(comboCacheKey);
+  if (!mainCombos) {
+    mainCombos = [];
+    for (const combo of combinations(mains, mainSlots.length)) {
+      if (conflicts(combo) || !assignSlots(combo, mainSlots)) continue;
+      mainCombos.push(combo);
+    }
+    const preferredMains = [
     "breakfast-beef-oats-pepper",
     "breakfast-thigh-pasta-pepper",
     "breakfast-beef-potato-pepper",
@@ -486,6 +503,8 @@ export function buildExactWeek(params: {
     if (preferKnownPlates && byPreference !== 0) return byPreference;
     return bandScore(a, mainSlots.length) - bandScore(b, mainSlots.length);
   });
+    comboCache.set(comboCacheKey, mainCombos);
+  }
   const windowSize = Math.min(mainCombos.length, 400);
   const rotation = windowSize === 0 ? 0 : Math.abs(params.seed) % windowSize;
   const searchMains = [
@@ -640,7 +659,7 @@ export function buildExactWeek(params: {
   ) {
     for (const mainCombo of searchMains) {
       if (solved || Date.now() > phase1Until || pool.length >= targetPool) break;
-      if (mainCombo.some(blocked)) continue;
+      if (mainCombo.some((recipe) => params.blockedRecipeIds?.has(recipe.id) || blocked(recipe))) continue;
       const before = pool.length;
       if (snackSlots.length === 0) {
         if (remember(mainCombo)) originalTry(mainCombo);

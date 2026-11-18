@@ -3487,3 +3487,323 @@ for (const [slug, name, variant, rows] of HEARTY_SNACKS) {
     ),
   );
 }
+
+const LIGHT_MAINS: Array<[string, string, MealRole[], Ing[], string[], Partial<ExpandedSeedRecipe>]> = [
+  [
+    "lunch-turkey-potato-zucchini",
+    "Индейка с картофелем и кабачком",
+    ["lunch", "dinner"],
+    [
+      ["turkey-breast-raw", 70, 140, 95],
+      ["potato-raw", 140, 260, 180],
+      ["zucchini", 70, 150, 100],
+      ["olive-oil", 2, 6, 3],
+    ],
+    [
+      "Отварить картофель.",
+      "Запечь индейку с кабачком.",
+      "Сбрызнуть оливковым маслом и подать вместе.",
+    ],
+    { cooking_method: "bake", variant_group: "turkey|potato-zucchini|bake", primary_protein: "turkey", primary_carb: "potato" },
+  ],
+  [
+    "breakfast-chicken-buckwheat-carrot",
+    "Куриная грудка с гречкой и морковью",
+    ["breakfast", "lunch"],
+    [
+      ["chicken-breast-raw", 70, 140, 90],
+      ["buckwheat-dry", 30, 70, 45],
+      ["carrot", 60, 140, 90],
+      ["olive-oil", 2, 6, 3],
+    ],
+    [
+      "Отварить гречку.",
+      "Запечь куриную грудку с морковью.",
+      "Смешать и полить оливковым маслом.",
+    ],
+    { cooking_method: "bake", variant_group: "chicken|buckwheat-carrot|bake", primary_protein: "chicken", primary_carb: "buckwheat" },
+  ],
+  [
+    "dinner-pollock-rice-pepper",
+    "Минтай с рисом и перцем",
+    ["dinner", "lunch"],
+    [
+      ["pollock-raw", 90, 170, 120],
+      ["rice-white-dry", 30, 70, 45],
+      ["bell-pepper", 70, 150, 100],
+      ["olive-oil", 2, 6, 3],
+    ],
+    [
+      "Отварить рис.",
+      "Запечь минтай с перцем.",
+      "Подать с оливковым маслом.",
+    ],
+    { cooking_method: "bake", variant_group: "whitefish|rice-pepper|bake", primary_protein: "fish", primary_carb: "rice" },
+  ],
+  [
+    "lunch-cod-barley-broccoli",
+    "Треска с перловкой и брокколи",
+    ["lunch", "dinner"],
+    [
+      ["cod-raw", 90, 170, 120],
+      ["pearl-barley-dry", 30, 70, 40],
+      ["broccoli-raw", 80, 160, 110],
+      ["olive-oil", 2, 6, 3],
+    ],
+    [
+      "Отварить перловку и брокколи.",
+      "Запечь треску.",
+      "Собрать тарелку и добавить оливковое масло.",
+    ],
+    { cooking_method: "bake", variant_group: "whitefish|barley-broccoli|bake", primary_protein: "fish", primary_carb: "barley" },
+  ],
+  [
+    "breakfast-cottage-oats-apple",
+    "Творог с овсянкой и яблоком",
+    ["breakfast"],
+    [
+      ["cottage-cheese-5", 80, 160, 110],
+      ["oats-dry", 25, 55, 35],
+      ["apple", 70, 140, 100],
+    ],
+    [
+      "Залить овсянку кипятком на несколько минут.",
+      "Нарезать яблоко.",
+      "Смешать с творогом.",
+    ],
+    { cooking_method: "boil", variant_group: "cottage|oats-apple|boil", primary_protein: "dairy", primary_carb: "oats" },
+  ],
+  [
+    "dinner-salmon-bulgur-beans",
+    "Горбуша с булгуром и стручковой фасолью",
+    ["dinner", "lunch"],
+    [
+      ["pink-salmon-raw", 80, 160, 110],
+      ["bulgur-dry", 25, 60, 40],
+      ["green-beans-raw", 80, 160, 110],
+      ["olive-oil", 2, 6, 3],
+    ],
+    [
+      "Залить булгур кипятком.",
+      "Запечь горбушу со стручковой фасолью.",
+      "Подать вместе с оливковым маслом.",
+    ],
+    { cooking_method: "bake", variant_group: "fish|bulgur-beans|bake", primary_protein: "fish", primary_carb: "bulgur" },
+  ],
+  [
+    "lunch-turkey-cabbage-tomato",
+    "Индейка с капустой и помидором",
+    ["lunch", "dinner"],
+    [
+      ["turkey-breast-raw", 100, 180, 130],
+      ["white-cabbage", 100, 200, 140],
+      ["tomato", 70, 150, 100],
+      ["olive-oil", 2, 6, 3],
+    ],
+    [
+      "Нарезать капусту и помидор.",
+      "Запечь индейку.",
+      "Смешать с овощами и оливковым маслом.",
+    ],
+    { cooking_method: "bake", variant_group: "turkey|cabbage-tomato|bake", primary_protein: "turkey", primary_carb: "veg" },
+  ],
+  [
+    "dinner-chicken-zucchini-pepper",
+    "Курица с кабачком и перцем",
+    ["dinner", "lunch"],
+    [
+      ["cooked-chicken-breast", 70, 140, 100],
+      ["zucchini", 80, 160, 110],
+      ["bell-pepper", 70, 140, 90],
+      ["olive-oil", 2, 6, 3],
+    ],
+    [
+      "Прогреть кабачок и перец.",
+      "Нарезать готовую курицу.",
+      "Смешать и полить оливковым маслом.",
+    ],
+    { cooking_method: "pan", variant_group: "chicken|zucchini-pepper|pan", primary_protein: "chicken", primary_carb: "veg" },
+  ],
+  [
+    "lunch-lentil-zucchini-tomato",
+    "Чечевица с кабачком и помидором",
+    ["lunch", "dinner"],
+    [
+      ["lentils-dry", 40, 80, 55],
+      ["zucchini", 80, 160, 110],
+      ["tomato", 70, 140, 100],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Отварить чечевицу.", "Протушить кабачок с помидором.", "Смешать и добавить оливковое масло."],
+    { cooking_method: "stew", variant_group: "lentil|zucchini-tomato|stew", primary_protein: "legume", primary_carb: "lentil" },
+  ],
+  [
+    "dinner-chickpea-bulgur-spinach",
+    "Нут с булгуром и шпинатом",
+    ["dinner", "lunch"],
+    [
+      ["chickpeas-canned", 80, 150, 110],
+      ["bulgur-dry", 25, 55, 35],
+      ["spinach-raw", 40, 100, 60],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Залить булгур кипятком.", "Прогреть нут со шпинатом.", "Смешать и полить оливковым маслом."],
+    { cooking_method: "pan", variant_group: "legume|bulgur-spinach|pan", primary_protein: "legume", primary_carb: "bulgur" },
+  ],
+  [
+    "breakfast-egg-potato-spinach",
+    "Яйцо с картофелем и шпинатом",
+    ["breakfast"],
+    [
+      ["egg-whole", 50, 110, 70],
+      ["potato-raw", 140, 240, 180],
+      ["spinach-raw", 40, 90, 60],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Отварить картофель.", "Обжарить яйцо со шпинатом.", "Подать с оливковым маслом."],
+    { cooking_method: "pan", variant_group: "egg|potato-spinach|pan", primary_protein: "egg", primary_carb: "potato" },
+  ],
+  [
+    "lunch-beef-carrot-buckwheat",
+    "Говядина с морковью и гречкой",
+    ["lunch", "dinner"],
+    [
+      ["beef-lean-raw", 50, 90, 65],
+      ["buckwheat-dry", 30, 65, 45],
+      ["carrot", 70, 140, 100],
+      ["olive-oil", 2, 5, 3],
+    ],
+    ["Отварить гречку.", "Потушить говядину с морковью.", "Смешать и добавить оливковое масло."],
+    { cooking_method: "stew", variant_group: "beef|buckwheat-carrot|stew", primary_protein: "beef", primary_carb: "buckwheat" },
+  ],
+  [
+    "dinner-hake-potato-cabbage",
+    "Хек с картофелем и пекинской капустой",
+    ["dinner", "lunch"],
+    [
+      ["hake-raw", 90, 160, 120],
+      ["potato-raw", 120, 220, 160],
+      ["napa-cabbage", 70, 140, 100],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Отварить картофель.", "Запечь хек.", "Подать с пекинской капустой и оливковым маслом."],
+    { cooking_method: "bake", variant_group: "whitefish|potato-cabbage|bake", primary_protein: "fish", primary_carb: "potato" },
+  ],
+  [
+    "lunch-ground-turkey-rice-zucchini",
+    "Индейка рубленая с рисом и кабачком",
+    ["lunch", "dinner"],
+    [
+      ["ground-turkey-raw", 70, 130, 90],
+      ["rice-white-dry", 30, 65, 40],
+      ["zucchini", 80, 150, 100],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Отварить рис.", "Обжарить индейку с кабачком.", "Смешать и полить оливковым маслом."],
+    { cooking_method: "pan", variant_group: "turkey|rice-zucchini|pan", primary_protein: "turkey", primary_carb: "rice" },
+  ],
+  [
+    "breakfast-salmon-couscous-tomato",
+    "Горбуша с кускусом и помидором",
+    ["breakfast", "lunch"],
+    [
+      ["pink-salmon-raw", 80, 150, 110],
+      ["couscous-dry", 25, 60, 40],
+      ["tomato", 70, 140, 100],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Залить кускус кипятком.", "Запечь горбушу с помидором.", "Смешать и полить оливковым маслом."],
+    { cooking_method: "bake", variant_group: "fish|couscous-tomato|bake", primary_protein: "fish", primary_carb: "couscous" },
+  ],
+  [
+    "dinner-thigh-oats-broccoli",
+    "Куриное бедро с овсянкой и брокколи",
+    ["dinner", "lunch"],
+    [
+      ["chicken-thigh-raw", 70, 130, 90],
+      ["oats-dry", 25, 55, 35],
+      ["broccoli-raw", 80, 160, 110],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Залить овсянку кипятком.", "Запечь бедро с брокколи.", "Смешать и добавить оливковое масло."],
+    { cooking_method: "bake", variant_group: "chicken|oats-broccoli|bake", primary_protein: "chicken", primary_carb: "oats" },
+  ],
+];
+
+for (const [slug, name, roles, rows, steps, extra] of LIGHT_MAINS) {
+  EXPANSION_RECIPES.push(main(slug, name, roles, rows, steps, 20, extra));
+}
+
+const LIGHT_SNACKS: Array<[string, string, Ing[], string[], Partial<ExpandedSeedRecipe>]> = [
+  [
+    "snack-yogurt-pear-rye",
+    "Йогурт с грушей и ржаным хлебом",
+    [
+      ["greek-yogurt", 80, 160, 120],
+      ["pear-raw", 70, 140, 100],
+      ["rye-bread", 20, 45, 30],
+    ],
+    ["Нарезать грушу и ржаной хлеб.", "Выложить йогурт в миску.", "Подать вместе."],
+    { variant_group: "dairy|pear-rye|assemble", primary_protein: "dairy", primary_carb: "fruit" },
+  ],
+  [
+    "snack-beans-rye-vegetables",
+    "Фасоль с ржаным хлебом и овощами",
+    [
+      ["white-beans-canned", 60, 120, 80],
+      ["rye-bread", 20, 50, 30],
+      ["tomato", 50, 120, 80],
+      ["cucumber", 40, 100, 60],
+    ],
+    ["Промыть фасоль.", "Нарезать хлеб, помидор и огурец.", "Собрать холодную тарелку."],
+    { variant_group: "beans|rye-vegetables|assemble", primary_protein: "legume", primary_carb: "bread" },
+  ],
+  [
+    "snack-tuna-bread-cucumber",
+    "Тунец с хлебом и огурцом",
+    [
+      ["canned-tuna", 40, 90, 60],
+      ["wheat-bread", 25, 55, 35],
+      ["cucumber", 50, 120, 80],
+    ],
+    ["Размять тунец.", "Нарезать хлеб и огурец.", "Собрать перекус без готовки."],
+    { variant_group: "tuna|bread-cucumber|assemble", primary_protein: "fish", primary_carb: "bread" },
+  ],
+  [
+    "snack-cottage-berry-almond",
+    "Творог с ягодами и миндалём",
+    [
+      ["cottage-cheese-5", 70, 140, 100],
+      ["frozen-berry-mix", 50, 120, 80],
+      ["almond", 5, 12, 8],
+    ],
+    ["Выложить творог.", "Добавить ягоды.", "Посыпать миндалём."],
+    { variant_group: "cottage|berry-almond|assemble", primary_protein: "dairy", primary_carb: "fruit" },
+  ],
+  [
+    "snack-kefir-banana-seeds",
+    "Кефир с бананом и тыквенными семечками",
+    [
+      ["kefir", 150, 250, 200],
+      ["banana", 50, 100, 70],
+      ["pumpkin-seeds", 5, 12, 8],
+    ],
+    ["Налить кефир.", "Нарезать банан.", "Посыпать тыквенными семечками."],
+    { variant_group: "kefir|banana-seeds|assemble", primary_protein: "dairy", primary_carb: "fruit" },
+  ],
+  [
+    "snack-chicken-apple-rye",
+    "Курица с яблоком и ржаным хлебом",
+    [
+      ["cooked-chicken-breast", 40, 80, 55],
+      ["apple", 70, 140, 100],
+      ["rye-bread", 20, 45, 25],
+    ],
+    ["Нарезать готовую курицу.", "Нарезать яблоко и ржаной хлеб.", "Подать холодным."],
+    { variant_group: "chicken|apple-rye|assemble", primary_protein: "chicken", primary_carb: "fruit" },
+  ],
+];
+
+for (const [slug, name, rows, steps, extra] of LIGHT_SNACKS) {
+  EXPANSION_RECIPES.push(snack(slug, name, rows, steps, false, 5, extra));
+}
