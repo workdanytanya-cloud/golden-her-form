@@ -8,6 +8,10 @@ import {
   type ExerciseVideoStatus,
 } from "@/lib/exercise-video";
 import type { ExerciseRepository, ExerciseUpsertInput } from "@/lib/platform/types";
+import {
+  addVerifiedRutubeSource,
+  rememberVerifiedSource,
+} from "@/lib/selfhost/exercise-media-sources";
 import { upsertExerciseMediaBinding } from "@/lib/selfhost/postgres-published";
 import type { ExerciseMediaBinding } from "@/lib/selfhost/media";
 import type { Exercise, ExerciseCategory } from "@/lib/training";
@@ -92,6 +96,11 @@ type ListedRow = {
   published_use_count: string | number;
   archived_at: string | Date | null;
   is_active: boolean | null;
+  src_rutube?: boolean | null;
+  src_youtube?: boolean | null;
+  src_other?: boolean | null;
+  src_needs?: boolean | null;
+  verified_rutube_url?: string | null;
 };
 
 function asStringArray(value: unknown): string[] {
@@ -196,7 +205,24 @@ function mapRow(row: ListedRow): AdminExerciseRow {
       (publishedUseCount > 0 && !hasWorkingLink),
     archived_at: row.archived_at ? new Date(row.archived_at).toISOString() : null,
     is_active: row.is_active !== false && !row.archived_at,
+    video_coverage: coverageFromRow(row, media.video_provider),
+    verified_rutube_url: row.verified_rutube_url ?? null,
   };
+}
+
+function coverageFromRow(
+  row: ListedRow,
+  provider: string,
+): NonNullable<AdminExerciseRow["video_coverage"]> {
+  const rutube = Boolean(row.src_rutube) || provider === "rutube";
+  const youtube = Boolean(row.src_youtube) || provider === "youtube";
+  const other = Boolean(row.src_other);
+  const needs = Boolean(row.src_needs) && !rutube;
+  if (rutube) return "rutube";
+  if (needs) return "needs_confirmation";
+  if (youtube && !other) return "youtube_only";
+  if (!youtube && !other) return "missing";
+  return "other";
 }
 
 function toCatalogExercise(row: AdminExerciseRow): Exercise {
@@ -260,6 +286,11 @@ SELECT e.id, e.slug, e.name, e.category, e.difficulty, e.muscle_groups, e.equipm
        e.archived_at, e.is_active,
        b.provider AS binding_provider, b.source_url AS binding_source_url, b.embed_url AS binding_embed_url,
        b.title AS binding_title, b.status AS binding_status, b.fallback_text AS binding_fallback,
+       COALESCE(src.src_rutube, false) AS src_rutube,
+       COALESCE(src.src_youtube, false) AS src_youtube,
+       COALESCE(src.src_other, false) AS src_other,
+       COALESCE(src.src_needs, false) AS src_needs,
+       src.verified_rutube_url,
        (
          SELECT count(*)::int
          FROM public.training_program_versions v
@@ -268,6 +299,18 @@ SELECT e.id, e.slug, e.name, e.category, e.difficulty, e.muscle_groups, e.equipm
        ) AS published_use_count
   FROM public.exercises e
   LEFT JOIN public.exercise_media_bindings b ON b.exercise_id = e.id
+  LEFT JOIN LATERAL (
+    SELECT
+      bool_or(provider = 'rutube' AND status = 'ok' AND verified_at IS NOT NULL) AS src_rutube,
+      bool_or(provider = 'youtube' AND status = 'ok' AND verified_at IS NOT NULL) AS src_youtube,
+      bool_or(provider IN ('local', 'external') AND status = 'ok' AND verified_at IS NOT NULL) AS src_other,
+      bool_or(status = 'needs_confirmation') AS src_needs,
+      max(source_url) FILTER (
+        WHERE provider = 'rutube' AND status = 'ok' AND verified_at IS NOT NULL
+      ) AS verified_rutube_url
+    FROM public.exercise_media_sources s
+    WHERE s.exercise_id = e.id
+  ) src ON TRUE
 `;
 
 function mediaPredicate(filter: MediaFilter): string {
@@ -285,6 +328,26 @@ function mediaPredicate(filter: MediaFilter): string {
          SELECT count(*) FROM public.training_program_versions v
          WHERE v.status = 'published' AND v.snapshot::text LIKE '%' || e.id::text || '%'
        ) > 0`;
+    case "rutube":
+      return `(COALESCE(src.src_rutube, false) OR (b.provider = 'rutube' AND b.status = 'ok'))`;
+    case "youtube_only":
+      return `(
+        (COALESCE(src.src_youtube, false) OR (b.provider = 'youtube' AND b.status = 'ok') OR e.video_provider = 'youtube')
+        AND NOT (COALESCE(src.src_rutube, false) OR (b.provider = 'rutube' AND b.status = 'ok'))
+        AND NOT COALESCE(src.src_other, false)
+        AND NOT COALESCE(src.src_needs, false)
+      )`;
+    case "needs_confirmation":
+      return `(COALESCE(src.src_needs, false) AND NOT COALESCE(src.src_rutube, false))`;
+    case "missing_video":
+      return `(
+        NOT COALESCE(src.src_rutube, false)
+        AND NOT COALESCE(src.src_youtube, false)
+        AND NOT COALESCE(src.src_other, false)
+        AND NOT COALESCE(src.src_needs, false)
+        AND COALESCE(b.provider, 'none') NOT IN ('youtube', 'rutube')
+        AND COALESCE(e.video_provider, 'none') NOT IN ('youtube', 'rutube')
+      )`;
     default:
       return "TRUE";
   }
@@ -353,9 +416,40 @@ export class PostgresExerciseRepository implements ExerciseRepository {
             SELECT count(*) FROM public.training_program_versions v
             WHERE v.status = 'published' AND v.snapshot::text LIKE '%' || e.id::text || '%'
           ) > 0
-        )::int AS used_count
+        )::int AS used_count,
+        count(*) FILTER (
+          WHERE COALESCE(src.src_rutube, false) OR (b.provider = 'rutube' AND b.status = 'ok')
+        )::int AS rutube_count,
+        count(*) FILTER (
+          WHERE (
+            COALESCE(src.src_youtube, false) OR (b.provider = 'youtube' AND b.status = 'ok') OR e.video_provider = 'youtube'
+          )
+          AND NOT (COALESCE(src.src_rutube, false) OR (b.provider = 'rutube' AND b.status = 'ok'))
+          AND NOT COALESCE(src.src_other, false)
+          AND NOT COALESCE(src.src_needs, false)
+        )::int AS youtube_only_count,
+        count(*) FILTER (
+          WHERE COALESCE(src.src_needs, false) AND NOT COALESCE(src.src_rutube, false)
+        )::int AS needs_confirmation_count,
+        count(*) FILTER (
+          WHERE NOT COALESCE(src.src_rutube, false)
+            AND NOT COALESCE(src.src_youtube, false)
+            AND NOT COALESCE(src.src_other, false)
+            AND NOT COALESCE(src.src_needs, false)
+            AND COALESCE(b.provider, 'none') NOT IN ('youtube', 'rutube')
+            AND COALESCE(e.video_provider, 'none') NOT IN ('youtube', 'rutube')
+        )::int AS missing_video_count
       FROM public.exercises e
       LEFT JOIN public.exercise_media_bindings b ON b.exercise_id = e.id
+      LEFT JOIN LATERAL (
+        SELECT
+          bool_or(provider = 'rutube' AND status = 'ok' AND verified_at IS NOT NULL) AS src_rutube,
+          bool_or(provider = 'youtube' AND status = 'ok' AND verified_at IS NOT NULL) AS src_youtube,
+          bool_or(provider IN ('local', 'external') AND status = 'ok' AND verified_at IS NOT NULL) AS src_other,
+          bool_or(status = 'needs_confirmation') AS src_needs
+        FROM public.exercise_media_sources s
+        WHERE s.exercise_id = e.id
+      ) src ON TRUE
     `);
       const row = rows[0] as Record<string, number>;
       return {
@@ -365,6 +459,10 @@ export class PostgresExerciseRepository implements ExerciseRepository {
         unchecked: Number(row.unchecked_count ?? 0),
         unavailable: Number(row.unavailable_count ?? 0),
         used: Number(row.used_count ?? 0),
+        rutube: Number(row.rutube_count ?? 0),
+        youtube_only: Number(row.youtube_only_count ?? 0),
+        missing_video: Number(row.missing_video_count ?? 0),
+        needs_confirmation: Number(row.needs_confirmation_count ?? 0),
       };
     } catch (error) {
       mapDbError(error);
@@ -464,6 +562,7 @@ export class PostgresExerciseRepository implements ExerciseRepository {
           fallback_text: video.fallback_text,
         };
         await upsertExerciseMediaBinding(this.db, binding, actorId);
+        await rememberVerifiedSource(this.db, id, video);
       }
       return { id, video };
     } catch (error) {
@@ -536,6 +635,26 @@ export class PostgresExerciseRepository implements ExerciseRepository {
     }
   }
 
+  async addRutubeSource(
+    exerciseId: string,
+    sourceUrl: string,
+    title?: string | null,
+  ): Promise<{ id: string; video: ExerciseVideo }> {
+    const source = await addVerifiedRutubeSource(this.db, exerciseId, sourceUrl, title);
+    return {
+      id: exerciseId,
+      video: {
+        provider: "rutube",
+        url: source.url,
+        embed_url: source.embed_url,
+        title: source.title,
+        status: "ok",
+        fallback_text: null,
+        sources: [source],
+      },
+    };
+  }
+
   async deleteBinding(exerciseId: string, actorId: string | null): Promise<void> {
     try {
       const existing = await this.db.query(
@@ -554,6 +673,11 @@ export class PostgresExerciseRepository implements ExerciseRepository {
         [exerciseId],
       );
       if (oldUrl) {
+        await this.db.query(
+          `DELETE FROM public.exercise_media_sources
+            WHERE exercise_id = $1 AND source_url = $2`,
+          [exerciseId, oldUrl],
+        );
         await this.db.query(
           `INSERT INTO public.exercise_media_change_log (exercise_id, old_url, new_url, changed_by)
            VALUES ($1,$2,NULL,$3)`,

@@ -86,6 +86,7 @@ import {
 } from "@/lib/selfhost/postgres-promos";
 import {
   confirmPasswordResetPg,
+  issueTrainerPasswordResetLink,
   passwordResetConfirmSchema,
   passwordResetRequestSchema,
   requestPasswordResetPg,
@@ -839,6 +840,16 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       if (!id) return errorJson("Не указан id упражнения", 400);
       await exerciseRepo().remove(id, session.userId);
       return json({ ok: true });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/exercises/rutube" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = await readJson(request);
+      const exerciseId = z.string().uuid().parse(body.exercise_id);
+      const sourceUrl = z.string().trim().min(12).max(2000).parse(body.source_url);
+      const saved = await exerciseRepo().addRutubeSource(exerciseId, sourceUrl);
+      return json({ ok: true, id: saved.id, video: saved.video });
     }
 
     if (url.pathname === "/api/selfhost/admin/exercises/media" && request.method === "POST") {
@@ -1747,6 +1758,12 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         const body = await readJson(request);
         await adminClients().setPassword(clientId, adminClientPasswordSchema.parse(body));
         return json({ ok: true });
+      }
+
+      if (action === "password-reset-link" && request.method === "POST") {
+        assertCsrf(request);
+        const issued = await issueTrainerPasswordResetLink(getPostgresPool(), clientId);
+        return json({ ok: true, url: issued.url, expiresAt: issued.expiresAt });
       }
 
       if (action === "archive" && request.method === "POST") {

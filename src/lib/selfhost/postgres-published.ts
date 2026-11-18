@@ -119,6 +119,8 @@ export async function loadMediaBindings(
       });
     }
   }
+  const { mergeVerifiedSources } = await import("@/lib/selfhost/exercise-media-sources");
+  await mergeVerifiedSources(db, exerciseIds, map);
   return map;
 }
 

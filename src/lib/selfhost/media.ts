@@ -2,6 +2,7 @@ import {
   EMPTY_EXERCISE_VIDEO,
   normalizeExerciseVideo,
   type ExerciseVideo,
+  type ExerciseVideoSource,
 } from "@/lib/exercise-video";
 import type { FrozenExerciseSet, TrainingSnapshot } from "@/lib/published-programs/types";
 
@@ -13,6 +14,7 @@ export type ExerciseMediaBinding = {
   title: string | null;
   status: ExerciseVideo["status"];
   fallback_text: string | null;
+  sources?: ExerciseVideoSource[];
 };
 
 export type SnapshotExerciseMediaBinding = {
@@ -85,7 +87,7 @@ export function summarizeSnapshotExerciseIds(snapshot: TrainingSnapshot): {
 
 export function bindingToVideo(binding: ExerciseMediaBinding | null | undefined): ExerciseVideo {
   if (!binding) return { ...EMPTY_EXERCISE_VIDEO };
-  return normalizeExerciseVideo({
+  const video = normalizeExerciseVideo({
     url: binding.source_url,
     video_url: binding.source_url,
     title: binding.title,
@@ -99,6 +101,9 @@ export function bindingToVideo(binding: ExerciseMediaBinding | null | undefined)
       fallback_text: binding.fallback_text,
     },
   });
+  const withSources = binding.sources?.length ? { ...video, sources: binding.sources } : video;
+  if (withSources.provider === "youtube") return { ...withSources, embed_url: null };
+  return withSources;
 }
 
 /**

@@ -907,6 +907,8 @@ function AdminActions({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [resetLink, setResetLink] = useState<{ url: string; expiresAt: string } | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const archived = accountStatus === "disabled";
   const navigate = useNavigate();
@@ -1020,6 +1022,63 @@ function AdminActions({
           </button>
         </form>
       </div>
+
+      {localCircuit && (
+        <div className="rounded-3xl border border-gold/20 bg-surface/40 p-6">
+          <h3 className="font-display text-lg text-ivory">Одноразовая ссылка восстановления</h3>
+          <p className="mt-1 text-xs leading-relaxed text-warm-gray">
+            Ссылка действует 30 минут, не содержит пароль и показывается один раз. Передайте её
+            клиенту по уже подтверждённому каналу. Если почта на сервере не настроена, письмо само
+            не уйдёт.
+          </p>
+          <button
+            type="button"
+            disabled={linkLoading || archived}
+            onClick={() => {
+              setLinkLoading(true);
+              void (async () => {
+                try {
+                  const { selfhostAdminIssuePasswordResetLink } =
+                    await import("@/lib/selfhost/client-api");
+                  const issued = await selfhostAdminIssuePasswordResetLink(clientId);
+                  setResetLink({ url: issued.url, expiresAt: issued.expiresAt });
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "Не удалось создать ссылку");
+                } finally {
+                  setLinkLoading(false);
+                }
+              })();
+            }}
+            className="mt-4 inline-flex min-h-11 items-center rounded-full border border-gold/40 px-5 text-sm text-gold disabled:opacity-50"
+          >
+            {linkLoading ? "Создаём…" : "Создать одноразовую ссылку восстановления"}
+          </button>
+          {resetLink && (
+            <div className="mt-4 space-y-2">
+              <p className="text-xs text-warm-gray">
+                Скопируйте сейчас. Повторное создание отзывает эту ссылку.
+              </p>
+              <textarea
+                readOnly
+                value={resetLink.url}
+                className="min-h-24 w-full rounded-xl border border-gold/20 bg-background/60 p-3 text-sm text-ivory"
+              />
+              <button
+                type="button"
+                className="min-h-11 rounded-full bg-gold px-4 text-sm text-background"
+                onClick={() => {
+                  void navigator.clipboard.writeText(resetLink.url).then(
+                    () => toast.success("Ссылка скопирована"),
+                    () => toast.error("Скопируйте ссылку вручную"),
+                  );
+                }}
+              >
+                Скопировать
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="rounded-3xl border border-coral/25 bg-coral/5 p-6">
         <div className="flex items-center gap-2 text-ivory">

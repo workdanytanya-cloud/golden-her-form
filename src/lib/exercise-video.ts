@@ -6,6 +6,17 @@ export type ExerciseVideoProvider = (typeof EXERCISE_VIDEO_PROVIDERS)[number];
 export const EXERCISE_VIDEO_STATUSES = ["ok", "unavailable", "unchecked"] as const;
 export type ExerciseVideoStatus = (typeof EXERCISE_VIDEO_STATUSES)[number];
 
+export type MediaSourceProvider = "youtube" | "rutube" | "external" | "local";
+
+export type ExerciseVideoSource = {
+  provider: MediaSourceProvider;
+  url: string;
+  embed_url: string | null;
+  title: string | null;
+  status: ExerciseVideoStatus;
+  priority: number;
+};
+
 export type ExerciseVideo = {
   provider: ExerciseVideoProvider;
   url: string | null;
@@ -13,7 +24,10 @@ export type ExerciseVideo = {
   title: string | null;
   status: ExerciseVideoStatus;
   fallback_text: string | null;
+  sources?: ExerciseVideoSource[];
 };
+
+export const YOUTUBE_NETWORK_WARNING = "Видео YouTube может быть недоступно в Вашей сети";
 
 export const EMPTY_EXERCISE_VIDEO: ExerciseVideo = {
   provider: "none",
@@ -257,6 +271,135 @@ export function requireYoutubeOrRutubeUrl(raw: string | null | undefined): Exerc
 /** Адаптер для каталога и legacy snapshots: video_url + опциональный объект video. */
 export function videoFromLegacyFields(input: VideoInput | null | undefined): ExerciseVideo {
   return normalizeExerciseVideo(input);
+}
+
+const DEAD_HOSTED = /supabase|\.supabase\.co|\/storage\/v1\/object\//i;
+
+export function isDeadHostedMediaUrl(raw: string | null | undefined): boolean {
+  return Boolean(raw && DEAD_HOSTED.test(raw));
+}
+
+function priorityFor(provider: MediaSourceProvider): number {
+  if (provider === "rutube") return 10;
+  if (provider === "local") return 20;
+  if (provider === "external") return 30;
+  return 40;
+}
+
+export function acceptMediaSource(input: {
+  provider?: string | null;
+  url?: string | null;
+  title?: string | null;
+  status?: string | null;
+  priority?: number | null;
+}): ExerciseVideoSource | null {
+  const normalized = normalizeExerciseVideo({
+    url: input.url,
+    title: input.title,
+    video_status: input.status === "unavailable" ? "unavailable" : "ok",
+  });
+  if (!normalized.url || normalized.status === "unavailable" || normalized.provider === "none") {
+    return null;
+  }
+  if (isDeadHostedMediaUrl(normalized.url)) return null;
+  const provider: MediaSourceProvider = normalized.url.startsWith("/api/selfhost/media")
+    ? "local"
+    : normalized.provider === "youtube" ||
+        normalized.provider === "rutube" ||
+        normalized.provider === "external"
+      ? normalized.provider
+      : "external";
+  if (provider !== "local" && !normalized.url.startsWith("https://")) return null;
+  return {
+    provider,
+    url: normalized.url,
+    embed_url:
+      provider === "rutube" && isAllowedEmbedUrl(normalized.embed_url)
+        ? normalized.embed_url
+        : null,
+    title: normalized.title,
+    status: "ok",
+    priority: input.priority ?? priorityFor(provider),
+  };
+}
+
+export type ExercisePlaybackChoice = "rutube" | "youtube" | "local" | "external" | "none";
+
+export type ExercisePlayback = {
+  rutube: ExerciseVideoSource | null;
+  youtube: ExerciseVideoSource | null;
+  local: ExerciseVideoSource | null;
+  external: ExerciseVideoSource | null;
+  active: ExercisePlaybackChoice;
+  embedUrl: string | null;
+  openUrl: string | null;
+  message: string | null;
+};
+
+export function selectExercisePlayback(
+  video: ExerciseVideo | null | undefined,
+  extra?: ExerciseVideoSource[] | null,
+): ExercisePlayback {
+  const collected: ExerciseVideoSource[] = [];
+  for (const source of [...(extra ?? []), ...(video?.sources ?? [])]) {
+    const accepted = acceptMediaSource(source);
+    if (accepted) collected.push(accepted);
+  }
+  if (video?.url) {
+    const primary = acceptMediaSource({
+      provider: video.provider,
+      url: video.url,
+      title: video.title,
+      status: video.status,
+    });
+    if (primary) collected.push(primary);
+  }
+  const unique = new Map<string, ExerciseVideoSource>();
+  for (const source of collected) {
+    unique.set(`${source.provider}:${source.url}`, source);
+  }
+  const sources = [...unique.values()].sort((a, b) => a.priority - b.priority);
+  const rutube = sources.find((source) => source.provider === "rutube") ?? null;
+  const local = sources.find((source) => source.provider === "local") ?? null;
+  const external = sources.find((source) => source.provider === "external") ?? null;
+  const youtube = sources.find((source) => source.provider === "youtube") ?? null;
+  const active: ExercisePlaybackChoice = rutube
+    ? "rutube"
+    : local
+      ? "local"
+      : external
+        ? "external"
+        : youtube
+          ? "youtube"
+          : "none";
+  const current =
+    active === "rutube"
+      ? rutube
+      : active === "local"
+        ? local
+        : active === "external"
+          ? external
+          : active === "youtube"
+            ? youtube
+            : null;
+  return {
+    rutube,
+    youtube,
+    local,
+    external,
+    active,
+    embedUrl:
+      active === "rutube" && rutube && isAllowedEmbedUrl(rutube.embed_url)
+        ? rutube.embed_url
+        : null,
+    openUrl: current?.url ?? null,
+    message:
+      active === "youtube"
+        ? YOUTUBE_NETWORK_WARNING
+        : active === "none"
+          ? video?.fallback_text || "Видео временно недоступно. Выполняйте по подсказкам."
+          : null,
+  };
 }
 
 export function catalogVideoColumns(video: ExerciseVideo): {

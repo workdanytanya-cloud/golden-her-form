@@ -300,6 +300,22 @@ export async function selfhostAdminSetAccess(id: string, payload: Record<string,
   return readSelfhostJson(res);
 }
 
+export async function selfhostAdminAddExerciseRutube(exerciseId: string, sourceUrl: string) {
+  const res = await selfhostFetch("/api/selfhost/admin/exercises/rutube", {
+    method: "POST",
+    body: JSON.stringify({ exercise_id: exerciseId, source_url: sourceUrl }),
+  });
+  return readSelfhostJson(res) as Promise<{ id: string; video: ExerciseVideo }>;
+}
+
+export async function selfhostAdminIssuePasswordResetLink(id: string) {
+  const res = await selfhostFetch(
+    `/api/selfhost/admin/clients/${encodeURIComponent(id)}/password-reset-link`,
+    { method: "POST", body: "{}" },
+  );
+  return readSelfhostJson(res) as Promise<{ ok: true; url: string; expiresAt: string }>;
+}
+
 export async function selfhostAdminSetClientPassword(id: string, password: string) {
   const res = await selfhostFetch(
     `/api/selfhost/admin/clients/${encodeURIComponent(id)}/password`,

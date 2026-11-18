@@ -1,6 +1,17 @@
 import type { ExerciseVideoProvider, ExerciseVideoStatus } from "@/lib/exercise-video";
 
-export const MEDIA_FILTERS = ["all", "ok", "none", "unchecked", "unavailable", "used"] as const;
+export const MEDIA_FILTERS = [
+  "all",
+  "ok",
+  "none",
+  "unchecked",
+  "unavailable",
+  "used",
+  "rutube",
+  "youtube_only",
+  "missing_video",
+  "needs_confirmation",
+] as const;
 export type MediaFilter = (typeof MEDIA_FILTERS)[number];
 
 export type AdminExerciseReport = {
@@ -10,6 +21,10 @@ export type AdminExerciseReport = {
   unchecked: number;
   unavailable: number;
   used: number;
+  rutube: number;
+  youtube_only: number;
+  missing_video: number;
+  needs_confirmation: number;
 };
 
 export type AdminExerciseRow = {
@@ -39,4 +54,6 @@ export type AdminExerciseRow = {
   needsManualCheck: boolean;
   archived_at: string | null;
   is_active: boolean;
+  video_coverage?: "rutube" | "youtube_only" | "missing" | "needs_confirmation" | "other";
+  verified_rutube_url?: string | null;
 };

@@ -2,12 +2,14 @@ import { createHash, randomBytes } from "node:crypto";
 import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
 import { withTransaction } from "@/lib/selfhost/db";
+import { getPublicAppUrl } from "@/lib/selfhost/mail";
 import {
-  describeMailConfigForOps,
-  getPublicAppUrl,
-  sendSelfhostMail,
-} from "@/lib/selfhost/mail";
+  canDeliverPasswordResetMail,
+  enqueueOutboxMail,
+  flushMailOutbox,
+} from "@/lib/selfhost/mail-outbox";
 import { hashPasswordArgon2id } from "@/lib/selfhost/passwords";
+import { getPostgresPool } from "@/lib/selfhost/db";
 
 type Queryable = Pool | PoolClient;
 
@@ -15,9 +17,8 @@ function isPoolClient(db: Pool | PoolClient): db is PoolClient {
   return typeof (db as PoolClient).release === "function" && !("idleCount" in db);
 }
 
-const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
-const GENERIC_OK =
-  "Если аккаунт с таким email существует, мы отправили ссылку для смены пароля. Проверьте почту.";
+const RESET_TTL_MS = 30 * 60 * 1000;
+const GENERIC_OK = "Если такой адрес зарегистрирован, ссылка отправлена.";
 
 export const passwordResetRequestSchema = z.object({
   email: z.string().trim().email().max(255),
@@ -82,10 +83,7 @@ export async function requestPasswordResetPg(
   assertPasswordResetRateLimit([`ip:${ip ?? "unknown"}`, `email:${email}`]);
 
   const publicUrl = getPublicAppUrl();
-  const { rows } = await db.query(
-    `SELECT id, status FROM public.users WHERE email = $1`,
-    [email],
-  );
+  const { rows } = await db.query(`SELECT id, status FROM public.users WHERE email = $1`, [email]);
   const user = rows[0] as { id: string; status: string } | undefined;
 
   // Uniform timing-ish path: if no user / disabled / no public URL, still return GENERIC_OK.
@@ -112,33 +110,39 @@ export async function requestPasswordResetPg(
        VALUES ($1, $2, $3, $4)`,
       [user.id, tokenHash, expires.toISOString(), ip],
     );
+    if (canDeliverPasswordResetMail()) {
+      const link = `${publicUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
+      await enqueueOutboxMail(client, {
+        kind: "password-reset",
+        dedupeKey: `password-reset:${tokenHash}`,
+        to: email,
+        subject: "Восстановление пароля — PanovaPRO",
+        text: [
+          "Здравствуйте!",
+          "",
+          "Мы получили запрос на смену пароля в кабинете PanovaPRO.",
+          "Откройте ссылку (действует 30 минут, одноразовая):",
+          link,
+          "",
+          "Если вы не запрашивали сброс — просто проигнорируйте это письмо.",
+        ].join("\n"),
+      });
+    }
   };
   if (isPoolClient(db)) await run(db);
   else await withTransaction((c) => run(c));
 
-  const link = `${publicUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
-  const mail = await sendSelfhostMail({
-    to: email,
-    subject: "Восстановление пароля — PanovaPRO",
-    text: [
-      "Здравствуйте!",
-      "",
-      "Мы получили запрос на смену пароля в кабинете PanovaPRO.",
-      "Откройте ссылку (действует около часа, одноразовая):",
-      link,
-      "",
-      "Если вы не запрашивали сброс — просто проигнорируйте это письмо.",
-    ].join("\n"),
-  });
-
-  if (!mail.ok) {
-    // Token exists but mail failed — still uniform response. Ops see reason without token.
-    console.error("[password-reset] mail not delivered", mail.reason);
-    const ops = describeMailConfigForOps();
-    if (ops.blocker) console.error("[password-reset] blocker:", ops.blocker);
+  let mailed = false;
+  if (canDeliverPasswordResetMail()) {
+    try {
+      await flushMailOutbox(getPostgresPool(), 5);
+      mailed = true;
+    } catch {
+      console.error("[password-reset] outbox flush failed");
+    }
   }
 
-  return { message: GENERIC_OK, mailed: mail.ok };
+  return { message: GENERIC_OK, mailed };
 }
 
 export async function confirmPasswordResetPg(
@@ -190,10 +194,9 @@ export async function confirmPasswordResetPg(
       });
     }
 
-    const userRow = await client.query(
-      `SELECT status FROM public.users WHERE id = $1 FOR UPDATE`,
-      [row.user_id],
-    );
+    const userRow = await client.query(`SELECT status FROM public.users WHERE id = $1 FOR UPDATE`, [
+      row.user_id,
+    ]);
     const userStatus = (userRow.rows[0] as { status: string } | undefined)?.status;
     if (!userStatus || userStatus === "disabled") {
       throw Object.assign(new Error("Ссылка восстановления недействительна или уже использована"), {
@@ -228,4 +231,41 @@ export async function confirmPasswordResetPg(
   if (isPoolClient(db)) await run(db);
   else await withTransaction((c) => run(c));
   return { ok: true };
+}
+
+export async function issueTrainerPasswordResetLink(
+  db: Queryable,
+  userId: string,
+): Promise<{ url: string; expiresAt: string }> {
+  const publicUrl = getPublicAppUrl();
+  if (!publicUrl) {
+    throw Object.assign(new Error("Публичный адрес сайта не настроен"), { statusCode: 503 });
+  }
+  const { rows } = await db.query(`SELECT id, status FROM public.users WHERE id = $1`, [userId]);
+  const user = rows[0] as { id: string; status: string } | undefined;
+  if (!user || user.status === "disabled") {
+    throw Object.assign(new Error("Клиент не найден"), { statusCode: 404 });
+  }
+  const rawToken = newResetToken();
+  const tokenHash = hashResetToken(rawToken);
+  const expires = new Date(Date.now() + RESET_TTL_MS);
+  const run = async (client: PoolClient) => {
+    await client.query(
+      `UPDATE public.password_reset_tokens
+          SET used_at = COALESCE(used_at, (now() AT TIME ZONE 'utc'))
+        WHERE user_id = $1 AND used_at IS NULL`,
+      [user.id],
+    );
+    await client.query(
+      `INSERT INTO public.password_reset_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [user.id, tokenHash, expires.toISOString()],
+    );
+  };
+  if (isPoolClient(db)) await run(db);
+  else await withTransaction((c) => run(c));
+  return {
+    url: `${publicUrl}/reset-password?token=${encodeURIComponent(rawToken)}`,
+    expiresAt: expires.toISOString(),
+  };
 }

@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
-import { loadRuntimeConfig } from "@/lib/selfhost/client-api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/forgot-password")({
@@ -11,6 +9,7 @@ export const Route = createFileRoute("/forgot-password")({
 });
 
 const emailSchema = z.string().trim().email("Введите корректный email").max(255);
+const NEUTRAL = "Если такой адрес зарегистрирован, ссылка отправлена.";
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -22,20 +21,10 @@ function ForgotPasswordPage() {
     setSubmitting(true);
     try {
       const parsed = emailSchema.parse(email);
-      const runtime = await loadRuntimeConfig();
-      if (runtime.authBackend === "local") {
-        const { selfhostRequestPasswordReset } = await import("@/lib/selfhost/client-api");
-        const res = await selfhostRequestPasswordReset(parsed);
-        setSent(true);
-        toast.success(res.message || "Если аккаунт существует, письмо отправлено");
-        return;
-      }
-      const { error } = await supabase.auth.resetPasswordForEmail(parsed, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
+      const { selfhostRequestPasswordReset } = await import("@/lib/selfhost/client-api");
+      const res = await selfhostRequestPasswordReset(parsed);
       setSent(true);
-      toast.success("Письмо отправлено");
+      toast.success(res.message || NEUTRAL);
     } catch (err) {
       const message =
         err instanceof z.ZodError
@@ -50,18 +39,16 @@ function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-ivory">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
+    <div className="min-h-screen overflow-x-hidden bg-background text-ivory">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-16 sm:px-6">
         <Link to="/" className="mb-10 text-center font-display text-2xl text-ivory">
           Panova<span className="text-gold">PRO</span>
         </Link>
 
-        <div className="glass rounded-3xl p-8">
+        <div className="glass rounded-3xl p-6 sm:p-8">
           <h1 className="font-display text-3xl text-ivory">Восстановление пароля</h1>
-          <p className="mt-2 text-sm text-warm-gray">
-            {sent
-              ? "Если аккаунт с таким email существует, мы отправили ссылку. Проверьте почту."
-              : "Введите email — мы отправим ссылку для смены пароля."}
+          <p className="mt-2 text-sm leading-relaxed text-warm-gray">
+            {sent ? NEUTRAL : "Введите email — мы отправим ссылку для смены пароля."}
           </p>
 
           {!sent && (
@@ -75,7 +62,7 @@ function ForgotPasswordPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-gold/20 bg-background/50 px-4 py-3 text-ivory outline-none transition-colors focus:border-gold/60"
+                  className="w-full rounded-xl border border-gold/20 bg-background/50 px-4 py-3 text-base text-ivory outline-none transition-colors focus:border-gold/60"
                   placeholder="you@example.com"
                   autoComplete="email"
                 />
@@ -83,7 +70,7 @@ function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="mt-2 w-full rounded-full bg-gold px-6 py-3.5 text-sm font-medium text-background transition-transform hover:scale-[1.02] disabled:opacity-60"
+                className="mt-2 min-h-11 w-full rounded-full bg-gold px-6 py-3.5 text-sm font-medium text-background disabled:opacity-60"
               >
                 {submitting ? "..." : "Отправить ссылку"}
               </button>
@@ -92,7 +79,7 @@ function ForgotPasswordPage() {
 
           <Link
             to="/auth"
-            className="mt-6 block text-center text-sm text-warm-gray transition-colors hover:text-ivory"
+            className="mt-6 block min-h-11 text-center text-sm leading-10 text-warm-gray transition-colors hover:text-ivory"
           >
             ← Назад ко входу
           </Link>

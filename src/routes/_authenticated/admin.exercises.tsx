@@ -9,6 +9,7 @@ import { normalizeExerciseVideo } from "@/lib/exercise-video";
 import type { ExerciseVideoProvider, ExerciseVideoStatus } from "@/lib/exercise-video";
 import {
   loadRuntimeConfig,
+  selfhostAdminAddExerciseRutube,
   selfhostAdminDeleteExerciseMedia,
   selfhostAdminExercises,
   selfhostAdminRemoveExercise,
@@ -48,6 +49,8 @@ type Exercise = {
   needsManualCheck?: boolean;
   archived_at?: string | null;
   is_active?: boolean;
+  video_coverage?: "rutube" | "youtube_only" | "missing" | "needs_confirmation" | "other";
+  verified_rutube_url?: string | null;
 };
 
 const emptyExercise: Omit<Exercise, "id"> = {
@@ -97,6 +100,10 @@ const MEDIA_FILTER_CHIPS: { id: MediaFilter; label: string }[] = [
   { id: "unchecked", label: "Не проверено" },
   { id: "unavailable", label: "Недоступно" },
   { id: "used", label: "Используется в опубликованных программах" },
+  { id: "rutube", label: "Rutube доступен" },
+  { id: "youtube_only", label: "Только YouTube" },
+  { id: "missing_video", label: "Видео отсутствует" },
+  { id: "needs_confirmation", label: "Нужно ручное подтверждение" },
 ];
 const STATUS_LABEL: Record<string, string> = {
   ok: "рабочая",
@@ -108,6 +115,13 @@ const PROVIDER_LABEL: Record<string, string> = {
   rutube: "Rutube",
   none: "нет",
   external: "внешняя",
+};
+const COVERAGE_LABEL: Record<string, string> = {
+  rutube: "Rutube доступен",
+  youtube_only: "Только YouTube",
+  missing: "Видео отсутствует",
+  needs_confirmation: "Нужно ручное подтверждение",
+  other: "Другой источник",
 };
 
 async function downloadMedia(url: string, slug: string) {
@@ -144,6 +158,14 @@ function matchesMedia(e: Exercise, media: MediaFilter): boolean {
       return status === "unavailable";
     case "used":
       return (e.publishedUseCount ?? 0) > 0;
+    case "rutube":
+      return e.video_coverage === "rutube" || e.video_provider === "rutube";
+    case "youtube_only":
+      return e.video_coverage === "youtube_only";
+    case "missing_video":
+      return e.video_coverage === "missing" || (!e.video_url && e.video_coverage !== "rutube");
+    case "needs_confirmation":
+      return e.video_coverage === "needs_confirmation";
     default:
       return true;
   }
@@ -164,6 +186,8 @@ function AdminExercises() {
   const [editing, setEditing] = useState<
     Exercise | (Omit<Exercise, "id"> & { id?: string }) | null
   >(null);
+  const [rutubeDraft, setRutubeDraft] = useState("");
+  const [rutubeSaving, setRutubeSaving] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -376,7 +400,10 @@ function AdminExercises() {
         description={`В базе ${items.length || "…"} упражнений из вашей таблицы (с видео). Можно добавить или отредактировать вручную.`}
         action={
           <button
-            onClick={() => setEditing({ ...emptyExercise })}
+            onClick={() => {
+              setRutubeDraft("");
+              setEditing({ ...emptyExercise });
+            }}
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-xs uppercase tracking-widest text-background transition-transform hover:scale-[1.02]"
           >
             <Plus className="h-4 w-4" /> Новое упражнение
@@ -507,8 +534,10 @@ function AdminExercises() {
                   {e.default_sets}×{e.default_reps} · отдых {e.rest_seconds}с
                 </div>
                 <div className="text-[11px] text-warm-gray">
-                  {PROVIDER_LABEL[String(e.video_provider ?? "none")] ?? e.video_provider} ·{" "}
-                  {STATUS_LABEL[String(e.video_status ?? "unchecked")] ?? e.video_status} · в
+                  {COVERAGE_LABEL[e.video_coverage ?? ""] ??
+                    PROVIDER_LABEL[String(e.video_provider ?? "none")] ??
+                    e.video_provider}{" "}
+                  · {STATUS_LABEL[String(e.video_status ?? "unchecked")] ?? e.video_status} · в
                   опубликованных: {e.publishedUseCount ?? 0}
                   {e.archived_at ? " · в архиве" : ""}
                 </div>
@@ -525,7 +554,10 @@ function AdminExercises() {
                   </div>
                 )}
                 <button
-                  onClick={() => setEditing(e)}
+                  onClick={() => {
+                    setRutubeDraft(e.verified_rutube_url ?? "");
+                    setEditing(e);
+                  }}
                   className="mt-auto rounded-full border border-gold/30 px-3 py-1.5 text-xs uppercase tracking-widest text-ivory transition-colors hover:bg-gold/10"
                 >
                   Редактировать
@@ -663,6 +695,44 @@ function AdminExercises() {
               <div className="text-[11px] uppercase tracking-widest text-gold">
                 Видео упражнения
               </div>
+              {"id" in editing && editing.id ? (
+                <Field label="Rutube без изменения опубликованной программы">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input
+                      value={rutubeDraft}
+                      onChange={(e) => setRutubeDraft(e.target.value)}
+                      placeholder="https://rutube.ru/video/…"
+                      className={inp}
+                    />
+                    <button
+                      type="button"
+                      disabled={rutubeSaving || !rutubeDraft.trim()}
+                      onClick={() => {
+                        const exerciseId = "id" in editing ? editing.id : undefined;
+                        if (!exerciseId) return;
+                        setRutubeSaving(true);
+                        void (async () => {
+                          try {
+                            await selfhostAdminAddExerciseRutube(exerciseId, rutubeDraft.trim());
+                            toast.success("Rutube сохранён. Опубликованная программа не изменена.");
+                            load();
+                          } catch (error) {
+                            toast.error(error instanceof Error ? error.message : "Не сохранилось");
+                          } finally {
+                            setRutubeSaving(false);
+                          }
+                        })();
+                      }}
+                      className="min-h-11 rounded-xl bg-gold px-4 text-sm text-background disabled:opacity-50"
+                    >
+                      {rutubeSaving ? "..." : "Сохранить Rutube"}
+                    </button>
+                  </div>
+                  <p className="text-xs leading-relaxed text-warm-gray">
+                    Клиент получит ссылку через overlay. Snapshot и content_hash не меняются.
+                  </p>
+                </Field>
+              ) : null}
               <Field label="Ссылка на видео (YouTube, Rutube или https)">
                 <div className="flex gap-2">
                   <input

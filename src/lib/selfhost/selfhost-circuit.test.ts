@@ -3144,7 +3144,7 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     });
     expect(unknown.status).toBe(200);
     const unknownBody = await unknown.json();
-    expect(unknownBody.message).toMatch(/если аккаунт/i);
+    expect(unknownBody.message).toMatch(/если такой адрес зарегистрирован/i);
     expect(JSON.stringify(unknownBody)).not.toMatch(/token|password|argon2/i);
     expect(fs.readdirSync(mailDir)).toHaveLength(0);
 

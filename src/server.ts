@@ -7,6 +7,9 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { coerceJsonApiResponse, jsonApiError, logServerError } from "./lib/selfhost/api-error";
 import { handleSelfhostRequest } from "./lib/selfhost/http";
+import { startMailOutboxWorker } from "./lib/selfhost/mail-outbox";
+
+startMailOutboxWorker();
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;

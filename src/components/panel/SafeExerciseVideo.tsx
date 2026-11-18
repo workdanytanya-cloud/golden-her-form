@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import {
-  isAllowedEmbedUrl,
-  normalizeExerciseVideo,
+  selectExercisePlayback,
+  YOUTUBE_NETWORK_WARNING,
+  type ExercisePlaybackChoice,
   type ExerciseVideo,
 } from "@/lib/exercise-video";
-import { isDirectVideoFile, isUnusableHostedMediaUrl } from "@/lib/video-embed";
+import { isDirectVideoFile } from "@/lib/video-embed";
 
 type Props = {
   video?: ExerciseVideo | null;
@@ -15,145 +16,142 @@ type Props = {
   label?: string;
 };
 
-function VideoFallback({
-  text,
+function SourceButton({
+  active,
+  children,
+  onClick,
   href,
-  className,
 }: {
-  text: string;
+  active?: boolean;
+  children: string;
+  onClick?: () => void;
   href?: string | null;
-  className?: string;
 }) {
-  const safeHref = href && !isUnusableHostedMediaUrl(href) ? href : null;
+  const className = `inline-flex min-h-11 items-center justify-center rounded-full border px-4 py-2 text-sm ${
+    active ? "border-gold bg-gold text-background" : "border-gold/40 bg-background/70 text-ivory"
+  }`;
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        {children}
+      </a>
+    );
+  }
   return (
-    <div
-      className={`flex h-full min-h-[120px] w-full flex-col items-center justify-center gap-2 p-4 text-center ${className ?? ""}`}
-    >
-      <p className="text-xs text-warm-gray">{text}</p>
-      {safeHref ? (
-        <a
-          href={safeHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-gold underline"
-        >
-          Открыть видео
-        </a>
-      ) : null}
-    </div>
+    <button type="button" onClick={onClick} className={className}>
+      {children}
+    </button>
   );
 }
 
 export function SafeExerciseVideo({ video, url, title, fallbackText, className, label }: Props) {
-  // Prefer overlay/catalog URL that is actually playable — never fall back to dead Supabase Storage.
-  const preferredUrl =
-    (video?.url && !isUnusableHostedMediaUrl(video.url) ? video.url : null) ??
-    (url && !isUnusableHostedMediaUrl(url) ? url : null) ??
-    null;
-
-  const resolved = normalizeExerciseVideo({
-    video_url: preferredUrl,
-    video:
-      video && isUnusableHostedMediaUrl(video.url)
+  const playback = selectExercisePlayback(
+    video
+      ? {
+          ...video,
+          url: video.url || url || null,
+          title: video.title ?? title ?? null,
+          fallback_text: video.fallback_text ?? fallbackText ?? null,
+        }
+      : url
         ? {
-            ...video,
-            url: preferredUrl,
-            embed_url:
-              video.embed_url && !isUnusableHostedMediaUrl(video.embed_url)
-                ? video.embed_url
-                : null,
-            status: preferredUrl ? video.status : "unavailable",
+            provider: "external",
+            url,
+            embed_url: null,
+            title: title ?? null,
+            status: "ok",
+            fallback_text: fallbackText ?? null,
           }
-        : video,
-    title: video?.title ?? title,
-    fallback_text: video?.fallback_text ?? fallbackText,
-  });
-
-  // Dead hosted storage → never attempt playback / open-link to 402 JSON.
-  const playable =
-    resolved.url && !isUnusableHostedMediaUrl(resolved.url) && resolved.status !== "unavailable"
-      ? resolved
-      : {
-          ...resolved,
-          url: null,
-          embed_url: null,
-          status: "unavailable" as const,
-          fallback_text:
-            resolved.fallback_text || "Видео временно недоступно. Выполняйте по подсказкам.",
-        };
-
+        : null,
+  );
+  const [choice, setChoice] = useState<ExercisePlaybackChoice>(playback.active);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    setChoice(playback.active);
     setFailed(false);
-  }, [playable.url, playable.embed_url]);
+  }, [playback.active, playback.embedUrl, playback.openUrl]);
 
-  const caption = playable.fallback_text || "Видео временно недоступно. Выполняйте по подсказкам.";
-  const heading = playable.title || label || "Видео упражнения";
-
-  if (!playable.url || playable.status === "unavailable") {
-    return <VideoFallback text={caption} className={className} />;
-  }
-
-  if (failed) {
-    return <VideoFallback text={caption} href={playable.url} className={className} />;
-  }
-
-  if (playable.provider === "external" || !playable.embed_url) {
-    if (isDirectVideoFile(playable.url)) {
-      return (
-        <video
-          src={playable.url}
-          title={heading}
-          className={className || "h-full w-full object-contain"}
-          controls
-          playsInline
-          preload="metadata"
-          onError={() => setFailed(true)}
-        />
-      );
-    }
-    return <VideoFallback text={caption} href={playable.url} className={className} />;
-  }
-
-  if (!isAllowedEmbedUrl(playable.embed_url)) {
-    return <VideoFallback text={caption} href={playable.url} className={className} />;
-  }
+  const active =
+    choice === "youtube" && playback.youtube
+      ? "youtube"
+      : choice === "rutube" && playback.rutube
+        ? "rutube"
+        : choice === "local" && playback.local
+          ? "local"
+          : choice === "external" && playback.external
+            ? "external"
+            : playback.active;
+  const openUrl =
+    active === "youtube"
+      ? playback.youtube?.url
+      : active === "rutube"
+        ? playback.rutube?.url
+        : active === "local"
+          ? playback.local?.url
+          : active === "external"
+            ? playback.external?.url
+            : playback.openUrl;
+  const embedUrl = active === "rutube" ? playback.embedUrl : null;
+  const localUrl = active === "local" ? playback.local?.url : null;
+  const heading = video?.title || title || label || "Видео упражнения";
+  const message =
+    active === "youtube"
+      ? YOUTUBE_NETWORK_WARNING
+      : failed
+        ? "Это видео не открылось. Остальные упражнения тренировки доступны."
+        : active === "none"
+          ? playback.message
+          : null;
 
   return (
-    <div className={`relative flex h-full w-full flex-col ${className ?? ""}`}>
-      <iframe
-        src={playable.embed_url}
-        title={heading}
-        className="h-full min-h-[120px] w-full flex-1 border-0"
-        allow="clipboard-write; autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
-        allowFullScreen
-        referrerPolicy="strict-origin-when-cross-origin"
-        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
-        onError={() => setFailed(true)}
-      />
-      <a
-        href={playable.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="shrink-0 bg-surface/80 px-2 py-1 text-center text-[11px] text-gold underline"
-      >
-        Открыть видео
-      </a>
+    <div className={`w-full max-w-full overflow-hidden ${className ?? ""}`}>
+      {embedUrl && !failed ? (
+        <div className="aspect-video w-full max-w-full overflow-hidden bg-black">
+          <iframe
+            src={embedUrl}
+            title={heading}
+            className="h-full w-full border-0"
+            allow="clipboard-write; autoplay; fullscreen; picture-in-picture; encrypted-media"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+            onError={() => setFailed(true)}
+          />
+        </div>
+      ) : localUrl && isDirectVideoFile(localUrl) && !failed ? (
+        <div className="aspect-video w-full max-w-full overflow-hidden bg-black">
+          <video
+            src={localUrl}
+            title={heading}
+            className="h-full w-full object-contain"
+            controls
+            playsInline
+            preload="metadata"
+            onError={() => setFailed(true)}
+          />
+        </div>
+      ) : (
+        <div className="flex min-h-28 w-full flex-col items-center justify-center gap-3 px-4 py-5 text-center">
+          <p className="text-sm leading-relaxed text-ivory">{message}</p>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2 border-t border-gold/10 p-3">
+        {playback.rutube ? (
+          <SourceButton active={active === "rutube"} onClick={() => setChoice("rutube")}>
+            Rutube
+          </SourceButton>
+        ) : null}
+        {playback.youtube ? (
+          <SourceButton active={active === "youtube"} onClick={() => setChoice("youtube")}>
+            YouTube
+          </SourceButton>
+        ) : null}
+        {active === "youtube" && playback.youtube ? (
+          <SourceButton href={playback.youtube.url}>Открыть YouTube</SourceButton>
+        ) : null}
+        {openUrl ? <SourceButton href={openUrl}>Открыть видео отдельно</SourceButton> : null}
+      </div>
     </div>
   );
-}
-
-export function SafeMediaSlot({
-  children,
-  fallback,
-}: {
-  children: ReactNode;
-  fallback?: ReactNode;
-}) {
-  try {
-    return <>{children}</>;
-  } catch {
-    return <>{fallback ?? null}</>;
-  }
 }

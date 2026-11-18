@@ -215,7 +215,7 @@ export function TrainingView({
   };
 
   return (
-    <div className="min-w-0 max-w-full space-y-6">
+    <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
       {/* Overview */}
       <section className="rounded-3xl border border-gold/15 bg-gradient-to-br from-gold/10 via-transparent to-coral/10 p-6">
         <p className="text-[11px] uppercase tracking-widest text-gold">Программа тренировок</p>
@@ -1077,7 +1077,7 @@ function ExerciseDialog({
     <Dialog open onOpenChange={onClose}>
       <DialogContent
         ref={contentRef}
-        className="flex max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-2xl flex-col overflow-y-auto bg-background p-0 text-ivory"
+        className="flex max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-2xl flex-col overflow-x-hidden overflow-y-auto bg-background p-0 text-ivory"
       >
         <div className="space-y-4 p-6 pb-0">
           <DialogHeader>
@@ -1090,7 +1090,7 @@ function ExerciseDialog({
           </p>
 
           {/* Media */}
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid w-full max-w-full gap-3 lg:grid-cols-2">
             <MediaErrorBoundary
               fallback={
                 <div className="rounded-2xl border border-gold/15 p-4 text-xs text-warm-gray">
@@ -1279,7 +1279,7 @@ function ExerciseDialog({
                 <button
                   type="button"
                   onClick={onPrev}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-gold/25 px-3 py-2 text-[11px] uppercase tracking-widest text-warm-gray transition-colors hover:border-gold/40 hover:text-ivory"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full border border-gold/25 px-4 py-2 text-sm text-warm-gray transition-colors hover:border-gold/40 hover:text-ivory"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Назад
@@ -1298,7 +1298,7 @@ function ExerciseDialog({
                 <button
                   type="button"
                   onClick={onNext}
-                  className="inline-flex min-w-0 max-w-[52%] shrink-0 flex-col items-end rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-right transition-opacity hover:opacity-90"
+                  className="inline-flex min-h-11 min-w-0 max-w-[58%] shrink-0 flex-col items-end justify-center rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-right transition-opacity hover:opacity-90"
                 >
                   <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-widest text-background">
                     Дальше
@@ -1314,7 +1314,7 @@ function ExerciseDialog({
                 <button
                   type="button"
                   onClick={onWorkoutComplete ?? onClose}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-[11px] uppercase tracking-widest text-background transition-opacity hover:opacity-90"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-coral to-gold px-4 py-2 text-sm text-background transition-opacity hover:opacity-90"
                 >
                   Готово
                 </button>
@@ -1468,27 +1468,31 @@ function MediaCard({
 
   return (
     <>
-      <div className="overflow-hidden rounded-2xl border border-gold/15 bg-surface/40">
-        <div className="relative flex aspect-video items-center justify-center bg-background/60 text-warm-gray">
-          {url || isVideo ? (
-            <>
-              {media}
-              <button
-                type="button"
-                onClick={() => setZoom(true)}
-                aria-label="Открыть на весь экран"
-                className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-background/70 px-2.5 py-1 text-[10px] uppercase tracking-widest text-ivory backdrop-blur transition-colors hover:bg-gold/20"
-              >
-                <Maximize2 className="h-3 w-3" /> На весь экран
-              </button>
-            </>
-          ) : (
-            <div className="flex flex-col items-center gap-2 text-warm-gray">
-              {placeholder}
-              <span className="text-[10px] uppercase tracking-widest">будет добавлено</span>
-            </div>
-          )}
-        </div>
+      <div className="w-full max-w-full overflow-hidden rounded-2xl border border-gold/15 bg-surface/40">
+        {isVideo ? (
+          <div className="w-full max-w-full">{media}</div>
+        ) : (
+          <div className="relative flex aspect-video w-full max-w-full items-center justify-center overflow-hidden bg-background/60 text-warm-gray">
+            {url ? (
+              <>
+                {media}
+                <button
+                  type="button"
+                  onClick={() => setZoom(true)}
+                  aria-label="Открыть на весь экран"
+                  className="absolute right-2 top-2 z-10 inline-flex min-h-11 items-center gap-1 rounded-full border border-gold/30 bg-background/70 px-3 text-sm text-ivory backdrop-blur transition-colors hover:bg-gold/20"
+                >
+                  <Maximize2 className="h-4 w-4" /> На весь экран
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-warm-gray">
+                {placeholder}
+                <span className="text-[10px] uppercase tracking-widest">будет добавлено</span>
+              </div>
+            )}
+          </div>
+        )}
         <p className="border-t border-gold/10 px-3 py-2 text-[10px] uppercase tracking-widest text-warm-gray">
           {label}
         </p>
