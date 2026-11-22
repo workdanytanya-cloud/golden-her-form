@@ -25,7 +25,6 @@ type ProfileForm = {
   goal: string;
   height_cm: string;
   weight_kg: string;
-  birth_date: string;
 };
 
 const empty: ProfileForm = {
@@ -34,7 +33,6 @@ const empty: ProfileForm = {
   goal: "",
   height_cm: "",
   weight_kg: "",
-  birth_date: "",
 };
 
 function ProfilePage() {
@@ -74,7 +72,6 @@ function ProfilePage() {
           goal: (data?.goal as string) ?? "",
           height_cm: data?.height_cm != null ? String(data.height_cm) : "",
           weight_kg: meas.latestWeightKg != null ? String(meas.latestWeightKg) : "",
-          birth_date: (data?.birth_date as string) ?? "",
         });
         setLoading(false);
         return;
@@ -82,7 +79,7 @@ function ProfilePage() {
       const [profRes, measRes] = await Promise.all([
         supabase
           .from("profiles")
-          .select("full_name, phone, goal, height_cm, birth_date")
+          .select("full_name, phone, goal, height_cm")
           .eq("id", effectiveUserId)
           .maybeSingle(),
         supabase
@@ -102,7 +99,6 @@ function ProfilePage() {
           goal: data.goal ?? "",
           height_cm: data.height_cm != null ? String(data.height_cm) : "",
           weight_kg: measRes.data?.weight_kg != null ? String(measRes.data.weight_kg) : "",
-          birth_date: data.birth_date ?? "",
         });
       } else {
         setForm({
@@ -167,9 +163,9 @@ function ProfilePage() {
           phone: form.phone || null,
           goal: form.goal || null,
           height_cm: form.height_cm ? parseHeightCm(form.height_cm) : null,
-          birth_date: form.birth_date || null,
           weight_kg: parseRuNumber(form.weight_kg),
           idempotencyKey: idem,
+          birth_date: null,
         });
       } else {
         const { error } = await supabase
@@ -179,7 +175,7 @@ function ProfilePage() {
             phone: form.phone || null,
             goal: form.goal || null,
             height_cm: form.height_cm ? parseHeightCm(form.height_cm) : null,
-            birth_date: form.birth_date || null,
+            birth_date: null,
           })
           .eq("id", effectiveUserId);
         if (error) throw error;
@@ -203,8 +199,8 @@ function ProfilePage() {
       />
 
       <SectionHint tone="tip">
-        Заполните хотя бы имя, рост, вес и цель — остальное можно добавить позже. Все поля видны
-        только вам и вашему тренеру.
+        Заполните хотя бы имя, рост, вес и цель — остальное можно добавить позже. Возраст и пол
+        указываются в первичной анкете. Все поля видны только вам и вашему тренеру.
       </SectionHint>
 
       {loading ? (
@@ -243,16 +239,6 @@ function ProfilePage() {
                 className={inputCls}
                 placeholder="+7 …"
                 autoComplete="tel"
-              />
-            </Field>
-            <Field label="Дата рождения" htmlFor="profile-birth">
-              <input
-                id="profile-birth"
-                name="birth_date"
-                type="date"
-                value={form.birth_date}
-                onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
-                className={inputCls}
               />
             </Field>
             <Field label="Рост, см" htmlFor="profile-height">

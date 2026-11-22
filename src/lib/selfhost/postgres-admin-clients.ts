@@ -1,5 +1,6 @@
 import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
+import { birthDateFromPg, birthDateSchema, parseBirthDateInput } from "@/lib/birth-date";
 import { revokeAllSessionsForUser } from "@/lib/selfhost/local-auth";
 import { hashPasswordArgon2id } from "@/lib/selfhost/passwords";
 
@@ -14,7 +15,8 @@ export const adminClientProfileSchema = z.object({
   phone: z.string().max(50).nullable().optional(),
   goal: z.string().max(300).nullable().optional(),
   height_cm: z.number().min(80).max(260).nullable().optional(),
-  birth_date: z.string().nullable().optional(),
+  birth_date: birthDateSchema,
+  age_years: z.number().int().min(14).max(100).nullable().optional(),
   gender: z.string().max(20).nullable().optional(),
   avatar_url: z.string().max(2000).nullable().optional(),
   can_reheat_food: z.boolean().nullable().optional(),
@@ -55,6 +57,7 @@ export type AdminClientListItem = {
 export type AdminClientCard = AdminClientListItem & {
   height_cm: number | null;
   birth_date: string | null;
+  age_years: number | null;
   gender: string | null;
   avatar_url: string | null;
   role: "client";
@@ -81,7 +84,7 @@ SELECT u.id,
        u.email::text AS email,
        u.status AS account_status,
        COALESCE(p.created_at, u.created_at) AS created_at,
-       p.full_name, p.phone, p.goal, p.height_cm, p.birth_date, p.gender, p.avatar_url,
+       p.full_name, p.phone, p.goal, p.height_cm, p.birth_date::text AS birth_date, p.age_years, p.gender, p.avatar_url,
        ca.status AS access_status, ca.unlock_source, ca.activated_at, ca.notes AS access_notes,
        o.completed_at AS onboarding_completed_at,
        (
@@ -189,7 +192,8 @@ export class PostgresAdminClientRepository {
     return {
       ...base,
       height_cm: row.height_cm == null ? null : Number(row.height_cm),
-      birth_date: row.birth_date ? String(row.birth_date).slice(0, 10) : null,
+      birth_date: birthDateFromPg(row.birth_date),
+      age_years: row.age_years == null ? null : Number(row.age_years),
       gender: (row.gender as string | null) ?? null,
       avatar_url: (row.avatar_url as string | null) ?? null,
       role: "client",
@@ -208,6 +212,15 @@ export class PostgresAdminClientRepository {
     clientId: string,
     patch: z.infer<typeof adminClientProfileSchema>,
   ): Promise<void> {
+    const includeBirthDate = patch.birth_date !== undefined;
+    let birthDate: string | null = null;
+    if (includeBirthDate) {
+      const parsedBirth = parseBirthDateInput(patch.birth_date);
+      if (!parsedBirth.ok) {
+        throw Object.assign(new Error(parsedBirth.message), { statusCode: 400 });
+      }
+      birthDate = parsedBirth.value;
+    }
     const data = adminClientProfileSchema.parse(patch);
     const existing = await this.get(clientId);
     if (!existing) throw Object.assign(new Error("Клиент не найден"), { statusCode: 404 });
@@ -220,18 +233,19 @@ export class PostgresAdminClientRepository {
          phone = $3,
          goal = $4,
          height_cm = $5,
-         birth_date = $6::date,
-         gender = $7,
-         avatar_url = COALESCE($8, avatar_url),
-         can_reheat_food = COALESCE($9, can_reheat_food),
-         can_take_food_to_work = COALESCE($10, can_take_food_to_work),
-         disliked_products = COALESCE($11, disliked_products),
-         excluded_food_products = COALESCE($12, excluded_food_products),
-         food_allergies = COALESCE($13, food_allergies),
-         food_intolerances = COALESCE($14, food_intolerances),
-         max_prep_minutes = COALESCE($15, max_prep_minutes),
-         preferred_main_meal_time = COALESCE($16, preferred_main_meal_time),
-         preferred_meal_schedule = COALESCE($17, preferred_meal_schedule),
+         birth_date = CASE WHEN $6::boolean THEN $7::date ELSE birth_date END,
+         age_years = CASE WHEN $8::boolean THEN $9::integer ELSE age_years END,
+         gender = $10,
+         avatar_url = COALESCE($11, avatar_url),
+         can_reheat_food = COALESCE($12, can_reheat_food),
+         can_take_food_to_work = COALESCE($13, can_take_food_to_work),
+         disliked_products = COALESCE($14, disliked_products),
+         excluded_food_products = COALESCE($15, excluded_food_products),
+         food_allergies = COALESCE($16, food_allergies),
+         food_intolerances = COALESCE($17, food_intolerances),
+         max_prep_minutes = COALESCE($18, max_prep_minutes),
+         preferred_main_meal_time = COALESCE($19, preferred_main_meal_time),
+         preferred_meal_schedule = COALESCE($20, preferred_meal_schedule),
          updated_at = (now() AT TIME ZONE 'utc')
        WHERE id = $1`,
       [
@@ -240,7 +254,10 @@ export class PostgresAdminClientRepository {
         data.phone ?? null,
         data.goal ?? null,
         data.height_cm ?? null,
-        data.birth_date ?? null,
+        includeBirthDate,
+        birthDate,
+        data.age_years !== undefined,
+        data.age_years ?? null,
         data.gender ?? null,
         data.avatar_url ?? null,
         data.can_reheat_food ?? null,

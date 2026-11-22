@@ -1,5 +1,7 @@
 import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
+import { normalizeStoredAge } from "@/lib/client-age";
+import { mapGender } from "@/lib/client-courses/program-readiness";
 import { withTransaction } from "@/lib/selfhost/db";
 import { createMeasurementPg } from "@/lib/selfhost/postgres-measurements";
 
@@ -18,6 +20,8 @@ export const onboardingSaveSchema = z.object({
   asCompleted: z.boolean().optional().default(false),
   height_cm: z.number().int().min(120).max(230).nullable().optional(),
   weight_kg: z.number().finite().min(30).max(250).nullable().optional(),
+  age_years: z.number().int().min(14).max(100).nullable().optional(),
+  gender: z.enum(["female", "male"]).nullable().optional(),
   weightIdempotencyKey: z.string().min(8).max(200).nullable().optional(),
   payload: z.object({
     goal_primary: nullableStr,
@@ -61,28 +65,49 @@ export async function loadOnboardingPg(
   onboarding: Record<string, unknown> | null;
   height_cm: number | null;
   weight_kg: number | null;
+  age_years: number | null;
+  gender: "female" | "male" | null;
 }> {
   const onb = await db.query(`SELECT * FROM public.onboarding_responses WHERE user_id = $1`, [
     userId,
   ]);
-  const profile = await db.query(`SELECT height_cm FROM public.profiles WHERE id = $1`, [userId]);
+  const profile = await db.query(
+    `SELECT height_cm, age_years, gender FROM public.profiles WHERE id = $1`,
+    [userId],
+  );
   const weight = await db.query(
     `SELECT weight_kg FROM public.measurements
       WHERE user_id = $1 AND weight_kg IS NOT NULL
       ORDER BY measured_on DESC, created_at DESC LIMIT 1`,
     [userId],
   );
+  const profileRow = profile.rows[0] as
+    | { height_cm?: number | null; age_years?: number | null; gender?: string | null }
+    | undefined;
   return {
     onboarding: (onb.rows[0] as Record<string, unknown> | undefined) ?? null,
-    height_cm:
-      (profile.rows[0] as { height_cm?: number | null } | undefined)?.height_cm == null
-        ? null
-        : Number((profile.rows[0] as { height_cm: number }).height_cm),
+    height_cm: profileRow?.height_cm == null ? null : Number(profileRow.height_cm),
+    age_years: normalizeStoredAge(profileRow?.age_years),
+    gender: mapGender(profileRow?.gender ?? null),
     weight_kg:
       (weight.rows[0] as { weight_kg?: number | string } | undefined)?.weight_kg == null
         ? null
         : Number((weight.rows[0] as { weight_kg: number | string }).weight_kg),
   };
+}
+
+export function missingCompletedBody(input: {
+  age_years?: number | null;
+  gender?: string | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+}): string[] {
+  const missing: string[] = [];
+  if (normalizeStoredAge(input.age_years) == null) missing.push("возраст, полных лет");
+  if (!mapGender(input.gender)) missing.push("пол");
+  if (input.height_cm == null) missing.push("рост, см");
+  if (input.weight_kg == null) missing.push("вес, кг");
+  return missing;
 }
 
 export async function saveOnboardingPg(
@@ -96,16 +121,43 @@ export async function saveOnboardingPg(
   autogenSkipped: true;
 }> {
   const data = onboardingSaveSchema.parse(input);
+  if (data.asCompleted) {
+    const missing = missingCompletedBody(data);
+    if (missing.length > 0) {
+      throw Object.assign(
+        new Error(`Чтобы отправить анкету, заполните: ${missing.join(", ")}.`),
+        { statusCode: 400 },
+      );
+    }
+  }
   const p = data.payload;
 
   const run = async (client: PoolClient) => {
     await client.query(`INSERT INTO public.profiles (id) VALUES ($1) ON CONFLICT (id) DO NOTHING`, [
       data.clientId,
     ]);
-    if (data.height_cm !== undefined) {
+    if (
+      data.height_cm !== undefined ||
+      data.age_years !== undefined ||
+      data.gender !== undefined
+    ) {
       await client.query(
-        `UPDATE public.profiles SET height_cm = $2, updated_at = (now() AT TIME ZONE 'utc') WHERE id = $1`,
-        [data.clientId, data.height_cm],
+        `UPDATE public.profiles SET
+           height_cm = CASE WHEN $2::boolean THEN $3 ELSE height_cm END,
+           age_years = CASE WHEN $4::boolean THEN $5 ELSE age_years END,
+           gender = CASE WHEN $6::boolean THEN $7 ELSE gender END,
+           birth_date = NULL,
+           updated_at = (now() AT TIME ZONE 'utc')
+         WHERE id = $1`,
+        [
+          data.clientId,
+          data.height_cm !== undefined,
+          data.height_cm ?? null,
+          data.age_years !== undefined,
+          data.age_years ?? null,
+          data.gender !== undefined,
+          data.gender ?? null,
+        ],
       );
     }
 

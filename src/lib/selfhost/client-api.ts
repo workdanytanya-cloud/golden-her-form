@@ -1169,6 +1169,8 @@ export async function selfhostOnboarding(clientId?: string | null) {
     onboarding: Record<string, unknown> | null;
     height_cm: number | null;
     weight_kg: number | null;
+    age_years: number | null;
+    gender: "female" | "male" | null;
   }>;
 }
 

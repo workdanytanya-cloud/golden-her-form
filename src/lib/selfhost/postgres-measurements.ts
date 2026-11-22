@@ -1,3 +1,4 @@
+import { resolveClientAge } from "@/lib/client-age";
 import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
 import { withTransaction } from "@/lib/selfhost/db";
@@ -135,7 +136,7 @@ export async function createNutritionRecommendationFromMeasurementPg(
   if (!Number.isFinite(weightKg) || weightKg < 30) return;
 
   const profile = await db.query(
-    `SELECT height_cm, gender, birth_date::text AS birth_date FROM public.profiles WHERE id = $1`,
+    `SELECT height_cm, gender, birth_date::text AS birth_date, age_years FROM public.profiles WHERE id = $1`,
     [userId],
   );
   const onb = await db.query(
@@ -143,26 +144,23 @@ export async function createNutritionRecommendationFromMeasurementPg(
     [userId],
   );
   const p = profile.rows[0] as
-    | { height_cm?: number | null; gender?: string | null; birth_date?: string | null }
+    | {
+        height_cm?: number | null;
+        gender?: string | null;
+        birth_date?: string | null;
+        age_years?: number | null;
+      }
     | undefined;
   const o = onb.rows[0] as
     | { activity_level?: string | null; goal_primary?: string | null }
     | undefined;
 
   const height = Number(p?.height_cm ?? 165) || 165;
-  let age = 30;
-  if (p?.birth_date) {
-    const birth = new Date(p.birth_date);
-    if (!Number.isNaN(birth.getTime())) {
-      const now = new Date();
-      age = Math.max(
-        14,
-        now.getFullYear() -
-          birth.getFullYear() -
-          (now < new Date(now.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0),
-      );
-    }
-  }
+  const age =
+    resolveClientAge({
+      birthDate: p?.birth_date,
+      ageYears: p?.age_years == null ? null : Number(p.age_years),
+    }) ?? 30;
   const activity = (o?.activity_level ?? "medium").toLowerCase();
   const factor =
     activity === "sedentary" || activity === "low"

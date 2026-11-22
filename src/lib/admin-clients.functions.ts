@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { birthDateSchema } from "@/lib/birth-date";
 import { assertAdmin } from "@/lib/server/assert-admin";
 import { z } from "zod";
 
@@ -57,6 +58,7 @@ export const adminUpdateClientProfile = createServerFn({ method: "POST" })
       goal?: string | null;
       height_cm?: number | null;
       birth_date?: string | null;
+      age_years?: number | null;
       gender?: string | null;
     }) =>
       z
@@ -66,7 +68,8 @@ export const adminUpdateClientProfile = createServerFn({ method: "POST" })
           phone: z.string().max(50).nullable().optional(),
           goal: z.string().max(300).nullable().optional(),
           height_cm: z.number().min(80).max(260).nullable().optional(),
-          birth_date: z.string().nullable().optional(),
+          birth_date: birthDateSchema,
+          age_years: z.number().int().min(14).max(100).nullable().optional(),
           gender: z.string().max(20).nullable().optional(),
         })
         .parse(input),
@@ -74,8 +77,11 @@ export const adminUpdateClientProfile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { userId, ...patch } = data;
-    const { error } = await supabaseAdmin.from("profiles").update(patch).eq("id", userId);
+    const { userId, birth_date: birthDate, ...patch } = data;
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update(birthDate === undefined ? patch : { ...patch, birth_date: birthDate })
+      .eq("id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

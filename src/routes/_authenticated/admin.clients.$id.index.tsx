@@ -44,6 +44,7 @@ type Profile = {
   goal: string | null;
   height_cm: number | null;
   birth_date: string | null;
+  age_years: number | null;
   gender: string | null;
   created_at: string;
 };
@@ -106,6 +107,7 @@ function ClientDetail() {
           goal: (c.goal as string | null) ?? null,
           height_cm: c.height_cm == null ? null : Number(c.height_cm),
           birth_date: (c.birth_date as string | null) ?? null,
+          age_years: c.age_years == null ? null : Number(c.age_years),
           gender: (c.gender as string | null) ?? null,
           created_at: String(c.created_at),
         });
@@ -134,7 +136,7 @@ function ClientDetail() {
       const { supabase } = await import("@/integrations/supabase/client");
       void supabase
         .from("profiles")
-        .select("id, full_name, phone, goal, height_cm, birth_date, gender, created_at")
+        .select("id, full_name, phone, goal, height_cm, birth_date, age_years, gender, created_at")
         .eq("id", id)
         .maybeSingle()
         .then(({ data }) => setProfile(data as Profile | null));
@@ -699,7 +701,7 @@ function ProfileEditor({
     goal: "",
     height_cm: "",
     weight_kg: "",
-    birth_date: "",
+    age_years: "",
     gender: "",
   });
   const [saving, setSaving] = useState(false);
@@ -712,7 +714,7 @@ function ProfileEditor({
       goal: profile.goal ?? "",
       height_cm: profile.height_cm != null ? String(profile.height_cm) : "",
       weight_kg: latestWeightKg != null ? String(latestWeightKg) : "",
-      birth_date: profile.birth_date ?? "",
+      age_years: profile.age_years != null ? String(profile.age_years) : "",
       gender: profile.gender ?? "",
     });
   }, [profile, latestWeightKg]);
@@ -747,19 +749,32 @@ function ProfileEditor({
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    const ageText = form.age_years.trim();
+    const ageYears = ageText ? Number(ageText) : null;
+    if (ageText && (!Number.isInteger(ageYears) || (ageYears ?? 0) < 14 || (ageYears ?? 0) > 100)) {
+      toast.error("Возраст укажите целым числом от 14 до 100.");
+      return;
+    }
+    if (!form.gender) {
+      toast.error("Укажите пол клиента.");
+      return;
+    }
     setSaving(true);
     try {
+      const profilePatch = {
+        full_name: form.full_name.trim() || null,
+        phone: form.phone.trim() || null,
+        goal: form.goal.trim() || null,
+        height_cm: form.height_cm ? Number(form.height_cm) : null,
+        age_years: ageYears,
+        gender: form.gender,
+        // Дата рождения больше не используется; сбрасываем, чтобы не ломать сохранение битыми значениями.
+        birth_date: null,
+      };
       if (localCircuit) {
         const { selfhostAdminUpdateProfile, selfhostCreateMeasurement } =
           await import("@/lib/selfhost/client-api");
-        await selfhostAdminUpdateProfile(clientId, {
-          full_name: form.full_name.trim() || null,
-          phone: form.phone.trim() || null,
-          goal: form.goal.trim() || null,
-          height_cm: form.height_cm ? Number(form.height_cm) : null,
-          birth_date: form.birth_date || null,
-          gender: form.gender || null,
-        });
+        await selfhostAdminUpdateProfile(clientId, profilePatch);
         const weight = form.weight_kg.trim() ? Number(form.weight_kg.replace(",", ".")) : null;
         if (weight != null && Number.isFinite(weight)) {
           if (weight < 30 || weight > 250) throw new Error("Вес должен быть от 30 до 250 кг");
@@ -778,12 +793,7 @@ function ProfileEditor({
         await updateProfile({
           data: {
             userId: clientId,
-            full_name: form.full_name.trim() || null,
-            phone: form.phone.trim() || null,
-            goal: form.goal.trim() || null,
-            height_cm: form.height_cm ? Number(form.height_cm) : null,
-            birth_date: form.birth_date || null,
-            gender: form.gender || null,
+            ...profilePatch,
           },
         });
         const weight = form.weight_kg.trim() ? Number(form.weight_kg.replace(",", ".")) : null;
@@ -805,8 +815,9 @@ function ProfileEditor({
     <section>
       <h2 className="font-display text-2xl">Профиль клиента</h2>
       <p className="mt-1 text-sm text-warm-gray">
-        Заполните за клиента, если он не может сделать это сам. При весе выше 85 кг в тренировках
-        автоматически убираются прыжки и ударные нагрузки.
+        Заполните за клиента, если он не может сделать это сам. Для расчёта достаточно возраста,
+        роста, веса и пола. При весе выше 85 кг в тренировках автоматически убираются прыжки и
+        ударные нагрузки.
       </p>
       <form
         onSubmit={save}
@@ -829,13 +840,29 @@ function ProfileEditor({
             className={inputCls}
           />
         </F>
-        <F label="Дата рождения" span="md:col-span-2">
+        <F label="Возраст, полных лет" span="md:col-span-2">
           <input
-            type="date"
-            value={form.birth_date}
-            onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
+            type="number"
+            min={14}
+            max={100}
+            step={1}
+            value={form.age_years}
+            onChange={(e) => setForm({ ...form, age_years: e.target.value })}
             className={inputCls}
+            placeholder="например, 53"
           />
+        </F>
+        <F label="Пол" span="md:col-span-2">
+          <select
+            value={form.gender}
+            onChange={(e) => setForm({ ...form, gender: e.target.value })}
+            className={inputCls}
+            required
+          >
+            <option value="">—</option>
+            <option value="female">Женский</option>
+            <option value="male">Мужской</option>
+          </select>
         </F>
         <F label="Рост, см" span="md:col-span-2">
           <input
@@ -855,17 +882,6 @@ function ProfileEditor({
             className={inputCls}
             placeholder="например 86"
           />
-        </F>
-        <F label="Пол" span="md:col-span-2">
-          <select
-            value={form.gender}
-            onChange={(e) => setForm({ ...form, gender: e.target.value })}
-            className={inputCls}
-          >
-            <option value="">—</option>
-            <option value="female">Женский</option>
-            <option value="male">Мужской</option>
-          </select>
         </F>
         <F label="Цель" span="md:col-span-6">
           <textarea
@@ -907,8 +923,6 @@ function AdminActions({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
-  const [linkLoading, setLinkLoading] = useState(false);
-  const [resetLink, setResetLink] = useState<{ url: string; expiresAt: string } | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const archived = accountStatus === "disabled";
   const navigate = useNavigate();
@@ -1022,63 +1036,6 @@ function AdminActions({
           </button>
         </form>
       </div>
-
-      {localCircuit && (
-        <div className="rounded-3xl border border-gold/20 bg-surface/40 p-6">
-          <h3 className="font-display text-lg text-ivory">Одноразовая ссылка восстановления</h3>
-          <p className="mt-1 text-xs leading-relaxed text-warm-gray">
-            Ссылка действует 30 минут, не содержит пароль и показывается один раз. Передайте её
-            клиенту по уже подтверждённому каналу. Если почта на сервере не настроена, письмо само
-            не уйдёт.
-          </p>
-          <button
-            type="button"
-            disabled={linkLoading || archived}
-            onClick={() => {
-              setLinkLoading(true);
-              void (async () => {
-                try {
-                  const { selfhostAdminIssuePasswordResetLink } =
-                    await import("@/lib/selfhost/client-api");
-                  const issued = await selfhostAdminIssuePasswordResetLink(clientId);
-                  setResetLink({ url: issued.url, expiresAt: issued.expiresAt });
-                } catch (error) {
-                  toast.error(error instanceof Error ? error.message : "Не удалось создать ссылку");
-                } finally {
-                  setLinkLoading(false);
-                }
-              })();
-            }}
-            className="mt-4 inline-flex min-h-11 items-center rounded-full border border-gold/40 px-5 text-sm text-gold disabled:opacity-50"
-          >
-            {linkLoading ? "Создаём…" : "Создать одноразовую ссылку восстановления"}
-          </button>
-          {resetLink && (
-            <div className="mt-4 space-y-2">
-              <p className="text-xs text-warm-gray">
-                Скопируйте сейчас. Повторное создание отзывает эту ссылку.
-              </p>
-              <textarea
-                readOnly
-                value={resetLink.url}
-                className="min-h-24 w-full rounded-xl border border-gold/20 bg-background/60 p-3 text-sm text-ivory"
-              />
-              <button
-                type="button"
-                className="min-h-11 rounded-full bg-gold px-4 text-sm text-background"
-                onClick={() => {
-                  void navigator.clipboard.writeText(resetLink.url).then(
-                    () => toast.success("Ссылка скопирована"),
-                    () => toast.error("Скопируйте ссылку вручную"),
-                  );
-                }}
-              >
-                Скопировать
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="rounded-3xl border border-coral/25 bg-coral/5 p-6">
         <div className="flex items-center gap-2 text-ivory">
