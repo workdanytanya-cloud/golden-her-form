@@ -122,6 +122,9 @@ export function buildExactWeek(params: {
   forbiddenDayKeys?: Set<string>;
   previousDay?: ConstructorDay;
   onFound?: (count: number) => void;
+  /** Собирать точные дни, не вычёркивая рецепт после первого использования. */
+  harvest?: boolean;
+  harvestLimit?: number;
 }): ExactWeekResult {
   const slots = slotsForMode(params.mode);
   const mainSlots = slots.filter((slot) => slot.startsWith("main"));
@@ -215,6 +218,7 @@ export function buildExactWeek(params: {
     if (params.forbiddenDayKeys?.has(dayKey) || acceptedKeys.has(dayKey)) return;
     if (!targetOk(chosen)) return;
     if (
+      !params.harvest &&
       !overlapMode &&
       chosen.some(
         (recipe) =>
@@ -267,9 +271,13 @@ export function buildExactWeek(params: {
         );
       });
     };
-    const bySlot = plans.find((plan) =>
-      params.previousDay && pool.length === 0 ? neighborOk(plan) : pool.length >= params.days - 1 || neighborOk(plan),
-    );
+    const bySlot = params.harvest
+      ? plans[0]
+      : plans.find((plan) =>
+          params.previousDay && pool.length === 0
+            ? neighborOk(plan)
+            : pool.length >= params.days - 1 || neighborOk(plan),
+        );
     if (!bySlot) return;
     checked += 1;
     const items = slots.map((slot) => {
@@ -328,7 +336,7 @@ export function buildExactWeek(params: {
           return item.slot === "main1" && recipe?.primary_protein === "egg";
         }),
       ).length + (bySlot.get("main1")?.primary_protein === "egg" ? 1 : 0);
-    if (eggBreakfasts > 3) return;
+    if (!params.harvest && eggBreakfasts > 3) return;
     const slotOverused = [...bySlot.entries()].some(([slot, recipe]) => {
       if (!slot.startsWith("main") || !recipe) return false;
       const same = (kind: "protein" | "carb", value: string | null | undefined) => {
@@ -348,10 +356,10 @@ export function buildExactWeek(params: {
         same("protein", recipe.primary_protein) >= 3 || same("carb", recipe.primary_carb) >= carbCap
       );
     });
-    if (mainSlots.length >= 2 && goal.k >= 2600 && slotOverused) return;
+    if (!params.harvest && mainSlots.length >= 2 && goal.k >= 2600 && slotOverused) return;
     if (portionIsUnreasonable(positiveItems)) return;
     acceptedKeys.add(dayKey);
-    if (!overlapMode) {
+    if (!overlapMode && !params.harvest) {
       for (const recipe of chosen) {
         usedIds.add(recipe.id);
         if (recipe.variant_group) usedGroups.add(recipe.variant_group);
@@ -470,7 +478,11 @@ export function buildExactWeek(params: {
     usedIds.has(recipe.id) ||
     (recipe.variant_group ? usedGroups.has(recipe.variant_group) : false) ||
     (recipe.ingredient_signature ? usedSignatures.has(recipe.ingredient_signature) : false);
-  const comboCacheKey = `${params.mode}|${mainSlots.join(",")}|${goal.k}|${goal.p}|${goal.f}|${goal.c}|${mains.length}`;
+  const comboSource =
+    goal.k >= 1800
+      ? mains.filter((recipe) => !(recipe.dietary_tags ?? []).includes("low_kcal_band"))
+      : mains;
+  const comboCacheKey = `${params.mode}|${mainSlots.join(",")}|${goal.k}|${goal.p}|${goal.f}|${goal.c}|${comboSource.length}|${goal.k >= 1800 ? "high" : "low"}`;
   let comboCache = scoredMainComboCache.get(params.ctx);
   if (!comboCache) {
     comboCache = new Map();
@@ -479,7 +491,65 @@ export function buildExactWeek(params: {
   let mainCombos = comboCache.get(comboCacheKey);
   if (!mainCombos) {
     mainCombos = [];
-    for (const combo of combinations(mains, mainSlots.length)) {
+    const share = goal.k / Math.max(1, mainSlots.length + snackSlots.length * 0.4);
+    const overlapsMeal = (recipe: Recipe) => {
+      const range = rangeOf(recipe);
+      return range.min.k <= share * 1.55 && range.max.k >= Math.min(share * 0.35, 120);
+    };
+    const quotaPool = (recipes: Recipe[], limit: number) => {
+      const fitting = recipes.filter(overlapsMeal);
+      const source = fitting.length >= mainSlots.length * 7 ? fitting : recipes;
+      const byGroup = new Map<string, Recipe[]>();
+      for (const recipe of source) {
+        const key = recipe.variant_group ?? recipe.id;
+        const list = byGroup.get(key) ?? [];
+        list.push(recipe);
+        byGroup.set(key, list);
+      }
+      const rank = (recipe: Recipe) => Math.abs(midpoint(recipe).k - share);
+      for (const list of byGroup.values()) list.sort((a, b) => rank(a) - rank(b));
+      const picked: Recipe[] = [];
+      const seen = new Set<string>();
+      const add = (recipe: Recipe | undefined) => {
+        if (!recipe || seen.has(recipe.id)) return;
+        seen.add(recipe.id);
+        picked.push(recipe);
+      };
+      const byProtein = new Map<string, Recipe[]>();
+      const byCarb = new Map<string, Recipe[]>();
+      for (const list of byGroup.values()) {
+        const best = list[0];
+        if (!best) continue;
+        const protein = best.primary_protein ?? "none";
+        const carb = best.primary_carb ?? "none";
+        byProtein.set(protein, [...(byProtein.get(protein) ?? []), best]);
+        byCarb.set(carb, [...(byCarb.get(carb) ?? []), best]);
+      }
+      for (const list of byProtein.values()) {
+        for (const recipe of [...list].sort((a, b) => rank(a) - rank(b)).slice(0, 6)) add(recipe);
+      }
+      for (const list of byCarb.values()) {
+        for (const recipe of [...list].sort((a, b) => rank(a) - rank(b)).slice(0, 4)) add(recipe);
+      }
+      for (const list of byGroup.values()) {
+        if ((list[0]?.dietary_tags ?? []).includes("low_kcal_band")) add(list[0]);
+      }
+      for (const recipe of [...byGroup.values()]
+        .map((list) => list[0])
+        .filter((recipe): recipe is Recipe => Boolean(recipe))
+        .sort((a, b) => rank(a) - rank(b))) {
+        if (picked.length >= limit) break;
+        add(recipe);
+      }
+      for (const list of byGroup.values()) {
+        if (picked.length >= limit) break;
+        add(list.find((recipe) => recipe.ingredient_signature !== list[0]?.ingredient_signature));
+      }
+      return picked.length >= mainSlots.length * 7 ? picked : source;
+    };
+    const comboRecipes =
+      goal.k < 1800 ? quotaPool(comboSource, mainSlots.length >= 3 ? 64 : 48) : comboSource;
+    for (const combo of combinations(comboRecipes, mainSlots.length)) {
       if (conflicts(combo) || !assignSlots(combo, mainSlots)) continue;
       mainCombos.push(combo);
     }
@@ -505,6 +575,9 @@ export function buildExactWeek(params: {
   });
     comboCache.set(comboCacheKey, mainCombos);
   }
+  if (params.harvest && process.env.NUTRITION_PLAN_TRACE) {
+    console.error(`harvest mains ${comboSource.length} combos ${mainCombos.length} snacks ${snacks.length}`);
+  }
   const windowSize = Math.min(mainCombos.length, 400);
   const rotation = windowSize === 0 ? 0 : Math.abs(params.seed) % windowSize;
   const searchMains = [
@@ -515,7 +588,10 @@ export function buildExactWeek(params: {
   const snackPlans = (mainCombo: Recipe[]): Recipe[][] => {
     if (snackSlots.length === 0) return [[]];
     const eligible = snacks.filter(
-      (recipe) => (overlapMode || !blocked(recipe)) && !conflicts([...mainCombo, recipe]),
+      (recipe) =>
+        (goal.k < 1800 || !(recipe.dietary_tags ?? []).includes("low_kcal_band")) &&
+        (overlapMode || !blocked(recipe)) &&
+        !conflicts([...mainCombo, recipe]),
     );
     const pick = (key: "p" | "f" | "c", count: number) =>
       [...eligible].sort((a, b) => midpoint(b)[key] - midpoint(a)[key]).slice(0, count);
@@ -540,10 +616,43 @@ export function buildExactWeek(params: {
         plans.push(combo);
       }
     } else if (snackSlots.length >= 3 && goal.c < 140) {
-      const lean = [...eligible]
-        .filter((recipe) => midpoint(recipe).c <= 16 && midpoint(recipe).p >= 6)
-        .sort((a, b) => midpoint(b).p - midpoint(a).p)
-        .slice(0, 8);
+      // High-protein / low-carb days: do NOT take only top-N by protein —
+      // that collapses to tuna and starves the week of disjoint snacks.
+      const carbCap = goal.p >= 150 ? 20 : 16;
+      const leanAll = [...eligible]
+        .filter((recipe) => midpoint(recipe).c <= carbCap && midpoint(recipe).p >= 6)
+        .sort((a, b) => midpoint(b).p - midpoint(a).p);
+      const byProtein = new Map<string, Recipe[]>();
+      for (const recipe of leanAll) {
+        const key = recipe.primary_protein ?? "none";
+        const list = byProtein.get(key) ?? [];
+        list.push(recipe);
+        byProtein.set(key, list);
+      }
+      const leanLimit = goal.p >= 150 ? 22 : 16;
+      const lean: Recipe[] = [];
+      const seenLean = new Set<string>();
+      let progressedLean = true;
+      while (lean.length < leanLimit && progressedLean) {
+        progressedLean = false;
+        for (const list of byProtein.values()) {
+          while (list.length > 0) {
+            const recipe = list.shift()!;
+            if (seenLean.has(recipe.id)) continue;
+            seenLean.add(recipe.id);
+            lean.push(recipe);
+            progressedLean = true;
+            break;
+          }
+          if (lean.length >= leanLimit) break;
+        }
+      }
+      for (const recipe of leanAll) {
+        if (lean.length >= leanLimit) break;
+        if (seenLean.has(recipe.id)) continue;
+        seenLean.add(recipe.id);
+        lean.push(recipe);
+      }
       plans.push(
         ...[...combinations(lean, 3)].filter((combo) => !conflicts([...mainCombo, ...combo])),
       );
@@ -595,6 +704,40 @@ export function buildExactWeek(params: {
         ...[...light].sort((a, b) => midpoint(b).p - midpoint(a).p).slice(0, 6),
       ];
       const uniqueLight = [...new Map(varied.map((recipe) => [recipe.id, recipe])).values()];
+      if (params.harvest) {
+        const byGroup = new Map<string, Recipe>();
+        const buckets = new Map<string, Recipe[]>();
+        const harvestSource = eligible.filter((recipe) => {
+          const macro = midpoint(recipe);
+          return macro.k <= 320 && macro.p >= 2 && macro.p <= 32 && (goal.c >= 140 || macro.c <= 40);
+        });
+        for (const recipe of harvestSource) {
+          const bucket = `${recipe.primary_protein ?? "none"}|${recipe.primary_carb ?? "none"}`;
+          const list = buckets.get(bucket) ?? [];
+          list.push(recipe);
+          buckets.set(bucket, list);
+        }
+        const lists = [...buckets.values()];
+        let progressed = true;
+        while (byGroup.size < 22 && progressed) {
+          progressed = false;
+          for (const list of lists) {
+            while (list.length > 0) {
+              const recipe = list.shift()!;
+              const key = recipe.variant_group ?? recipe.ingredient_signature ?? recipe.id;
+              if (byGroup.has(key)) continue;
+              byGroup.set(key, recipe);
+              progressed = true;
+              break;
+            }
+          }
+        }
+        plans.push(
+          ...[...combinations([...byGroup.values()], 2)].filter(
+            (combo) => !conflicts([...mainCombo, ...combo]),
+          ),
+        );
+      }
       plans.push(
         ...[...combinations(uniqueLight, 2)].filter(
           (combo) => !conflicts([...mainCombo, ...combo]),
@@ -613,13 +756,16 @@ export function buildExactWeek(params: {
         bandScore([...mainCombo, ...b], mainSlots.length),
     );
     const almost = pool.length >= params.days - 1;
+    if (params.harvest && snackSlots.length === 2) return plans.slice(0, 24);
     return plans.slice(
       0,
       snackSlots.length >= 3
         ? almost
           ? 80
           : goal.c < 140
-            ? 24
+            ? goal.p >= 150
+              ? 72
+              : 40
             : 60
         : almost
           ? 16
@@ -634,8 +780,10 @@ export function buildExactWeek(params: {
   let overlapMode = false;
   const overlap: ConstructorDay[] = [];
   const seenKeys = new Set<string>();
-  const targetPool = params.days + 3;
-  const phase1Until = Math.min(params.deadlineMs, Date.now() + (goal.k >= 2800 ? 20_000 : 24_000));
+  const targetPool = params.harvest ? (params.harvestLimit ?? 80) : params.days + 3;
+  const phase1Until = params.harvest
+    ? params.deadlineMs
+    : Math.min(params.deadlineMs, Date.now() + (goal.k >= 2800 ? 20_000 : 24_000));
   const acceptKey = (chosen: Recipe[]) =>
     chosen
       .map((recipe) => recipe.id)
@@ -649,9 +797,12 @@ export function buildExactWeek(params: {
     return true;
   };
   let solved = false;
+  let tracedSnack = false;
   const solvedNow = () =>
-    pool.length >= params.days &&
-    orderExactDays(pool, params.ctx.recipes, params.days).length >= params.days;
+    params.harvest
+      ? pool.length >= targetPool
+      : pool.length >= params.days &&
+        orderExactDays(pool, params.ctx.recipes, params.days).length >= params.days;
   for (
     let round = 0;
     round < 2 && !solved && pool.length < targetPool && Date.now() < phase1Until;
@@ -666,14 +817,19 @@ export function buildExactWeek(params: {
         if (pool.length > before && solvedNow()) solved = true;
         continue;
       }
-      for (const snackCombo of snackPlans(mainCombo)) {
+      const snackOptions = snackPlans(mainCombo);
+      if (params.harvest && process.env.NUTRITION_PLAN_TRACE && !tracedSnack) {
+        tracedSnack = true;
+        console.error(`harvest snack options ${snackOptions.length} mains ${mainCombo.map((recipe) => recipe.slug).join(",")}`);
+      }
+      for (const snackCombo of snackOptions) {
         if (solved || Date.now() > phase1Until || pool.length >= targetPool) break;
         const chosen = [...mainCombo, ...snackCombo];
         if (!remember(chosen)) continue;
         originalTry(chosen);
         if (pool.length > before) {
           if (solvedNow()) solved = true;
-          break;
+          if (!params.harvest || pool.length - before >= 4) break;
         }
       }
     }
@@ -682,7 +838,7 @@ export function buildExactWeek(params: {
     pool.length < params.days ||
     (pool.length >= params.days &&
       orderExactDays(pool, params.ctx.recipes, params.days).length < params.days);
-  if (needsAlternatives && Date.now() < params.deadlineMs) {
+  if (!params.harvest && needsAlternatives && Date.now() < params.deadlineMs) {
     overlapMode = true;
     const savedPool = pool;
     const poolRecipeIds = new Set(pool.flatMap((day) => day.items.map((item) => item.recipe_id)));
@@ -709,6 +865,17 @@ export function buildExactWeek(params: {
         if (overlap.length > before) added += 1;
       }
     }
+  }
+  if (params.harvest && process.env.NUTRITION_PLAN_TRACE) {
+    console.error(`harvest result days ${pool.length} checked ${checked}`);
+  }
+  if (params.harvest) {
+    return {
+      days: pool,
+      checked,
+      exactDays: pool.length,
+      timedOut: Date.now() > params.deadlineMs && pool.length < targetPool,
+    };
   }
   const ordered = orderExactDays(pool, params.ctx.recipes, params.days);
   const packed =

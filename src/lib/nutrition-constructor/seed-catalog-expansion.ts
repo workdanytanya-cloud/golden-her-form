@@ -3807,3 +3807,461 @@ const LIGHT_SNACKS: Array<[string, string, Ing[], string[], Partial<ExpandedSeed
 for (const [slug, name, rows, steps, extra] of LIGHT_SNACKS) {
   EXPANSION_RECIPES.push(snack(slug, name, rows, steps, false, 5, extra));
 }
+
+const lowKcal = { dietary_tags: ["low_kcal_band"] };
+
+for (const [slug, name, roles, rows, steps, extra] of [
+  [
+    "breakfast-barley-kefir-apple",
+    "Перловка на кефире с яблоком",
+    ["breakfast"],
+    [
+      ["pearl-barley-dry", 35, 70, 50],
+      ["kefir", 120, 220, 160],
+      ["apple", 70, 140, 100],
+    ],
+    ["Отварить перловку.", "Остудить и залить кефиром.", "Добавить нарезанное яблоко."],
+    { cooking_method: "boil", variant_group: "dairy|barley-apple|boil", primary_protein: "dairy", primary_carb: "barley", ...lowKcal },
+  ],
+  [
+    "breakfast-couscous-kefir-pear",
+    "Кускус на кефире с грушей",
+    ["breakfast"],
+    [
+      ["couscous-dry", 30, 60, 40],
+      ["kefir", 120, 220, 160],
+      ["pear-raw", 70, 140, 100],
+    ],
+    ["Залить кускус кипятком.", "Остудить и смешать с кефиром.", "Добавить нарезанную грушу."],
+    { cooking_method: "boil", variant_group: "dairy|couscous-pear|boil", primary_protein: "dairy", primary_carb: "couscous", ...lowKcal },
+  ],
+  [
+    "breakfast-buckwheat-kefir-banana",
+    "Гречка на кефире с бананом",
+    ["breakfast"],
+    [
+      ["buckwheat-dry", 30, 65, 45],
+      ["kefir", 120, 220, 160],
+      ["banana", 50, 110, 80],
+    ],
+    ["Отварить гречку.", "Остудить и залить кефиром.", "Добавить нарезанный банан."],
+    { cooking_method: "boil", variant_group: "dairy|buckwheat-banana|boil", primary_protein: "dairy", primary_carb: "buckwheat", ...lowKcal },
+  ],
+  [
+    "breakfast-bulgur-yogurt-apple",
+    "Булгур с йогуртом и яблоком",
+    ["breakfast"],
+    [
+      ["bulgur-dry", 30, 60, 40],
+      ["greek-yogurt", 80, 160, 120],
+      ["apple", 70, 140, 100],
+    ],
+    ["Залить булгур кипятком.", "Остудить и смешать с йогуртом.", "Добавить нарезанное яблоко."],
+    { cooking_method: "boil", variant_group: "dairy|bulgur-apple|boil", primary_protein: "dairy", primary_carb: "bulgur", ...lowKcal },
+  ],
+  [
+    "breakfast-rice-apple-carrot",
+    "Рис с яблоком и морковью",
+    ["breakfast"],
+    [
+      ["rice-white-dry", 35, 70, 50],
+      ["apple", 70, 150, 110],
+      ["carrot", 50, 120, 80],
+    ],
+    ["Отварить рис.", "Натереть морковь и нарезать яблоко.", "Смешать перед подачей."],
+    { cooking_method: "boil", variant_group: "none|rice-apple-carrot|boil", primary_protein: "none", primary_carb: "rice", ...lowKcal },
+  ],
+  [
+    "breakfast-oats-pear-carrot",
+    "Овсянка с грушей и морковью",
+    ["breakfast"],
+    [
+      ["oats-dry", 30, 60, 40],
+      ["pear-raw", 70, 140, 100],
+      ["carrot", 40, 100, 70],
+    ],
+    ["Залить овсянку кипятком.", "Нарезать грушу и натереть морковь.", "Смешать перед подачей."],
+    { cooking_method: "boil", variant_group: "none|oats-pear-carrot|boil", primary_protein: "none", primary_carb: "oats", ...lowKcal },
+  ],
+  [
+    "breakfast-barley-yogurt-pear",
+    "Перловка с йогуртом и грушей",
+    ["breakfast"],
+    [
+      ["pearl-barley-dry", 30, 65, 45],
+      ["greek-yogurt", 80, 160, 120],
+      ["pear-raw", 70, 140, 100],
+    ],
+    ["Отварить перловку.", "Остудить и смешать с йогуртом.", "Добавить нарезанную грушу."],
+    { cooking_method: "boil", variant_group: "dairy|barley-pear|boil", primary_protein: "dairy", primary_carb: "barley", ...lowKcal },
+  ],
+  [
+    "breakfast-bulgur-kefir-carrot",
+    "Булгур на кефире с морковью",
+    ["breakfast"],
+    [
+      ["bulgur-dry", 30, 60, 45],
+      ["kefir-lf", 120, 220, 160],
+      ["carrot", 50, 120, 80],
+    ],
+    ["Залить булгур кипятком.", "Остудить и залить безлактозным кефиром.", "Добавить тёртую морковь."],
+    { cooking_method: "boil", variant_group: "dairy|bulgur-carrot|boil", primary_protein: "dairy", primary_carb: "bulgur", ...lowKcal },
+  ],
+] as Array<[string, string, MealRole[], Ing[], string[], Partial<ExpandedSeedRecipe>]>) {
+  EXPANSION_RECIPES.push(main(slug, name, roles, rows, steps, 15, extra));
+}
+
+for (const [slug, name, roles, rows, steps, extra] of [
+  [
+    "dinner-pollock-barley-zucchini",
+    "Минтай с перловкой и кабачком",
+    ["dinner", "lunch"],
+    [
+      ["pollock-raw", 90, 160, 120],
+      ["pearl-barley-dry", 25, 55, 35],
+      ["zucchini", 80, 160, 110],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Отварить перловку.", "Запечь минтай с кабачком.", "Смешать и полить оливковым маслом."],
+    { cooking_method: "bake", variant_group: "whitefish|barley-zucchini|bake", primary_protein: "fish", primary_carb: "barley", ...lowKcal },
+  ],
+  [
+    "lunch-hake-couscous-carrot",
+    "Хек с кускусом и морковью",
+    ["lunch", "dinner"],
+    [
+      ["hake-raw", 90, 160, 120],
+      ["couscous-dry", 25, 55, 35],
+      ["carrot", 60, 130, 90],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Залить кускус кипятком.", "Запечь хек с морковью.", "Смешать и полить оливковым маслом."],
+    { cooking_method: "bake", variant_group: "whitefish|couscous-carrot|bake", primary_protein: "fish", primary_carb: "couscous", ...lowKcal },
+  ],
+  [
+    "dinner-turkey-bulgur-cabbage",
+    "Индейка с булгуром и капустой",
+    ["dinner", "lunch"],
+    [
+      ["turkey-breast-raw", 80, 150, 110],
+      ["bulgur-dry", 25, 55, 35],
+      ["white-cabbage", 80, 160, 110],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Залить булгур кипятком.", "Запечь индейку с капустой.", "Смешать и полить оливковым маслом."],
+    { cooking_method: "bake", variant_group: "turkey|bulgur-cabbage|bake", primary_protein: "turkey", primary_carb: "bulgur", ...lowKcal },
+  ],
+  [
+    "lunch-cod-buckwheat-pepper",
+    "Треска с гречкой и перцем",
+    ["lunch", "dinner"],
+    [
+      ["cod-raw", 90, 160, 120],
+      ["buckwheat-dry", 25, 55, 35],
+      ["bell-pepper", 70, 140, 100],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Отварить гречку.", "Запечь треску с перцем.", "Смешать и полить оливковым маслом."],
+    { cooking_method: "bake", variant_group: "whitefish|buckwheat-pepper|bake", primary_protein: "fish", primary_carb: "buckwheat", ...lowKcal },
+  ],
+  [
+    "lunch-chicken-couscous-cabbage",
+    "Курица с кускусом и капустой",
+    ["lunch", "dinner"],
+    [
+      ["cooked-chicken-breast", 60, 120, 85],
+      ["couscous-dry", 25, 55, 35],
+      ["napa-cabbage", 70, 140, 100],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Залить кускус кипятком.", "Нарезать готовую курицу и капусту.", "Смешать и полить оливковым маслом."],
+    { cooking_method: "assemble", variant_group: "chicken|couscous-cabbage|assemble", primary_protein: "chicken", primary_carb: "couscous", ...lowKcal },
+  ],
+  [
+    "dinner-salmon-rice-zucchini",
+    "Горбуша с рисом и кабачком",
+    ["dinner", "lunch"],
+    [
+      ["pink-salmon-raw", 80, 150, 110],
+      ["rice-white-dry", 25, 55, 35],
+      ["zucchini", 80, 150, 100],
+      ["olive-oil", 2, 6, 3],
+    ],
+    ["Отварить рис.", "Запечь горбушу с кабачком.", "Смешать и полить оливковым маслом."],
+    { cooking_method: "bake", variant_group: "fish|rice-zucchini|bake", primary_protein: "fish", primary_carb: "rice", ...lowKcal },
+  ],
+] as Array<[string, string, MealRole[], Ing[], string[], Partial<ExpandedSeedRecipe>]>) {
+  EXPANSION_RECIPES.push(main(slug, name, roles, rows, steps, 20, extra));
+}
+
+/** Высокобелковые перекусы без готовки — разные источники белка для one_main_three_snacks. */
+for (const [slug, name, rows, extra] of [
+  [
+    "snack-chicken-egg-cucumber",
+    "Курица с яйцом и огурцом",
+    [
+      ["cooked-chicken-breast", 90, 160, 120],
+      ["egg-whole", 50, 100, 50],
+      ["cucumber", 60, 140, 90],
+    ],
+    { variant_group: "chicken|egg-cucumber|assemble", primary_protein: "chicken", primary_carb: "veg" },
+  ],
+  [
+    "snack-chicken-cheese-tomato",
+    "Курица с сыром и помидором",
+    [
+      ["cooked-chicken-breast", 90, 150, 120],
+      ["cheddar-cheese", 20, 45, 30],
+      ["tomato", 60, 140, 90],
+    ],
+    { variant_group: "chicken|cheese-tomato|assemble", primary_protein: "chicken", primary_carb: "veg" },
+  ],
+  [
+    "snack-chicken-pepper-seeds",
+    "Курица с перцем и семечками",
+    [
+      ["cooked-chicken-breast", 100, 170, 130],
+      ["bell-pepper", 60, 140, 90],
+      ["pumpkin-seeds", 6, 14, 10],
+    ],
+    { variant_group: "chicken|pepper-seeds|assemble", primary_protein: "chicken", primary_carb: "veg" },
+  ],
+  [
+    "snack-cottage-egg-cucumber",
+    "Творог с яйцом и огурцом",
+    [
+      ["cottage-cheese-5", 150, 240, 190],
+      ["egg-whole", 50, 100, 50],
+      ["cucumber", 50, 130, 80],
+    ],
+    { variant_group: "cottage|egg-cucumber|assemble", primary_protein: "cottage", primary_carb: "veg" },
+  ],
+  [
+    "snack-cottage-cheese-pepper",
+    "Творог с сыром и перцем",
+    [
+      ["cottage-cheese-5", 150, 230, 180],
+      ["cheddar-cheese", 15, 40, 25],
+      ["bell-pepper", 60, 140, 90],
+    ],
+    { variant_group: "cottage|cheese-pepper|assemble", primary_protein: "cottage", primary_carb: "veg" },
+  ],
+  [
+    "snack-cottage-lf-egg-tomato",
+    "Безлактозный творог с яйцом и помидором",
+    [
+      ["cottage-cheese-lf", 150, 240, 190],
+      ["egg-whole", 50, 100, 50],
+      ["tomato", 50, 130, 80],
+    ],
+    {
+      variant_group: "cottage|egg-tomato|assemble",
+      primary_protein: "cottage",
+      primary_carb: "veg",
+      dietary_tags: ["lactose_free"],
+    },
+  ],
+  [
+    "snack-yogurt-chicken-cucumber",
+    "Йогурт с курицей и огурцом",
+    [
+      ["greek-yogurt", 140, 220, 170],
+      ["cooked-chicken-breast", 60, 120, 90],
+      ["cucumber", 50, 130, 80],
+    ],
+    { variant_group: "yogurt|chicken-cucumber|assemble", primary_protein: "yogurt", primary_carb: "veg" },
+  ],
+  [
+    "snack-yogurt-egg-pepper",
+    "Йогурт с яйцом и перцем",
+    [
+      ["greek-yogurt", 150, 230, 180],
+      ["egg-whole", 50, 100, 50],
+      ["bell-pepper", 60, 140, 90],
+    ],
+    { variant_group: "yogurt|egg-pepper|assemble", primary_protein: "yogurt", primary_carb: "veg" },
+  ],
+  [
+    "snack-egg-cheese-cucumber",
+    "Яйцо с сыром и огурцом",
+    [
+      ["egg-whole", 100, 180, 150],
+      ["cheddar-cheese", 20, 45, 30],
+      ["cucumber", 60, 140, 90],
+    ],
+    { variant_group: "egg|cheese-cucumber|assemble", primary_protein: "egg", primary_carb: "veg" },
+  ],
+  [
+    "snack-egg-chicken-tomato",
+    "Яйцо с курицей и помидором",
+    [
+      ["egg-whole", 100, 160, 120],
+      ["cooked-chicken-breast", 60, 120, 90],
+      ["tomato", 60, 140, 90],
+    ],
+    { variant_group: "egg|chicken-tomato|assemble", primary_protein: "egg", primary_carb: "veg" },
+  ],
+  [
+    "snack-cheddar-chicken-cucumber",
+    "Сыр чеддер с курицей и огурцом",
+    [
+      ["cheddar-cheese", 25, 55, 40],
+      ["cooked-chicken-breast", 80, 140, 110],
+      ["cucumber", 60, 140, 90],
+    ],
+    { variant_group: "cheese|chicken-cucumber|assemble", primary_protein: "cheese", primary_carb: "veg" },
+  ],
+  [
+    "snack-cheddar-egg-tomato",
+    "Сыр чеддер с яйцом и помидором",
+    [
+      ["cheddar-cheese", 25, 55, 40],
+      ["egg-whole", 100, 160, 120],
+      ["tomato", 60, 140, 90],
+    ],
+    { variant_group: "cheese|egg-tomato|assemble", primary_protein: "cheese", primary_carb: "veg" },
+  ],
+] as Array<[string, string, Ing[], Partial<ExpandedSeedRecipe>]>) {
+  EXPANSION_RECIPES.push(
+    snack(slug, name, rows, ["Нарезать продукты.", "Смешать на тарелке.", "Сразу подать."], false, 5, extra),
+  );
+}
+
+/** Простые основные блюда с разными белками под высокий белок / умеренные углеводы. */
+for (const [slug, name, roles, rows, steps, extra] of [
+  [
+    "lunch-chicken-egg-zucchini",
+    "Курица с яйцом и кабачком",
+    ["lunch", "dinner"],
+    [
+      ["cooked-chicken-breast", 140, 240, 190],
+      ["egg-whole", 50, 120, 70],
+      ["zucchini", 100, 200, 140],
+      ["olive-oil", 3, 10, 5],
+    ],
+    ["Нарезать готовую курицу.", "Очистить уже сваренное яйцо.", "Подать с кабачком и маслом."],
+    {
+      cooking_method: "assemble",
+      requires_cooking: false,
+      variant_group: "chicken|egg-zucchini|assemble",
+      primary_protein: "chicken",
+      primary_carb: "veg",
+    },
+  ],
+  [
+    "lunch-turkey-egg-broccoli",
+    "Индейка с яйцом и брокколи",
+    ["lunch", "dinner"],
+    [
+      ["turkey-breast-raw", 150, 250, 200],
+      ["egg-whole", 50, 120, 70],
+      ["broccoli-raw", 100, 200, 140],
+      ["olive-oil", 3, 10, 5],
+    ],
+    ["Запечь индейку.", "Очистить уже сваренное яйцо.", "Подать с брокколи и маслом."],
+    {
+      cooking_method: "bake",
+      variant_group: "turkey|egg-broccoli|bake",
+      primary_protein: "turkey",
+      primary_carb: "veg",
+    },
+  ],
+  [
+    "lunch-beef-egg-cabbage",
+    "Говядина с яйцом и капустой",
+    ["lunch", "dinner"],
+    [
+      ["beef-lean-raw", 140, 230, 180],
+      ["egg-whole", 50, 120, 70],
+      ["white-cabbage", 100, 200, 140],
+      ["olive-oil", 3, 10, 5],
+    ],
+    ["Запечь говядину.", "Очистить уже сваренное яйцо.", "Подать с капустой и маслом."],
+    {
+      cooking_method: "bake",
+      variant_group: "beef|egg-cabbage|bake",
+      primary_protein: "beef",
+      primary_carb: "veg",
+    },
+  ],
+  [
+    "lunch-cod-egg-cucumber",
+    "Треска с яйцом и огурцом",
+    ["lunch", "dinner"],
+    [
+      ["cod-raw", 160, 260, 210],
+      ["egg-whole", 50, 120, 70],
+      ["cucumber", 80, 160, 120],
+      ["olive-oil", 3, 10, 5],
+    ],
+    ["Запечь треску.", "Очистить уже сваренное яйцо.", "Подать с огурцом и маслом."],
+    {
+      cooking_method: "bake",
+      variant_group: "whitefish|egg-cucumber|bake",
+      primary_protein: "fish",
+      primary_carb: "veg",
+    },
+  ],
+  [
+    "lunch-salmon-egg-pepper",
+    "Горбуша с яйцом и перцем",
+    ["lunch", "dinner"],
+    [
+      ["pink-salmon-raw", 140, 230, 180],
+      ["egg-whole", 50, 120, 70],
+      ["bell-pepper", 80, 160, 120],
+      ["olive-oil", 3, 10, 5],
+    ],
+    ["Запечь горбушу.", "Очистить уже сваренное яйцо.", "Подать с перцем и маслом."],
+    {
+      cooking_method: "bake",
+      variant_group: "salmon|egg-pepper|bake",
+      primary_protein: "salmon",
+      primary_carb: "veg",
+    },
+  ],
+  [
+    "lunch-cottage-chicken-cucumber",
+    "Творог с курицей и огурцом",
+    ["lunch", "dinner", "breakfast"],
+    [
+      ["cottage-cheese-5", 160, 260, 210],
+      ["cooked-chicken-breast", 80, 150, 110],
+      ["cucumber", 80, 160, 120],
+    ],
+    ["Нарезать готовую курицу и огурец.", "Смешать с творогом.", "Сразу подать."],
+    {
+      cooking_method: "assemble",
+      requires_cooking: false,
+      variant_group: "cottage|chicken-cucumber|assemble",
+      primary_protein: "cottage",
+      primary_carb: "veg",
+    },
+  ],
+] as Array<[string, string, MealRole[], Ing[], string[], Partial<ExpandedSeedRecipe>]>) {
+  EXPANSION_RECIPES.push(main(slug, name, roles, rows, steps, 15, extra));
+}
+
+for (const [slug, name, rows, group] of [
+  ["snack-rye-apple-carrot", "Ржаной хлеб с яблоком и морковью", [["rye-bread", 30, 60, 40], ["apple", 70, 140, 100], ["carrot", 40, 90, 60]], "bread|apple-carrot|assemble"],
+  ["snack-wheat-pear", "Пшеничный хлеб с грушей", [["wheat-bread", 30, 60, 40], ["pear-raw", 80, 160, 120]], "bread|pear|assemble"],
+  ["snack-corn-bread-tomato", "Кукуруза с хлебом и помидором", [["canned-corn", 50, 110, 80], ["wheat-bread", 25, 50, 35], ["tomato", 50, 120, 80]], "corn|bread-tomato|assemble"],
+  ["snack-cherry-rye", "Вишня с ржаным хлебом", [["cherry", 80, 160, 120], ["rye-bread", 25, 55, 40]], "fruit|cherry-rye|assemble"],
+  ["snack-banana-wheat-cucumber", "Банан с хлебом и огурцом", [["banana", 60, 120, 90], ["wheat-bread", 25, 50, 35], ["cucumber", 40, 100, 70]], "fruit|banana-bread|assemble"],
+  ["snack-apple-rye-seeds", "Яблоко с ржаным хлебом и семечками", [["apple", 70, 140, 100], ["rye-bread", 25, 50, 35], ["pumpkin-seeds", 5, 12, 8]], "bread|apple-seeds|assemble"],
+  ["snack-pear-wheat-almond", "Груша с хлебом и миндалём", [["pear-raw", 80, 150, 110], ["wheat-bread", 25, 50, 35], ["almond", 5, 12, 8]], "bread|pear-almond|assemble"],
+  ["snack-kefir-banana-bread", "Кефир с бананом и хлебом", [["kefir-lf", 140, 220, 180], ["banana", 50, 100, 70], ["rye-bread", 20, 40, 25]], "dairy|banana-bread|assemble"],
+  ["snack-carrot-wheat-seeds", "Морковь с хлебом и семечками", [["carrot", 60, 120, 90], ["wheat-bread", 30, 60, 40], ["sunflower-seeds", 5, 12, 8]], "bread|carrot-seeds|assemble"],
+  ["snack-berry-rye", "Ягоды с ржаным хлебом", [["frozen-berry-mix", 70, 140, 100], ["rye-bread", 25, 55, 40]], "fruit|berry-rye|assemble"],
+  ["snack-kefir-apple-bread", "Кефир с яблоком и хлебом", [["kefir", 140, 220, 180], ["apple", 70, 140, 100], ["wheat-bread", 20, 45, 30]], "dairy|apple-bread|assemble"],
+  ["snack-corn-rye-cucumber", "Кукуруза с ржаным хлебом и огурцом", [["canned-corn", 50, 110, 80], ["rye-bread", 25, 50, 35], ["cucumber", 40, 100, 70]], "corn|rye-cucumber|assemble"],
+] as Array<[string, string, Ing[], string]>) {
+  EXPANSION_RECIPES.push(
+    snack(slug, name, rows, ["Нарезать продукты.", "Разложить на тарелке.", "Подать холодным."], false, 5, {
+      variant_group: group,
+      primary_protein: "none",
+      primary_carb: "bread",
+      dietary_tags: ["low_kcal_band"],
+    }),
+  );
+}
