@@ -1,3 +1,4 @@
+import { resolveClientAge } from "@/lib/client-age";
 import {
   inferGoal,
   inferLevel,
@@ -39,15 +40,10 @@ export type OnboardingForProfile = {
 export type ProfileDemographics = {
   gender?: "female" | "male" | null;
   birth_date?: string | null;
+  age_years?: number | null;
   height_cm?: number | null;
   weight_kg?: number | null;
 };
-
-function calcAge(birth_date: string | null | undefined): number | null {
-  if (!birth_date) return null;
-  const age = Math.floor((Date.now() - new Date(birth_date).getTime()) / 31557600000);
-  return Number.isFinite(age) && age > 0 ? age : null;
-}
 
 /** Собрать CLIENT_PROFILE из анкеты + профиля + веса. */
 export function buildClientProfile(
@@ -78,7 +74,10 @@ export function buildClientProfile(
 
   return {
     user_id: onboarding.user_id,
-    age: calcAge(demographics.birth_date),
+    age: resolveClientAge({
+      birthDate: demographics.birth_date,
+      ageYears: demographics.age_years,
+    }),
     gender: demographics.gender ?? null,
     height_cm: demographics.height_cm ?? null,
     weight_kg: demographics.weight_kg ?? null,

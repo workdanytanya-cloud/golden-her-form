@@ -219,19 +219,23 @@ function AdminTrainingPage() {
       if (await usesLocalPostgresCircuit()) {
         // Selfhost: всегда fresh-генерация в draft. mode=continuation в UI не доступен
         // (ниже supabase-путь тоже вызывается только с mode: "fresh").
-        const { createOrReplaceProgram } = await import("@/lib/training-repo");
-        const built = await createOrReplaceProgram({
-          userId: id,
+        const { selfhostRebuildTraining } = await import("@/lib/selfhost/client-api");
+        const built = await selfhostRebuildTraining({
+          clientId: id,
           courseId: courseId ?? null,
-          input,
-          exercises,
-          preserveNotes: program?.notes ?? null,
-          preserveFaq: program?.faq ?? null,
-          targetsManual: true,
+          sessions_per_week: input.sessions_per_week,
+          goal: input.goal,
+          level: input.level,
+          has_injuries: input.has_injuries,
+          injuries_details: input.injuries_details ?? null,
+          equipment: input.equipment ?? [],
+          location: input.location ?? null,
+          weight_kg: input.weight_kg ?? null,
+          gender: input.gender ?? null,
         });
         await reload();
         toast.success(
-          `Черновик пересобран: ${built.program.sessions_per_week} трен./нед.${built.multiWeek ? " (несколько недель)" : ""}`,
+          `Черновик пересобран: ${built.program.sessions_per_week} трен./нед.${built.program.program_weeks > 1 ? " (несколько недель)" : ""}`,
           {
             description: "Клиент увидит изменения только после «Опубликовать клиенту».",
           },
@@ -630,6 +634,8 @@ function AdminTrainingPage() {
             onDayPatch={handleDayPatch}
             onProgramPatch={handleProgramPatch}
             userId={id}
+            programId={program.id}
+            clientGender={profile?.gender ?? null}
             onProgramReload={() => void reload()}
             onRegenerate={() => handleRegenerate()}
           />

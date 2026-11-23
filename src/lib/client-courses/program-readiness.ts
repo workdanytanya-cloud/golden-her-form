@@ -1,5 +1,6 @@
 import type { MealScheduleMode, PrimaryMealSlot } from "@/lib/nutrition-constructor/config";
 import { MEAL_SCHEDULE_MODES, PRIMARY_MEAL_SLOTS } from "@/lib/nutrition-constructor/config";
+import { AGE_FILL_HINT, resolveClientAge } from "@/lib/client-age";
 import { directionFromGoalText } from "@/lib/client-courses/goal-source";
 import type { ProgramGoal, ProgramLevel } from "@/lib/training";
 
@@ -12,6 +13,7 @@ export type ProgramReadinessInput = {
   weightKg: number | null;
   gender: string | null;
   birthDate: string | null;
+  ageYears?: number | null;
   activityLevel: string | null;
   trainingDays: number | null;
 };
@@ -39,7 +41,12 @@ export function missingProgramFields(input: ProgramReadinessInput, scope: Progra
   if (nutrition && input.heightCm == null) missing.push("рост");
   if ((nutrition || training) && input.weightKg == null) missing.push("вес");
   if (nutrition && !mapGender(input.gender)) missing.push("пол");
-  if (nutrition && !input.birthDate?.trim()) missing.push("дата рождения");
+  if (
+    nutrition &&
+    resolveClientAge({ birthDate: input.birthDate, ageYears: input.ageYears }) == null
+  ) {
+    missing.push(AGE_FILL_HINT);
+  }
   if ((nutrition || training) && !input.activityLevel?.trim()) missing.push("уровень активности");
   if (training && input.trainingDays == null) missing.push("дни тренировок");
   return missing;

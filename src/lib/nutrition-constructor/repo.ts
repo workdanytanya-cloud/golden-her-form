@@ -667,8 +667,10 @@ export async function generateAndValidateConstructorPlan(params: {
     return (await selfhostGenerateNutrition(params as unknown as Record<string, unknown>)) as never;
   }
   const ctx = await loadOptimizerContext(params.catalog);
-  let excludedRecipeIds = [...(params.excluded_recipe_ids ?? [])];
-  let excludedVariantGroups = [...(params.excluded_variant_groups ?? [])];
+  const baseExcludedRecipeIds = [...(params.excluded_recipe_ids ?? [])];
+  const baseExcludedVariantGroups = [...(params.excluded_variant_groups ?? [])];
+  let publishedRecipeIds: string[] = [];
+  let publishedVariantGroups: string[] = [];
   let publishedWarning: string | null = null;
   if (params.clientId) {
     try {
@@ -684,30 +686,59 @@ export async function generateAndValidateConstructorPlan(params: {
           params.courseId,
         );
         const exclusions = exclusionsFromPublishedNutrition(published?.snapshot, ctx.recipes);
-        excludedRecipeIds = [...new Set([...excludedRecipeIds, ...exclusions.excluded_recipe_ids])];
-        excludedVariantGroups = [
-          ...new Set([...excludedVariantGroups, ...exclusions.excluded_variant_groups]),
-        ];
+        publishedRecipeIds = exclusions.excluded_recipe_ids;
+        publishedVariantGroups = exclusions.excluded_variant_groups;
         publishedWarning = exclusions.warning;
       }
     } catch {
       // Нет published / локальный контур недоступен — генерируем без исключения истории.
     }
   }
-  const result = generateConstructorPlan(ctx, {
-    targets: calc.targets,
-    days_count: params.days_count,
-    excluded_product_ids: params.excluded_product_ids,
-    excluded_recipe_ids: excludedRecipeIds,
-    excluded_variant_groups: excludedVariantGroups,
-    excluded_ingredient_signatures: params.excluded_ingredient_signatures,
-    allow_repeats: params.allow_repeats === true,
-    tolerance: params.tolerance ?? DEFAULT_TOLERANCE,
-    meal_schedule_mode: params.meal_schedule_mode ?? "two_main_two_snacks",
-    primary_meal_slot: params.primary_meal_slot ?? "lunch",
-    seed: params.seed,
-    search_timeout_ms: params.search_timeout_ms,
-  });
+
+  const runPlan = (excludedRecipeIds: string[], excludedVariantGroups: string[]) =>
+    generateConstructorPlan(ctx, {
+      targets: calc.targets,
+      days_count: params.days_count,
+      excluded_product_ids: params.excluded_product_ids,
+      excluded_recipe_ids: excludedRecipeIds,
+      excluded_variant_groups: excludedVariantGroups,
+      excluded_ingredient_signatures: params.excluded_ingredient_signatures,
+      allow_repeats: params.allow_repeats === true,
+      tolerance: params.tolerance ?? DEFAULT_TOLERANCE,
+      meal_schedule_mode: params.meal_schedule_mode ?? "two_main_two_snacks",
+      primary_meal_slot: params.primary_meal_slot ?? "lunch",
+      seed: params.seed,
+      search_timeout_ms: params.search_timeout_ms,
+    });
+
+  const varietyFailed = (plan: ReturnType<typeof generateConstructorPlan>) =>
+    !plan.is_valid &&
+    (plan.reason_code === "INSUFFICIENT_VARIETY" || plan.reason_code === "INFEASIBLE");
+
+  // Сначала стараемся уйти от блюд активной публикации; если неделя не
+  // собирается — ослабляем: сначала без variant_group, затем без published.
+  let result = runPlan(
+    [...new Set([...baseExcludedRecipeIds, ...publishedRecipeIds])],
+    [...new Set([...baseExcludedVariantGroups, ...publishedVariantGroups])],
+  );
+  if (varietyFailed(result) && publishedVariantGroups.length > 0) {
+    result = runPlan(
+      [...new Set([...baseExcludedRecipeIds, ...publishedRecipeIds])],
+      baseExcludedVariantGroups,
+    );
+    if (result.is_valid) {
+      publishedWarning =
+        "Часть групп блюд из опубликованного меню пришлось допустить снова — иначе неделя не собиралась без повторов.";
+    }
+  }
+  if (varietyFailed(result) && publishedRecipeIds.length > 0) {
+    result = runPlan(baseExcludedRecipeIds, baseExcludedVariantGroups);
+    if (result.is_valid) {
+      publishedWarning =
+        "Исключения опубликованного меню сняты: без них не хватало уникальных дней без повторов.";
+    }
+  }
+
   const reviewBits = [
     ...safety.reasons,
     ...targetSafety,

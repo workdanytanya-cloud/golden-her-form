@@ -601,7 +601,11 @@ export async function refreshDraftTextPg(
 
 export async function validateDraftPg(
   db: Pool,
-  input: { userId: string; courseId?: string | null },
+  input: {
+    userId: string;
+    courseId?: string | null;
+    acknowledgeOutOfTolerance?: boolean;
+  },
 ): Promise<{ ok: boolean; issues: DraftIssue[]; message: string }> {
   const source = await loadDraft(db, input.userId, input.courseId);
   const ctx = await loadOptimizerContextPg(db);
@@ -616,6 +620,7 @@ export async function validateDraftPg(
     mode: source.plan.meal_schedule_mode,
     products: ctx.products,
     expectedDays: source.plan.plan_days_count,
+    allowOutOfToleranceKbju: input.acknowledgeOutOfTolerance === true,
   });
   return {
     ok: issues.length === 0,
@@ -634,6 +639,7 @@ export async function publishAndOpenAccessPg(
     courseId?: string | null;
     actorId: string;
     reason?: string | null;
+    acknowledgeOutOfTolerance?: boolean;
   },
 ) {
   const resolved = await resolveClientCourseIdPg(db, input.userId, input.courseId);
@@ -669,13 +675,32 @@ export async function publishAndOpenAccessPg(
   if (nutritionNeeded) {
     const loaded = await loadConstructorPlanPg(db, input.userId, resolved);
     if (!loaded.plan) fail("Черновик питания не найден", 404);
+    if (input.acknowledgeOutOfTolerance) {
+      await db.query(
+        `UPDATE public.nutrition_plans
+            SET requires_manual_review = true,
+                review_reason = COALESCE($3, review_reason),
+                updated_at = (now() AT TIME ZONE 'utc')
+          WHERE user_id = $1 AND course_id = $2`,
+        [
+          input.userId,
+          resolved,
+          "Опубликовано тренером вне допуска КБЖУ",
+        ],
+      );
+    }
     nutrition = await publishNutritionVersionPg(db, {
       clientId: input.userId,
       courseId: resolved,
       actorId: input.actorId,
-      reason: input.reason ?? "Опубликовать и открыть доступ",
+      reason:
+        input.reason ??
+        (input.acknowledgeOutOfTolerance
+          ? "Опубликовать и открыть доступ (подтверждение тренера вне допуска КБЖУ)"
+          : "Опубликовать и открыть доступ"),
       days: loaded.days,
       plan: loaded.plan,
+      acknowledgeOutOfTolerance: input.acknowledgeOutOfTolerance,
     });
   }
   const training = trainingNeeded
@@ -686,6 +711,15 @@ export async function publishAndOpenAccessPg(
         reason: input.reason ?? "Опубликовать и открыть доступ",
       })
     : null;
+  await db.query(
+    `UPDATE public.client_courses SET status = 'completed'
+      WHERE client_id = $1 AND status = 'active' AND id <> $2`,
+    [input.userId, resolved],
+  );
+  await db.query(
+    `UPDATE public.client_courses SET status = 'active' WHERE id = $1 AND client_id = $2`,
+    [resolved, input.userId],
+  );
   await db.query(
     `INSERT INTO public.client_access (user_id, status, activated_at, activated_by, updated_at)
      VALUES ($1, 'active', (now() AT TIME ZONE 'utc'), $2, (now() AT TIME ZONE 'utc'))

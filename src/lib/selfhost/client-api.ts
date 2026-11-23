@@ -138,12 +138,14 @@ export async function selfhostAdminExercises(
     q?: string;
     category?: string;
     media?: MediaFilter;
+    status?: "active" | "archived";
   } = {},
 ): Promise<{ items: AdminExerciseRow[]; report: AdminExerciseReport }> {
   const params = new URLSearchParams();
   if (input.q) params.set("q", input.q);
   if (input.category) params.set("category", input.category);
   if (input.media) params.set("media", input.media);
+  if (input.status) params.set("status", input.status);
   const qs = params.toString();
   const res = await fetch(`/api/selfhost/admin/exercises${qs ? `?${qs}` : ""}`, {
     credentials: "include",
@@ -544,6 +546,19 @@ export function nutritionDocumentUrl(id: string, mode: "view" | "original", clie
   return `/api/selfhost/nutrition-documents/${encodeURIComponent(id)}/${mode}${suffix}`;
 }
 
+export async function selfhostSetProgramExerciseVideo(
+  programId: string,
+  exerciseId: string,
+  url: string,
+) {
+  const res = await selfhostFetch("/api/selfhost/admin/training/video", {
+    method: "POST",
+    body: JSON.stringify({ programId, exerciseId, url }),
+  });
+  const data = await readSelfhostJson(res);
+  return data.video as import("@/lib/exercise-video").ExerciseVideo;
+}
+
 export async function selfhostLogin(email: string, password: string) {
   const res = await selfhostFetch("/api/selfhost/login", {
     method: "POST",
@@ -753,6 +768,7 @@ export async function selfhostDeleteDraft(payload: { clientId: string; courseId?
 export async function selfhostPublishAndOpen(payload: {
   clientId: string;
   courseId?: string | null;
+  acknowledgeOutOfTolerance?: boolean;
 }) {
   const res = await selfhostFetch("/api/selfhost/admin/nutrition/publish-access", {
     method: "POST",
@@ -766,6 +782,7 @@ export async function selfhostPublishNutrition(payload: {
   courseId?: string | null;
   reason?: string | null;
   idempotencyKey?: string;
+  acknowledgeOutOfTolerance?: boolean;
 }) {
   const res = await selfhostFetch("/api/selfhost/admin/nutrition/publish", {
     method: "POST",
@@ -814,6 +831,17 @@ export async function selfhostTrainingDraft(clientId: string, courseId?: string 
   }>;
 }
 
+export async function selfhostRebuildTraining(payload: Record<string, unknown>) {
+  const res = await selfhostFetch("/api/selfhost/admin/training/rebuild", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res) as Promise<{
+    program: import("@/lib/training-repo").ProgramRow;
+    days: import("@/lib/training-repo").DayRow[];
+  }>;
+}
+
 export async function selfhostSaveTrainingDraft(payload: Record<string, unknown>) {
   const res = await selfhostFetch("/api/selfhost/admin/training/draft", {
     method: "POST",
@@ -856,6 +884,64 @@ export async function selfhostPublishTraining(payload: {
     contentHash: string;
     idempotent: boolean;
   }>;
+}
+
+export type RutubeManualLibraryItem = {
+  exerciseId: string;
+  label: string;
+  note: string | null;
+  url: string;
+  collection?: "workout" | "workout_male" | "piece";
+};
+
+export async function selfhostRutubeManualLibrary() {
+  const res = await selfhostFetch("/api/selfhost/admin/training/rutube-library");
+  const data = await readSelfhostJson(res);
+  return data as {
+    workouts: RutubeManualLibraryItem[];
+    maleWorkouts: RutubeManualLibraryItem[];
+    pieces: RutubeManualLibraryItem[];
+  };
+}
+
+export async function selfhostMoveRutubeManualWorkout(payload: {
+  exerciseId: string;
+  collection: "workout" | "workout_male";
+}) {
+  const res = await selfhostFetch("/api/selfhost/admin/training/rutube-library/move", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true; item: RutubeManualLibraryItem }>;
+}
+
+export async function selfhostAddRutubeManualWorkout(payload: {
+  label: string;
+  url: string;
+  collection?: "workout" | "workout_male";
+}) {
+  const res = await selfhostFetch("/api/selfhost/admin/training/rutube-library/add", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true; item: RutubeManualLibraryItem }>;
+}
+
+export async function selfhostApplyRutubeManual(payload: {
+  clientId: string;
+  programId: string;
+  weekIndex: number;
+  dayIndex: number;
+  scope: "workout" | "section" | "set";
+  itemId: string;
+  section?: "warmup" | "exercises" | "cooldown";
+  setIndex?: number;
+}) {
+  const res = await selfhostFetch("/api/selfhost/admin/training/rutube-replace", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return readSelfhostJson(res) as Promise<{ ok: true }>;
 }
 
 export async function selfhostTrainingExercises() {
@@ -1159,6 +1245,8 @@ export async function selfhostOnboarding(clientId?: string | null) {
     onboarding: Record<string, unknown> | null;
     height_cm: number | null;
     weight_kg: number | null;
+    age_years: number | null;
+    gender: "female" | "male" | null;
   }>;
 }
 

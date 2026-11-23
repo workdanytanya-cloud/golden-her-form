@@ -20,9 +20,31 @@ export type SnapshotExerciseMediaBinding = {
   snapshot_exercise_key: string;
   exercise_id: string | null;
   confirmed_by_trainer: boolean;
+  source_url?: string | null;
+  embed_url?: string | null;
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Непроверенная ссылка всё равно доходит до клиента. «Недоступно» — нет. */
+export function clientOverlayStatus(status: string | null | undefined): boolean {
+  return status !== "unavailable";
+}
+
+/**
+ * Ссылка из привязки важнее колонки каталога.
+ * Статус «не проверено» не прячет ролик: иначе замена YouTube на Rutube пропадает с карточки.
+ */
+export function listedVideoUrl(
+  columnUrl: string | null | undefined,
+  bindingUrl: string | null | undefined,
+  bindingStatus: string | null | undefined,
+): string | null {
+  const binding = bindingUrl?.trim() ?? "";
+  if (binding && clientOverlayStatus(bindingStatus)) return binding;
+  const column = columnUrl?.trim() ?? "";
+  return column || null;
+}
 
 export function isUuid(value: string | null | undefined): value is string {
   return Boolean(value && UUID_RE.test(value));
@@ -102,9 +124,9 @@ export function bindingToVideo(binding: ExerciseMediaBinding | null | undefined)
 }
 
 /**
- * Видео для отображения/PDF: сначала общая привязка по exercise_id,
- * затем явная snapshot-привязка (только если confirmed_by_trainer).
- * Snapshot не изменяется.
+ * Видео для отображения/PDF.
+ * Ссылка, записанная в конкретную версию, важнее общей привязки.
+ * У старых версий этой ссылки нет, поэтому они остаются на exercise_media_bindings.
  */
 export function resolveDisplayVideo(params: {
   exerciseId: string | null;
@@ -112,6 +134,17 @@ export function resolveDisplayVideo(params: {
   byExerciseId: Map<string, ExerciseMediaBinding>;
   snapshotBindings: SnapshotExerciseMediaBinding[];
 }): ExerciseVideo | null {
+  const pinned = params.snapshotBindings.find(
+    (row) => row.snapshot_exercise_key === params.snapshotKey && row.source_url,
+  );
+  if (pinned?.source_url) {
+    return normalizeExerciseVideo({
+      url: pinned.source_url,
+      video_url: pinned.source_url,
+      embed_url: pinned.embed_url,
+      title: null,
+    });
+  }
   if (params.exerciseId) {
     const direct = params.byExerciseId.get(params.exerciseId);
     if (direct) return bindingToVideo(direct);

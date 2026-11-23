@@ -13,7 +13,8 @@ const complete = {
   heightCm: 168,
   weightKg: 62,
   gender: "female",
-  birthDate: "1994-04-02",
+  birthDate: null as string | null,
+  ageYears: 32,
   activityLevel: "moderate",
   trainingDays: 3,
 };
@@ -24,12 +25,14 @@ describe("program readiness", () => {
     expect(goalLabel("  ")).toBeNull();
     expect(goalLabel("weight_loss")).toBe("Снижение веса");
     expect(goalLabel("Своя формулировка")).toBe("Своя формулировка");
-    expect(missingProgramFields({ ...complete, goal: null, birthDate: null }, "both")).toEqual([
-      "дата рождения",
+    expect(missingProgramFields({ ...complete, goal: null, ageYears: null }, "both")).toEqual([
+      "возраст: поле «Возраст, полных лет» в первом шаге анкеты или в профиле клиента",
     ]);
     expect(
-      missingProgramMessage(missingProgramFields({ ...complete, birthDate: null }, "nutrition")),
-    ).toBe("Для программы не хватает: дата рождения");
+      missingProgramMessage(missingProgramFields({ ...complete, ageYears: null }, "nutrition")),
+    ).toBe(
+      "Для программы не хватает: возраст: поле «Возраст, полных лет» в первом шаге анкеты или в профиле клиента",
+    );
   });
 
   it("uses three mains when a five-meal scheme was not chosen and carbs are too low", () => {
@@ -58,7 +61,7 @@ describe("program readiness", () => {
 
   it("checks only the selected scope", () => {
     expect(
-      missingProgramFields({ ...complete, birthDate: null, gender: null }, "training"),
+      missingProgramFields({ ...complete, ageYears: null, gender: null }, "training"),
     ).toEqual([]);
     expect(missingProgramFields({ ...complete, trainingDays: null }, "nutrition")).toEqual([]);
     expect(missingProgramFields(complete, "both")).toEqual([]);

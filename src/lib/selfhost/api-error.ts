@@ -78,11 +78,16 @@ export async function readApiPayload(
   }
 }
 
+/** Убирает секреты из текста перед console. Полный URL в базе при этом не меняется. */
+export function redactLoggedSecrets(value: string): string {
+  return value
+    .replace(/postgres:\/\/\S+/gi, "postgres://***")
+    .replace(/([?&#]p=)[^&#\s'"]+/gi, "$1***")
+    .replace(/[\w.+-]+@[\w.-]+\.\w+/g, "***");
+}
+
 export function logServerError(error: unknown): void {
   const raw = error instanceof Error ? error.message : "Ошибка сервера";
-  const safe = raw
-    .replace(/postgres:\/\/\S+/gi, "postgres://***")
-    .replace(/[\w.+-]+@[\w.-]+\.\w+/g, "***")
-    .slice(0, 300);
+  const safe = redactLoggedSecrets(raw).slice(0, 300);
   console.error("[selfhost]", safe);
 }

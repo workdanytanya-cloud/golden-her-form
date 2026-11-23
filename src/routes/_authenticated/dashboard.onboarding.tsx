@@ -13,6 +13,7 @@ import {
   getDietPoolInfo,
 } from "@/lib/medical-diet-tables";
 import { SPECIAL_DIET_MENUS } from "@/lib/special-diet-menus";
+import { parseAgeYearsInput } from "@/lib/client-age";
 import {
   isHeightCmInRange,
   isRuNumberInRange,
@@ -34,8 +35,10 @@ const OnboardingFieldContext = createContext<FieldCtx | null>(null);
 
 // Fields required before the questionnaire can be submitted to the trainer.
 const REQUIRED_FIELDS: Array<{ key: string; label: string }> = [
-  { key: "height_cm", label: "Рост" },
-  { key: "weight_kg", label: "Вес" },
+  { key: "age_years", label: "Возраст, полных лет" },
+  { key: "gender", label: "Пол" },
+  { key: "height_cm", label: "Рост, см" },
+  { key: "weight_kg", label: "Вес, кг" },
   { key: "goal_primary", label: "Основная цель" },
   { key: "timeframe", label: "Желаемый срок" },
   { key: "focus_areas", label: "Проблемные зоны (минимум одна)" },
@@ -98,6 +101,8 @@ function Field({
 }
 
 type FormState = {
+  age_years: string;
+  gender: string;
   height_cm: string;
   weight_kg: string;
   goal_primary: string;
@@ -134,6 +139,8 @@ type FormState = {
 };
 
 const empty: FormState = {
+  age_years: "",
+  gender: "",
   height_cm: "",
   weight_kg: "",
   goal_primary: "",
@@ -289,12 +296,16 @@ function OnboardingPage() {
       );
       let height = "";
       let weight = "";
+      let age = "";
+      let gender = "";
       let onbData: Record<string, unknown> | null = null;
 
       if (await usesLocalPostgresCircuit()) {
         const loaded = await selfhostOnboarding(effectiveUserId);
         height = loaded.height_cm != null ? String(loaded.height_cm) : "";
         weight = loaded.weight_kg != null ? String(loaded.weight_kg) : "";
+        age = loaded.age_years != null ? String(loaded.age_years) : "";
+        gender = loaded.gender ?? "";
         onbData = loaded.onboarding;
       } else {
         const [onbRes, profileRes, measRes] = await Promise.all([
@@ -303,7 +314,11 @@ function OnboardingPage() {
             .select("*")
             .eq("user_id", effectiveUserId)
             .maybeSingle(),
-          supabase.from("profiles").select("height_cm").eq("id", effectiveUserId).maybeSingle(),
+          supabase
+            .from("profiles")
+            .select("height_cm, age_years, gender")
+            .eq("id", effectiveUserId)
+            .maybeSingle(),
           supabase
             .from("measurements")
             .select("weight_kg")
@@ -314,6 +329,9 @@ function OnboardingPage() {
             .maybeSingle(),
         ]);
         height = profileRes.data?.height_cm != null ? String(profileRes.data.height_cm) : "";
+        age =
+          profileRes.data?.age_years != null ? String(profileRes.data.age_years) : "";
+        gender = profileRes.data?.gender ?? "";
         weight = measRes.data?.weight_kg != null ? String(measRes.data.weight_kg) : "";
         onbData = (onbRes.data as Record<string, unknown> | null) ?? null;
       }
@@ -327,6 +345,8 @@ function OnboardingPage() {
         const savedTable =
           typeof extra.medical_diet_table === "string" ? extra.medical_diet_table : MEDICAL_DIET_NONE;
         setForm({
+          age_years: age,
+          gender,
           height_cm: height,
           weight_kg: weight,
           goal_primary: (d.goal_primary as string) ?? "",
@@ -366,7 +386,13 @@ function OnboardingPage() {
         setExtraBase(extra);
         setCompleted((d.completed_at as string) ?? null);
       } else {
-        setForm((f) => ({ ...f, height_cm: height, weight_kg: weight }));
+        setForm((f) => ({
+          ...f,
+          age_years: age,
+          gender,
+          height_cm: height,
+          weight_kg: weight,
+        }));
       }
       setLoading(false);
     })();
@@ -440,6 +466,9 @@ function OnboardingPage() {
     if (form.has_injuries && !form.injuries_details.trim()) {
       missing.push("injuries_details");
     }
+    if (form.age_years.trim() && parseAgeYearsInput(form.age_years) == null) {
+      missing.push("age_years");
+    }
     if (form.height_cm.trim() && !isHeightCmInRange(form.height_cm)) {
       missing.push("height_cm");
     }
@@ -452,11 +481,18 @@ function OnboardingPage() {
   const persistBodyMetrics = async () => {
     if (!effectiveUserId) return;
     const height = parseHeightCm(form.height_cm);
+    const ageYears = parseAgeYearsInput(form.age_years);
+    const gender = form.gender === "female" || form.gender === "male" ? form.gender : null;
     const weight = parseRuNumber(form.weight_kg);
-    if (height != null) {
+    if (height != null || ageYears != null || gender != null) {
       const { error } = await supabase
         .from("profiles")
-        .update({ height_cm: height })
+        .update({
+          ...(height != null ? { height_cm: height } : {}),
+          ...(ageYears != null ? { age_years: ageYears } : {}),
+          ...(gender != null ? { gender } : {}),
+          birth_date: null,
+        })
         .eq("id", effectiveUserId);
       if (error) throw error;
     }
@@ -492,10 +528,13 @@ function OnboardingPage() {
       }
       setMissingKeys(new Set());
     } else if (
+      (form.age_years.trim() && parseAgeYearsInput(form.age_years) == null) ||
       (form.height_cm.trim() && !isHeightCmInRange(form.height_cm)) ||
       (form.weight_kg.trim() && !isRuNumberInRange(form.weight_kg, 30, 250))
     ) {
-      toast.error("Проверьте рост (120–230 см или 1,65 м) и вес (30–250 кг). Можно с запятой: 68,5");
+      toast.error(
+        "Проверьте возраст (14–100 полных лет), рост (120–230 см или 1,65 м) и вес (30–250 кг). Можно с запятой: 68,5",
+      );
       return;
     }
     setSaving(true);
@@ -520,6 +559,8 @@ function OnboardingPage() {
         const saved = await selfhostSaveOnboarding({
           clientId: effectiveUserId,
           asCompleted,
+          age_years: parseAgeYearsInput(form.age_years),
+          gender: form.gender === "female" || form.gender === "male" ? form.gender : null,
           height_cm: parseHeightCm(form.height_cm),
           weight_kg: parseRuNumber(form.weight_kg),
           weightIdempotencyKey: weightIdempotencyKeyRef.current,
@@ -690,10 +731,32 @@ function OnboardingPage() {
 
       <Section title="Параметры тела" step="0">
         <p className="mb-3 text-sm text-warm-gray">
-          Рост и вес нужны для расчёта калорий. Замеры в разделе «Прогресс» откроются после допуска
-          тренера — поэтому укажите вес здесь.
+          Возраст, пол, рост и вес нужны для расчёта калорий. Замеры в разделе «Прогресс» откроются
+          после допуска тренера — поэтому укажите вес здесь.
         </p>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="Возраст, полных лет" fieldKey="age_years">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={form.age_years}
+              onChange={(e) => set("age_years", e.target.value)}
+              className={inputCls}
+              placeholder="например, 53"
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="Пол" fieldKey="gender">
+            <select
+              value={form.gender}
+              onChange={(e) => set("gender", e.target.value)}
+              className={inputCls}
+            >
+              <option value="">Выберите</option>
+              <option value="female">Женский</option>
+              <option value="male">Мужской</option>
+            </select>
+          </Field>
           <Field label="Рост, см" fieldKey="height_cm">
             <input
               type="text"

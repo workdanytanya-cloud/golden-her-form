@@ -1,8 +1,9 @@
 import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
-import { buildContinuationTrainingProgram } from "@/lib/course-continuation/training-continuation";
+import { applyContinuationProgression } from "@/lib/course-continuation/training-continuation";
 import type { PreviousTrainingContext } from "@/lib/course-continuation/training-continuation";
 import { normalizeExerciseVideo } from "@/lib/exercise-video";
+import { normalizeExerciseEquipmentKeys } from "@/lib/personalization/equipment-filter";
 import {
   buildTrainingSnapshot,
   programDaysFromSnapshot,
@@ -10,11 +11,15 @@ import {
 } from "@/lib/published-programs/training-snapshot";
 import type { TrainingSnapshot } from "@/lib/published-programs/types";
 import { withTransaction } from "@/lib/selfhost/db";
+import { snapshotExerciseKey } from "@/lib/selfhost/media";
 import { resolveClientCourseIdPg } from "@/lib/selfhost/postgres-courses";
 import { getActivePublishedTrainingPg } from "@/lib/selfhost/postgres-published";
 import type { DayRow, ProgramRow } from "@/lib/training-repo";
 import {
   defaultFaq,
+  generateMultiWeekProgram,
+  markConfirmedCoachDemoTags,
+  type ReadyTrainingBlock,
   type Exercise,
   type ExerciseSet,
   type FaqItem,
@@ -209,6 +214,108 @@ export async function listTrainingExercisesPg(db: Queryable): Promise<Exercise[]
       rest_seconds: Number(r.rest_seconds ?? 60),
     } satisfies Exercise;
   });
+}
+
+export async function loadGeneratorPoolExercisesPg(db: Queryable): Promise<Exercise[]> {
+  const { rows } = await db.query(
+    `SELECT e.*,
+            p.source_url AS pool_source_url,
+            p.studio_title AS pool_title
+       FROM public.exercises e
+       JOIN public.generator_rutube_pool p ON p.exercise_id = e.id
+      WHERE e.is_active = true AND e.archived_at IS NULL
+      ORDER BY e.name`,
+  );
+  return rows.map((raw) => {
+    const r = raw as Record<string, unknown>;
+    const video = normalizeExerciseVideo({
+      url: r.pool_source_url as string,
+      title: (r.pool_title as string | null) ?? (r.name as string),
+    });
+    return {
+      id: r.id as string,
+      slug: r.slug as string,
+      name: r.name as string,
+      category: r.category as Exercise["category"],
+      muscle_groups: (r.muscle_groups as string[]) ?? [],
+      equipment: normalizeExerciseEquipmentKeys((r.equipment as string[]) ?? []),
+      difficulty: r.difficulty as Exercise["difficulty"],
+      // Подтверждённый канал тренера — не стоковые мужские демо.
+      tags: markConfirmedCoachDemoTags((r.tags as string[]) ?? []),
+      description: (r.description as string | null) ?? null,
+      cues: (r.cues as string[]) ?? [],
+      common_mistakes: (r.common_mistakes as string[]) ?? [],
+      gif_url: (r.gif_url as string | null) ?? null,
+      video_url: video.url,
+      video,
+      default_sets: Number(r.default_sets ?? 3),
+      default_reps: String(r.default_reps ?? "10-12"),
+      tempo: (r.tempo as string | null) ?? null,
+      rest_seconds: Number(r.rest_seconds ?? 60),
+    } satisfies Exercise;
+  });
+}
+
+export async function loadReadyBlocksPg(db: Queryable): Promise<ReadyTrainingBlock[]> {
+  const { rows } = await db.query(
+    `SELECT id, kind, label, covers_mobility, covers_activation, equipment
+       FROM public.generator_ready_blocks
+      ORDER BY kind, label`,
+  );
+  return rows.map((raw) => {
+    const row = raw as {
+      id: string;
+      kind: "warmup" | "cooldown";
+      label: string;
+      covers_mobility: boolean;
+      covers_activation: boolean;
+      equipment: string[] | null;
+    };
+    return {
+      id: row.id,
+      kind: row.kind,
+      label: row.label,
+      coversMobility: row.covers_mobility,
+      coversActivation: row.covers_activation,
+      equipment: row.equipment ?? [],
+    };
+  });
+}
+
+async function loadReadyBlockMediaByExercise(
+  db: Queryable,
+  exerciseIds: string[],
+): Promise<Map<string, { sourceUrl: string; embedUrl: string }>> {
+  const map = new Map<string, { sourceUrl: string; embedUrl: string }>();
+  if (!exerciseIds.length) return map;
+  const { rows } = await db.query(
+    `SELECT id, source_url, embed_url
+       FROM public.generator_ready_blocks
+      WHERE id = ANY($1::uuid[])`,
+    [exerciseIds],
+  );
+  for (const row of rows as Array<{ id: string; source_url: string; embed_url: string }>) {
+    map.set(row.id, { sourceUrl: row.source_url, embedUrl: row.embed_url });
+  }
+  return map;
+}
+
+async function loadPoolMediaByExercise(
+  db: Queryable,
+  exerciseIds: string[],
+): Promise<Map<string, { sourceUrl: string; embedUrl: string }>> {
+  const map = new Map<string, { sourceUrl: string; embedUrl: string }>();
+  if (!exerciseIds.length) return map;
+  const { rows } = await db.query(
+    `SELECT exercise_id, source_url, embed_url
+       FROM public.generator_rutube_pool
+      WHERE exercise_id = ANY($1::uuid[])`,
+    [exerciseIds],
+  );
+  for (const row of rows as Array<{ exercise_id: string; source_url: string; embed_url: string }>) {
+    map.set(row.exercise_id, { sourceUrl: row.source_url, embedUrl: row.embed_url });
+  }
+  return map;
 }
 
 async function assertExercisesExist(db: Queryable, ids: string[]) {
@@ -609,7 +716,7 @@ export async function seedTrainingContinuationForCoursePg(
   params: { clientId: string; sourceCourseId: string; targetCourseId: string },
 ): Promise<void> {
   const { clientId, sourceCourseId, targetCourseId } = params;
-  const exercises = await listTrainingExercisesPg(db);
+  const exercises = await loadGeneratorPoolExercisesPg(db);
   const profile = await loadTrainingProfilePg(db, clientId);
   const input: ProgramInput = {
     sessions_per_week: profile.sessions_per_week,
@@ -628,7 +735,20 @@ export async function seedTrainingContinuationForCoursePg(
     targetCourseId,
     sourceCourseId,
   );
-  const plan = buildContinuationTrainingProgram(exercises, input, previous);
+  const previousIds = new Set(
+    (previous?.days ?? []).flatMap((day) => day.exercises.map((item) => item.exercise_id)),
+  );
+  const available =
+    previousIds.size > 0
+      ? exercises.filter((exercise) => !previousIds.has(exercise.id))
+      : exercises;
+  const generated = generateMultiWeekProgram(available, input, 4, {
+    strict: true,
+    blocks: await loadReadyBlocksPg(db),
+  });
+  const days = previous?.days.length
+    ? applyContinuationProgression(generated, previous.days)
+    : generated;
   await saveTrainingDraftPg(db, {
     clientId,
     courseId: targetCourseId,
@@ -639,11 +759,11 @@ export async function seedTrainingContinuationForCoursePg(
     injuries_details: input.injuries_details ?? null,
     equipment: input.equipment ?? [],
     location: input.location ?? null,
-    notes: plan.coachNotes,
+    notes: "Новый блок собран только из упражнений с подтверждённым роликом Rutube.",
     faq: defaultFaq(input),
     targets_manual: true,
-    program_weeks: plan.programWeeks,
-    days: plan.days.map((d) => ({
+    program_weeks: 4,
+    days: days.map((d) => ({
       week_index: d.week_index ?? 0,
       day_index: d.day_index,
       is_rest: d.is_rest,
@@ -654,6 +774,44 @@ export async function seedTrainingContinuationForCoursePg(
       exercises: d.exercises,
       cooldown: d.cooldown,
       day_note: d.day_note,
+    })),
+  });
+}
+
+export async function rebuildTrainingDraftPg(
+  db: Pool,
+  input: { clientId: string; courseId?: string | null; program: ProgramInput },
+): Promise<{ program: ProgramRow; days: DayRow[] }> {
+  const exercises = await loadGeneratorPoolExercisesPg(db);
+  const days = generateMultiWeekProgram(exercises, input.program, 4, {
+    strict: true,
+    blocks: await loadReadyBlocksPg(db),
+  });
+  return saveTrainingDraftPg(db, {
+    clientId: input.clientId,
+    courseId: input.courseId,
+    sessions_per_week: input.program.sessions_per_week,
+    goal: input.program.goal,
+    level: input.program.level,
+    has_injuries: input.program.has_injuries,
+    injuries_details: input.program.injuries_details ?? null,
+    equipment: input.program.equipment ?? [],
+    location: input.program.location ?? null,
+    notes: "Черновик собран только из упражнений с подтверждённым роликом Rutube.",
+    faq: defaultFaq(input.program),
+    targets_manual: true,
+    program_weeks: 4,
+    days: days.map((day) => ({
+      week_index: day.week_index ?? 0,
+      day_index: day.day_index,
+      is_rest: day.is_rest,
+      title: day.title,
+      focus: day.focus,
+      description: day.description,
+      warmup: day.warmup,
+      exercises: day.exercises,
+      cooldown: day.cooldown,
+      day_note: day.day_note,
     })),
   });
 }
@@ -793,7 +951,22 @@ export async function publishTrainingVersionPg(
     const exercises = await listTrainingExercisesPg(client);
     const byId = new Map(exercises.map((e) => [e.id, e]));
     const needed = collectExerciseIds(draft.days);
-    const freezeList = needed.map((id) => byId.get(id)).filter(Boolean) as Exercise[];
+    const poolMedia = await loadPoolMediaByExercise(client, needed);
+    const blockMedia = await loadReadyBlockMediaByExercise(client, needed);
+    for (const [id, media] of blockMedia) poolMedia.set(id, media);
+    const { loadManualMediaByExercise } = await import("@/lib/selfhost/rutube-manual");
+    const manualMedia = await loadManualMediaByExercise(client, needed);
+    for (const [id, media] of manualMedia) poolMedia.set(id, media);
+    const freezeList = needed
+      .map((id) => {
+        const exercise = byId.get(id);
+        if (!exercise) return null;
+        const pool = poolMedia.get(id);
+        if (!pool) return exercise;
+        const video = normalizeExerciseVideo({ url: pool.sourceUrl, title: exercise.name });
+        return { ...exercise, video_url: video.url, video };
+      })
+      .filter(Boolean) as Exercise[];
 
     const programDays: ProgramDay[] = draft.days.map((d) => ({
       week_index: d.week_index,
@@ -885,6 +1058,36 @@ export async function publishTrainingVersionPg(
       [input.clientId, courseId, newVer, JSON.stringify(snapshot), hash, prevId, input.actorId],
     );
     const versionId = (inserted.rows[0] as { id: string }).id;
+    if (needed.length > 0 && needed.every((id) => poolMedia.has(id))) {
+      for (const day of programDays) {
+        const week = day.week_index ?? 0;
+        const pin = async (section: "warmup" | "exercises" | "cooldown") => {
+          for (const [index, set] of day[section].entries()) {
+            const media = poolMedia.get(set.exercise_id);
+            if (!media) continue;
+            await client.query(
+              `INSERT INTO public.snapshot_exercise_media_bindings
+                (version_id, snapshot_exercise_key, exercise_id, confirmed_by_trainer, source_url, embed_url, created_by)
+               VALUES ($1,$2,$3,true,$4,$5,$6)
+               ON CONFLICT (version_id, snapshot_exercise_key) DO UPDATE SET
+                 source_url = EXCLUDED.source_url,
+                 embed_url = EXCLUDED.embed_url`,
+              [
+                versionId,
+                snapshotExerciseKey(week, day.day_index, section, index),
+                set.exercise_id,
+                media.sourceUrl,
+                media.embedUrl,
+                input.actorId,
+              ],
+            );
+          }
+        };
+        await pin("warmup");
+        await pin("exercises");
+        await pin("cooldown");
+      }
+    }
 
     await client.query(
       `INSERT INTO public.client_program_assignments (client_id, course_id, kind, active_version_id, updated_by)

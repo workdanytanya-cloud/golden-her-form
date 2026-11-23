@@ -1,4 +1,6 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
+import { useAuth } from "@/lib/auth";
+import { ProgramVideoLink } from "@/components/panel/ProgramVideoLink";
 import {
   ChevronDown,
   ChevronLeft,
@@ -36,6 +38,14 @@ import { WEEK_PROGRESS_LABELS } from "@/lib/coach-sheet-program";
 import { isDirectVideoFile } from "@/lib/video-embed";
 import { WorkoutFeedbackDialog } from "@/components/panel/WorkoutFeedbackDialog";
 import { SubstituteSuggestions } from "@/components/panel/SubstituteSuggestions";
+import { RutubeManualLibrary, type RutubeManualItem } from "@/components/panel/RutubeManualLibrary";
+import {
+  selfhostAddRutubeManualWorkout,
+  selfhostApplyRutubeManual,
+  selfhostMoveRutubeManualWorkout,
+  selfhostRutubeManualLibrary,
+} from "@/lib/selfhost/client-api";
+import { clientAllowsMaleWorkouts } from "@/lib/selfhost/rutube-manual-shared";
 
 type SectionKey = "warmup" | "exercises" | "cooldown";
 
@@ -83,6 +93,8 @@ type Props = {
   userId?: string;
   programId?: string;
   enableWorkoutFeedback?: boolean;
+  /** Пол из анкеты/профиля — мужские тренировки только для male */
+  clientGender?: "female" | "male" | null;
 };
 
 export function TrainingView({
@@ -106,7 +118,58 @@ export function TrainingView({
   userId,
   programId,
   enableWorkoutFeedback = false,
+  clientGender = null,
 }: Props) {
+  const { role } = useAuth();
+  const [rutubeLibrary, setRutubeLibrary] = useState<{
+    workouts: RutubeManualItem[];
+    maleWorkouts: RutubeManualItem[];
+    pieces: RutubeManualItem[];
+  } | null>(null);
+  const reloadRutubeLibrary = () => {
+    if (!editable) return;
+    void selfhostRutubeManualLibrary()
+      .then((library) =>
+        setRutubeLibrary({
+          workouts: library.workouts ?? [],
+          maleWorkouts: library.maleWorkouts ?? [],
+          pieces: library.pieces ?? [],
+        }),
+      )
+      .catch(() => setRutubeLibrary({ workouts: [], maleWorkouts: [], pieces: [] }));
+  };
+  useEffect(() => {
+    reloadRutubeLibrary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when editor opens
+  }, [editable, role]);
+  const allowMaleWorkouts = clientAllowsMaleWorkouts(clientGender);
+  const applyRutube = async (input: {
+    weekIndex: number;
+    dayIndex: number;
+    scope: "workout" | "section" | "set";
+    itemId: string;
+    section?: SectionKey;
+    setIndex?: number;
+  }) => {
+    if (!userId || !programId) {
+      toast.error("Нет черновика этой программы. Выданная версия не изменена.");
+      return;
+    }
+    await selfhostApplyRutubeManual({ clientId: userId, programId, ...input });
+    toast.success("Замена сохранена в черновике. Выданная версия не изменилась.");
+    onProgramReload?.();
+  };
+  const moveRutubeWorkout = async (
+    item: RutubeManualItem,
+    collection: "workout" | "workout_male",
+  ) => {
+    await selfhostMoveRutubeManualWorkout({ exerciseId: item.exerciseId, collection });
+    reloadRutubeLibrary();
+  };
+  const addMaleWorkout = async (input: { label: string; url: string }) => {
+    await selfhostAddRutubeManualWorkout({ ...input, collection: "workout_male" });
+    reloadRutubeLibrary();
+  };
   const exById = useMemo(() => {
     const m: Record<string, Exercise> = {};
     for (const e of exercises) m[e.id] = e;
@@ -346,6 +409,17 @@ export function TrainingView({
           onPatch={patchDay}
           onEditToast={editToast}
           onOpen={(section, index, set) => setOpenExercise({ section, index, set })}
+          rutubeWorkouts={editable ? (rutubeLibrary?.workouts ?? []) : undefined}
+          rutubeMaleWorkouts={editable ? (rutubeLibrary?.maleWorkouts ?? []) : undefined}
+          allowMaleWorkouts={allowMaleWorkouts}
+          rutubePieces={editable ? (rutubeLibrary?.pieces ?? []) : undefined}
+          onApplyRutube={
+            editable
+              ? (input) => applyRutube({ weekIndex, dayIndex: day.day_index, ...input })
+              : undefined
+          }
+          onMoveRutubeWorkout={editable ? moveRutubeWorkout : undefined}
+          onAddMaleWorkout={editable ? addMaleWorkout : undefined}
         />
       ) : (
         <div className="rounded-3xl border border-coral/30 bg-coral/10 p-8 text-center">
@@ -368,6 +442,8 @@ export function TrainingView({
           set={openExercise.set}
           allExercises={exercises}
           editable={editable}
+          programId={programId}
+          canEditVideo={role === "admin"}
           sequenceLabel={
             exerciseSequence.length > 1
               ? `${openExerciseIndex + 1} из ${exerciseSequence.length}`
@@ -383,6 +459,20 @@ export function TrainingView({
           substituteUserId={userId}
           substituteApplyContext={openApplyContext}
           onSubstituteApplied={onProgramReload}
+          rutubePieces={editable ? (rutubeLibrary?.pieces ?? []) : undefined}
+          onApplyRutubePiece={
+            editable && openExercise
+              ? (itemId) =>
+                  applyRutube({
+                    weekIndex,
+                    dayIndex: day?.day_index ?? 0,
+                    scope: "set",
+                    section: openExercise.section,
+                    setIndex: openExercise.index,
+                    itemId,
+                  })
+              : undefined
+          }
           onSwap={async (newId) => {
             if (!day) return;
             const arr = [...day[openExercise.section]];
@@ -584,6 +674,13 @@ function DaySection({
   onPatch,
   onEditToast,
   onOpen,
+  rutubeWorkouts,
+  rutubeMaleWorkouts,
+  allowMaleWorkouts = false,
+  rutubePieces,
+  onApplyRutube,
+  onMoveRutubeWorkout,
+  onAddMaleWorkout,
 }: {
   day: ProgramDay;
   exById: Record<string, Exercise>;
@@ -593,7 +690,26 @@ function DaySection({
   onPatch: (patch: Partial<ProgramDay>) => Promise<void>;
   onEditToast: (msg: string) => void;
   onOpen: (section: SectionKey, index: number, set: ExerciseSet) => void;
+  rutubeWorkouts?: RutubeManualItem[];
+  rutubeMaleWorkouts?: RutubeManualItem[];
+  allowMaleWorkouts?: boolean;
+  rutubePieces?: RutubeManualItem[];
+  onApplyRutube?: (input: {
+    scope: "workout" | "section";
+    itemId: string;
+    section?: SectionKey;
+  }) => Promise<void>;
+  onMoveRutubeWorkout?: (
+    item: RutubeManualItem,
+    collection: "workout" | "workout_male",
+  ) => Promise<void>;
+  onAddMaleWorkout?: (input: { label: string; url: string }) => Promise<void>;
 }) {
+  const [workoutOpen, setWorkoutOpen] = useState(false);
+  const [blockSection, setBlockSection] = useState<SectionKey | null>(null);
+  const showWorkoutLibrary = Boolean(
+    onApplyRutube && (rutubeWorkouts || rutubeMaleWorkouts || onAddMaleWorkout || onMoveRutubeWorkout),
+  );
   if (day.is_rest) {
     return (
       <div className="rounded-3xl border border-gold/15 bg-surface/30 p-8 text-center">
@@ -638,6 +754,16 @@ function DaySection({
             )}
           </div>
           {editable && (
+            <div className="flex shrink-0 flex-col items-end gap-2">
+            {showWorkoutLibrary ? (
+              <button
+                type="button"
+                onClick={() => setWorkoutOpen((open) => !open)}
+                className="rounded-full border border-gold/40 px-3 py-1.5 text-[10px] uppercase tracking-widest text-gold"
+              >
+                Заменить тренировку
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() =>
@@ -655,8 +781,54 @@ function DaySection({
             >
               Сделать днём отдыха
             </button>
+            </div>
           )}
         </div>
+        {workoutOpen && showWorkoutLibrary ? (
+          <div className="mt-4 space-y-4">
+            <RutubeManualLibrary
+              title="Тренировки с RUTUBE"
+              hint="Общие готовые тренировки. Сохранение пишет черновик этой программы, выданная версия остаётся прежней."
+              items={rutubeWorkouts ?? []}
+              onSave={async (item) => {
+                if (!onApplyRutube) return;
+                await onApplyRutube({ scope: "workout", itemId: item.exerciseId });
+                setWorkoutOpen(false);
+              }}
+              moveLabel={onMoveRutubeWorkout ? "В мужские" : undefined}
+              onMove={
+                onMoveRutubeWorkout
+                  ? (item) => onMoveRutubeWorkout(item, "workout_male")
+                  : undefined
+              }
+            />
+            <RutubeManualLibrary
+              title="Мужские тренировки"
+              hint={
+                allowMaleWorkouts
+                  ? "Только для клиентов с полом «мужской» в анкете. Сохранение пишет черновик, выданная версия не меняется."
+                  : "Папка только для пола «мужской». Этому клиенту (женский пол или пол не указан) подставить нельзя."
+              }
+              items={rutubeMaleWorkouts ?? []}
+              onSave={
+                allowMaleWorkouts && onApplyRutube
+                  ? async (item) => {
+                      await onApplyRutube({ scope: "workout", itemId: item.exerciseId });
+                      setWorkoutOpen(false);
+                    }
+                  : undefined
+              }
+              moveLabel={onMoveRutubeWorkout ? "В общие" : undefined}
+              onMove={
+                onMoveRutubeWorkout
+                  ? (item) => onMoveRutubeWorkout(item, "workout")
+                  : undefined
+              }
+              addLabel="Добавить мужскую тренировку"
+              onAdd={onAddMaleWorkout}
+            />
+          </div>
+        ) : null}
       </div>
 
       <SectionBlock
@@ -669,6 +841,22 @@ function DaySection({
         onEditToast={onEditToast}
         onChange={(next) => onPatch({ warmup: next })}
         onOpen={(i, set) => onOpen("warmup", i, set)}
+        onReplaceBlock={
+          onApplyRutube && rutubePieces ? () => setBlockSection(blockSection === "warmup" ? null : "warmup") : undefined
+        }
+        replacement={
+          blockSection === "warmup" && onApplyRutube && rutubePieces ? (
+            <RutubeManualLibrary
+              title="Подтверждённые упражнения и блоки"
+              hint="Разминка 1 отмечена отдельно: она закрывает мобильность и не заменяет полный блок с активацией."
+              items={rutubePieces}
+              onSave={async (item) => {
+                await onApplyRutube({ scope: "section", section: "warmup", itemId: item.exerciseId });
+                setBlockSection(null);
+              }}
+            />
+          ) : null
+        }
       />
 
       <SectionBlock
@@ -681,6 +869,24 @@ function DaySection({
         onEditToast={onEditToast}
         onChange={(next) => onPatch({ exercises: next })}
         onOpen={(i, set) => onOpen("exercises", i, set)}
+        onReplaceBlock={
+          onApplyRutube && rutubePieces
+            ? () => setBlockSection(blockSection === "exercises" ? null : "exercises")
+            : undefined
+        }
+        replacement={
+          blockSection === "exercises" && onApplyRutube && rutubePieces ? (
+            <RutubeManualLibrary
+              title="Подтверждённые упражнения и блоки"
+              hint="Сохранение меняет только этот блок в черновике."
+              items={rutubePieces}
+              onSave={async (item) => {
+                await onApplyRutube({ scope: "section", section: "exercises", itemId: item.exerciseId });
+                setBlockSection(null);
+              }}
+            />
+          ) : null
+        }
       />
 
       <SectionBlock
@@ -693,6 +899,24 @@ function DaySection({
         onEditToast={onEditToast}
         onChange={(next) => onPatch({ cooldown: next })}
         onOpen={(i, set) => onOpen("cooldown", i, set)}
+        onReplaceBlock={
+          onApplyRutube && rutubePieces
+            ? () => setBlockSection(blockSection === "cooldown" ? null : "cooldown")
+            : undefined
+        }
+        replacement={
+          blockSection === "cooldown" && onApplyRutube && rutubePieces ? (
+            <RutubeManualLibrary
+              title="Подтверждённые упражнения и блоки"
+              hint="Сохранение меняет только этот блок в черновике."
+              items={rutubePieces}
+              onSave={async (item) => {
+                await onApplyRutube({ scope: "section", section: "cooldown", itemId: item.exerciseId });
+                setBlockSection(null);
+              }}
+            />
+          ) : null
+        }
       />
 
       {/* Day note */}
@@ -716,6 +940,8 @@ function SectionBlock({
   onEditToast,
   onChange,
   onOpen,
+  onReplaceBlock,
+  replacement,
 }: {
   label: string;
   eyebrow: string;
@@ -726,6 +952,8 @@ function SectionBlock({
   onEditToast: (msg: string) => void;
   onChange: (next: ExerciseSet[]) => Promise<void>;
   onOpen: (index: number, set: ExerciseSet) => void;
+  onReplaceBlock?: () => void;
+  replacement?: ReactNode;
 }) {
   const [adding, setAdding] = useState(false);
   return (
@@ -736,15 +964,27 @@ function SectionBlock({
           <h4 className="mt-1 font-display text-base text-ivory md:text-lg">{label}</h4>
         </div>
         {editable && (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-gold/20 px-3 py-1 text-[11px] uppercase tracking-widest text-warm-gray hover:text-ivory"
-          >
-            <Plus className="h-3 w-3" /> Упражнение
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {onReplaceBlock ? (
+              <button
+                type="button"
+                onClick={onReplaceBlock}
+                className="rounded-full border border-gold/30 px-3 py-1 text-[11px] uppercase tracking-widest text-gold"
+              >
+                Заменить блок
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-gold/20 px-3 py-1 text-[11px] uppercase tracking-widest text-warm-gray hover:text-ivory"
+            >
+              <Plus className="h-3 w-3" /> Упражнение
+            </button>
+          </div>
         )}
       </div>
+      {replacement}
 
       {sets.length === 0 ? (
         <p className="mt-4 text-sm text-warm-gray">Пока не задано.</p>
@@ -1017,6 +1257,8 @@ function ExerciseDialog({
   set,
   allExercises,
   editable,
+  programId,
+  canEditVideo = false,
   sequenceLabel,
   nextExerciseName,
   onPrev,
@@ -1026,6 +1268,8 @@ function ExerciseDialog({
   substituteUserId,
   substituteApplyContext,
   onSubstituteApplied,
+  rutubePieces,
+  onApplyRutubePiece,
   onSwap,
   onSetPatch,
 }: {
@@ -1033,6 +1277,8 @@ function ExerciseDialog({
   set: ExerciseSet;
   allExercises: Exercise[];
   editable: boolean;
+  programId?: string;
+  canEditVideo?: boolean;
   sequenceLabel?: string;
   nextExerciseName?: string;
   onPrev?: () => void;
@@ -1047,6 +1293,8 @@ function ExerciseDialog({
     setIndex: number;
   };
   onSubstituteApplied?: () => void;
+  rutubePieces?: RutubeManualItem[];
+  onApplyRutubePiece?: (itemId: string) => Promise<void>;
   onSwap: (id: string) => Promise<void>;
   onSetPatch: (patch: Partial<ExerciseSet>) => Promise<void>;
 }) {
@@ -1055,10 +1303,21 @@ function ExerciseDialog({
   const [reps, setReps] = useState(set.reps);
   const [rest, setRest] = useState(set.rest_seconds);
   const [note, setNote] = useState(set.note ?? "");
+  const [displayVideo, setDisplayVideo] = useState(exercise.video);
   const contentRef = useRef<HTMLDivElement>(null);
+  const reliableExerciseId =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      exercise.id,
+    );
 
   const replacements = useMemo(
-    () => allExercises.filter((e) => e.category === exercise.category && e.id !== exercise.id),
+    () =>
+      allExercises.filter(
+        (e) =>
+          e.category === exercise.category &&
+          e.id !== exercise.id &&
+          !(e.tags ?? []).includes("rutube_workout"),
+      ),
     [exercise, allExercises],
   );
 
@@ -1068,8 +1327,9 @@ function ExerciseDialog({
     setReps(set.reps);
     setRest(set.rest_seconds);
     setNote(set.note ?? "");
+    setDisplayVideo(exercise.video);
     contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, [exercise.id, set]);
+  }, [exercise.id, exercise.video, set]);
 
   const showNav = Boolean(sequenceLabel || onPrev || onNext);
 
@@ -1111,13 +1371,29 @@ function ExerciseDialog({
                 </div>
               }
             >
-              <MediaCard
-                label="Видео с тренером"
-                url={exercise.video_url}
-                video={exercise.video}
-                isVideo
-                placeholder={<Play className="h-10 w-10 opacity-40" />}
-              />
+              <div>
+                <MediaCard
+                  label="Видео с тренером"
+                  url={displayVideo?.url ?? exercise.video_url}
+                  video={displayVideo}
+                  isVideo
+                  placeholder={<Play className="h-10 w-10 opacity-40" />}
+                />
+                {canEditVideo && programId && reliableExerciseId ? (
+                  <ProgramVideoLink
+                    programId={programId}
+                    exerciseId={exercise.id}
+                    hasVideo={Boolean(displayVideo?.url || displayVideo?.embed_url)}
+                    onSaved={setDisplayVideo}
+                  />
+                ) : null}
+                {canEditVideo && (!programId || !reliableExerciseId) ? (
+                  <p className="mt-2 text-xs text-warm-gray">
+                    Нельзя сохранить ссылку: нет надёжной привязки к этой программе. Общий каталог
+                    не изменён.
+                  </p>
+                ) : null}
+              </div>
             </MediaErrorBoundary>
           </div>
 
@@ -1236,6 +1512,16 @@ function ExerciseDialog({
 
           {tab === "swap" && editable && (
             <div className="space-y-3">
+              {onApplyRutubePiece && rutubePieces ? (
+                <RutubeManualLibrary
+                  title="Подтверждённые упражнения и блоки"
+                  hint="Обе разминки и обе заминки здесь. Разминка 1 — мобильность, без активации. Сохранение пишет только черновик."
+                  items={rutubePieces}
+                  onSave={async (item) => {
+                    await onApplyRutubePiece(item.exerciseId);
+                  }}
+                />
+              ) : null}
               {substituteUserId && (
                 <SubstituteSuggestions
                   userId={substituteUserId}

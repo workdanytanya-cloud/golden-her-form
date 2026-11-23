@@ -9,16 +9,25 @@ import {
 } from "@/lib/exercise-video";
 import type { ExerciseRepository, ExerciseUpsertInput } from "@/lib/platform/types";
 import { upsertExerciseMediaBinding } from "@/lib/selfhost/postgres-published";
-import type { ExerciseMediaBinding } from "@/lib/selfhost/media";
+import { listedVideoUrl, type ExerciseMediaBinding } from "@/lib/selfhost/media";
 import type { Exercise, ExerciseCategory } from "@/lib/training";
 import {
+  EXERCISE_STATUS_FILTERS,
   MEDIA_FILTERS,
   type AdminExerciseReport,
   type AdminExerciseRow,
+  type ExerciseStatusFilter,
   type MediaFilter,
 } from "@/lib/selfhost/exercise-admin-types";
 
-export { MEDIA_FILTERS, type AdminExerciseReport, type AdminExerciseRow, type MediaFilter };
+export {
+  EXERCISE_STATUS_FILTERS,
+  MEDIA_FILTERS,
+  type AdminExerciseReport,
+  type AdminExerciseRow,
+  type ExerciseStatusFilter,
+  type MediaFilter,
+};
 
 export const adminExerciseUpsertSchema = z.object({
   id: z.string().uuid().optional(),
@@ -46,6 +55,7 @@ export const adminExerciseListQuerySchema = z.object({
   q: z.string().max(200).optional().default(""),
   category: z.string().max(80).optional().default("all"),
   media: z.enum(MEDIA_FILTERS).optional().default("all"),
+  status: z.enum(EXERCISE_STATUS_FILTERS).optional().default("active"),
 });
 
 export const adminExerciseMediaSchema = z.object({
@@ -54,6 +64,8 @@ export const adminExerciseMediaSchema = z.object({
   video_title: z.string().max(200).nullable().optional(),
   video_fallback_text: z.string().max(500).nullable().optional(),
   video_status: z.enum(["ok", "unavailable", "unchecked"]).nullable().optional(),
+  /** Только явное удаление. Пустое video_url без clear сохраняет прежнюю ссылку и пишет статус. */
+  clear: z.boolean().optional(),
   embed_url: z.string().max(2000).optional(),
   video_embed_url: z.string().max(2000).nullable().optional(),
 });
@@ -119,6 +131,19 @@ function mapDbError(error: unknown): never {
   throw error;
 }
 
+function asVideoStatus(value: string | null | undefined): ExerciseVideoStatus {
+  if (value === "ok" || value === "unavailable" || value === "unchecked") return value;
+  return "unchecked";
+}
+
+function asVideoProvider(
+  value: string | null | undefined,
+  url: string | null,
+): ExerciseVideoProvider {
+  if (value === "youtube" || value === "rutube" || value === "external") return value;
+  return url ? "external" : "none";
+}
+
 function mediaFromRow(row: ListedRow): {
   video_url: string | null;
   video_title: string | null;
@@ -127,41 +152,19 @@ function mediaFromRow(row: ListedRow): {
   video_status: ExerciseVideoStatus;
   video_embed_url: string | null;
 } {
-  const hasConfirmedBinding =
-    Boolean(row.binding_source_url) && (row.binding_status ?? "unchecked") === "ok";
-  if (hasConfirmedBinding) {
-    const provider = (row.binding_provider ?? "none") as ExerciseVideoProvider;
-    const status = (row.binding_status ?? "unchecked") as ExerciseVideoStatus;
-    return {
-      video_url: row.binding_source_url,
-      video_title: row.binding_title,
-      video_fallback_text: row.binding_fallback,
-      video_provider:
-        provider === "youtube" || provider === "rutube" || provider === "external"
-          ? provider
-          : "none",
-      video_status:
-        status === "ok" || status === "unavailable" || status === "unchecked"
-          ? status
-          : "unchecked",
-      video_embed_url: row.binding_embed_url,
-    };
-  }
-  const provider = (row.video_provider ?? "none") as ExerciseVideoProvider;
-  const status = (row.video_status ?? (row.video_url ? "ok" : "unchecked")) as ExerciseVideoStatus;
+  const videoUrl = listedVideoUrl(row.video_url, row.binding_source_url, row.binding_status);
+  const bindingUrl = row.binding_source_url?.trim() ?? "";
+  const fromBinding = Boolean(bindingUrl) && videoUrl === bindingUrl;
   return {
-    video_url: row.video_url,
-    video_title: row.video_title,
-    video_fallback_text: row.video_fallback_text,
-    video_provider:
-      provider === "youtube" || provider === "rutube" || provider === "external"
-        ? provider
-        : row.video_url
-          ? "none"
-          : "none",
-    video_status:
-      status === "ok" || status === "unavailable" || status === "unchecked" ? status : "unchecked",
-    video_embed_url: row.video_embed_url,
+    video_url: videoUrl,
+    video_title: fromBinding ? row.binding_title : row.video_title,
+    video_fallback_text: fromBinding ? row.binding_fallback : row.video_fallback_text,
+    video_provider: asVideoProvider(
+      fromBinding ? row.binding_provider : row.video_provider,
+      videoUrl,
+    ),
+    video_status: asVideoStatus(fromBinding ? row.binding_status : row.video_status),
+    video_embed_url: fromBinding ? row.binding_embed_url : row.video_embed_url,
   };
 }
 
@@ -290,6 +293,12 @@ function mediaPredicate(filter: MediaFilter): string {
   }
 }
 
+function statusPredicate(status: ExerciseStatusFilter): string {
+  return status === "archived"
+    ? `(e.archived_at IS NOT NULL OR e.is_active = false)`
+    : `(e.archived_at IS NULL AND e.is_active IS DISTINCT FROM false)`;
+}
+
 export class PostgresExerciseRepository implements ExerciseRepository {
   constructor(private readonly db: Pool) {}
 
@@ -298,14 +307,21 @@ export class PostgresExerciseRepository implements ExerciseRepository {
     return items.filter((row) => !row.archived_at).map(toCatalogExercise);
   }
 
-  async search(input: { q?: string; category?: string; media?: MediaFilter } = {}): Promise<{
+  async search(
+    input: {
+      q?: string;
+      category?: string;
+      media?: MediaFilter;
+      status?: ExerciseStatusFilter;
+    } = {},
+  ): Promise<{
     items: AdminExerciseRow[];
     report: AdminExerciseReport;
   }> {
     try {
       const parsed = adminExerciseListQuerySchema.parse(input);
       const params: unknown[] = [];
-      const where: string[] = [];
+      const where: string[] = [statusPredicate(parsed.status)];
       if (parsed.category && parsed.category !== "all") {
         params.push(parsed.category);
         where.push(`e.category = $${params.length}`);
@@ -321,38 +337,46 @@ export class PostgresExerciseRepository implements ExerciseRepository {
       const sql = `${LIST_SQL} WHERE ${where.join(" AND ")} ORDER BY e.category, e.name`;
       const { rows } = await this.db.query(sql, params);
       const items = (rows as ListedRow[]).map(mapRow);
-      const report = await this.report();
+      const report = await this.report(parsed.status);
       return { items, report };
     } catch (error) {
       mapDbError(error);
     }
   }
 
-  async report(): Promise<AdminExerciseReport> {
+  async report(status: ExerciseStatusFilter = "active"): Promise<AdminExerciseReport> {
     try {
+      const scope = statusPredicate(status);
       const { rows } = await this.db.query(`
       SELECT
-        count(*)::int AS all_count,
+        count(*) FILTER (WHERE ${statusPredicate("active")})::int AS active_count,
+        count(*) FILTER (WHERE ${statusPredicate("archived")})::int AS archived_count,
+        count(*) FILTER (WHERE ${scope})::int AS all_count,
         count(*) FILTER (
-          WHERE COALESCE(b.status, e.video_status, 'unchecked') = 'ok'
+          WHERE ${scope}
+            AND COALESCE(b.status, e.video_status, 'unchecked') = 'ok'
             AND COALESCE(b.provider, e.video_provider, 'none') IN ('youtube','rutube')
         )::int AS ok_count,
         count(*) FILTER (
-          WHERE b.exercise_id IS NULL AND (e.video_url IS NULL OR e.video_url = '')
+          WHERE ${scope}
+            AND b.exercise_id IS NULL AND (e.video_url IS NULL OR e.video_url = '')
         )::int AS none_count,
         count(*) FILTER (
-          WHERE COALESCE(b.status, e.video_status, 'unchecked') = 'unchecked'
+          WHERE ${scope}
+            AND COALESCE(b.status, e.video_status, 'unchecked') = 'unchecked'
             AND COALESCE(b.source_url, e.video_url) IS NOT NULL
             AND COALESCE(b.source_url, e.video_url) <> ''
         )::int AS unchecked_count,
         count(*) FILTER (
-          WHERE COALESCE(b.status, e.video_status) = 'unavailable'
+          WHERE ${scope}
+            AND COALESCE(b.status, e.video_status) = 'unavailable'
         )::int AS unavailable_count,
         count(*) FILTER (
-          WHERE (
-            SELECT count(*) FROM public.training_program_versions v
-            WHERE v.status = 'published' AND v.snapshot::text LIKE '%' || e.id::text || '%'
-          ) > 0
+          WHERE ${scope}
+            AND (
+              SELECT count(*) FROM public.training_program_versions v
+              WHERE v.status = 'published' AND v.snapshot::text LIKE '%' || e.id::text || '%'
+            ) > 0
         )::int AS used_count
       FROM public.exercises e
       LEFT JOIN public.exercise_media_bindings b ON b.exercise_id = e.id
@@ -365,6 +389,8 @@ export class PostgresExerciseRepository implements ExerciseRepository {
         unchecked: Number(row.unchecked_count ?? 0),
         unavailable: Number(row.unavailable_count ?? 0),
         used: Number(row.used_count ?? 0),
+        active: Number(row.active_count ?? 0),
+        archived: Number(row.archived_count ?? 0),
       };
     } catch (error) {
       mapDbError(error);
@@ -478,6 +504,14 @@ export class PostgresExerciseRepository implements ExerciseRepository {
     const data = adminExerciseMediaSchema.parse(input);
     const existing = await this.get(data.exercise_id);
     if (!existing) throw Object.assign(new Error("Упражнение не найдено"), { statusCode: 404 });
+    if (data.clear) {
+      await this.deleteBinding(data.exercise_id, actorId);
+      return { id: data.exercise_id, video: { ...EMPTY_EXERCISE_VIDEO } };
+    }
+    const nextUrl =
+      data.video_url != null && String(data.video_url).trim() !== ""
+        ? String(data.video_url).trim()
+        : existing.video_url;
     return this.save(
       {
         id: data.exercise_id,
@@ -493,10 +527,10 @@ export class PostgresExerciseRepository implements ExerciseRepository {
         tempo: existing.tempo,
         description: existing.description,
         gif_url: existing.gif_url,
-        video_url: data.video_url ?? null,
-        video_title: data.video_title,
-        video_fallback_text: data.video_fallback_text,
-        video_status: data.video_status,
+        video_url: nextUrl,
+        video_title: data.video_title ?? existing.video_title,
+        video_fallback_text: data.video_fallback_text ?? existing.video_fallback_text,
+        video_status: data.video_status ?? existing.video_status,
       },
       actorId,
     );

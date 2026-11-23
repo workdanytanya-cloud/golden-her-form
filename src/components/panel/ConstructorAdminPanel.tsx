@@ -641,10 +641,6 @@ export function ConstructorAdminPanel({
   const handleSave = async (assign: boolean) => {
     if (visibleDays.length === 0) return;
     const status = applyDays(visibleDays);
-    if (assign && !status.acceptable) {
-      toast.error("Нельзя опубликовать: день выходит за разрешённые КБЖУ");
-      return;
-    }
     setSaving(true);
     try {
       if (assign) {
@@ -652,10 +648,23 @@ export function ConstructorAdminPanel({
           toast.error("Нельзя опубликовать: есть незаполненный обязательный приём");
           return;
         }
+        const acknowledgeOutOfTolerance = !status.acceptable;
+        if (acknowledgeOutOfTolerance) {
+          const confirmed = window.confirm(
+            status.invalidDayCount > 0
+              ? `${status.invalidDayCount} из ${visibleDays.length} дней вне допуска КБЖУ. Опубликовать клиенту всё равно?`
+              : "Рацион вне допуска КБЖУ. Опубликовать клиенту всё равно?",
+          );
+          if (!confirmed) return;
+        }
         const { requireSelfhostAdminSession, selfhostPublishAndOpen, usesLocalPostgresCircuit } =
           await import("@/lib/selfhost/client-api");
         if (await usesLocalPostgresCircuit()) await requireSelfhostAdminSession();
-        const result = (await selfhostPublishAndOpen({ clientId: userId, courseId })) as {
+        const result = (await selfhostPublishAndOpen({
+          clientId: userId,
+          courseId,
+          acknowledgeOutOfTolerance,
+        })) as {
           message?: string;
           issues?: Array<{ dayIndex: number; slot: string | null; message: string }>;
         };
@@ -1281,13 +1290,7 @@ export function ConstructorAdminPanel({
             </button>
             <button
               type="button"
-              disabled={
-                saving ||
-                loading ||
-                !planStructureValid(visibleDays, scheduleMode) ||
-                !kbjuStatus.acceptable ||
-                kbjuStatus.invalidDayCount > 0
-              }
+              disabled={saving || loading || !planStructureValid(visibleDays, scheduleMode)}
               onClick={() => void handleSave(true)}
               className="inline-flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-5 py-2.5 text-xs uppercase tracking-widest text-ivory disabled:opacity-40"
             >
@@ -1358,8 +1361,8 @@ export function ConstructorAdminPanel({
               ` · структура: ${checks.mains.actual}/${expectedMainCount(scheduleMode)} основных, ${checks.snacks.actual}/${expectedSnackCount(scheduleMode)} перекусов`}
             {kbjuStatus.invalidDayCount > 0 ? (
               <span className="mt-1 block text-coral">
-                Рацион нельзя опубликовать: {kbjuStatus.invalidDayCount} из {visibleDays.length}{" "}
-                проверенных вариантов дней вне допуска.
+                {kbjuStatus.invalidDayCount} из {visibleDays.length} дней вне допуска — публикация
+                возможна после подтверждения тренера.
               </span>
             ) : null}
             {!kbjuStatus.generationOk && deviationSummary ? (

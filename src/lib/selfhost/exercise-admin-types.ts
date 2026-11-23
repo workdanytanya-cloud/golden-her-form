@@ -3,6 +3,9 @@ import type { ExerciseVideoProvider, ExerciseVideoStatus } from "@/lib/exercise-
 export const MEDIA_FILTERS = ["all", "ok", "none", "unchecked", "unavailable", "used"] as const;
 export type MediaFilter = (typeof MEDIA_FILTERS)[number];
 
+export const EXERCISE_STATUS_FILTERS = ["active", "archived"] as const;
+export type ExerciseStatusFilter = (typeof EXERCISE_STATUS_FILTERS)[number];
+
 export type AdminExerciseReport = {
   all: number;
   ok: number;
@@ -10,6 +13,8 @@ export type AdminExerciseReport = {
   unchecked: number;
   unavailable: number;
   used: number;
+  active: number;
+  archived: number;
 };
 
 export type AdminExerciseRow = {

@@ -32,6 +32,8 @@ export function checkNutritionDraft(params: {
   mode: MealScheduleMode;
   products: Map<string, FoodProduct>;
   expectedDays?: number;
+  /** Тренер явно подтвердил публикацию вне допуска КБЖУ. */
+  allowOutOfToleranceKbju?: boolean;
 }): DraftIssue[] {
   const issues: DraftIssue[] = [];
   const expected = params.expectedDays ?? 7;
@@ -125,7 +127,7 @@ export function checkNutritionDraft(params: {
       }
     }
   }
-  if (params.days.length > 0) {
+  if (params.days.length > 0 && !params.allowOutOfToleranceKbju) {
     const status = evaluatePlanKbjuStatus({
       days: params.days,
       targetMacro: {

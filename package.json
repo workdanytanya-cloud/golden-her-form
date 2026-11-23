@@ -142,5 +142,14 @@
     "typescript-eslint": "^8.56.1",
     "vite": "^8.0.16",
     "vitest": "^4.1.11"
-  }
+  },
+  "version": "1.0.0",
+  "description": "Самостоятельный проект на **React + TanStack Start + Supabase**.\r Лендинг, личный кабинет клиента и админка тренера.",
+  "main": "eslint.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

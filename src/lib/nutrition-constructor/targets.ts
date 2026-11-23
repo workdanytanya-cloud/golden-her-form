@@ -9,6 +9,7 @@ import {
   PROTEIN_G_PER_KG,
   SAFE_KCAL,
 } from "@/lib/nutrition-constructor/config";
+import { resolveClientAge } from "@/lib/client-age";
 import { d, type MacroBreakdown } from "@/lib/nutrition-constructor/decimal-math";
 
 export type GoalKind = "weight_loss" | "maintain" | "muscle_gain";
@@ -16,6 +17,7 @@ export type GoalKind = "weight_loss" | "maintain" | "muscle_gain";
 export type TargetProfileInput = {
   gender?: "female" | "male" | null;
   birth_date?: string | null;
+  age_years?: number | null;
   height_cm?: number | null;
   weight_kg?: number | null;
   activity_level?: string | null;
@@ -40,6 +42,7 @@ export type TargetCalculation = {
 
 export type SafetyCheckInput = {
   birth_date?: string | null;
+  age_years?: number | null;
   pregnancy_status?: string | null;
   health_conditions?: string | null;
   has_injuries?: boolean | null;
@@ -52,11 +55,25 @@ export type SafetyCheckResult = {
   reasons: string[];
 };
 
-function ageFromBirthDate(birth_date: string | null | undefined): number | null {
-  if (!birth_date) return null;
-  const ms = Date.now() - new Date(birth_date).getTime();
-  if (!Number.isFinite(ms)) return null;
-  return Math.floor(ms / 31557600000);
+/** Значения pregnancy_status из анкеты, которые НЕ блокируют автогенерацию. */
+const NEUTRAL_PREGNANCY_STATUS = new Set([
+  "na", // «Не относится»
+  "no",
+  "none",
+  "нет",
+  "отсутствует",
+  "не относится",
+]);
+
+/** true, если статус указывает на беременность / послеродовый период / ГВ. */
+export function isBlockingPregnancyStatus(status: string | null | undefined): boolean {
+  const preg = (status ?? "").trim().toLowerCase();
+  if (!preg) return false;
+  return !NEUTRAL_PREGNANCY_STATUS.has(preg);
+}
+
+function resolvedAge(input: { birth_date?: string | null; age_years?: number | null }): number | null {
+  return resolveClientAge({ birthDate: input.birth_date, ageYears: input.age_years });
 }
 
 export function inferGoalKind(goal_primary: string | null | undefined): GoalKind {
@@ -76,7 +93,7 @@ export function activityFactor(level: string | null | undefined): number {
 export function calcBmr(p: TargetProfileInput): Decimal {
   const weight = p.weight_kg && p.weight_kg > 30 ? p.weight_kg : 65;
   const height = p.height_cm && p.height_cm > 120 ? p.height_cm : 165;
-  const age = ageFromBirthDate(p.birth_date) ?? 30;
+  const age = resolvedAge(p) ?? 30;
   const gender = p.gender ?? "female";
   const base = d(10).mul(weight).plus(d(6.25).mul(height)).minus(d(5).mul(age));
   return gender === "male" ? base.plus(5) : base.minus(161);
@@ -157,15 +174,14 @@ export function calcMacroTargets(p: TargetProfileInput): TargetCalculation {
 
 export function checkAutoGenerationSafety(input: SafetyCheckInput): SafetyCheckResult {
   const reasons: string[] = [];
-  const age = ageFromBirthDate(input.birth_date);
+  const age = resolvedAge(input);
   if (age != null && age < MIN_AUTO_AGE) {
     reasons.push("Клиент младше 18 лет — требуется проверка тренера.");
   }
   if (!input.profile_complete) {
     reasons.push("Анкета заполнена не полностью.");
   }
-  const preg = (input.pregnancy_status ?? "").toLowerCase();
-  if (preg && !/нет|no|none|не/i.test(preg)) {
+  if (isBlockingPregnancyStatus(input.pregnancy_status)) {
     reasons.push("Указана беременность — автогенерация заблокирована.");
   }
   if (input.breastfeeding) {

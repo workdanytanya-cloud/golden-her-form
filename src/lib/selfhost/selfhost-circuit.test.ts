@@ -1390,6 +1390,16 @@ describe.skipIf(!process.env.SELFHOST_TEST_DATABASE_READY)("self-hosted PostgreS
     );
     expect(archived.rows[0].archived_at).toBeTruthy();
     expect(archived.rows[0].is_active).toBe(false);
+    const activeList = await (
+      await req("/api/selfhost/admin/exercises?q=Архивное", { jar: adminJar })
+    ).json();
+    expect(activeList.items.some((item: { id: string }) => item.id === exId)).toBe(false);
+    expect(activeList.report.active).toBeGreaterThanOrEqual(0);
+    expect(activeList.report.archived).toBeGreaterThanOrEqual(1);
+    const archiveList = await (
+      await req("/api/selfhost/admin/exercises?status=archived&q=Архивное", { jar: adminJar })
+    ).json();
+    expect(archiveList.items.some((item: { id: string }) => item.id === exId)).toBe(true);
     const logsAfter = await pool.query(
       "SELECT count(*)::int AS n FROM exercise_media_change_log WHERE exercise_id = $1",
       [exId],

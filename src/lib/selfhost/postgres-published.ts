@@ -4,6 +4,7 @@ import type { ClientCourse } from "@/lib/client-courses/repo";
 import {
   applyMediaOverlayToExercises,
   bindingToVideo,
+  clientOverlayStatus,
   mediaExerciseIdsFromBindings,
   overlayVideosForSnapshot,
   type ExerciseMediaBinding,
@@ -59,7 +60,7 @@ export async function loadMediaBindings(
     [exerciseIds],
   );
   for (const row of rows as ExerciseMediaBinding[]) {
-    if (row.source_url && row.status === "ok") map.set(row.exercise_id, row);
+    if (row.source_url && clientOverlayStatus(row.status)) map.set(row.exercise_id, row);
   }
   const missing = exerciseIds.filter((id) => !map.has(id));
   if (missing.length) {
@@ -73,7 +74,7 @@ export async function loadMediaBindings(
       [missing],
     );
     for (const row of unmatched.rows as ExerciseMediaBinding[]) {
-      if (row.source_url && row.status === "ok") map.set(row.exercise_id, row);
+      if (row.source_url && clientOverlayStatus(row.status)) map.set(row.exercise_id, row);
     }
   }
   const stillMissing = exerciseIds.filter((id) => !map.has(id));
@@ -127,7 +128,7 @@ export async function loadSnapshotMediaBindings(
   versionId: string,
 ): Promise<SnapshotExerciseMediaBinding[]> {
   const { rows } = await db.query(
-    `SELECT version_id, snapshot_exercise_key, exercise_id, confirmed_by_trainer
+    `SELECT version_id, snapshot_exercise_key, exercise_id, confirmed_by_trainer, source_url, embed_url
      FROM public.snapshot_exercise_media_bindings WHERE version_id = $1`,
     [versionId],
   );
@@ -320,8 +321,29 @@ export async function listClientCoursesPg(
 ): Promise<ClientCourse[]> {
   const { rows } = await db.query(
     `SELECT id, client_id, title, start_date::text, end_date::text, status, created_at, created_by, notes, program_scope,
-            nutrition_generation_status, training_generation_status, nutrition_generation_error, training_generation_error
-     FROM public.client_courses WHERE client_id = $1 ORDER BY start_date DESC`,
+            nutrition_generation_status, training_generation_status, nutrition_generation_error, training_generation_error,
+            EXISTS (
+              SELECT 1 FROM public.nutrition_plan_versions v
+               WHERE v.course_id = client_courses.id AND v.status = 'published'
+            ) AS nutrition_published,
+            EXISTS (
+              SELECT 1 FROM public.training_program_versions v
+               WHERE v.course_id = client_courses.id AND v.status = 'published'
+            ) AS training_published
+     FROM public.client_courses
+     WHERE client_id = $1
+       AND (
+         status <> 'draft'
+         OR EXISTS (
+           SELECT 1 FROM public.nutrition_plan_versions v
+            WHERE v.course_id = client_courses.id AND v.status = 'published'
+         )
+         OR EXISTS (
+           SELECT 1 FROM public.training_program_versions v
+            WHERE v.course_id = client_courses.id AND v.status = 'published'
+         )
+       )
+     ORDER BY start_date DESC`,
     [clientId],
   );
   return rows.map((row) => ({
@@ -339,6 +361,8 @@ export async function listClientCoursesPg(
     training_generation_status: row.training_generation_status ?? null,
     nutrition_generation_error: row.nutrition_generation_error ?? null,
     training_generation_error: row.training_generation_error ?? null,
+    nutrition_published: Boolean(row.nutrition_published),
+    training_published: Boolean(row.training_published),
   }));
 }
 

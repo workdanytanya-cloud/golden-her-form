@@ -286,6 +286,231 @@ function placeWeek(
   return placed;
 }
 
+type PoolDay = {
+  day: ConstructorDay;
+  key: string;
+  ids: string[];
+  mainIds: string[];
+  snackIds: string[];
+  groups: string[];
+  signatures: string[];
+};
+
+function toPoolDay(day: ConstructorDay, recipes: Map<string, Recipe>): PoolDay {
+  const ids: string[] = [];
+  const mainIds: string[] = [];
+  const snackIds: string[] = [];
+  const groups: string[] = [];
+  const signatures: string[] = [];
+  for (const item of day.items) {
+    ids.push(item.recipe_id);
+    if (item.slot.startsWith("snack")) snackIds.push(item.recipe_id);
+    else mainIds.push(item.recipe_id);
+    const recipe = recipes.get(item.recipe_id);
+    if (recipe?.variant_group) groups.push(recipe.variant_group);
+    if (recipe?.ingredient_signature) signatures.push(recipe.ingredient_signature);
+  }
+  return { day, key: dayMenuKey(day), ids, mainIds, snackIds, groups, signatures };
+}
+
+function planGlobalMonth(params: {
+  ctx: OptimizerContext;
+  mode: MealScheduleMode;
+  targets: MacroBreakdown;
+  tolerance: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
+  days: 14 | 28;
+  seed: number;
+  excluded: Set<string>;
+  deadlineMs: number;
+  recipeById: Map<string, Recipe>;
+}): {
+  ok: boolean;
+  days: ConstructorDay[];
+  checked: number;
+  timedOut: boolean;
+  message: string | null;
+} | null {
+  const pool: PoolDay[] = [];
+  const seen = new Set<string>();
+  let checked = 0;
+  for (let pass = 0; pass < 2 && Date.now() < params.deadlineMs - 6_000 && pool.length < 120; pass += 1) {
+    const found = buildExactWeek({
+      ctx: params.ctx,
+      mode: params.mode,
+      targets: params.targets,
+      tolerance: params.tolerance,
+      days: 7,
+      seed: params.seed + pass * 997,
+      excluded: params.excluded,
+      deadlineMs: Math.min(params.deadlineMs - 4_000, Date.now() + (pass === 0 ? 18_000 : 12_000)),
+      harvest: true,
+      harvestLimit: 90,
+    });
+    checked += found.checked;
+    for (const day of found.days) {
+      const packed = toPoolDay(day, params.recipeById);
+      if (seen.has(packed.key)) continue;
+      seen.add(packed.key);
+      pool.push(packed);
+    }
+  }
+  const poolMains = new Set(pool.flatMap((day) => day.mainIds));
+  const poolSnacks = new Set(pool.flatMap((day) => day.snackIds));
+  if (process.env.NUTRITION_PLAN_TRACE) {
+    console.error(`global pool ${pool.length} mains ${poolMains.size} snacks ${poolSnacks.size}`);
+  }
+  if (pool.length < params.days) return null;
+  const rarity = new Map<string, number>();
+  for (const day of pool) {
+    for (const id of day.ids) rarity.set(id, (rarity.get(id) ?? 0) + 1);
+  }
+  const chosen = beamMonth(pool, params.recipeById, params.days, rarity);
+  if (process.env.NUTRITION_PLAN_TRACE) console.error(`global beam ${chosen ? "yes" : "no"}`);
+  if (!chosen) return null;
+  reportNutritionProgress({
+    stage: "Проверка разнообразия",
+    progress: 94,
+    found: params.days,
+    total: params.days,
+  });
+  return { ok: true, days: chosen, checked, timedOut: false, message: null };
+}
+
+function beamMonth(
+  pool: PoolDay[],
+  recipeById: Map<string, Recipe>,
+  days: number,
+  rarity: Map<string, number>,
+): ConstructorDay[] | null {
+  type Node = {
+    days: ConstructorDay[];
+    counts: Map<string, number>;
+    last: Map<string, LastUse>;
+    weekIds: Set<string>;
+    weekGroups: Set<string>;
+    weekSignatures: Set<string>;
+    usedKeys: Set<string>;
+    score: number;
+  };
+  const mainSlots = pool[0]?.mainIds.length ?? 1;
+  const snackSlots = pool[0]?.snackIds.length ?? 0;
+  const poolMains = new Set(pool.flatMap((day) => day.mainIds));
+  const poolSnacks = new Set(pool.flatMap((day) => day.snackIds));
+  const dead = new Set<string>();
+  let beam: Node[] = [
+    {
+      days: [],
+      counts: new Map(),
+      last: new Map(),
+      weekIds: new Set(),
+      weekGroups: new Set(),
+      weekSignatures: new Set(),
+      usedKeys: new Set(),
+      score: 0,
+    },
+  ];
+  const usable = (node: Node, index: number) => {
+    const left = days - index;
+    let mains = 0;
+    let snacks = 0;
+    for (const id of poolMains) mains += 2 - (node.counts.get(id) ?? 0);
+    for (const id of poolSnacks) snacks += 2 - (node.counts.get(id) ?? 0);
+    return mains >= left * mainSlots && snacks >= left * snackSlots;
+  };
+  for (let index = 0; index < days; index += 1) {
+    const weekday = index % 7;
+    const next: Node[] = [];
+    for (const node of beam) {
+      const weekIds = weekday === 0 ? new Set<string>() : node.weekIds;
+      const weekGroups = weekday === 0 ? new Set<string>() : node.weekGroups;
+      const weekSignatures = weekday === 0 ? new Set<string>() : node.weekSignatures;
+      const stateKey = `${index}|${[...node.counts.entries()].sort().join(",")}|${[...weekGroups].sort().join(",")}`;
+      if (dead.has(stateKey)) continue;
+      const options: Array<{ item: PoolDay; score: number }> = [];
+      for (const item of pool) {
+        if (node.usedKeys.has(item.key)) continue;
+        if (item.ids.some((id) => weekIds.has(id) || (node.counts.get(id) ?? 0) >= 2)) continue;
+        if (item.groups.some((group) => weekGroups.has(group))) continue;
+        if (item.signatures.some((signature) => weekSignatures.has(signature))) continue;
+        const repeat = item.day.items.some((meal) => {
+          const prev = node.last.get(meal.recipe_id);
+          if (!prev) return false;
+          if (index - prev.dayIndex < 7) return true;
+          return prev.weekday === weekday && prev.slot === meal.slot;
+        });
+        if (repeat) continue;
+        const previousDay = weekday === 0 ? undefined : node.days[index - 1];
+        if (previousDay && adjacentClash(previousDay, item.day, recipeById)) continue;
+        const eggs =
+          node.days.slice(index - weekday, index).filter((day) =>
+            day.items.some((meal) => meal.slot === "main1" && recipeById.get(meal.recipe_id)?.primary_protein === "egg"),
+          ).length +
+          (item.day.items.some((meal) => meal.slot === "main1" && recipeById.get(meal.recipe_id)?.primary_protein === "egg") ? 1 : 0);
+        if (eggs > 2) continue;
+        if (weekday === 6 && index >= 7) {
+          const previousWeek = node.days.slice(index - 13, index - 6);
+          const trial = [...node.days.slice(index - 6, index), { ...item.day, day_index: index }];
+          if (mealDifferenceRatio(previousWeek, trial) < MIN_WEEK_DIFFERENCE) continue;
+        }
+        let score = 0;
+        for (const id of item.ids) {
+          const count = node.counts.get(id) ?? 0;
+          score += count === 0 ? 4 + 8 / (rarity.get(id) ?? 1) : index < 14 ? -12 : -2;
+        }
+        options.push({ item, score });
+      }
+      options.sort((a, b) => b.score - a.score);
+      if (options.length === 0) {
+        dead.add(stateKey);
+        continue;
+      }
+      for (const option of options.slice(0, 5)) {
+        const counts = new Map(node.counts);
+        const last = new Map(node.last);
+        const nextIds = new Set(weekIds);
+        const nextGroups = new Set(weekGroups);
+        const nextSignatures = new Set(weekSignatures);
+        for (const id of option.item.ids) {
+          counts.set(id, (counts.get(id) ?? 0) + 1);
+          nextIds.add(id);
+          last.set(id, {
+            dayIndex: index,
+            weekday,
+            slot: option.item.day.items.find((meal) => meal.recipe_id === id)?.slot ?? "",
+          });
+        }
+        for (const group of option.item.groups) nextGroups.add(group);
+        for (const signature of option.item.signatures) nextSignatures.add(signature);
+        const draft: Node = {
+          days: [...node.days, { ...option.item.day, day_index: index }],
+          counts,
+          last,
+          weekIds: nextIds,
+          weekGroups: nextGroups,
+          weekSignatures: nextSignatures,
+          usedKeys: new Set(node.usedKeys).add(option.item.key),
+          score: node.score + option.score,
+        };
+        if (!usable(draft, index + 1)) continue;
+        next.push(draft);
+      }
+    }
+    next.sort((a, b) => b.score - a.score);
+    beam = next.slice(0, 8);
+    if (beam.length === 0) return null;
+  }
+  for (const node of beam) {
+    const invalid = node.days.some((_, week) => {
+      if ((week + 1) % 7 !== 0) return false;
+      const slice = node.days.slice(week - 6, week + 1);
+      return Boolean(evaluateStrictWeekVariety(slice, recipeById, { allowRepeats: false }));
+    });
+    if (invalid || repeatSpacingIssues(node.days)) continue;
+    return node.days;
+  }
+  return null;
+}
+
 export function planRotatingWeeks(params: {
   ctx: OptimizerContext;
   mode: MealScheduleMode;
@@ -316,6 +541,11 @@ export function planRotatingWeeks(params: {
     found: 0,
     total: params.days,
   });
+
+  if (params.targets.kcal.toNumber() < 1700) {
+    const global = planGlobalMonth({ ...params, recipeById });
+    if (global?.ok) return global;
+  }
 
   for (let week = 0; week < weeks; week += 1) {
     if (Date.now() >= params.deadlineMs) {

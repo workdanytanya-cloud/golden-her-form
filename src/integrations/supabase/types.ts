@@ -265,6 +265,7 @@ export type Database = {
       };
       exercises: {
         Row: {
+          archived_at: string | null;
           category: string;
           common_mistakes: Json;
           created_at: string;
@@ -276,6 +277,7 @@ export type Database = {
           equipment: string[];
           gif_url: string | null;
           id: string;
+          is_active: boolean;
           muscle_groups: string[];
           name: string;
           rest_seconds: number;
@@ -291,6 +293,7 @@ export type Database = {
           video_fallback_text: string | null;
         };
         Insert: {
+          archived_at?: string | null;
           category: string;
           common_mistakes?: Json;
           created_at?: string;
@@ -302,6 +305,7 @@ export type Database = {
           equipment?: string[];
           gif_url?: string | null;
           id?: string;
+          is_active?: boolean;
           muscle_groups?: string[];
           name: string;
           rest_seconds?: number;
@@ -317,6 +321,7 @@ export type Database = {
           video_fallback_text?: string | null;
         };
         Update: {
+          archived_at?: string | null;
           category?: string;
           common_mistakes?: Json;
           created_at?: string;
@@ -328,6 +333,7 @@ export type Database = {
           equipment?: string[];
           gif_url?: string | null;
           id?: string;
+          is_active?: boolean;
           muscle_groups?: string[];
           name?: string;
           rest_seconds?: number;
@@ -1079,6 +1085,7 @@ export type Database = {
       };
       profiles: {
         Row: {
+          age_years: number | null;
           avatar_url: string | null;
           birth_date: string | null;
           can_reheat_food: boolean | null;
@@ -1100,6 +1107,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          age_years?: number | null;
           avatar_url?: string | null;
           birth_date?: string | null;
           can_reheat_food?: boolean | null;
@@ -1121,6 +1129,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          age_years?: number | null;
           avatar_url?: string | null;
           birth_date?: string | null;
           can_reheat_food?: boolean | null;

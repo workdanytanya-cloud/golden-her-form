@@ -42,6 +42,15 @@ import { newCsrfToken as issueCsrf } from "@/lib/selfhost/passwords";
 import { resolvePdfClientId } from "@/lib/pdf/snapshot-content";
 import { buildNutritionPdf, buildTrainingPdf, pdfDownloadHeaders } from "@/lib/pdf/render-pdf";
 import { mediaExerciseIdsFromBindings } from "@/lib/selfhost/media";
+import { setProgramExerciseVideoPg } from "@/lib/selfhost/program-video";
+import {
+  addRutubeManualWorkoutPg,
+  applyRutubeManualReplacementPg,
+  loadManualMediaByExercise,
+  loadRutubeManualLibrary,
+  moveRutubeManualWorkoutPg,
+  overlayManualLibraryVideos,
+} from "@/lib/selfhost/rutube-manual";
 import {
   getActivePublishedNutritionPg,
   getActivePublishedTrainingPg,
@@ -155,6 +164,7 @@ import {
 import {
   listTrainingExercisesPg,
   loadTrainingDraftPg,
+  rebuildTrainingDraftPg,
   loadTrainingProfilePg,
   patchTrainingDayPg,
   patchTrainingProgramPg,
@@ -165,6 +175,7 @@ import {
   trainingProgramPatchSchema,
   trainingPublishSchema,
 } from "@/lib/selfhost/postgres-training";
+import { TrainingPoolGapError } from "@/lib/training";
 import { nutritionJobs } from "@/lib/selfhost/nutrition-generation-jobs";
 import {
   archiveNutritionDocument,
@@ -560,6 +571,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         body.goal !== undefined ||
         body.height_cm !== undefined ||
         body.birth_date !== undefined ||
+        body.age_years !== undefined ||
         body.gender !== undefined;
       if (hasProfilePatch) {
         const patch = adminClientProfileSchema.parse(body);
@@ -815,6 +827,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         q: url.searchParams.get("q") ?? "",
         category: url.searchParams.get("category") ?? "all",
         media: url.searchParams.get("media") ?? "all",
+        status: url.searchParams.get("status") ?? "active",
       });
       const result = await exerciseRepo().search(query);
       return json(result);
@@ -1366,6 +1379,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
           clientId: z.string().uuid(),
           courseId: z.string().uuid().nullable().optional(),
           reason: z.string().max(2000).nullable().optional(),
+          acknowledgeOutOfTolerance: z.boolean().optional(),
         })
         .parse(await readJson(request));
       await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "nutrition");
@@ -1376,6 +1390,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
             courseId: body.courseId,
             actorId: session.userId,
             reason: body.reason,
+            acknowledgeOutOfTolerance: body.acknowledgeOutOfTolerance,
           }),
         );
       } catch (error) {
@@ -1444,6 +1459,7 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
         idempotencyKey: body.idempotencyKey ?? request.headers.get("idempotency-key"),
         days: loaded.days,
         plan: loaded.plan,
+        acknowledgeOutOfTolerance: body.acknowledgeOutOfTolerance,
       });
       return json(published);
     }
@@ -1480,8 +1496,65 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
 
     if (url.pathname === "/api/selfhost/admin/training/exercises" && request.method === "GET") {
       requireAdmin(session);
-      const items = await listTrainingExercisesPg(getPostgresPool());
-      return json({ items });
+      const pool = getPostgresPool();
+      const items = await listTrainingExercisesPg(pool);
+      const media = await loadManualMediaByExercise(
+        pool,
+        items.map((item) => item.id),
+      );
+      return json({ items: overlayManualLibraryVideos(items, media) });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/rutube-library" && request.method === "GET") {
+      requireAdmin(session);
+      const library = await loadRutubeManualLibrary(getPostgresPool());
+      return json(library);
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/rutube-library/move" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = z
+        .object({
+          exerciseId: z.string().uuid(),
+          collection: z.enum(["workout", "workout_male"]),
+        })
+        .parse(await readJson(request));
+      const item = await moveRutubeManualWorkoutPg(getPostgresPool(), body);
+      return json({ ok: true, item });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/rutube-library/add" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = z
+        .object({
+          label: z.string().min(1).max(200),
+          url: z.string().min(1).max(2000),
+          collection: z.enum(["workout", "workout_male"]).optional().default("workout_male"),
+        })
+        .parse(await readJson(request));
+      const item = await addRutubeManualWorkoutPg(getPostgresPool(), body);
+      return json({ ok: true, item });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/rutube-replace" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = z
+        .object({
+          clientId: z.string().uuid(),
+          programId: z.string().uuid(),
+          weekIndex: z.number().int().min(0).max(12),
+          dayIndex: z.number().int().min(0).max(6),
+          scope: z.enum(["workout", "section", "set"]),
+          itemId: z.string().uuid(),
+          section: z.enum(["warmup", "exercises", "cooldown"]).optional(),
+          setIndex: z.number().int().min(0).max(40).optional(),
+        })
+        .parse(await readJson(request));
+      await applyRutubeManualReplacementPg(getPostgresPool(), body);
+      return json({ ok: true });
     }
 
     if (url.pathname === "/api/selfhost/admin/training/profile" && request.method === "GET") {
@@ -1506,6 +1579,69 @@ export async function handleSelfhostRequest(request: Request): Promise<Response 
       }
       const loaded = await loadTrainingDraftPg(getPostgresPool(), clientId, scoped.courseId);
       return json({ ...loaded, availability: loaded.program ? "ready" : "missing_draft" });
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/rebuild" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = z
+        .object({
+          clientId: z.string().uuid(),
+          courseId: z.string().uuid().nullable().optional(),
+          sessions_per_week: z.union([z.literal(3), z.literal(4)]),
+          goal: z.enum(["weight_loss", "tone", "muscle_gain", "rehab", "maintain"]),
+          level: z.enum(["beginner", "intermediate", "advanced"]),
+          has_injuries: z.boolean(),
+          injuries_details: z.string().nullable().optional(),
+          equipment: z.array(z.string()).optional(),
+          location: z.string().nullable().optional(),
+          weight_kg: z.number().nullable().optional(),
+          gender: z.enum(["female", "male"]).nullable().optional(),
+        })
+        .parse(await readJson(request));
+      await assertCourseScopePg(getPostgresPool(), body.clientId, body.courseId, "training");
+      try {
+        const saved = await rebuildTrainingDraftPg(getPostgresPool(), {
+          clientId: body.clientId,
+          courseId: body.courseId,
+          program: {
+            sessions_per_week: body.sessions_per_week,
+            goal: body.goal,
+            level: body.level,
+            has_injuries: body.has_injuries,
+            injuries_details: body.injuries_details ?? null,
+            equipment: body.equipment,
+            location: body.location,
+            weight_kg: body.weight_kg,
+            gender: body.gender,
+          },
+        });
+        return json(saved);
+      } catch (error) {
+        if (error instanceof TrainingPoolGapError) return errorJson(error.message, 409);
+        throw error;
+      }
+    }
+
+    if (url.pathname === "/api/selfhost/admin/training/video" && request.method === "POST") {
+      requireAdmin(session);
+      assertCsrf(request);
+      const body = z
+        .object({
+          programId: z.string().uuid(),
+          exerciseId: z.string().uuid(),
+          url: z.string().trim().min(1).max(2000),
+        })
+        .parse(await readJson(request));
+      const video = await withTransaction((client) =>
+        setProgramExerciseVideoPg(client, {
+          programId: body.programId,
+          exerciseId: body.exerciseId,
+          sourceUrl: body.url,
+          actorId: session.userId,
+        }),
+      );
+      return json({ video });
     }
 
     if (url.pathname === "/api/selfhost/admin/training/draft" && request.method === "POST") {

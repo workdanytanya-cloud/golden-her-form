@@ -168,6 +168,22 @@ export function filterExercisesForClientGender<
   return filtered;
 }
 
+/**
+ * Подтверждённый пул канала тренера: ролики женские, даже если у старой карточки
+ * остался тег stock/male от ExerciseDB.
+ */
+export function markConfirmedCoachDemoTags(tags: string[] | null | undefined): string[] {
+  const next = normalizeTags(tags).filter((tag) => !TRAINER_MALE_TAGS.has(tag));
+  if (!next.includes("trainer_female")) next.push("trainer_female");
+  return next;
+}
+
+function categoriesMatchSlot(slotCategory: ExerciseCategory, exerciseCategory: ExerciseCategory): boolean {
+  if (exerciseCategory === slotCategory) return true;
+  // В подтверждённом Rutube-пуле часто нет отдельных cardio-роликов.
+  return slotCategory === "cardio" && exerciseCategory === "strength_full";
+}
+
 /** Насколько упражнение подходит по полу тренера на видео (выше = лучше). */
 export function trainerGenderScore(
   exercise: Pick<Exercise, "tags" | "slug" | "gif_url" | "video_url">,
@@ -522,7 +538,7 @@ function pickExerciseForSlot(
 
   const pool = exercises.filter((e) => {
     if (!isExerciseAllowedForClientGender(e, input.gender)) return false;
-    if (e.category !== slot.category) return false;
+    if (!categoriesMatchSlot(slot.category, e.category)) return false;
     if (usedInDay.has(e.id)) return false;
     if (!exerciseMatchesEquipment(e, availableEquipment)) return false;
     if (restrictedSlugs.has(e.slug)) return false;
@@ -550,7 +566,7 @@ function pickExerciseForSlot(
     // relax used-in-day, но сохраняем запрет ударных при jointCare и пол демо
     const relaxed = exercises.filter((e) => {
       if (!isExerciseAllowedForClientGender(e, input.gender)) return false;
-      if (e.category !== slot.category) return false;
+      if (!categoriesMatchSlot(slot.category, e.category)) return false;
       if (!exerciseMatchesEquipment(e, availableEquipment)) return false;
       if (jointCare && (restrictedSlugs.has(e.slug) || isImpactOrJumpExercise(e))) return false;
       if (jointCare && e.tags.some((t) => excludeTags.has(t.toLowerCase()))) return false;
@@ -653,6 +669,49 @@ export function generateProgram(exercises: Exercise[], input: ProgramInput): Pro
   return generateMultiWeekProgram(exercises, input, 4);
 }
 
+const SLOT_CATEGORY_LABEL: Record<ExerciseCategory, string> = {
+  warmup: "разминка",
+  mobility: "мобильность",
+  activation: "активация",
+  core: "кор",
+  strength_lower: "низ тела",
+  strength_upper: "верх тела",
+  strength_full: "всё тело",
+  cardio: "кардио",
+  cooldown: "заминка",
+};
+
+const SECTION_LABEL = {
+  warmup: "разминки",
+  main: "основной части",
+  cooldown: "заминки",
+} as const;
+
+export class TrainingPoolGapError extends Error {
+  readonly gaps: string[];
+
+  constructor(gaps: string[]) {
+    super(
+      `Не хватает упражнений с подтверждённым роликом. Черновик не сохранён. ${gaps.join(" ")}`,
+    );
+    this.name = "TrainingPoolGapError";
+    this.gaps = gaps;
+  }
+}
+
+function slotGapMessage(
+  section: "warmup" | "main" | "cooldown",
+  slot: SlotSpec,
+  exercises: Exercise[],
+): string {
+  const category = SLOT_CATEGORY_LABEL[slot.category];
+  const exists = exercises.some((exercise) => categoriesMatchSlot(slot.category, exercise.category));
+  if (!exists) {
+    return `Для ${SECTION_LABEL[section]} в подтверждённом списке нет упражнения «${category}».`;
+  }
+  return `Для ${SECTION_LABEL[section]} упражнение «${category}» есть, но не подходит под уровень, инвентарь или ограничения клиента.`;
+}
+
 const WEEK_PROGRESSION_META = [
   {
     title: "Неделя 1 — знакомство",
@@ -680,15 +739,55 @@ const WEEK_PROGRESSION_META = [
   },
 ] as const;
 
+export type ReadyTrainingBlock = {
+  id: string;
+  kind: "warmup" | "cooldown";
+  label: string;
+  coversMobility: boolean;
+  coversActivation: boolean;
+  equipment: string[];
+};
+
+function blockSet(block: ReadyTrainingBlock): ExerciseSet {
+  return {
+    exercise_id: block.id,
+    sets: 1,
+    reps: "блок",
+    rest_seconds: 0,
+    tempo: null,
+    note: null,
+  };
+}
+
+function warmupRemainder(block: ReadyTrainingBlock, specs: SlotSpec[]): SlotSpec[] {
+  return specs.filter((spec) => {
+    if (spec.category === "warmup") return false;
+    if (spec.category === "mobility" && block.coversMobility) return false;
+    if (spec.category === "activation" && block.coversActivation) return false;
+    return true;
+  });
+}
+
+function remainderCanBeFilled(specs: SlotSpec[], catalog: Exercise[], input: ProgramInput): boolean {
+  const used = new Set<string>();
+  const weekUse = new Map<string, number>();
+  return specs.every((spec) => pickExerciseForSlot(spec, catalog, input, used, weekUse) != null);
+}
+
 /**
  * Мультинедельная программа с видимой прогрессией (по умолчанию 4 недели).
  * Упражнения могут меняться между неделями, но структура дня сохраняется.
+ * Готовый блок разминки закрывает мобильность и активацию только если это отмечено у него самого.
  */
 export function generateMultiWeekProgram(
   exercises: Exercise[],
   input: ProgramInput,
   weeks = 4,
+  options?: { strict?: boolean; blocks?: ReadyTrainingBlock[] },
 ): ProgramDay[] {
+  const strict = options?.strict === true;
+  const blocks = options?.blocks ?? [];
+  const gaps = new Set<string>();
   const weekCount = Math.max(1, Math.min(4, weeks));
   const templates = planWeek(input);
   const slots = scheduleSlots(input.sessions_per_week);
@@ -710,6 +809,27 @@ export function generateMultiWeekProgram(
       }
       const template = templates[idx % templates.length];
       const usedInDay = new Set<string>();
+      const trainingOrdinal = allDays.filter((day) => !day.is_rest).length;
+      const availableEquipment = clientAvailableEquipmentKeys(input.equipment, input.location);
+      const warmupCandidates = blocks.filter(
+        (block) =>
+          block.kind === "warmup" &&
+          exerciseMatchesEquipment({ equipment: block.equipment }, availableEquipment) &&
+          remainderCanBeFilled(warmupRemainder(block, template.warmup), catalog, input),
+      );
+      const cooldownCandidates = blocks.filter(
+        (block) =>
+          block.kind === "cooldown" &&
+          exerciseMatchesEquipment({ equipment: block.equipment }, availableEquipment),
+      );
+      const warmupBlock = warmupCandidates.length
+        ? warmupCandidates[trainingOrdinal % warmupCandidates.length]
+        : null;
+      const cooldownBlock = cooldownCandidates.length
+        ? cooldownCandidates[trainingOrdinal % cooldownCandidates.length]
+        : null;
+      if (warmupBlock) usedInDay.add(warmupBlock.id);
+      if (cooldownBlock) usedInDay.add(cooldownBlock.id);
 
       const build = (specs: SlotSpec[], section: "warmup" | "main" | "cooldown"): ExerciseSet[] => {
         const out: ExerciseSet[] = [];
@@ -720,7 +840,10 @@ export function generateMultiWeekProgram(
             pool = [...catalog].sort((a, b) => (weekUse.get(a.id) ?? 0) - (weekUse.get(b.id) ?? 0));
           }
           const ex = pickExerciseForSlot(spec, pool, input, usedInDay, weekUse);
-          if (!ex) continue;
+          if (!ex) {
+            if (strict) gaps.add(slotGapMessage(section, spec, exercises));
+            continue;
+          }
           const gendered = preferExerciseForClientGender(ex, catalog, input.gender);
           usedInDay.add(gendered.id);
           weekUse.set(gendered.id, (weekUse.get(gendered.id) ?? 0) + 1);
@@ -760,13 +883,20 @@ export function generateMultiWeekProgram(
         title: `${template.title} · ${meta.title}`,
         focus: meta.focus,
         description: template.description,
-        warmup: build(template.warmup, "warmup"),
+        warmup: [
+          ...(warmupBlock ? [blockSet(warmupBlock)] : []),
+          ...build(
+            warmupBlock ? warmupRemainder(warmupBlock, template.warmup) : template.warmup,
+            "warmup",
+          ),
+        ],
         exercises: main,
-        cooldown: build(template.cooldown, "cooldown"),
+        cooldown: cooldownBlock ? [blockSet(cooldownBlock)] : build(template.cooldown, "cooldown"),
         day_note: meta.note,
       });
     }
   }
+  if (gaps.size > 0) throw new TrainingPoolGapError([...gaps]);
   return allDays;
 }
 

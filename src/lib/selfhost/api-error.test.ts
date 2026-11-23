@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   apiErrorMessage,
   coerceJsonApiResponse,
   isJsonMediaType,
   jsonApiError,
+  logServerError,
   readApiPayload,
   rebuildFailureMessage,
 } from "@/lib/selfhost/api-error";
@@ -42,6 +43,17 @@ describe("nutrition API JSON contract", () => {
     expect(error.headers.get("content-type")).toContain("application/json");
     expect(apiErrorMessage(await error.json())).toBe("Нельзя опубликовать невалидный план");
     expect(apiErrorMessage({ error: "Нужно войти в кабинет" })).toBe("Нужно войти в кабинет");
+  });
+
+  it("не пишет параметр p закрытой ссылки в лог", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    logServerError(
+      new Error("плеер https://rutube.ru/video/private/cccccccccccccccccccccccccccccccc/?p=keep_me-2"),
+    );
+    const logged = spy.mock.calls.map((call) => call.join(" ")).join("\n");
+    expect(logged).not.toContain("keep_me-2");
+    expect(logged).toContain("p=***");
+    spy.mockRestore();
   });
 
   it("frontend does not parse an HTML response as JSON", async () => {

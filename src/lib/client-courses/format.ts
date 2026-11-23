@@ -46,3 +46,16 @@ export function courseStatusLabel(status: ClientCourseStatus): string {
       return "В архиве";
   }
 }
+
+/** Подпись статуса в кабинете клиента: слово «Черновик» не показываем. */
+export function clientFacingCourseStatusLabel(input: {
+  status: ClientCourseStatus;
+  nutrition_published?: boolean;
+  training_published?: boolean;
+}): string {
+  if (input.status === "draft") {
+    if (input.nutrition_published || input.training_published) return "Активный";
+    return "В подготовке";
+  }
+  return courseStatusLabel(input.status);
+}

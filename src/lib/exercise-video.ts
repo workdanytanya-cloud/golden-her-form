@@ -115,6 +115,12 @@ export function rutubeEmbedUrl(id: string, privateParam?: string | null): string
   return embed.toString();
 }
 
+function explicitVideoStatus(input: VideoInput | null | undefined): ExerciseVideoStatus | null {
+  const raw = input?.video?.status ?? input?.video_status ?? null;
+  if (raw === "ok" || raw === "unavailable" || raw === "unchecked") return raw;
+  return null;
+}
+
 export function isAllowedEmbedUrl(raw: string | null | undefined): boolean {
   const url = parseHttpsUrl(raw);
   if (!url) return false;
@@ -199,6 +205,7 @@ export function normalizeExerciseVideo(input: VideoInput | null | undefined): Ex
     };
   }
 
+  const storedStatus = explicitVideoStatus(input);
   const yt = youtubeVideoId(parsed);
   if (yt) {
     const embed = youtubeEmbedUrl(yt);
@@ -207,7 +214,7 @@ export function normalizeExerciseVideo(input: VideoInput | null | undefined): Ex
       url: `https://www.youtube.com/watch?v=${yt}`,
       embed_url: isAllowedEmbedUrl(embed) ? embed : null,
       title,
-      status: "ok",
+      status: storedStatus ?? "ok",
       fallback_text,
     };
   }
@@ -215,17 +222,18 @@ export function normalizeExerciseVideo(input: VideoInput | null | undefined): Ex
   const rt = rutubeVideoId(parsed);
   if (rt) {
     const privateParam = parsed.searchParams.get("p");
-    const embed = rutubeEmbedUrl(rt, privateParam);
     const isPrivate = /\/video\/private\//i.test(parsed.pathname) || Boolean(privateParam);
+    // Без p закрытый ролик в /play/embed не открывается. Страницу /video/private/ в iframe не подставляем.
+    const embed = !isPrivate || privateParam ? rutubeEmbedUrl(rt, privateParam) : null;
     const canonical = isPrivate
       ? `https://rutube.ru/video/private/${rt}/${privateParam ? `?p=${encodeURIComponent(privateParam)}` : ""}`
       : `https://rutube.ru/video/${rt}/`;
     return {
       provider: "rutube",
       url: canonical,
-      embed_url: isAllowedEmbedUrl(embed) ? embed : null,
+      embed_url: embed && isAllowedEmbedUrl(embed) ? embed : null,
       title,
-      status: "ok",
+      status: storedStatus ?? "unchecked",
       fallback_text,
     };
   }

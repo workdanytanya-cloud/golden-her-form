@@ -7,7 +7,10 @@ import {
   InvalidIngredientGramsError,
 } from "@/lib/nutrition-constructor/ingredient-normalize";
 import { roundTargetsForDb, d } from "@/lib/nutrition-constructor/decimal-math";
-import { evaluatePlanKbjuStatus } from "@/lib/nutrition-constructor/plan-kbju-status";
+import {
+  evaluatePlanKbjuStatus,
+  planStructureValid,
+} from "@/lib/nutrition-constructor/plan-kbju-status";
 import { comparisonRows } from "@/lib/nutrition-constructor/calculator";
 import type { MealScheduleMode } from "@/lib/nutrition-constructor/config";
 import { clientProductName } from "@/lib/nutrition-constructor/catalog-policy";
@@ -56,6 +59,8 @@ export const nutritionPublishSchema = z.object({
   reason: z.string().max(2000).nullable().optional(),
   idempotencyKey: z.string().min(8).max(200).optional().nullable(),
   plan_status: z.enum(["draft", "validated", "assigned"]).optional(),
+  /** Явное подтверждение тренера: публиковать даже вне допуска КБЖУ. */
+  acknowledgeOutOfTolerance: z.boolean().optional(),
 });
 
 export const nutritionDraftSaveSchema = z
@@ -832,6 +837,7 @@ export async function publishNutritionVersionPg(
     idempotencyKey?: string | null;
     days: ConstructorDay[];
     plan: ConstructorPlanRow;
+    acknowledgeOutOfTolerance?: boolean;
   },
 ): Promise<{ versionId: string; contentHash: string; idempotent: boolean }> {
   if (!input.days.length) {
@@ -867,8 +873,15 @@ export async function publishNutritionVersionPg(
     scheduleMode: mode,
     comparison,
   });
-  // Не доверяем client-side is_valid: проверяем структуру и КБЖУ по содержимому.
-  if (!kbju.acceptable) {
+  const structureOk = planStructureValid(input.days, mode);
+  // Не доверяем client-side is_valid: структура обязательна всегда.
+  // КБЖУ вне допуска — только с явным подтверждением тренера.
+  if (!structureOk) {
+    throw Object.assign(new Error("Нельзя опубликовать невалидный или неполный план питания"), {
+      statusCode: 400,
+    });
+  }
+  if (!kbju.acceptable && !input.acknowledgeOutOfTolerance) {
     throw Object.assign(
       new Error(
         kbju.invalidDayCount > 0

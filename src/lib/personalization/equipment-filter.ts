@@ -12,6 +12,32 @@ const ONBOARDING_EQUIPMENT_MAP: Record<string, string[]> = {
   Ничего: ["bodyweight"],
 };
 
+/** Нормализация ключей инвентаря из каталога (включая русские подписи). */
+export function normalizeEquipmentKey(raw: string): string {
+  const value = raw.trim().toLowerCase();
+  if (!value) return value;
+  if (value === "коврик" || value === "mat") return "mat";
+  if (value.includes("гантел") || value === "dumbbell") return "dumbbell";
+  if (
+    value.includes("резин") ||
+    value.includes("лент") ||
+    value.includes("амортизатор") ||
+    value === "band" ||
+    value === "resistance_band"
+  ) {
+    return "band";
+  }
+  if (value.includes("гир") || value === "kettlebell") return "kettlebell";
+  if (value.includes("штан") || value === "barbell") return "barbell";
+  if (value.includes("стул") || value === "chair") return "chair";
+  if (value.includes("бутыл") || value.includes("вод")) return "dumbbell";
+  return value;
+}
+
+export function normalizeExerciseEquipmentKeys(equipment: string[] | null | undefined): string[] {
+  return [...new Set((equipment ?? []).map(normalizeEquipmentKey).filter(Boolean))];
+}
+
 /** Доступный клиенту инвентарь (ключи БД). */
 export function clientAvailableEquipmentKeys(
   equipment: string[] | null | undefined,
@@ -44,7 +70,7 @@ export function exerciseMatchesEquipment(
   exercise: Pick<Exercise, "equipment">,
   available: Set<string>,
 ): boolean {
-  const required = (exercise.equipment ?? []).filter(Boolean);
+  const required = normalizeExerciseEquipmentKeys(exercise.equipment);
   if (required.length === 0) return true;
   return required.every((r) => available.has(r) || r === "mat");
 }

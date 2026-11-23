@@ -1,5 +1,6 @@
 // Nutrition module — pure logic: BMR/TDEE/macro targets and menu generation.
 
+import { resolveClientAge } from "@/lib/client-age";
 import { dishMatchesProduct, normalizeFoodTerms } from "@/lib/food-products";
 import type { MealPattern, RecipeComplexity } from "@/lib/plan-options";
 
@@ -47,6 +48,7 @@ export type NutritionTargets = {
 export type ProfileInput = {
   gender?: "female" | "male" | null;
   birth_date?: string | null;
+  age_years?: number | null;
   height_cm?: number | null;
   weight_kg?: number | null;
   activity_level?: string | null;
@@ -57,9 +59,8 @@ export type ProfileInput = {
 export function calcTargets(p: ProfileInput): NutritionTargets {
   const weight = p.weight_kg && p.weight_kg > 30 ? p.weight_kg : 65;
   const height = p.height_cm && p.height_cm > 120 ? p.height_cm : 165;
-  const age = p.birth_date
-    ? Math.max(16, Math.floor((Date.now() - new Date(p.birth_date).getTime()) / 31557600000))
-    : 30;
+  const age =
+    resolveClientAge({ birthDate: p.birth_date, ageYears: p.age_years }) ?? 30;
   const gender = p.gender ?? "female";
   const bmr =
     gender === "male"

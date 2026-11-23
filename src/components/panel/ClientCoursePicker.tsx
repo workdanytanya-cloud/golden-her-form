@@ -1,12 +1,23 @@
 import { CalendarPlus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import { useClientCourses, courseStatusLabel } from "@/lib/client-course-context";
-import { useState } from "react";
+import { useClientCourses } from "@/lib/client-course-context";
+import { clientFacingCourseStatusLabel } from "@/lib/client-courses/format";
+import { useMemo, useState } from "react";
 
 export function ClientCoursePicker({ showRenew = true }: { showRenew?: boolean }) {
   const { courses, selectedCourseId, selectedCourse, setSelectedCourseId, renewCourse, loading } =
     useClientCourses();
   const [renewing, setRenewing] = useState(false);
+  const visibleCourses = useMemo(
+    () =>
+      courses.filter(
+        (course) =>
+          course.status !== "draft" ||
+          course.nutrition_published === true ||
+          course.training_published === true,
+      ),
+    [courses],
+  );
 
   if (loading) {
     return (
@@ -16,7 +27,7 @@ export function ClientCoursePicker({ showRenew = true }: { showRenew?: boolean }
     );
   }
 
-  if (courses.length === 0) {
+  if (visibleCourses.length === 0) {
     return null;
   }
 
@@ -42,9 +53,9 @@ export function ClientCoursePicker({ showRenew = true }: { showRenew?: boolean }
             value={selectedCourseId ?? ""}
             onChange={(e) => setSelectedCourseId(e.target.value)}
           >
-            {courses.map((c) => (
+            {visibleCourses.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.title} — {courseStatusLabel(c.status)}
+                {c.title} — {clientFacingCourseStatusLabel(c)}
               </option>
             ))}
           </select>

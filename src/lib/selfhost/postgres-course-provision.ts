@@ -22,7 +22,11 @@ import {
   type ProgramScope,
 } from "@/lib/client-courses/program-readiness";
 import { buildForbiddenProductIds } from "@/lib/nutrition-constructor/allergens";
-import { calcMacroTargets, checkAutoGenerationSafety } from "@/lib/nutrition-constructor/targets";
+import {
+  calcMacroTargets,
+  checkAutoGenerationSafety,
+  isBlockingPregnancyStatus,
+} from "@/lib/nutrition-constructor/targets";
 import { generateAndValidateConstructorPlan } from "@/lib/nutrition-constructor/repo";
 import {
   GOAL_FALLBACK_MESSAGE,
@@ -51,8 +55,9 @@ import {
   saveConstructorPlanPg,
 } from "@/lib/selfhost/postgres-nutrition";
 import {
-  listTrainingExercisesPg,
+  loadGeneratorPoolExercisesPg,
   loadPreviousTrainingContextPg,
+  loadReadyBlocksPg,
   saveTrainingDraftPg,
 } from "@/lib/selfhost/postgres-training";
 
@@ -73,6 +78,7 @@ type Facts = {
   weightKg: number | null;
   gender: "female" | "male" | null;
   birthDate: string | null;
+  ageYears: number | null;
   activityLevel: string | null;
   trainingDays: number | null;
   allergies: string;
@@ -135,7 +141,7 @@ function clipError(error: unknown): string {
 async function loadFacts(db: Pool | PoolClient, clientId: string): Promise<Facts> {
   const { rows } = await db.query(
     `SELECT p.goal AS profile_goal, o.goal_primary, o.goal_details,
-            p.height_cm, p.gender, p.birth_date::text AS birth_date, p.preferred_meal_schedule,
+            p.height_cm, p.gender, p.birth_date::text AS birth_date, p.age_years, p.preferred_meal_schedule,
             o.activity_level, o.training_days_per_week, o.allergies, o.disliked_foods,
             o.pregnancy_status, o.health_conditions, o.has_injuries, o.injuries_details,
             o.equipment, o.training_location, o.extra
@@ -180,6 +186,7 @@ async function loadFacts(db: Pool | PoolClient, clientId: string): Promise<Facts
         : Number(weight.rows[0].weight_kg as number | string),
     gender: mapGender((row.gender as string | null) ?? null),
     birthDate: row.birth_date ? String(row.birth_date).slice(0, 10) : null,
+    ageYears: row.age_years == null ? null : Number(row.age_years),
     activityLevel: (row.activity_level as string | null) ?? null,
     trainingDays: row.training_days_per_week == null ? null : Number(row.training_days_per_week),
     allergies: typeof row.allergies === "string" ? row.allergies : "",
@@ -198,7 +205,7 @@ async function loadFacts(db: Pool | PoolClient, clientId: string): Promise<Facts
     goalText: resolved.text,
     goalFallback: resolved.fallback,
     direction: resolved.direction,
-    pregnancyLimitsLoad: Boolean(pregnancy) && !/^(none|no|нет|отсутствует)$/.test(pregnancy),
+    pregnancyLimitsLoad: isBlockingPregnancyStatus(pregnancy),
   };
 }
 
@@ -210,6 +217,7 @@ function assertReady(facts: Facts, scope: ProgramScope): void {
       weightKg: facts.weightKg,
       gender: facts.gender,
       birthDate: facts.birthDate,
+      ageYears: facts.ageYears,
       activityLevel: facts.activityLevel,
       trainingDays: facts.trainingDays,
     },
@@ -344,6 +352,7 @@ async function runStage(
 async function generateFreshNutrition(clientId: string, courseId: string, facts: Facts) {
   const safety = checkAutoGenerationSafety({
     birth_date: facts.birthDate,
+    age_years: facts.ageYears,
     pregnancy_status: facts.pregnancyStatus,
     health_conditions: facts.healthConditions,
     profile_complete: true,
@@ -358,6 +367,7 @@ async function generateFreshNutrition(clientId: string, courseId: string, facts:
   const profile = {
     gender: facts.gender,
     birth_date: facts.birthDate,
+    age_years: facts.ageYears,
     height_cm: facts.heightCm,
     weight_kg: facts.weightKg,
     activity_level: facts.activityLevel,
@@ -445,7 +455,7 @@ async function generateTrainingDraft(
     gender: facts.gender,
   };
   const pool = getPostgresPool();
-  const exercises = await listTrainingExercisesPg(pool);
+  const exercises = await loadGeneratorPoolExercisesPg(pool);
   const previous = sourceCourseId
     ? await loadPreviousTrainingContextPg(pool, clientId, courseId, sourceCourseId)
     : null;
@@ -456,12 +466,10 @@ async function generateTrainingDraft(
     previousIds.size > 0
       ? exercises.filter((exercise) => !previousIds.has(exercise.id))
       : exercises;
-  if (previousIds.size > 0 && available.length < 8) {
-    throw Object.assign(new Error(INSUFFICIENT_EXERCISE_VARIETY_MESSAGE), {
-      code: INSUFFICIENT_EXERCISE_VARIETY,
-    });
-  }
-  const days = generateMultiWeekProgram(available, input, 4);
+  const days = generateMultiWeekProgram(available, input, 4, {
+    strict: true,
+    blocks: await loadReadyBlocksPg(pool),
+  });
   const variety = assessTrainingVariety(days, previous?.days ?? null);
   if (!variety.ok) {
     throw Object.assign(new Error(INSUFFICIENT_EXERCISE_VARIETY_MESSAGE), {

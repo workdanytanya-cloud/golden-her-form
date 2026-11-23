@@ -61,7 +61,43 @@ describe("exercise video links", () => {
       url: `https://rutube.ru/play/embed/${id}/?skinColor=000000`,
     });
     expect(embed.provider).toBe("rutube");
-    expect(embed.status).toBe("ok");
+    expect(embed.status).toBe("unchecked");
+  });
+
+  it("сохраняет параметр p закрытого Rutube и не считает ссылку проверенной", () => {
+    const id = "c".repeat(32);
+    const token = "keep_me-2";
+    const raw = `https://rutube.ru/video/private/${id}/?p=${token}`;
+    const video = normalizeExerciseVideo({ url: raw });
+    expect(video.provider).toBe("rutube");
+    expect(video.status).toBe("unchecked");
+    expect(video.url).toContain(`/video/private/${id}/`);
+    expect(video.url).toContain(`p=${token}`);
+    expect(video.embed_url).toContain(`/play/embed/${id}/`);
+    expect(video.embed_url).toContain(`p=${token}`);
+    expect(video.embed_url).not.toContain("/video/private/");
+
+    const reopened = normalizeExerciseVideo({ url: video.url, video_status: video.status });
+    expect(reopened.embed_url).toBe(video.embed_url);
+    expect(reopened.status).toBe("unchecked");
+    expect(normalizeExerciseVideo({ url: raw, video_status: "ok" }).status).toBe("ok");
+  });
+
+  it("не собирает плеер закрытого Rutube без параметра p", () => {
+    const id = "d".repeat(32);
+    const video = normalizeExerciseVideo({ url: `https://rutube.ru/video/private/${id}/` });
+    expect(video.embed_url).toBeNull();
+    expect(video.url).toContain("/video/private/");
+    expect(video.status).toBe("unchecked");
+  });
+
+  it("сохраняет выбранный статус ok после проверки тренером", () => {
+    const id = "f".repeat(32);
+    const url = `https://rutube.ru/video/private/${id}/?p=keep-me`;
+    expect(normalizeExerciseVideo({ url }).status).toBe("unchecked");
+    const checked = normalizeExerciseVideo({ url, video_status: "ok" });
+    expect(checked.status).toBe("ok");
+    expect(checked.embed_url).toContain(`p=keep-me`);
   });
 
   it("отклоняет неверный URL, http и HTML", () => {
